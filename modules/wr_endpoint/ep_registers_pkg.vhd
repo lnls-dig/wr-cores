@@ -85,10 +85,10 @@ package ep_wbgen2_pkg is
       vcr0_fix_prio_o                          : std_logic;
       vcr0_prio_val_o                          : std_logic_vector(2 downto 0);
       vcr0_pvid_o                              : std_logic_vector(11 downto 0);
-      vcr1_vid_o                               : std_logic_vector(11 downto 0);
-      vcr1_vid_wr_o                            : std_logic;
-      vcr1_value_o                             : std_logic;
-      vcr1_value_wr_o                          : std_logic;
+      vcr1_offset_o                            : std_logic_vector(9 downto 0);
+      vcr1_offset_wr_o                         : std_logic;
+      vcr1_data_o                              : std_logic_vector(17 downto 0);
+      vcr1_data_wr_o                           : std_logic;
       pfcr0_mm_addr_o                          : std_logic_vector(5 downto 0);
       pfcr0_mm_addr_wr_o                       : std_logic;
       pfcr0_mm_write_o                         : std_logic;
@@ -144,10 +144,10 @@ package ep_wbgen2_pkg is
       vcr0_fix_prio_o => '0',
       vcr0_prio_val_o => (others => '0'),
       vcr0_pvid_o => (others => '0'),
-      vcr1_vid_o => (others => '0'),
-      vcr1_vid_wr_o => '0',
-      vcr1_value_o => '0',
-      vcr1_value_wr_o => '0',
+      vcr1_offset_o => (others => '0'),
+      vcr1_offset_wr_o => '0',
+      vcr1_data_o => (others => '0'),
+      vcr1_data_wr_o => '0',
       pfcr0_mm_addr_o => (others => '0'),
       pfcr0_mm_addr_wr_o => '0',
       pfcr0_mm_write_o => '0',

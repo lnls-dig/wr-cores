@@ -135,8 +135,8 @@ begin
       ep_vcr0_fix_prio_int <= '0';
       ep_vcr0_prio_val_int <= "000";
       ep_vcr0_pvid_int <= "000000000000";
-      regs_o.vcr1_vid_wr_o <= '0';
-      regs_o.vcr1_value_wr_o <= '0';
+      regs_o.vcr1_offset_wr_o <= '0';
+      regs_o.vcr1_data_wr_o <= '0';
       regs_o.pfcr0_mm_addr_wr_o <= '0';
       regs_o.pfcr0_mm_write_wr_o <= '0';
       ep_pfcr0_enable_int <= '0';
@@ -164,8 +164,8 @@ begin
       if (ack_in_progress = '1') then
         if (ack_sreg(0) = '1') then
           ep_ecr_rst_cnt_int <= '0';
-          regs_o.vcr1_vid_wr_o <= '0';
-          regs_o.vcr1_value_wr_o <= '0';
+          regs_o.vcr1_offset_wr_o <= '0';
+          regs_o.vcr1_data_wr_o <= '0';
           regs_o.pfcr0_mm_addr_wr_o <= '0';
           regs_o.pfcr0_mm_write_wr_o <= '0';
           regs_o.pfcr0_mm_data_msb_wr_o <= '0';
@@ -184,10 +184,8 @@ begin
         else
           ep_tscr_cs_start_int <= ep_tscr_cs_start_int_delay;
           ep_tscr_cs_start_int_delay <= '0';
-          ep_tscr_rx_cal_start_int <= ep_tscr_rx_cal_start_int_delay;
-          ep_tscr_rx_cal_start_int_delay <= '0';
-          regs_o.vcr1_vid_wr_o <= '0';
-          regs_o.vcr1_value_wr_o <= '0';
+          regs_o.vcr1_offset_wr_o <= '0';
+          regs_o.vcr1_data_wr_o <= '0';
           regs_o.pfcr0_mm_addr_wr_o <= '0';
           regs_o.pfcr0_mm_write_wr_o <= '0';
           regs_o.pfcr0_mm_data_msb_wr_o <= '0';
@@ -340,8 +338,8 @@ begin
               ack_in_progress <= '1';
             when "00100" => 
               if (wb_we_i = '1') then
-                regs_o.vcr1_vid_wr_o <= '1';
-                regs_o.vcr1_value_wr_o <= '1';
+                regs_o.vcr1_offset_wr_o <= '1';
+                regs_o.vcr1_data_wr_o <= '1';
               end if;
               rddata_reg(0) <= 'X';
               rddata_reg(1) <= 'X';
@@ -800,12 +798,12 @@ begin
   regs_o.vcr0_prio_val_o <= ep_vcr0_prio_val_int;
 -- Port-assigned VID
   regs_o.vcr0_pvid_o <= ep_vcr0_pvid_int;
--- Egress untagged set bitmap VID
--- pass-through field: Egress untagged set bitmap VID in register: VLAN Control Register 1
-  regs_o.vcr1_vid_o <= wrdata_reg(11 downto 0);
--- Egress untagged set bitmap value
--- pass-through field: Egress untagged set bitmap value in register: VLAN Control Register 1
-  regs_o.vcr1_value_o <= wrdata_reg(12);
+-- VLAN Untagged Set/Injection Buffer offset
+-- pass-through field: VLAN Untagged Set/Injection Buffer offset in register: VLAN Control Register 1
+  regs_o.vcr1_offset_o <= wrdata_reg(9 downto 0);
+-- VLAN Untagged Set/Injection Buffer value
+-- pass-through field: VLAN Untagged Set/Injection Buffer value in register: VLAN Control Register 1
+  regs_o.vcr1_data_o <= wrdata_reg(27 downto 10);
 -- Microcode Memory Address
 -- pass-through field: Microcode Memory Address in register: Packet Filter Control Register 0
   regs_o.pfcr0_mm_addr_o <= wrdata_reg(5 downto 0);

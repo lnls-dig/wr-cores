@@ -283,6 +283,7 @@ architecture rtl of ep_1000basex_pcs is
       rmon_o                     : inout t_rmon_triggers);
   end component;
 
+
   component ep_pcs_tbi_mdio_wb
     port (
       rst_n_i                    : in  std_logic;
@@ -305,6 +306,7 @@ architecture rtl of ep_1000basex_pcs is
       mdio_mcr_loopback_o        : out std_logic;
       mdio_mcr_reset_o           : out std_logic;
       mdio_msr_lstatus_i         : in  std_logic;
+      lstat_read_notify_o        : out std_logic;
       mdio_msr_rfault_i          : in  std_logic;
       mdio_msr_anegcomplete_i    : in  std_logic;
       mdio_advertise_pause_o     : out std_logic_vector(1 downto 0);
@@ -318,11 +320,8 @@ architecture rtl of ep_1000basex_pcs is
       mdio_wr_spec_tx_cal_o      : out std_logic;
       mdio_wr_spec_rx_cal_stat_i : in  std_logic;
       mdio_wr_spec_cal_crst_o    : out std_logic;
-      mdio_wr_spec_bslide_i      : in  std_logic_vector(4 downto 0);
-      lstat_read_notify_o        : out std_logic);
+      mdio_wr_spec_bslide_i      : in  std_logic_vector(4 downto 0));
   end component;
-
-
 
   component ep_autonegotiation
     generic (
@@ -496,6 +495,8 @@ begin  -- rtl
         );
 
     
+    serdes_tx_k_o(1)              <= 'X';
+    serdes_tx_data_o(15 downto 8) <= (others => 'X');
 
     U_RX_PCS : ep_rx_pcs_8bit
       generic map (

@@ -319,31 +319,29 @@ peripheral {
 
     reg {
        name = "VLAN Control Register 1";
-       description = "Controls the access to the egress VLAN untagged set.\
-                      Each write can enable (VALUE=1) / disable (VALUE=0) untagging frames\
-                      with given VID";
+       description = "Provides access to the egress VLAN untagged set and packet injection template buffer. In order to write to the buffer, set the DATA and OFFSET fields to the desired buffer location/value.\
+       The buffer layout goes as follows:\
+          - the lower part (offsets 0 to 255) contains the VLAN untagged set bitmap. Each bit represents a single VLAN, where VID = OFFSET * 16 + bit position. For bits set to 1, VLAN headers containing corrensponding VID value are untagged.\
+       - the higher part (offsets 512 to 1024) contains the packet injection template buffer.         The buffer can store up to 8 packet templates of up to 128 bytes of size. Bits [15:0] of each entry contain the data value to be sent, bit 16 indicates the last word to transfer and bit 17 indicates that the current word shall be replaced by the user value (inject_user_value_i)."; 
                      
        prefix = "VCR1";
        
        field {
-          name = "Egress untagged set bitmap VID";
-          description = "write: the VID to be tagged/untagged\
-                         read: undefined";
+          name = "VLAN Untagged Set/Injection Buffer offset";
+          description = "Buffer address to be written";
 
-          prefix = "VID";
+          prefix = "OFFSET";
           type = PASS_THROUGH;
-          size = 12;
+          size = 10;
        };
 
        field {
-          name = "Egress untagged set bitmap value";
-          description = "write 1: frames with matching VID are untagged\
-                         write 0: frames with matching VID are not modified\
-                         read: undefined";
+          name = "VLAN Untagged Set/Injection Buffer value";
+          description = "Buffer value to be written";
 
-          prefix = "VALUE";
+          prefix = "DATA";
           type = PASS_THROUGH;
-          size = 1;
+          size = 18;
        };
     };
 
