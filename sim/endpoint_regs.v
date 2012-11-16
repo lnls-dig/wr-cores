@@ -47,10 +47,10 @@
 `define EP_VCR0_PVID_OFFSET 16
 `define EP_VCR0_PVID 32'h0fff0000
 `define ADDR_EP_VCR1                   8'h10
-`define EP_VCR1_VID_OFFSET 0
-`define EP_VCR1_VID 32'h00000fff
-`define EP_VCR1_VALUE_OFFSET 12
-`define EP_VCR1_VALUE 32'h00001000
+`define EP_VCR1_OFFSET_OFFSET 0
+`define EP_VCR1_OFFSET 32'h000003ff
+`define EP_VCR1_DATA_OFFSET 10
+`define EP_VCR1_DATA 32'h0ffffc00
 `define ADDR_EP_PFCR0                  8'h14
 `define EP_PFCR0_MM_ADDR_OFFSET 0
 `define EP_PFCR0_MM_ADDR 32'h0000003f
