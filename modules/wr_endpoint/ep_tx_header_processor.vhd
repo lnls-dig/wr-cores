@@ -1,28 +1,39 @@
 -------------------------------------------------------------------------------
--- Title      : 1000base-X MAC/Endpoint
--- Project    : White Rabbit Switch
+-- Title      : 1000base-X MAC/Endpoint - TX packet header processing unit
+-- Project    : White Rabbit
 -------------------------------------------------------------------------------
--- File       : ep_tx_framer.vhd
+-- File       : ep_tx_header_processor.vhd
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2009-06-22
--- Last update: 2012-11-15
+-- Last update: 2012-11-16
 -- Platform   : FPGA-generic
--- Standard   : VHDL'87
+-- Standard   : VHDL'93
 -------------------------------------------------------------------------------
--- Description: TX Framing module:
--- - provides a WRF interface to the host
+-- Description: Processes headers and OOBs of the packets to be transmitted.
+-- - provides a Wishbone-B4 interface to the host
 -- - embeds source MAC addresses if they aren't defined by the host
--- - calculates frame CRC checksum
--- - strips 802.1q headers when necessary
 -- - decodes TX OOB data and passes it to the timestamping unit
 -------------------------------------------------------------------------------
--- Copyright (c) 2009 Tomasz Wlostowski
--------------------------------------------------------------------------------
--- Revisions  :
--- Date        Version  Author          Description
--- 2009-06-22  0.1      twlostow        Created
--- 2010-10-25  0.2      twlostow        Updated to WRF-compatible ports
+--
+-- Copyright (c) 2009 - 2012 CERN
+--
+-- This source file is free software; you can redistribute it   
+-- and/or modify it under the terms of the GNU Lesser General   
+-- Public License as published by the Free Software Foundation; 
+-- either version 2.1 of the License, or (at your option) any   
+-- later version.                                               
+--
+-- This source is distributed in the hope that it will be       
+-- useful, but WITHOUT ANY WARRANTY; without even the implied   
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      
+-- PURPOSE.  See the GNU Lesser General Public License for more 
+-- details.                                                     
+--
+-- You should have received a copy of the GNU Lesser General    
+-- Public License along with this source; if not, download it   
+-- from http://www.gnu.org/licenses/lgpl-2.1.html
+--
 -------------------------------------------------------------------------------
 
 
@@ -296,7 +307,6 @@ begin  -- behavioral
         wb_out.err <= '0';
         wb_out.rty <= '0';
 
---        tx_ready      <= '0';
         tx_pause_mode <= '0';
 
         fc_pause_ready_o <= '1';
@@ -336,8 +346,6 @@ begin  -- behavioral
               src_fab_o.eof    <= '0';
               src_fab_o.dvalid <= '0';
               src_fab_o.bytesel <= '0';
-
---              tx_ready <= fc_flow_enable_i;
 
               -- Check start-of-frame and send-pause signals and eventually
               -- commence frame transmission
@@ -426,15 +434,11 @@ begin  -- behavioral
 
             when TXF_DATA =>
 
---              tx_ready <= '1';
-
               if(eof_p1 = '1') then
                 src_fab_o.eof <= '1';
                 counter       <= (others => '0');
                 state         <= TXF_GAP;
               end if;
-
-              --             tx_ready <= '0';
 
               if(snk_valid = '1' and wb_snk_i.adr = c_WRF_DATA) then
                 src_fab_o.data    <= wb_snk_i.dat;

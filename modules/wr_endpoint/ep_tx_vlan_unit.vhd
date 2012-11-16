@@ -1,19 +1,37 @@
 -------------------------------------------------------------------------------
--- Title      : 1000base-X MAC/Endpoint
--- Project    : White Rabbit Switch
+-- Title      : 1000base-X MAC/Endpoint - TX VLAN unit
+-- Project    : White Rabbit
 -------------------------------------------------------------------------------
 -- File       : ep_tx_vlan_unit.vhd
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
--- Created    : 2009-06-22
--- Last update: 2012-11-15
+-- Created    : 2012-11-01
+-- Last update: 2012-11-16
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
--- Description: TX VLAN Unit. Untags outgoing 802.1q packets if their VIDs are
--- in the VLAN Untagged Set.
+-- Description: Performs VLAN untagging, if the VID of the egress packet is in
+-- the VLAN untagged set.
 -------------------------------------------------------------------------------
--- Copyright (c) 2009 - 2012 CERN
+--
+-- Copyright (c) 2012 CERN
+--
+-- This source file is free software; you can redistribute it   
+-- and/or modify it under the terms of the GNU Lesser General   
+-- Public License as published by the Free Software Foundation; 
+-- either version 2.1 of the License, or (at your option) any   
+-- later version.                                               
+--
+-- This source is distributed in the hope that it will be       
+-- useful, but WITHOUT ANY WARRANTY; without even the implied   
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      
+-- PURPOSE.  See the GNU Lesser General Public License for more 
+-- details.                                                     
+--
+-- You should have received a copy of the GNU Lesser General    
+-- Public License along with this source; if not, download it   
+-- from http://www.gnu.org/licenses/lgpl-2.1.html
+--
 -------------------------------------------------------------------------------
 
 
@@ -40,6 +58,7 @@ entity ep_tx_vlan_unit is
     src_fab_o  : out t_ep_internal_fabric;
     src_dreq_i : in  std_logic;
 
+-- Shared buffer interface to the packet injection unit
     inject_mem_addr_i : in  std_logic_vector(9 downto 0);
     inject_mem_data_o : out std_logic_vector(17 downto 0);
 
@@ -68,10 +87,7 @@ architecture behavioral of ep_tx_vlan_unit is
   signal mem_addr_muxed : std_logic_vector(9 downto 0);
   signal mem_rdata      : std_logic_vector(17 downto 0);
   signal src_dreq_d0    : std_logic;
-  
-  
-  
-  
+
 begin  -- behavioral
 
   vut_rd_vid <= snk_fab_i.data(11 downto 0);

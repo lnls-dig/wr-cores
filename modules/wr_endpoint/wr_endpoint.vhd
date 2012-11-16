@@ -1,32 +1,44 @@
 -------------------------------------------------------------------------------
 -- Title      : 1000base-X MAC/Endpoint
--- Project    : WhiteRabbit Switch
+-- Project    : White Rabbit
 -------------------------------------------------------------------------------
 -- File       : wr_endpoint.vhd
 -- Author     : Tomasz Wlostowski
--- Company    : CERN BE-Co-HT
+-- Company    : CERN BE-CO-HT
 -- Created    : 2010-04-26
 -- Last update: 2013-03-15
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
--- Description: Module implements a gigabit-only optical PCS + MAC + some-of-l2
--- layer stuff for the purpose of WhiteRabbit switch. Features:
--- - frame reception & transmission
--- - flow control (pause frames)
+-- Description: Module implements the top level for the White Rabbit Endpoint
+-- It's basically an extended Ethernet MAC providing extra timing/switch-specific
+-- features such as:
 -- - VLANs: inserting/removing tags (for ACCESS/TRUNK port support)
 -- - RX/TX precise timestaping
 -- - full PCS for optical Gigabit Ethernet 
 -- - decodes MAC addresses, VIDs and priorities and passes them to the RTU.
+-- Refer to the manual for more details.
 -------------------------------------------------------------------------------
--- Copyright (c) 2010, 2011 Tomasz Wlostowski
+--
+-- Copyright (c) 2011 - 2012 CERN / BE-CO-HT
+--
+-- This source file is free software; you can redistribute it   
+-- and/or modify it under the terms of the GNU Lesser General   
+-- Public License as published by the Free Software Foundation; 
+-- either version 2.1 of the License, or (at your option) any   
+-- later version.                                               
+--
+-- This source is distributed in the hope that it will be       
+-- useful, but WITHOUT ANY WARRANTY; without even the implied   
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      
+-- PURPOSE.  See the GNU Lesser General Public License for more 
+-- details.                                                     
+--
+-- You should have received a copy of the GNU Lesser General    
+-- Public License along with this source; if not, download it   
+-- from http://www.gnu.org/licenses/lgpl-2.1.html
+--
 -------------------------------------------------------------------------------
--- Revisions  :
--- Date        Version  Author          Description
--- 2010-04-26  1.0      twlostow        Created
--------------------------------------------------------------------------------
-
-
 
 library ieee;
 use ieee.std_logic_1164.all;
