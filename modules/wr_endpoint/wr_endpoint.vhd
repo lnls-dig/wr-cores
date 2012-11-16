@@ -43,20 +43,21 @@ use work.wishbone_pkg.all;
 entity wr_endpoint is
   
   generic (
-    g_interface_mode      : t_wishbone_interface_mode      := CLASSIC;
-    g_address_granularity : t_wishbone_address_granularity := WORD;
-    g_tx_force_gap_length : integer                        := 0;
-    g_simulation          : boolean                        := false;
-    g_pcs_16bit           : boolean                        := true;
-    g_rx_buffer_size      : integer                        := 1024;
-    g_with_rx_buffer      : boolean                        := true;
-    g_with_flow_control   : boolean                        := true;
-    g_with_timestamper    : boolean                        := true;
-    g_with_dpi_classifier : boolean                        := false;
-    g_with_vlans          : boolean                        := true;
-    g_with_rtu            : boolean                        := true;
-    g_with_leds           : boolean                        := true;
-    g_with_dmtd           : boolean                        := false
+    g_interface_mode        : t_wishbone_interface_mode      := CLASSIC;
+    g_address_granularity   : t_wishbone_address_granularity := WORD;
+    g_tx_force_gap_length   : integer                        := 0;
+    g_simulation            : boolean                        := false;
+    g_pcs_16bit             : boolean                        := true;
+    g_rx_buffer_size        : integer                        := 1024;
+    g_with_rx_buffer        : boolean                        := true;
+    g_with_flow_control     : boolean                        := true;
+    g_with_timestamper      : boolean                        := true;
+    g_with_dpi_classifier   : boolean                        := false;
+    g_with_vlans            : boolean                        := true;
+    g_with_rtu              : boolean                        := true;
+    g_with_leds             : boolean                        := true;
+    g_with_dmtd             : boolean                        := false;
+    g_with_packet_injection : boolean                        := false
     );
   port (
 
@@ -211,12 +212,33 @@ entity wr_endpoint is
     wb_stall_o : out std_logic;
 
 -------------------------------------------------------------------------------
+-- Packet Injection Interface (for TRU/HW-RSTP)
+-------------------------------------------------------------------------------
+
+-- injection request: triggers transmission of the packet to be injected,
+-- allowed when inject_ready = 1
+    inject_req_i           : in  std_logic                     := '0';
+
+-- injection ready flag: when true, user application can request asynchronous
+-- injection of a predefined packet
+    inject_ready_o         : out std_logic;
+
+-- injection template selection (8 available)
+    inject_packet_sel_i    : in  std_logic_vector(2 downto 0)  := "000";
+
+-- user-defined value to be embedded in the injected packet at a predefined
+-- location
+    inject_user_value_i    : in  std_logic_vector(15 downto 0) := x"0000";
+
+-------------------------------------------------------------------------------
 -- Misc stuff
 -------------------------------------------------------------------------------
 
     led_link_o : out std_logic;
-    led_act_o  : out std_logic
+    led_act_o  : out std_logic;
 
+    link_kill_i : in  std_logic := '0';
+    link_up_o   : out std_logic
     );
 
 end wr_endpoint;
@@ -255,11 +277,13 @@ architecture syn of wr_endpoint is
       phase_meas_p_o : out std_logic);
   end component;
 
-  component ep_tx_framer
+
+  component ep_tx_path
     generic (
-      g_with_vlans       : boolean;
-      g_with_timestamper : boolean;
-      g_force_gap_length : integer);
+      g_with_vlans            : boolean;
+      g_with_timestamper      : boolean;
+      g_with_packet_injection : boolean;
+      g_force_gap_length      : integer);
     port (
       clk_sys_i              : in  std_logic;
       rst_n_i                : in  std_logic;
@@ -269,9 +293,9 @@ architecture syn of wr_endpoint is
       pcs_dreq_i             : in  std_logic;
       snk_i                  : in  t_wrf_sink_in;
       snk_o                  : out t_wrf_sink_out;
-      fc_pause_p_i           : in  std_logic;
+      fc_pause_req_i         : in  std_logic;
       fc_pause_delay_i       : in  std_logic_vector(15 downto 0);
-      fc_pause_ack_o         : out std_logic;
+      fc_pause_ready_o       : out std_logic;
       fc_flow_enable_i       : in  std_logic;
       txtsu_port_id_o        : out std_logic_vector(4 downto 0);
       txtsu_fid_o            : out std_logic_vector(16 -1 downto 0);
@@ -281,7 +305,11 @@ architecture syn of wr_endpoint is
       txtsu_ack_i            : in  std_logic;
       txts_timestamp_i       : in  std_logic_vector(31 downto 0);
       txts_timestamp_valid_i : in  std_logic;
-      regs_i                 : in  t_ep_out_registers);
+      inject_req_i           : in  std_logic                     := '0';
+      inject_ready_o         : out std_logic;
+      inject_packet_sel_i    : in  std_logic_vector(2 downto 0)  := "000";
+      inject_user_value_i    : in  std_logic_vector(15 downto 0) := x"0000";
+      regs_i : in t_ep_out_registers);
   end component;
 
   component ep_rx_path
@@ -438,12 +466,12 @@ architecture syn of wr_endpoint is
 -- WB slave signals
 -------------------------------------------------------------------------------
 
-  signal rmon          : t_rmon_triggers;
-  signal regs_fromwb   : t_ep_out_registers;
-  signal regs_towb     : t_ep_in_registers;
-  signal regs_towb_ep  : t_ep_in_registers;
-  signal regs_towb_tsu : t_ep_in_registers;
-  signal regs_towb_rpath: t_ep_in_registers;
+  signal rmon            : t_rmon_triggers;
+  signal regs_fromwb     : t_ep_out_registers;
+  signal regs_towb       : t_ep_in_registers;
+  signal regs_towb_ep    : t_ep_in_registers;
+  signal regs_towb_tsu   : t_ep_in_registers;
+  signal regs_towb_rpath : t_ep_in_registers;
 
 
 -------------------------------------------------------------------------------
@@ -455,8 +483,8 @@ architecture syn of wr_endpoint is
   signal rxfra_pause_delay : std_logic_vector(15 downto 0);
   --signal rxbuf_threshold_hit : std_logic;
 
-  signal txfra_pause_p     : std_logic;
-  signal txfra_pause_ack   : std_logic;
+  signal txfra_pause_req   : std_logic;
+  signal txfra_pause_ready : std_logic;
   signal txfra_pause_delay : std_logic_vector(15 downto 0);
 
 
@@ -593,11 +621,14 @@ begin
 
 --  txfra_enable <= link_ok and regs_fromwb.ecr_tx_en_o;
 
-  U_Tx_Framer : ep_tx_framer
+  txfra_pause_req <= '0';
+
+  U_Tx_Path : ep_tx_path
     generic map (
-      g_with_vlans       => g_with_vlans,
-      g_with_timestamper => g_with_timestamper,
-      g_force_gap_length => g_tx_force_gap_length)
+      g_with_packet_injection => g_with_packet_injection,
+      g_with_vlans            => g_with_vlans,
+      g_with_timestamper      => g_with_timestamper,
+      g_force_gap_length      => g_tx_force_gap_length)
     port map (
       clk_sys_i        => clk_sys_i,
       rst_n_i          => rst_n_i,
@@ -607,9 +638,9 @@ begin
       pcs_dreq_i       => txpcs_dreq,
       snk_i            => sink_in,
       snk_o            => sink_out,
-      fc_pause_p_i     => txfra_pause_p,
+      fc_pause_req_i   => txfra_pause_req,
+      fc_pause_ready_o => txfra_pause_ready,
       fc_pause_delay_i => txfra_pause_delay,
-      fc_pause_ack_o   => txfra_pause_ack,
       fc_flow_enable_i => txfra_flow_enable,
       regs_i           => regs_fromwb,
 
@@ -621,12 +652,16 @@ begin
       txtsu_ts_value_o     => txtsu_ts_value_o,
       txtsu_ts_incorrect_o => txtsu_ts_incorrect_o,
       txtsu_stb_o          => txtsu_stb_o,
-      txtsu_ack_i          => txtsu_ack_i
+      txtsu_ack_i          => txtsu_ack_i,
+
+      inject_req_i => inject_req_i,
+      inject_user_value_i => inject_user_value_i,
+      inject_packet_sel_i => inject_packet_sel_i,
+      inject_ready_o => inject_ready_o
       );
 
 
   txfra_flow_enable <= '1';
-  txfra_pause_p     <= '0';
 
   sink_in.dat <= snk_dat_i;
   sink_in.adr <= snk_adr_i;
@@ -668,7 +703,7 @@ begin
 
       rmon_o => rmon,
       regs_i => regs_fromwb,
-      regs_o =>regs_towb_rpath,
+      regs_o => regs_towb_rpath,
 
       rtu_full_i     => rtu_full_i,
       rtu_rq_o       => rtu_rq,
@@ -918,6 +953,11 @@ begin
     end process;
 
   end generate gen_with_dmtd;
+
+  gen_without_dmtd : if(not g_with_dmtd) generate
+    regs_towb_ep.dmsr_ps_rdy_i <= '0';
+    regs_towb_ep.dmsr_ps_val_i <= (others => 'X');
+  end generate gen_without_dmtd;
 
   dvalid_tx <= snk_cyc_i and snk_stb_i and link_ok;
   dvalid_rx <= src_out.cyc and src_out.stb and link_ok;

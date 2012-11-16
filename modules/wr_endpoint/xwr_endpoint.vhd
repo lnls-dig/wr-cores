@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-Co-HT
 -- Created    : 2010-04-26
--- Last update: 2012-07-09
+-- Last update: 2012-11-16
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -42,7 +42,8 @@ entity xwr_endpoint is
     g_with_vlans          : boolean                        := true;
     g_with_rtu            : boolean                        := true;
     g_with_leds           : boolean                        := true;
-    g_with_dmtd           : boolean                        := true
+    g_with_dmtd           : boolean                        := true;
+    g_with_packet_injection : boolean                        := false
     );
   port (
 
@@ -173,13 +174,30 @@ entity xwr_endpoint is
     wb_i : in  t_wishbone_slave_in;
     wb_o : out t_wishbone_slave_out;
 
+-- injection request: triggers transmission of the packet to be injected,
+-- allowed when inject_ready = 1
+    inject_req_i           : in  std_logic                     := '0';
+
+-- injection ready flag: when true, user application can request asynchronous
+-- injection of a predefined packet
+    inject_ready_o         : out std_logic;
+
+-- injection template selection (8 available)
+    inject_packet_sel_i    : in  std_logic_vector(2 downto 0)  := "000";
+
+-- user-defined value to be embedded in the injected packet at a predefined
+-- location
+    inject_user_value_i    : in  std_logic_vector(15 downto 0) := x"0000";
+
 -------------------------------------------------------------------------------
 -- Misc stuff
 -------------------------------------------------------------------------------
 
     led_link_o : out std_logic;
-    led_act_o  : out std_logic
+    led_act_o  : out std_logic;
 
+    link_kill_i : in  std_logic := '0';
+    link_up_o   : out std_logic
     );
 
 end xwr_endpoint;
