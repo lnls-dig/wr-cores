@@ -1,3 +1,4 @@
+target = "xilinx"
 action = "simulation"
 files = "main.sv"
 fetchto = "../../../ip_cores"
