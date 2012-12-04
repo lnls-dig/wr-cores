@@ -203,6 +203,7 @@ package endpoint_private_pkg is
       txtsu_ack_i            : in  std_logic;
       txts_timestamp_i       : in  std_logic_vector(31 downto 0);
       txts_timestamp_valid_i : in  std_logic;
+      ep_ctrl_i              : in std_logic;
       regs_i                 : in  t_ep_out_registers);
   end component;
 

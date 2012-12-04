@@ -123,7 +123,7 @@ entity ep_tx_header_processor is
 -------------------------------------------------------------------------------
 -- Control registers
 -------------------------------------------------------------------------------
-
+    ep_ctrl_i           : in std_logic;
     regs_i : in t_ep_out_registers
 
     );
@@ -162,7 +162,7 @@ architecture behavioral of ep_tx_header_processor is
 
   signal abort_now : std_logic;
   signal stall_int : std_logic;
-
+  signal tx_en        : std_logic;
 
   function b2s (x : boolean)
     return std_logic is
@@ -236,6 +236,7 @@ begin  -- behavioral
   error_p1 <= snk_valid and b2s(wb_snk_i.adr = c_WRF_STATUS) and decoded_status.error;
 
   abort_now <= '1' when (state /= TXF_IDLE and state /= TXF_GAP) and (regs_i.ecr_tx_en_o = '0' or error_p1 = '1') else '0';
+--   abort_now <= '1' when (state /= TXF_IDLE and state /= TXF_GAP) and (tx_en = '0' or error_p1 = '1') else '0'; -- ML
 
   p_store_status : process(clk_sys_i)
   begin
@@ -351,6 +352,7 @@ begin  -- behavioral
               -- commence frame transmission
 
               if(src_dreq_i = '1' and (sof_p1 = '1' or fc_pause_req_i = '1') and regs_i.ecr_tx_en_o = '1') then
+--               if(src_dreq_i = '1' and (sof_p1 = '1' or fc_pause_p_i = '1') and tx_en = '1') then --ML
 
                 fc_pause_ready_o <= '0';
                 tx_pause_mode    <= fc_pause_req_i;
@@ -505,6 +507,7 @@ begin  -- behavioral
     end if;
   end process;
 
+  tx_en <= regs_i.ecr_tx_en_o and ep_ctrl_i; 
 
   p_gen_stall : process(src_dreq_i, state, regs_i, wb_snk_i, snk_cyc_d0)
   begin

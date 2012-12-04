@@ -191,6 +191,26 @@ entity xwr_endpoint is
     wb_i : in  t_wishbone_slave_in;
     wb_o : out t_wishbone_slave_out;
 
+-------------------------------------------------------------------------------
+-- direct output of packet filter  (for TRU/HW-RSTP)
+-------------------------------------------------------------------------------
+   
+   pfilter_pclass_o       : out   std_logic_vector(7 downto 0);
+   pfilter_drop_o         : out   std_logic;
+   pfilter_done_o         : out   std_logic;
+
+-------------------------------------------------------------------------------
+-- control of PAUSE sending (for TRU/HW-RSTP)
+-------------------------------------------------------------------------------
+   
+   fc_pause_req_i   : in std_logic := '0';
+   fc_pause_delay_i : in std_logic_vector(15 downto 0) := x"0000";
+   fc_pause_ready_o : out std_logic;
+
+-------------------------------------------------------------------------------
+-- Packet Injection Interface (for TRU/HW-RSTP)
+-------------------------------------------------------------------------------
+
 -- injection request: triggers transmission of the packet to be injected,
 -- allowed when inject_ready = 1
     inject_req_i : in std_logic := '0';
@@ -317,6 +337,12 @@ begin
       led_act_o            => led_act_o,
       link_up_o            => link_up_o,
       link_kill_i          => link_kill_i,
+      pfilter_pclass_o     => pfilter_pclass_o,
+      pfilter_drop_o       => pfilter_drop_o,
+      pfilter_done_o       => pfilter_done_o,
+      fc_pause_req_i       => fc_pause_req_i,
+      fc_pause_delay_i     => fc_pause_delay_i,
+      fc_pause_ready_o     => fc_pause_ready_o,
       inject_req_i         => inject_req_i,
       inject_user_value_i  => inject_user_value_i,
       inject_packet_sel_i  => inject_packet_sel_i,

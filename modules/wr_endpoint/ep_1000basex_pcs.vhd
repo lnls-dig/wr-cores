@@ -112,7 +112,7 @@ entity ep_1000basex_pcs is
     txpcs_timestamp_trigger_p_a_o : out std_logic;
 
     link_ok_o : out std_logic;
-
+    link_ctr_i : in std_logic;
     -----------------------------------------------------------------------------
     -- GTP/GTX/TBI Serdes interface
     ---------------------------------------------------------------------------
@@ -354,6 +354,7 @@ architecture rtl of ep_1000basex_pcs is
   signal mdio_mcr_uni_en          : std_logic;
   signal mdio_mcr_anrestart       : std_logic;
   signal mdio_mcr_pdown           : std_logic;
+  signal mdio_mcr_pdown_cpu       : std_logic;
   signal mdio_mcr_anenable        : std_logic;
   signal mdio_mcr_loopback        : std_logic;
   signal mdio_mcr_reset           : std_logic;
@@ -537,6 +538,9 @@ begin  -- rtl
 
   txpcs_busy_o <= txpcs_busy_int;
 
+  -- to enable killing of link (by ML)
+  mdio_mcr_pdown      <= mdio_mcr_pdown_cpu or (not link_ctr_i);
+ 
   serdes_rst_o        <= (not pcs_reset_n) or mdio_mcr_pdown;
   mdio_wr_spec_bslide <= serdes_rx_bitslide_i(4 downto 0);
 
@@ -561,7 +565,7 @@ begin  -- rtl
 
       mdio_mcr_uni_en_o          => mdio_mcr_uni_en,
       mdio_mcr_anrestart_o       => mdio_mcr_anrestart,
-      mdio_mcr_pdown_o           => mdio_mcr_pdown,
+      mdio_mcr_pdown_o           => mdio_mcr_pdown_cpu,
       mdio_mcr_anenable_o        => mdio_mcr_anenable,
       mdio_mcr_loopback_o        => mdio_mcr_loopback,
       mdio_mcr_reset_o           => mdio_mcr_reset,

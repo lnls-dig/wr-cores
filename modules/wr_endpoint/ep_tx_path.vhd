@@ -130,7 +130,7 @@ entity ep_tx_path is
 -------------------------------------------------------------------------------
 -- Control registers
 -------------------------------------------------------------------------------
-
+    ep_ctrl_i           : in std_logic :='1';
     regs_i : in t_ep_out_registers
     );
 
@@ -175,6 +175,7 @@ begin  -- rtl
       txtsu_ack_i            => txtsu_ack_i,
       txts_timestamp_i       => txts_timestamp_i,
       txts_timestamp_valid_i => txts_timestamp_valid_i,
+      ep_ctrl_i              => ep_ctrl_i,
       regs_i                 => regs_i);
 
 

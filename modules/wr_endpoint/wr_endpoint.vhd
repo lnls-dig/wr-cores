@@ -224,6 +224,22 @@ entity wr_endpoint is
     wb_stall_o : out std_logic;
 
 -------------------------------------------------------------------------------
+-- direct output of packet filter  (for TRU/HW-RSTP)
+-------------------------------------------------------------------------------
+   
+   pfilter_pclass_o       : out   std_logic_vector(7 downto 0);
+   pfilter_drop_o         : out   std_logic;
+   pfilter_done_o         : out   std_logic;
+
+-------------------------------------------------------------------------------
+-- control of PAUSE sending (for TRU/HW-RSTP)
+-------------------------------------------------------------------------------
+   
+   fc_pause_req_i   : in std_logic := '0';
+   fc_pause_delay_i : in std_logic_vector(15 downto 0) := x"0000";
+   fc_pause_ready_o : out std_logic;
+
+-------------------------------------------------------------------------------
 -- Packet Injection Interface (for TRU/HW-RSTP)
 -------------------------------------------------------------------------------
 
@@ -249,7 +265,11 @@ entity wr_endpoint is
     led_link_o : out std_logic;
     led_act_o  : out std_logic;
 
+-- HI physically kills the link (turn of laser)
     link_kill_i : in  std_logic := '0';
+
+-- HI indicates that link is up (so cable connected), LOW indicates that link is faulty 
+-- (e.g.: cable disconnected)
     link_up_o   : out std_logic
     );
 
@@ -321,6 +341,7 @@ architecture syn of wr_endpoint is
       inject_ready_o         : out std_logic;
       inject_packet_sel_i    : in  std_logic_vector(2 downto 0)  := "000";
       inject_user_value_i    : in  std_logic_vector(15 downto 0) := x"0000";
+      ep_ctrl_i              : in std_logic :='1';
       regs_i : in t_ep_out_registers);
   end component;
 
@@ -347,6 +368,9 @@ architecture syn of wr_endpoint is
       rmon_o                 : inout t_rmon_triggers;
       regs_i                 : in    t_ep_out_registers;
       regs_o                 : out   t_ep_in_registers;
+      pfilter_pclass_o       : out   std_logic_vector(7 downto 0);
+      pfilter_drop_o         : out   std_logic;
+      pfilter_done_o         : out   std_logic;
       rtu_rq_o               : out   t_ep_internal_rtu_request;
       rtu_full_i             : in    std_logic;
       rtu_rq_valid_o         : out   std_logic);
@@ -372,6 +396,7 @@ architecture syn of wr_endpoint is
       txpcs_dreq_o                  : out   std_logic;
       txpcs_timestamp_trigger_p_a_o : out   std_logic;
       link_ok_o                     : out   std_logic;
+      link_ctr_i                    : in    std_logic := '1';
       serdes_rst_o                  : out   std_logic;
       serdes_syncen_o               : out   std_logic;
       serdes_loopen_o               : out   std_logic;
@@ -546,6 +571,17 @@ architecture syn of wr_endpoint is
   signal rtu_rq               : t_ep_internal_rtu_request;
   signal dvalid_tx, dvalid_rx : std_logic;
 
+-------------------------------------------------------------------------------
+-- TRU stuff
+-------------------------------------------------------------------------------
+  signal ep_ctrl              : std_logic;
+  signal pfilter_pclass       : std_logic_vector(7 downto 0);
+  signal pfilter_drop         : std_logic;
+  signal pfilter_done         : std_logic;
+  signal tx_pclass            : std_logic_vector(7  downto 0);  
+  
+
+
 begin
 
   -----------------------------------------------------------------------------
@@ -599,7 +635,8 @@ begin
 
       txpcs_timestamp_trigger_p_a_o => txpcs_timestamp_trigger_p_a,
 
-      link_ok_o => link_ok,
+      link_ok_o      => link_ok,
+      link_ctr_i     => ep_ctrl,
 
       serdes_rst_o    => phy_rst_o,
       serdes_loopen_o => phy_loopen_o,
@@ -633,7 +670,7 @@ begin
 
 --  txfra_enable <= link_ok and regs_fromwb.ecr_tx_en_o;
 
-  txfra_pause_req <= '0';
+--   txfra_pause_req <= '0';
 
   U_Tx_Path : ep_tx_path
     generic map (
@@ -654,6 +691,7 @@ begin
       fc_pause_ready_o => txfra_pause_ready,
       fc_pause_delay_i => txfra_pause_delay,
       fc_flow_enable_i => txfra_flow_enable,
+      ep_ctrl_i        => ep_ctrl,
       regs_i           => regs_fromwb,
 
       txts_timestamp_i       => txts_timestamp_value,
@@ -716,6 +754,10 @@ begin
       rmon_o => rmon,
       regs_i => regs_fromwb,
       regs_o => regs_towb_rpath,
+
+      pfilter_pclass_o => pfilter_pclass,
+      pfilter_drop_o   => pfilter_drop,
+      pfilter_done_o   => pfilter_done,
 
       rtu_full_i     => rtu_full_i,
       rtu_rq_o       => rtu_rq,
@@ -987,6 +1029,29 @@ begin
         led_link_o  => led_link_o,
         led_act_o   => led_act_o);
   end generate gen_leds;
+
+  -------------------------- TRU stuff -----------------------------------
+  link_up_o          <= link_ok; -- indicates that link is IP
+  
+  pfilter_pclass_o   <= pfilter_pclass;
+  pfilter_done_o     <= pfilter_done;
+  pfilter_drop_o     <= pfilter_drop;
+
+  txfra_pause_req    <= fc_pause_req_i;
+  fc_pause_ready_o   <= txfra_pause_ready;
+  txfra_pause_delay  <= fc_pause_delay_i;
+
+  -- TRU needs to be able to share the control of ouput path, i.e. turn off the laser
+  p_ep_ctrl: process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if rst_n_i = '0' then
+        ep_ctrl     <= '1';
+      else
+        ep_ctrl     <= not link_kill_i ;
+      end if;
+    end if;
+  end process;
 
 end syn;
 

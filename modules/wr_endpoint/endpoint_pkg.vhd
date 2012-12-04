@@ -120,6 +120,12 @@ package endpoint_pkg is
       rtu_rq_has_prio_o    : out std_logic;
       wb_i                 : in  t_wishbone_slave_in;
       wb_o                 : out t_wishbone_slave_out;
+      pfilter_pclass_o     : out   std_logic_vector(7 downto 0);
+      pfilter_drop_o       : out   std_logic;
+      pfilter_done_o       : out   std_logic;
+      fc_pause_req_i       : in std_logic := '0';
+      fc_pause_delay_i     : in std_logic_vector(15 downto 0) := x"0000";
+      fc_pause_ready_o     : out std_logic;
       inject_req_i         : in  std_logic                     := '0';
       inject_ready_o       : out std_logic;
       inject_packet_sel_i  : in  std_logic_vector(2 downto 0)  := "000";
@@ -219,6 +225,12 @@ package endpoint_pkg is
       wb_dat_o             : out std_logic_vector(31 downto 0);
       wb_ack_o             : out std_logic;
       wb_stall_o           : out std_logic;
+      pfilter_pclass_o     : out   std_logic_vector(7 downto 0);
+      pfilter_drop_o       : out   std_logic;
+      pfilter_done_o       : out   std_logic;
+      fc_pause_req_i       : in std_logic := '0';
+      fc_pause_delay_i     : in std_logic_vector(15 downto 0) := x"0000";
+      fc_pause_ready_o     : out std_logic;
       inject_req_i         : in  std_logic                     := '0';
       inject_ready_o       : out std_logic;
       inject_packet_sel_i  : in  std_logic_vector(2 downto 0)  := "000";

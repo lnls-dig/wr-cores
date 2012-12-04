@@ -113,6 +113,7 @@ entity ep_tx_framer is
 -- Control registers
 -------------------------------------------------------------------------------
 
+    ep_ctrl_i : in std_logic;
     regs_i : in t_ep_out_registers
 
     );
@@ -171,8 +172,8 @@ architecture behavioral of ep_tx_framer is
   signal stall_int    : std_logic;
   signal stall_int_d0 : std_logic;
   signal untagging    : std_logic;
-  signal got_error : std_logic;
-
+  signal got_error    : std_logic;
+  signal tx_en        : std_logic;
 
   function b2s (x : boolean)
     return std_logic is
@@ -282,8 +283,7 @@ begin  -- behavioral
 
   error_p1 <= snk_valid and b2s(snk_i.adr = c_WRF_STATUS) and decoded_status.error;
 
-  abort_now <= '1' when (state /= TXF_IDLE and state /= TXF_GAP) and (regs_i.ecr_tx_en_o = '0' or error_p1 = '1') else '0';
-
+  abort_now <= '1' when (state /= TXF_IDLE and state /= TXF_GAP) and (tx_en = '0' or error_p1 = '1') else '0';
 
   p_store_status : process(clk_sys_i)
   begin
@@ -402,7 +402,7 @@ begin  -- behavioral
                                         -- Check start-of-frame and send-pause signals and eventually
                                         -- commence frame transmission
 
-              if(pcs_dreq_i = '1' and (sof_p1 = '1' or fc_pause_p_i = '1') and regs_i.ecr_tx_en_o = '1') then
+              if(pcs_dreq_i = '1' and (sof_p1 = '1' or fc_pause_p_i = '1') and tx_en = '1') then
                                         -- enable writing to PCS FIFO
                 q_sof      <= '1';
                 write_mask <= '1';
@@ -724,8 +724,9 @@ begin  -- behavioral
     end if;
   end process;
 
-
-  stall_int <= (not (pcs_dreq_i and tx_ready) and regs_i.ecr_tx_en_o) or (snk_i.cyc xor snk_cyc_d0);  -- /dev/null if disabled
+  tx_en <= regs_i.ecr_tx_en_o and ep_ctrl_i;
+ 
+  stall_int <= (not (pcs_dreq_i and tx_ready) and tx_en) or (snk_i.cyc xor snk_cyc_d0);  -- /dev/null if disabled
 
   snk_out.stall <= stall_int;
 
