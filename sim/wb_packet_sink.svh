@@ -50,7 +50,7 @@ class WBPacketSink extends EthPacketSink;
         end 
       else if (size == 3 && (oob >> 46) == WRF_OOB_RX_TIMESTAMP)
         begin
-           $display("GotRXOOB");
+//            $display("GotRXOOB");
            
         end else begin
            $error("Invalid OOB!");
