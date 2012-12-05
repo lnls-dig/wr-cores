@@ -235,8 +235,8 @@ begin  -- behavioral
 
   error_p1 <= snk_valid and b2s(wb_snk_i.adr = c_WRF_STATUS) and decoded_status.error;
 
-  abort_now <= '1' when (state /= TXF_IDLE and state /= TXF_GAP) and (regs_i.ecr_tx_en_o = '0' or error_p1 = '1') else '0';
---   abort_now <= '1' when (state /= TXF_IDLE and state /= TXF_GAP) and (tx_en = '0' or error_p1 = '1') else '0'; -- ML
+-- abort_now <= '1' when (state /= TXF_IDLE and state /= TXF_GAP) and (regs_i.ecr_tx_en_o = '0' or error_p1 = '1') else '0';
+ abort_now <= '1' when (state /= TXF_IDLE and state /= TXF_GAP) and (tx_en = '0' or error_p1 = '1') else '0'; -- ML
 
   p_store_status : process(clk_sys_i)
   begin
@@ -351,8 +351,8 @@ begin  -- behavioral
               -- Check start-of-frame and send-pause signals and eventually
               -- commence frame transmission
 
-              if(src_dreq_i = '1' and (sof_p1 = '1' or fc_pause_req_i = '1') and regs_i.ecr_tx_en_o = '1') then
---               if(src_dreq_i = '1' and (sof_p1 = '1' or fc_pause_p_i = '1') and tx_en = '1') then --ML
+--             if(src_dreq_i = '1' and (sof_p1 = '1' or fc_pause_req_i = '1') and regs_i.ecr_tx_en_o = '1') then
+             if(src_dreq_i = '1' and (sof_p1 = '1' or fc_pause_req_i = '1') and tx_en = '1') then --ML
 
                 fc_pause_ready_o <= '0';
                 tx_pause_mode    <= fc_pause_req_i;
@@ -511,7 +511,8 @@ begin  -- behavioral
 
   p_gen_stall : process(src_dreq_i, state, regs_i, wb_snk_i, snk_cyc_d0)
   begin
-    if(regs_i.ecr_tx_en_o = '0') then
+    --if(regs_i.ecr_tx_en_o = '0') then
+    if(tx_en = '0') then --ML
       wb_out.stall <= '0';              -- /dev/null if TX disabled
     elsif((wb_snk_i.cyc xor snk_cyc_d0) = '1') then
       wb_out.stall <= '1';              -- /block for 1 cycle right upon
