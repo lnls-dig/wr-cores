@@ -136,7 +136,7 @@ architecture behavioral of ep_tx_pcs_16bit is
   signal fifo_wr                         : std_logic;
   signal fifo_rd                         : std_logic := '0';
   signal fifo_ready                      : std_logic;
-  signal fifo_clear_n                    : std_logic;
+  signal fifo_clear_n,fifo_clear_n_d0, fifo_clear_n_d1,fifo_clear_n_d2, fifo_clear_n_d3,fifo_clear_n_d4   : std_logic;
   signal fifo_read_int                   : std_logic;
   signal fifo_fab                        : t_ep_internal_fabric;
 
@@ -202,11 +202,30 @@ begin
 -- Clock alignment FIFO
 -------------------------------------------------------------------------------  
 
-  fifo_clear_n <= '0' when (rst_n_i = '0') or (mdio_mcr_pdown_synced = '1') else '1';
 
+ -------------------------------------------------------------------------------------------
+ -- some hacks to make pdown (in particular killing the link) work with Xilix native FIFOs
+ -- (the rst signal can be set (LOW) only after 4 cycles after rd_i is "unset" (LOW)
+ -------------------------------------------------------------------------------------------
+ fifo_clear_n_d0  <= '0' when (rst_n_i = '0') or (mdio_mcr_pdown_synced = '1') else '1';
+ p_fifo_clean: process(phy_tx_clk_i)
+  begin
+    if rising_edge(phy_tx_clk_i) then
+      fifo_clear_n_d1 <= fifo_clear_n_d0;
+      fifo_clear_n_d2 <= fifo_clear_n_d1;
+      fifo_clear_n_d3 <= fifo_clear_n_d2;
+      fifo_clear_n_d4 <= fifo_clear_n_d3;
+     end if;
+  end process;
+
+  fifo_clear_n <= fifo_clear_n_d4 when (fifo_clear_n_d0 = '0') else
+                  fifo_clear_n_d0;
+  fifo_read_int <= fifo_rd and not (fifo_fab.eof or fifo_fab.error or fifo_fab.sof) and 
+                   fifo_clear_n_d0;
+  -------------------------------------------------------------------------------------------
   f_pack_fifo_contents(pcs_fab_i, fifo_packed_in, fifo_wr, true);
 
-  fifo_read_int <= fifo_rd and not (fifo_fab.eof or fifo_fab.error or fifo_fab.sof);
+  
 
   U_TX_FIFO : generic_async_fifo
     generic map (
