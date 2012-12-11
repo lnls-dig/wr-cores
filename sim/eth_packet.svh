@@ -88,9 +88,9 @@ class EthPacket;
         begin
            is_q       = 1;
            hsize      = 18;
-           ethertype  = {data[14], data[15]};
-           vid        = ((int'(data[16]) << 8) | data[17]) & 12'hfff;
-           pcp        = data[16] >> 5;
+           ethertype  = {data[16], data[17]};
+           vid        = ((int'(data[14]) << 8) | data[15]) & 12'hfff;
+           pcp        = data[14] >> 5;
         end else begin
            is_q       = 0;
            hsize      = 14;
@@ -130,10 +130,10 @@ class EthPacket;
         begin
            data [12]     = 8'h81;
            data [13]     = 8'h00;
-           data [14]     = ethertype[15:8];
-           data [15]     = ethertype[7:0];
-           data [16]     = {pcp, 1'b0, vid[11:8]};
-           data [17]     = vid[7:0];
+           data [14]     = {pcp, 1'b0, vid[11:8]};
+           data [15]     = vid[7:0];
+           data [16]     = ethertype[15:8];
+           data [17]     = ethertype[7:0];
         end else begin
            data[12]      = ethertype [15:8];
            data[13]      = ethertype [7:0];
