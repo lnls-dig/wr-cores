@@ -16,6 +16,11 @@ entity ep_rtu_header_extract is
     src_fab_o  : out t_ep_internal_fabric;
     src_dreq_i : in  std_logic;
 
+    vlan_class_i   : in std_logic_vector(2 downto 0);
+    vlan_vid_i      : in std_logic_vector(11 downto 0);
+    vlan_tag_done_i : in std_logic;
+    vlan_is_tagged_i: in std_logic;
+
     rtu_rq_o       : out t_ep_internal_rtu_request;
     rtu_full_i     : in  std_logic;
     rtu_rq_valid_o : out std_logic
@@ -27,10 +32,10 @@ architecture rtl of ep_rtu_header_extract is
 
   signal hdr_offset : std_logic_vector(11 downto 0);
   signal in_packet  : std_logic;
-  signal qtag          : std_logic_vector(15 downto 0);
-  signal is_qtag       : std_logic;
-  signal is_qtag_d     : std_logic;
-  signal extract_qtag  : std_logic;
+  signal rtu_rq_valid_basic   : std_logic;
+  signal rtu_rq_valid_tagged   : std_logic;
+  signal rtu_rq_valid_out   : std_logic;
+  
 
   procedure f_extract_rtu(signal q         : out std_logic_vector;
                           signal fab       :     t_ep_internal_fabric;
@@ -45,12 +50,6 @@ begin  -- rtl
 
   gen_with_rtu : if(g_with_rtu) generate
     
-    is_qtag      <= '1' when (hdr_offset(6)    = '1' and 
-                              snk_fab_i.dvalid = '1' and
-                              snk_fab_i.data   = x"8100") else
-                    '0';
-    extract_qtag <= hdr_offset(7) and is_qtag_d;
-
     p_hdr_offset_sreg : process(clk_sys_i)
     begin
       if rising_edge(clk_sys_i) then
@@ -69,23 +68,10 @@ begin  -- rtl
         if rst_n_i = '0' then
           rtu_rq_o.smac     <= (others => '0');
           rtu_rq_o.dmac     <= (others => '0');
---           rtu_rq_o.vid      <= (others => '0');
---           rtu_rq_o.has_vid  <= '0';
---           rtu_rq_o.prio     <= (others => '0');
---           rtu_rq_o.has_prio <= '0';
           in_packet         <= '0';
-          is_qtag_d         <= '0';
-          qtag              <= (others =>'0');
+          rtu_rq_valid_basic<= '0';
         else
           
-          if(is_qtag = '1' and in_packet = '1') then
-             is_qtag_d <= '1'; 
-          end if;          
-
-          if(snk_fab_i.eof = '1' or snk_fab_i.error = '1') then
-             is_qtag_d <= '0';           
-          end if;
-
           if(snk_fab_i.sof = '1' and rtu_full_i = '0') then
             in_packet <= '1';
           end if;
@@ -101,15 +87,10 @@ begin  -- rtl
           f_extract_rtu(rtu_rq_o.smac(31 downto 16), snk_fab_i, hdr_offset(4));
           f_extract_rtu(rtu_rq_o.smac(15 downto 0), snk_fab_i, hdr_offset(5));
           
-          -- added by ML
-          f_extract_rtu(qtag, snk_fab_i, extract_qtag);
-
-          if(snk_fab_i.dvalid = '1'  and hdr_offset(6) = '1' and is_qtag = '0' and in_packet = '1') then
-            rtu_rq_valid_o <= '1';
-          elsif(snk_fab_i.dvalid = '1' and hdr_offset(7) = '1' and is_qtag_d = '1' and in_packet = '1') then
-            rtu_rq_valid_o <= '1';
-          else
-            rtu_rq_valid_o <= '0';
+          if(snk_fab_i.dvalid = '1'  and hdr_offset(6) = '1' and in_packet = '1') then
+            rtu_rq_valid_basic <='1';
+          elsif(rtu_rq_valid_out = '1') then
+            rtu_rq_valid_basic     <= '0';
           end if;
           
         end if;
@@ -117,11 +98,18 @@ begin  -- rtl
     end process;
 
     src_fab_o.sof <= snk_fab_i.sof and not rtu_full_i;
+    
+    rtu_rq_valid_tagged <= rtu_rq_valid_basic and vlan_tag_done_i;
+    
+    rtu_rq_valid_out <= rtu_rq_valid_tagged when (vlan_is_tagged_i = '1') else
+                        rtu_rq_valid_basic;
+                        
 
   end generate gen_with_rtu;
 
   gen_without_rtu : if (not g_with_rtu) generate
     src_fab_o.sof <= snk_fab_i.sof;
+    rtu_rq_valid_out <='0';
   end generate gen_without_rtu;
 
   snk_dreq_o <= src_dreq_i;
@@ -134,9 +122,10 @@ begin  -- rtl
   src_fab_o.addr     <= snk_fab_i.addr;
   src_fab_o.has_rx_timestamp <= snk_fab_i.has_rx_timestamp;
 
-  rtu_rq_o.vid       <= qtag(11 downto 0);
-  rtu_rq_o.has_vid   <= is_qtag_d;
-  rtu_rq_o.prio      <= qtag(15 downto 13);
-  rtu_rq_o.has_prio  <= is_qtag_d;
+  rtu_rq_o.vid       <= vlan_vid_i;
+  rtu_rq_o.has_vid   <= vlan_is_tagged_i;
+  rtu_rq_o.prio      <= vlan_class_i;
+  rtu_rq_o.has_prio  <= vlan_is_tagged_i;
+  rtu_rq_valid_o     <= rtu_rq_valid_out;
   
 end rtl;

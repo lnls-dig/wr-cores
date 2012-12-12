@@ -19,6 +19,7 @@
 -- - distinguishes between HP and non-HP frames
 -- - issues RTU requests
 -- - embeds RX OOB block with timestamp information
+-- 
 -------------------------------------------------------------------------------
 --
 -- Copyright (c) 2009-2011 CERN / BE-CO-HT
@@ -116,6 +117,10 @@ architecture behavioral of ep_rx_path is
       snk_dreq_o     : out std_logic;
       src_fab_o      : out t_ep_internal_fabric;
       src_dreq_i     : in  std_logic;
+      vlan_class_i   : in std_logic_vector(2 downto 0);
+      vlan_vid_i      : in std_logic_vector(11 downto 0);
+      vlan_tag_done_i : in std_logic;
+      vlan_is_tagged_i: in std_logic;
       rtu_rq_o       : out t_ep_internal_rtu_request;
       rtu_full_i     : in  std_logic;
       rtu_rq_valid_o : out std_logic);
@@ -178,6 +183,7 @@ architecture behavioral of ep_rx_path is
       tclass_o   : out   std_logic_vector(2 downto 0);
       vid_o      : out   std_logic_vector(11 downto 0);
       tag_done_o : out   std_logic;
+      is_tagged_o: out   std_logic;
       rmon_o     : inout t_rmon_triggers;
       regs_i     : in    t_ep_out_registers;
       regs_o     : out   t_ep_in_registers);
@@ -297,6 +303,7 @@ architecture behavioral of ep_rx_path is
   signal vlan_tclass   : std_logic_vector(2 downto 0);
   signal vlan_vid      : std_logic_vector(11 downto 0);
   signal vlan_tag_done : std_logic;
+  signal vlan_is_tagged: std_logic;
 
   signal pcs_fifo_almostfull                                    : std_logic;
   signal mbuf_rd, mbuf_valid, mbuf_we, mbuf_pf_drop, mbuf_is_hp : std_logic;
@@ -422,6 +429,7 @@ begin  -- behavioral
         tclass_o   => vlan_tclass,
         vid_o      => vlan_vid,
         tag_done_o => vlan_tag_done,
+        is_tagged_o=> vlan_is_tagged,
         rmon_o     => rmon_o,
         regs_i     => regs_i,
         regs_o     => regs_o);
@@ -431,6 +439,10 @@ begin  -- behavioral
   gen_without_vlan_unit : if(not g_with_vlans) generate
     fab_pipe(6)  <= fab_pipe(5);
     dreq_pipe(5) <= dreq_pipe(6);
+    vlan_tclass    <= (others =>'0');
+    vlan_vid       <= (others =>'0');
+    vlan_tag_done  <= '0';
+    vlan_is_tagged <= '0';
   end generate gen_without_vlan_unit;
 
   U_RTU_Header_Extract : ep_rtu_header_extract
@@ -443,6 +455,10 @@ begin  -- behavioral
       snk_dreq_o     => dreq_pipe(6),
       src_fab_o      => fab_pipe(7),
       src_dreq_i     => dreq_pipe(7),
+      vlan_class_i     => vlan_tclass,
+      vlan_vid_i       => vlan_vid,
+      vlan_tag_done_i  => vlan_tag_done,
+      vlan_is_tagged_i => vlan_is_tagged,
       rtu_rq_o       => rtu_rq_o,
       rtu_full_i     => rtu_full_i,
       rtu_rq_valid_o => rtu_rq_valid_o);
