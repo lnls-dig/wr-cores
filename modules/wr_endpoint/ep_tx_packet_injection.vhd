@@ -135,6 +135,7 @@ begin  -- rtl
             inj_src.eof    <= '0';
             inj_src.dvalid <= '0';
             inj_src.error  <= '0';
+            select_inject  <= '0'; -- added by ML
 
             counter(8 downto 6) <= unsigned(inject_packet_sel_i);
             counter(5 downto 0) <= (others => '0');
@@ -173,7 +174,7 @@ begin  -- rtl
             if(src_dreq_i = '1') then
               inj_src.eof   <= '1';
               state         <= WAIT_IDLE;
-              select_inject <= '0';
+              --select_inject <= '0'; -- removed by ML: we miss EOF on src_fab_o with this
             end if;
         end case;
       end if;
