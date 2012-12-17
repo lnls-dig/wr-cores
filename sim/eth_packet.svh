@@ -57,7 +57,7 @@ class EthPacket;
    endtask
    
    function new(int size = _zero);
-      size      = 0;
+//       size      = 0;
       src       = dummy_mac;
       dst       = dummy_mac;
       is_q      = 0;
