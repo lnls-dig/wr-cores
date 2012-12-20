@@ -272,6 +272,7 @@ peripheral {
 					name = "RX 802.1q port mode";
 					description = "00: ACCESS port - tags untagged received packets with VID from RX_VID field. Drops all tagged packets not belonging to RX_VID VLAN\
 					               01: TRUNK port - passes only tagged VLAN packets. Drops all untagged packets.\
+					               10: VLAN disabled on port - passes the packets as is.\
 					               11: unqualified port - passes all traffic regardless of VLAN configuration";
 					type = SLV;
 					size = 2;
