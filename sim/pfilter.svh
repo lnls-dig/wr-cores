@@ -119,8 +119,10 @@ class PFilterMicrocode;
    
    function u64_array assemble();
       u64_array tmp;
-      code_buf[code_pos++]  = (1<<35); // insert FIN instruction
-      tmp                   = new [code_pos](code_buf);
+//       code_buf[code_pos++]  = (1<<35); // insert FIN instruction
+//       tmp                   = new [code_pos](code_buf);
+      code_buf[code_pos]    = (1<<35); // insert FIN instruction
+      tmp                   = new [code_pos+1](code_buf);
       return tmp;
    endfunction // assemble
    
