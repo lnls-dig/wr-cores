@@ -135,7 +135,7 @@ architecture behavioral of ep_tx_header_processor is
 
   constant c_IFG_LENGTH : integer := 6;
 
-  type t_tx_framer_state is (TXF_IDLE, TXF_ADDR, TXF_DATA, TXF_GAP, TXF_PAD, TXF_ABORT, TXF_STORE_TSTAMP);
+  type t_tx_framer_state is (TXF_IDLE, TXF_DELAYED_SOF, TXF_ADDR, TXF_DATA, TXF_GAP, TXF_PAD, TXF_ABORT, TXF_STORE_TSTAMP);
 
 -- general signals
   signal state   : t_tx_framer_state;
@@ -354,21 +354,42 @@ begin  -- behavioral
               -- Check start-of-frame and send-pause signals and eventually
               -- commence frame transmission
 
---             if(src_dreq_i = '1' and (sof_p1 = '1' or fc_pause_req_i = '1') and regs_i.ecr_tx_en_o = '1') then
-             if(src_dreq_i = '1' and (sof_p1 = '1' or fc_pause_req_i = '1') and tx_en = '1') then --ML
+--             if(src_dreq_i = '1' and (sof_p1 = '1' or fc_pause_req_i = '1') and tx_en = '1') then --ML:removed
+--            EXPLANATION: removed src_dreq_i = '1' as the cycle can start on stall HIGH (dreq_i LOW), 
+--            it means that if we wait for dreq to be high.... we can miss SOF and thus entire frame. 
+--            New state added to include a case where SOF (start of cycle) starts when dreq is LOW.
+--            (we cannot just go to TXF_ADDR... it is because the PCS needs the minimal gap to add CRC)
+              if((sof_p1 = '1' or fc_pause_req_i = '1') and tx_en = '1') then --ML
 
                 fc_pause_ready_o <= '0';
                 tx_pause_mode    <= fc_pause_req_i;
                 tx_pause_delay   <= fc_pause_delay_i;
 
                 counter       <= (others => '0');
-                state         <= TXF_ADDR;
-                src_fab_o.sof <= '1';
+                
+                if(src_dreq_i = '1') then
+                  state         <= TXF_ADDR;
+                  src_fab_o.sof <= '1';
+                else
+                  state         <= TXF_DELAYED_SOF;
+                  src_fab_o.sof <= '0';                  
+                end if;
+                
               else
                 src_fab_o.sof <= '0';
               end if;
 
-
+-------------------------------------------------------------------------------
+-- TX FSM (ML-added): this state takes into accunt the rare case where SOF happens 
+-- when dreq is LOW (PCS not ready). So we wait for dreq HIGH and STALL in the 
+-- meanttime (see process at the end)
+-------------------------------------------------------------------------------
+            when TXF_DELAYED_SOF =>
+             
+              if(src_dreq_i = '1') then
+                state         <= TXF_ADDR;
+                src_fab_o.sof <= '1';
+             end if;              
 -------------------------------------------------------------------------------
 -- TX FSM state HEADER: processes the frame header, send pause frames
 -- if compiled without packet injection support.
@@ -521,7 +542,7 @@ begin  -- behavioral
       wb_out.stall <= '1';              -- /block for 1 cycle right upon
                                         -- detection of a packet, so the FSM
                                         -- has time to catch up
-    elsif(src_dreq_i = '1' and state /= TXF_GAP and state /= TXF_ABORT) then
+    elsif(src_dreq_i = '1' and state /= TXF_GAP and state /= TXF_ABORT and state /= TXF_DELAYED_SOF) then
       wb_out.stall <= '0';              -- during data/header phase - whenever
                                         -- the sink is ready to accept data
     else
