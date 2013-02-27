@@ -16,6 +16,8 @@ entity ep_rtu_header_extract is
     src_fab_o  : out t_ep_internal_fabric;
     src_dreq_i : in  std_logic;
 
+    mbuf_is_pause_i : in std_logic;
+
     vlan_class_i   : in std_logic_vector(2 downto 0);
     vlan_vid_i      : in std_logic_vector(11 downto 0);
     vlan_tag_done_i : in std_logic;
@@ -101,8 +103,10 @@ begin  -- rtl
     
     rtu_rq_valid_tagged <= rtu_rq_valid_basic and vlan_tag_done_i;
     
-    rtu_rq_valid_out <= rtu_rq_valid_tagged when (vlan_is_tagged_i = '1') else
-                        rtu_rq_valid_basic;
+    -- the request is not done for PAUSE frames as they never go outside of Endpoint 
+    -- (they are dropped inside Endpoint)
+    rtu_rq_valid_out <= (rtu_rq_valid_tagged and (not mbuf_is_pause_i))when (vlan_is_tagged_i = '1') else
+                        (rtu_rq_valid_basic  and (not mbuf_is_pause_i));
                         
 
   end generate gen_with_rtu;

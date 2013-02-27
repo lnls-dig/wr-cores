@@ -118,6 +118,7 @@ architecture behavioral of ep_rx_path is
       snk_dreq_o     : out std_logic;
       src_fab_o      : out t_ep_internal_fabric;
       src_dreq_i     : in  std_logic;
+      mbuf_is_pause_i : in std_logic; 
       vlan_class_i   : in std_logic_vector(2 downto 0);
       vlan_vid_i      : in std_logic_vector(11 downto 0);
       vlan_tag_done_i : in std_logic;
@@ -458,6 +459,11 @@ begin  -- behavioral
       snk_dreq_o     => dreq_pipe(6),
       src_fab_o      => fab_pipe(7),
       src_dreq_i     => dreq_pipe(7),
+      mbuf_is_pause_i => mbuf_is_pause, -- this module is in the pipe before ep_rx_status_reg_insert,
+                                        -- however, we know that mbuf_is_pause is valid when it 
+                                        -- is used by this module -- this is because blocks the pipe
+                                        -- untill mbuf_valid is HIGH, and rtu_rq_valid_o is inserted HIGH
+                                        -- at the end of the header... (clear ??:)
       vlan_class_i     => vlan_tclass,
       vlan_vid_i       => vlan_vid,
       vlan_tag_done_i  => vlan_tag_done,
