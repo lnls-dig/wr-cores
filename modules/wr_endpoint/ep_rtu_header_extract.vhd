@@ -16,7 +16,7 @@ entity ep_rtu_header_extract is
     src_fab_o  : out t_ep_internal_fabric;
     src_dreq_i : in  std_logic;
 
-    mbuf_is_pause_i : in std_logic;
+    mbuf_is_pause_i : in std_logic; 
 
     vlan_class_i   : in std_logic_vector(2 downto 0);
     vlan_vid_i      : in std_logic_vector(11 downto 0);

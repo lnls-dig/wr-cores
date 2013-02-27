@@ -80,6 +80,12 @@ signal ep_vcr0_fix_prio_int                     : std_logic      ;
 signal ep_vcr0_prio_val_int                     : std_logic_vector(2 downto 0);
 signal ep_vcr0_pvid_int                         : std_logic_vector(11 downto 0);
 signal ep_pfcr0_enable_int                      : std_logic      ;
+signal ep_fcr_rxpause_int                       : std_logic      ;
+signal ep_fcr_txpause_int                       : std_logic      ;
+signal ep_fcr_rxppause_prio_mode_int            : std_logic      ;
+signal ep_fcr_txppause_prio_mode_int            : std_logic      ;
+signal ep_fcr_tx_thr_int                        : std_logic_vector(7 downto 0);
+signal ep_fcr_tx_quanta_int                     : std_logic_vector(15 downto 0);
 signal ep_mach_int                              : std_logic_vector(15 downto 0);
 signal ep_macl_int                              : std_logic_vector(31 downto 0);
 signal ep_mdio_cr_addr_int                      : std_logic_vector(7 downto 0);
@@ -143,12 +149,12 @@ begin
       regs_o.pfcr0_mm_data_msb_wr_o <= '0';
       regs_o.pfcr1_mm_data_lsb_wr_o <= '0';
       regs_o.tcar_pcp_map_load_o <= '0';
-      regs_o.fcr_rxpause_load_o <= '0';
-      regs_o.fcr_txpause_load_o <= '0';
-      regs_o.fcr_rxppause_prio_mode_load_o <= '0';
-      regs_o.fcr_txppause_prio_mode_load_o <= '0';
-      regs_o.fcr_tx_thr_load_o <= '0';
-      regs_o.fcr_tx_quanta_load_o <= '0';
+      ep_fcr_rxpause_int <= '0';
+      ep_fcr_txpause_int <= '0';
+      ep_fcr_rxppause_prio_mode_int <= '0';
+      ep_fcr_txppause_prio_mode_int <= '0';
+      ep_fcr_tx_thr_int <= "00000000";
+      ep_fcr_tx_quanta_int <= "0000000000000000";
       ep_mach_int <= "0000000000000000";
       ep_macl_int <= "00000000000000000000000000000000";
       regs_o.mdio_cr_data_wr_o <= '0';
@@ -173,12 +179,6 @@ begin
           regs_o.pfcr0_mm_data_msb_wr_o <= '0';
           regs_o.pfcr1_mm_data_lsb_wr_o <= '0';
           regs_o.tcar_pcp_map_load_o <= '0';
-          regs_o.fcr_rxpause_load_o <= '0';
-          regs_o.fcr_txpause_load_o <= '0';
-          regs_o.fcr_rxppause_prio_mode_load_o <= '0';
-          regs_o.fcr_txppause_prio_mode_load_o <= '0';
-          regs_o.fcr_tx_thr_load_o <= '0';
-          regs_o.fcr_tx_quanta_load_o <= '0';
           regs_o.mdio_cr_data_wr_o <= '0';
           regs_o.dsr_lact_load_o <= '0';
           regs_o.dmcr_en_load_o <= '0';
@@ -195,12 +195,6 @@ begin
           regs_o.pfcr0_mm_data_msb_wr_o <= '0';
           regs_o.pfcr1_mm_data_lsb_wr_o <= '0';
           regs_o.tcar_pcp_map_load_o <= '0';
-          regs_o.fcr_rxpause_load_o <= '0';
-          regs_o.fcr_txpause_load_o <= '0';
-          regs_o.fcr_rxppause_prio_mode_load_o <= '0';
-          regs_o.fcr_txppause_prio_mode_load_o <= '0';
-          regs_o.fcr_tx_thr_load_o <= '0';
-          regs_o.fcr_tx_quanta_load_o <= '0';
           regs_o.mdio_cr_data_wr_o <= '0';
           regs_o.dsr_lact_load_o <= '0';
           regs_o.dmcr_en_load_o <= '0';
@@ -477,19 +471,19 @@ begin
               ack_in_progress <= '1';
             when "01000" => 
               if (wb_we_i = '1') then
-                regs_o.fcr_rxpause_load_o <= '1';
-                regs_o.fcr_txpause_load_o <= '1';
-                regs_o.fcr_rxppause_prio_mode_load_o <= '1';
-                regs_o.fcr_txppause_prio_mode_load_o <= '1';
-                regs_o.fcr_tx_thr_load_o <= '1';
-                regs_o.fcr_tx_quanta_load_o <= '1';
+                ep_fcr_rxpause_int <= wrdata_reg(0);
+                ep_fcr_txpause_int <= wrdata_reg(1);
+                ep_fcr_rxppause_prio_mode_int <= wrdata_reg(2);
+                ep_fcr_txppause_prio_mode_int <= wrdata_reg(3);
+                ep_fcr_tx_thr_int <= wrdata_reg(15 downto 8);
+                ep_fcr_tx_quanta_int <= wrdata_reg(31 downto 16);
               end if;
-              rddata_reg(0) <= regs_i.fcr_rxpause_i;
-              rddata_reg(1) <= regs_i.fcr_txpause_i;
-              rddata_reg(2) <= regs_i.fcr_rxppause_prio_mode_i;
-              rddata_reg(3) <= regs_i.fcr_txppause_prio_mode_i;
-              rddata_reg(15 downto 8) <= regs_i.fcr_tx_thr_i;
-              rddata_reg(31 downto 16) <= regs_i.fcr_tx_quanta_i;
+              rddata_reg(0) <= ep_fcr_rxpause_int;
+              rddata_reg(1) <= ep_fcr_txpause_int;
+              rddata_reg(2) <= ep_fcr_rxppause_prio_mode_int;
+              rddata_reg(3) <= ep_fcr_txppause_prio_mode_int;
+              rddata_reg(15 downto 8) <= ep_fcr_tx_thr_int;
+              rddata_reg(31 downto 16) <= ep_fcr_tx_quanta_int;
               rddata_reg(4) <= 'X';
               rddata_reg(5) <= 'X';
               rddata_reg(6) <= 'X';
@@ -829,17 +823,17 @@ begin
 -- 802.1Q priority tag to Traffic Class map
   regs_o.tcar_pcp_map_o <= wrdata_reg(23 downto 0);
 -- RX Pause enable
-  regs_o.fcr_rxpause_o <= wrdata_reg(0);
+  regs_o.fcr_rxpause_o <= ep_fcr_rxpause_int;
 -- TX Pause enable
-  regs_o.fcr_txpause_o <= wrdata_reg(1);
+  regs_o.fcr_txpause_o <= ep_fcr_txpause_int;
 -- Rx Pause Type
-  regs_o.fcr_rxppause_prio_mode_o <= wrdata_reg(2);
+  regs_o.fcr_rxppause_prio_mode_o <= ep_fcr_rxppause_prio_mode_int;
 -- Tx Pause Type
-  regs_o.fcr_txppause_prio_mode_o <= wrdata_reg(3);
+  regs_o.fcr_txppause_prio_mode_o <= ep_fcr_txppause_prio_mode_int;
 -- TX pause threshold
-  regs_o.fcr_tx_thr_o <= wrdata_reg(15 downto 8);
+  regs_o.fcr_tx_thr_o <= ep_fcr_tx_thr_int;
 -- TX pause quanta
-  regs_o.fcr_tx_quanta_o <= wrdata_reg(31 downto 16);
+  regs_o.fcr_tx_quanta_o <= ep_fcr_tx_quanta_int;
 -- MAC Address
   regs_o.mach_o <= ep_mach_int;
 -- MAC Address

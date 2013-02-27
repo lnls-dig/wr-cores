@@ -427,9 +427,8 @@ peripheral {
                        0: disable reception of pause frames";
 				prefix = "RXPAUSE";
 				access_bus = READ_WRITE;
-				access_dev = READ_WRITE;
+				access_dev = READ_ONLY;
 				type = BIT;
-        load = LOAD_EXT;
 		 };
 		 field {
 				name = "TX Pause enable";
@@ -437,9 +436,8 @@ peripheral {
                        0: disable transmission of pause frames";
 				prefix = "TXPAUSE";
 				access_bus = READ_WRITE;
-				access_dev = READ_WRITE;
+				access_dev = READ_ONLY;
 				type = BIT;
-        load = LOAD_EXT;
 		 };
 		 field {
 				name = "Rx Pause Type";
@@ -447,9 +445,8 @@ peripheral {
                        0: 802.3x standard Flow Control";
 				prefix = "RXPPAUSE_PRIO_MODE";
 				access_bus = READ_WRITE;
-				access_dev = READ_WRITE;
+				access_dev = READ_ONLY;
 				type = BIT;
-        load = LOAD_EXT;
 		 };
 		 field {
 				name = "Tx Pause Type";
@@ -457,20 +454,18 @@ peripheral {
                        0: 802.3x standard Flow Control";
 				prefix = "TXPPAUSE_PRIO_MODE";
 				access_bus = READ_WRITE;
-				access_dev = READ_WRITE;
+				access_dev = READ_ONLY;
 				type = BIT;
-        load = LOAD_EXT;
 		 };
 		 field {
 				name = "TX pause threshold";
 				description = "Defines the percentage of space occupied in the RX buffer which triggers the transmission of a PAUSE frame. 0 = empty buffer, 255 = full buffer";
 				prefix = "TX_THR";
 				access_bus = READ_WRITE;
-				access_dev = READ_WRITE;
+				access_dev = READ_ONLY;
 				type = SLV;
 				size = 8;
 				align = 8;
-        load = LOAD_EXT;
 		 };
 
 		 field {
@@ -478,11 +473,10 @@ peripheral {
 				description = "Defines the quanta value carried bypause frames sent by the Endpoint";
 				prefix = "TX_QUANTA";
 				access_bus = READ_WRITE;
-				access_dev = READ_WRITE;
+				access_dev = READ_ONLY;
 				type = SLV;
 				size = 16;
 				align = 16;
-        load = LOAD_EXT;
 		 };
 	};
 

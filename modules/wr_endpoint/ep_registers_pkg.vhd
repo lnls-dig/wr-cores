@@ -28,12 +28,6 @@ package ep_wbgen2_pkg is
     tscr_cs_done_i                           : std_logic;
     tscr_rx_cal_result_i                     : std_logic;
     tcar_pcp_map_i                           : std_logic_vector(23 downto 0);
-    fcr_rxpause_i                            : std_logic;
-    fcr_txpause_i                            : std_logic;
-    fcr_rxppause_prio_mode_i                 : std_logic;
-    fcr_txppause_prio_mode_i                 : std_logic;
-    fcr_tx_thr_i                             : std_logic_vector(7 downto 0);
-    fcr_tx_quanta_i                          : std_logic_vector(15 downto 0);
     mdio_asr_rdata_i                         : std_logic_vector(15 downto 0);
     mdio_asr_ready_i                         : std_logic;
     dsr_lstatus_i                            : std_logic;
@@ -52,12 +46,6 @@ package ep_wbgen2_pkg is
     tscr_cs_done_i => '0',
     tscr_rx_cal_result_i => '0',
     tcar_pcp_map_i => (others => '0'),
-    fcr_rxpause_i => '0',
-    fcr_txpause_i => '0',
-    fcr_rxppause_prio_mode_i => '0',
-    fcr_txppause_prio_mode_i => '0',
-    fcr_tx_thr_i => (others => '0'),
-    fcr_tx_quanta_i => (others => '0'),
     mdio_asr_rdata_i => (others => '0'),
     mdio_asr_ready_i => '0',
     dsr_lstatus_i => '0',
@@ -105,17 +93,11 @@ package ep_wbgen2_pkg is
       tcar_pcp_map_o                           : std_logic_vector(23 downto 0);
       tcar_pcp_map_load_o                      : std_logic;
       fcr_rxpause_o                            : std_logic;
-      fcr_rxpause_load_o                       : std_logic;
       fcr_txpause_o                            : std_logic;
-      fcr_txpause_load_o                       : std_logic;
       fcr_rxppause_prio_mode_o                 : std_logic;
-      fcr_rxppause_prio_mode_load_o            : std_logic;
       fcr_txppause_prio_mode_o                 : std_logic;
-      fcr_txppause_prio_mode_load_o            : std_logic;
       fcr_tx_thr_o                             : std_logic_vector(7 downto 0);
-      fcr_tx_thr_load_o                        : std_logic;
       fcr_tx_quanta_o                          : std_logic_vector(15 downto 0);
-      fcr_tx_quanta_load_o                     : std_logic;
       mach_o                                   : std_logic_vector(15 downto 0);
       macl_o                                   : std_logic_vector(31 downto 0);
       mdio_cr_data_o                           : std_logic_vector(15 downto 0);
@@ -168,17 +150,11 @@ package ep_wbgen2_pkg is
       tcar_pcp_map_o => (others => '0'),
       tcar_pcp_map_load_o => '0',
       fcr_rxpause_o => '0',
-      fcr_rxpause_load_o => '0',
       fcr_txpause_o => '0',
-      fcr_txpause_load_o => '0',
       fcr_rxppause_prio_mode_o => '0',
-      fcr_rxppause_prio_mode_load_o => '0',
       fcr_txppause_prio_mode_o => '0',
-      fcr_txppause_prio_mode_load_o => '0',
       fcr_tx_thr_o => (others => '0'),
-      fcr_tx_thr_load_o => '0',
       fcr_tx_quanta_o => (others => '0'),
-      fcr_tx_quanta_load_o => '0',
       mach_o => (others => '0'),
       macl_o => (others => '0'),
       mdio_cr_data_o => (others => '0'),
@@ -231,12 +207,6 @@ tmp.ecr_feat_dpi_i := f_x_to_zero(left.ecr_feat_dpi_i) or f_x_to_zero(right.ecr_
 tmp.tscr_cs_done_i := f_x_to_zero(left.tscr_cs_done_i) or f_x_to_zero(right.tscr_cs_done_i);
 tmp.tscr_rx_cal_result_i := f_x_to_zero(left.tscr_rx_cal_result_i) or f_x_to_zero(right.tscr_rx_cal_result_i);
 tmp.tcar_pcp_map_i := f_x_to_zero(left.tcar_pcp_map_i) or f_x_to_zero(right.tcar_pcp_map_i);
-tmp.fcr_rxpause_i := f_x_to_zero(left.fcr_rxpause_i) or f_x_to_zero(right.fcr_rxpause_i);
-tmp.fcr_txpause_i := f_x_to_zero(left.fcr_txpause_i) or f_x_to_zero(right.fcr_txpause_i);
-tmp.fcr_rxppause_prio_mode_i := f_x_to_zero(left.fcr_rxppause_prio_mode_i) or f_x_to_zero(right.fcr_rxppause_prio_mode_i);
-tmp.fcr_txppause_prio_mode_i := f_x_to_zero(left.fcr_txppause_prio_mode_i) or f_x_to_zero(right.fcr_txppause_prio_mode_i);
-tmp.fcr_tx_thr_i := f_x_to_zero(left.fcr_tx_thr_i) or f_x_to_zero(right.fcr_tx_thr_i);
-tmp.fcr_tx_quanta_i := f_x_to_zero(left.fcr_tx_quanta_i) or f_x_to_zero(right.fcr_tx_quanta_i);
 tmp.mdio_asr_rdata_i := f_x_to_zero(left.mdio_asr_rdata_i) or f_x_to_zero(right.mdio_asr_rdata_i);
 tmp.mdio_asr_ready_i := f_x_to_zero(left.mdio_asr_ready_i) or f_x_to_zero(right.mdio_asr_ready_i);
 tmp.dsr_lstatus_i := f_x_to_zero(left.dsr_lstatus_i) or f_x_to_zero(right.dsr_lstatus_i);
