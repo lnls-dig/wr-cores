@@ -200,12 +200,20 @@ entity xwr_endpoint is
    pfilter_done_o         : out   std_logic;
 
 -------------------------------------------------------------------------------
--- control of PAUSE sending (for TRU/HW-RSTP)
+-- control of PAUSE sending (ML: not used and not tested... TRU uses packet injection) -- 
 -------------------------------------------------------------------------------
    
-   fc_pause_req_i   : in std_logic := '0';
-   fc_pause_delay_i : in std_logic_vector(15 downto 0) := x"0000";
-   fc_pause_ready_o : out std_logic;
+   fc_tx_pause_req_i   : in std_logic := '0';
+   fc_tx_pause_delay_i : in std_logic_vector(15 downto 0) := x"0000";
+   fc_tx_pause_ready_o : out std_logic;
+
+-------------------------------------------------------------------------------
+-- information about received PAUSE (for SWcore)
+-------------------------------------------------------------------------------
+
+   fc_rx_pause_start_p_o     : out std_logic;
+   fc_rx_pause_quanta_o      : out std_logic_vector(15 downto 0);
+   fc_rx_pause_prio_mask_o   : out std_logic_vector(7 downto 0);
 
 -------------------------------------------------------------------------------
 -- Packet Injection Interface (for TRU/HW-RSTP)
@@ -340,9 +348,12 @@ begin
       pfilter_pclass_o     => pfilter_pclass_o,
       pfilter_drop_o       => pfilter_drop_o,
       pfilter_done_o       => pfilter_done_o,
-      fc_pause_req_i       => fc_pause_req_i,
-      fc_pause_delay_i     => fc_pause_delay_i,
-      fc_pause_ready_o     => fc_pause_ready_o,
+      fc_tx_pause_req_i    => fc_tx_pause_req_i,
+      fc_tx_pause_delay_i  => fc_tx_pause_delay_i,
+      fc_tx_pause_ready_o  => fc_tx_pause_ready_o,
+      fc_rx_pause_start_p_o   => fc_rx_pause_start_p_o,
+      fc_rx_pause_quanta_o    => fc_rx_pause_quanta_o,
+      fc_rx_pause_prio_mask_o => fc_rx_pause_prio_mask_o,
       inject_req_i         => inject_req_i,
       inject_user_value_i  => inject_user_value_i,
       inject_packet_sel_i  => inject_packet_sel_i,

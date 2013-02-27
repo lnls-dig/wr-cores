@@ -145,6 +145,8 @@ begin
       regs_o.tcar_pcp_map_load_o <= '0';
       regs_o.fcr_rxpause_load_o <= '0';
       regs_o.fcr_txpause_load_o <= '0';
+      regs_o.fcr_rxppause_prio_mode_load_o <= '0';
+      regs_o.fcr_txppause_prio_mode_load_o <= '0';
       regs_o.fcr_tx_thr_load_o <= '0';
       regs_o.fcr_tx_quanta_load_o <= '0';
       ep_mach_int <= "0000000000000000";
@@ -173,6 +175,8 @@ begin
           regs_o.tcar_pcp_map_load_o <= '0';
           regs_o.fcr_rxpause_load_o <= '0';
           regs_o.fcr_txpause_load_o <= '0';
+          regs_o.fcr_rxppause_prio_mode_load_o <= '0';
+          regs_o.fcr_txppause_prio_mode_load_o <= '0';
           regs_o.fcr_tx_thr_load_o <= '0';
           regs_o.fcr_tx_quanta_load_o <= '0';
           regs_o.mdio_cr_data_wr_o <= '0';
@@ -193,6 +197,8 @@ begin
           regs_o.tcar_pcp_map_load_o <= '0';
           regs_o.fcr_rxpause_load_o <= '0';
           regs_o.fcr_txpause_load_o <= '0';
+          regs_o.fcr_rxppause_prio_mode_load_o <= '0';
+          regs_o.fcr_txppause_prio_mode_load_o <= '0';
           regs_o.fcr_tx_thr_load_o <= '0';
           regs_o.fcr_tx_quanta_load_o <= '0';
           regs_o.mdio_cr_data_wr_o <= '0';
@@ -473,15 +479,17 @@ begin
               if (wb_we_i = '1') then
                 regs_o.fcr_rxpause_load_o <= '1';
                 regs_o.fcr_txpause_load_o <= '1';
+                regs_o.fcr_rxppause_prio_mode_load_o <= '1';
+                regs_o.fcr_txppause_prio_mode_load_o <= '1';
                 regs_o.fcr_tx_thr_load_o <= '1';
                 regs_o.fcr_tx_quanta_load_o <= '1';
               end if;
               rddata_reg(0) <= regs_i.fcr_rxpause_i;
               rddata_reg(1) <= regs_i.fcr_txpause_i;
+              rddata_reg(2) <= regs_i.fcr_rxppause_prio_mode_i;
+              rddata_reg(3) <= regs_i.fcr_txppause_prio_mode_i;
               rddata_reg(15 downto 8) <= regs_i.fcr_tx_thr_i;
               rddata_reg(31 downto 16) <= regs_i.fcr_tx_quanta_i;
-              rddata_reg(2) <= 'X';
-              rddata_reg(3) <= 'X';
               rddata_reg(4) <= 'X';
               rddata_reg(5) <= 'X';
               rddata_reg(6) <= 'X';
@@ -824,6 +832,10 @@ begin
   regs_o.fcr_rxpause_o <= wrdata_reg(0);
 -- TX Pause enable
   regs_o.fcr_txpause_o <= wrdata_reg(1);
+-- Rx Pause Type
+  regs_o.fcr_rxppause_prio_mode_o <= wrdata_reg(2);
+-- Tx Pause Type
+  regs_o.fcr_txppause_prio_mode_o <= wrdata_reg(3);
 -- TX pause threshold
   regs_o.fcr_tx_thr_o <= wrdata_reg(15 downto 8);
 -- TX pause quanta

@@ -232,12 +232,20 @@ entity wr_endpoint is
    pfilter_done_o         : out   std_logic;
 
 -------------------------------------------------------------------------------
--- control of PAUSE sending (for TRU/HW-RSTP)
+-- control of PAUSE sending (ML: not used and not tested... TRU uses packet injection) -- 
 -------------------------------------------------------------------------------
    
-   fc_pause_req_i   : in std_logic := '0';
-   fc_pause_delay_i : in std_logic_vector(15 downto 0) := x"0000";
-   fc_pause_ready_o : out std_logic;
+   fc_tx_pause_req_i   : in std_logic := '0';
+   fc_tx_pause_delay_i : in std_logic_vector(15 downto 0) := x"0000";
+   fc_tx_pause_ready_o : out std_logic;
+
+-------------------------------------------------------------------------------
+-- information about received PAUSE (for SWcore)
+-------------------------------------------------------------------------------
+
+   fc_rx_pause_start_p_o     : out std_logic;
+   fc_rx_pause_quanta_o      : out std_logic_vector(15 downto 0);
+   fc_rx_pause_prio_mask_o   : out std_logic_vector(7 downto 0);
 
 -------------------------------------------------------------------------------
 -- Packet Injection Interface (for TRU/HW-RSTP)
@@ -363,7 +371,8 @@ architecture syn of wr_endpoint is
       src_wb_o               : out   t_wrf_source_out;
       src_wb_i               : in    t_wrf_source_in;
       fc_pause_p_o           : out   std_logic;
-      fc_pause_delay_o       : out   std_logic_vector(15 downto 0);
+      fc_pause_quanta_o      : out   std_logic_vector(15 downto 0);
+      fc_pause_prio_mask_o   : out   std_logic_vector(7 downto 0);
       fc_buffer_occupation_o : out   std_logic_vector(7 downto 0);
       rmon_o                 : inout t_rmon_triggers;
       regs_i                 : in    t_ep_out_registers;
@@ -748,8 +757,9 @@ begin
       pcs_fifo_almostfull_o => rxpcs_fifo_almostfull,
       pcs_busy_i            => rxpcs_busy,
 
-      fc_pause_p_o     => rxfra_pause_p,
-      fc_pause_delay_o => rxfra_pause_delay,
+      fc_pause_p_o         => fc_rx_pause_start_p_o,  --rxfra_pause_p,
+      fc_pause_quanta_o    => fc_rx_pause_quanta_o,   --rxfra_pause_delay,
+      fc_pause_prio_mask_o => fc_rx_pause_prio_mask_o,
 
       rmon_o => rmon,
       regs_i => regs_fromwb,
@@ -1037,9 +1047,9 @@ begin
   pfilter_done_o     <= pfilter_done;
   pfilter_drop_o     <= pfilter_drop;
 
-  txfra_pause_req    <= fc_pause_req_i;
-  fc_pause_ready_o   <= txfra_pause_ready;
-  txfra_pause_delay  <= fc_pause_delay_i;
+  txfra_pause_req    <= fc_tx_pause_req_i;
+  fc_tx_pause_ready_o   <= txfra_pause_ready;
+  txfra_pause_delay  <= fc_tx_pause_delay_i;
 
   -- TRU needs to be able to share the control of ouput path, i.e. turn off the laser
   p_ep_ctrl: process(clk_sys_i)

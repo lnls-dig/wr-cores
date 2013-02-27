@@ -82,7 +82,8 @@ entity ep_rx_path is
 
 -- flow control signals
     fc_pause_p_o           : out std_logic;
-    fc_pause_delay_o       : out std_logic_vector(15 downto 0);
+    fc_pause_quanta_o      : out std_logic_vector(15 downto 0);
+    fc_pause_prio_mask_o   : out std_logic_vector(7 downto 0);
     fc_buffer_occupation_o : out std_logic_vector(7 downto 0);
 
 -- RMON/statistic counters signals
@@ -138,6 +139,8 @@ architecture behavioral of ep_rx_path is
       match_is_hp_o        : out std_logic;
       match_is_pause_o     : out std_logic;
       match_pause_quanta_o : out std_logic_vector(15 downto 0);
+      match_pause_prio_mask_o : out std_logic_vector(7 downto 0);
+      match_pause_p_o      : out std_logic;       
       regs_i               : in  t_ep_out_registers);
   end component;
 
@@ -294,7 +297,6 @@ architecture behavioral of ep_rx_path is
   signal ematch_done         : std_logic;
   signal ematch_is_hp        : std_logic;
   signal ematch_is_pause     : std_logic;
-  signal ematch_pause_quanta : std_logic_vector(15 downto 0);
 
   signal pfilter_pclass : std_logic_vector(7 downto 0);
   signal pfilter_drop   : std_logic;
@@ -317,18 +319,19 @@ begin  -- behavioral
   U_early_addr_match : ep_rx_early_address_match
 
     port map (
-      clk_sys_i            => clk_sys_i,
-      clk_rx_i             => clk_rx_i,
-      rst_n_sys_i          => rst_n_sys_i,
-      rst_n_rx_i           => rst_n_rx_i,
-      snk_fab_i            => fab_pipe(0),
-      src_fab_o            => fab_pipe(1),
-      match_done_o         => ematch_done,
-      match_is_hp_o        => ematch_is_hp,
-      match_is_pause_o     => ematch_is_pause,
-      match_pause_quanta_o => ematch_pause_quanta,
-      regs_i               => regs_i);
-
+      clk_sys_i               => clk_sys_i,
+      clk_rx_i                => clk_rx_i,
+      rst_n_sys_i             => rst_n_sys_i,
+      rst_n_rx_i              => rst_n_rx_i,
+      snk_fab_i               => fab_pipe(0),
+      src_fab_o               => fab_pipe(1),
+      match_done_o            => ematch_done,
+      match_is_hp_o           => ematch_is_hp,
+      match_is_pause_o        => ematch_is_pause,
+      match_pause_quanta_o    => fc_pause_quanta_o,
+      match_pause_prio_mask_o => fc_pause_prio_mask_o,
+      match_pause_p_o         => fc_pause_p_o,
+      regs_i                  => regs_i);
 
   gen_with_packet_filter : if(g_with_dpi_classifier) generate
     U_packet_filter : ep_packet_filter

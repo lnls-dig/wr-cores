@@ -23,9 +23,19 @@ entity ep_rx_early_address_match is
 
     match_done_o         : out std_logic;
     match_is_hp_o        : out std_logic;
+    
+    -- indicate that pause was detected
     match_is_pause_o     : out std_logic;
+    
+    -- tell quanta (for prio-based pause it is the greatest of all prios)
     match_pause_quanta_o : out std_logic_vector(15 downto 0);
-
+    
+    -- mask with priorities which shall be PAUSEd
+    match_pause_prio_mask_o : out std_logic_vector(7 downto 0);
+   
+    -- once the PAUSE frame is decoded, it requests pausing from SWcore
+    match_pause_p_o      : out std_logic; 
+  
     regs_i : in t_ep_out_registers
     );
 
@@ -33,7 +43,7 @@ end ep_rx_early_address_match;
 
 architecture behavioral of ep_rx_early_address_match is
 
-  signal hdr_offset : std_logic_vector(11 downto 0);
+  signal hdr_offset : std_logic_vector(16 downto 0);
 
   signal at_ethertype    : std_logic;
   signal at_vid          : std_logic;
@@ -42,6 +52,12 @@ architecture behavioral of ep_rx_early_address_match is
 
   signal comb_pcp_matches_hp : std_logic;
   signal done_int            : std_logic;
+
+  signal pause_prio_mask      : std_logic_vector(7 downto 0);
+  signal match_pause_req     : std_logic;
+  signal match_is_pause      : std_logic;
+  signal is_perprio_pause    : std_logic;
+  signal match_pause_quanta  : std_logic_vector(15 downto 0);
 
   function f_compare_slv (a : std_logic_vector; b : std_logic_vector) return std_logic is
   begin
@@ -78,8 +94,11 @@ begin  -- behavioral
     if rising_edge(clk_rx_i) then
       if rst_n_rx_i = '0' or snk_fab_i.sof = '1' then
         pause_match_int      <= (others => '0');
-        match_pause_quanta_o <= (others => '0');
-        match_is_pause_o     <= '0';
+        match_pause_quanta   <= (others => '0');
+        match_is_pause       <= '0';
+        pause_prio_mask      <= (others => '0');
+        match_pause_req      <= '0';
+        is_perprio_pause     <= '0';
       else
         if(snk_fab_i.dvalid = '1') then
           if(hdr_offset(0) = '1') then
@@ -91,33 +110,61 @@ begin  -- behavioral
           if(hdr_offset(2) = '1') then
             pause_match_int (2) <= f_compare_slv(snk_fab_i.data, x"0001");
           end if;
-          if(hdr_offset(3) = '1') then
-            pause_match_int (3) <= f_compare_slv(snk_fab_i.data, regs_i.mach_o);
-          end if;
-          if(hdr_offset(4) = '1') then
-            pause_match_int (4) <= f_compare_slv(snk_fab_i.data, regs_i.macl_o(31 downto 16));
-          end if;
-          if(hdr_offset(5) = '1') then
-            pause_match_int (5) <= f_compare_slv(snk_fab_i.data, regs_i.macl_o(15 downto 0));
-          end if;
+--           if(hdr_offset(3) = '1') then
+--             pause_match_int (3) <= f_compare_slv(snk_fab_i.data, regs_i.mach_o);
+--           end if;
+--           if(hdr_offset(4) = '1') then
+--             pause_match_int (4) <= f_compare_slv(snk_fab_i.data, regs_i.macl_o(31 downto 16));
+--           end if;
+--           if(hdr_offset(5) = '1') then
+--             pause_match_int (5) <= f_compare_slv(snk_fab_i.data, regs_i.macl_o(15 downto 0));
+--           end if;
           if(hdr_offset(6) = '1') then
-            pause_match_int (6) <= f_compare_slv(snk_fab_i.data, x"8808");
+            pause_match_int (3) <= f_compare_slv(snk_fab_i.data, x"8808");
           end if;
           if(hdr_offset(7) = '1') then
-            pause_match_int (7) <= f_compare_slv(snk_fab_i.data, x"0001");
+            pause_match_int (4) <= f_compare_slv(snk_fab_i.data, x"0001"); -- 802.3 PAUSE
+            pause_match_int (5) <= f_compare_slv(snk_fab_i.data, x"0101"); -- per-prio PAUSE
           end if;
           if(hdr_offset(8) = '1') then
-            match_is_pause_o     <= f_compare_slv(pause_match_int, x"ff");
-            match_pause_quanta_o <= snk_fab_i.data;
+            if(f_compare_slv(pause_match_int, b"0001_1111") = '1') then  -- 802.3 PAUSE
+
+              match_is_pause            <= '1'; -- to indicate that frame shall be dropped
+
+              if((regs_i.fcr_rxpause_o = '1') and (regs_i.fcr_rxppause_prio_mode_o = '0')) then
+                match_pause_req         <= '1';
+                match_pause_quanta      <= snk_fab_i.data;  
+                pause_prio_mask         <= (others => '1');
+              end if;
+
+            elsif(f_compare_slv(pause_match_int, b"0010_1111") = '1') then  -- per-prio PAUSE
+
+              match_is_pause          <= '1'; -- to indicate that frame shall be dropped
+
+              if((regs_i.fcr_rxpause_o = '1') and (regs_i.fcr_rxppause_prio_mode_o = '1')) then
+                pause_prio_mask       <=  snk_fab_i.data(7 downto 0);
+                is_perprio_pause      <= '1';
+              end if;
+  
+            end if;
+          end if;
+          if((hdr_offset(16 downto 9) and pause_prio_mask) /= b"0000_0000") then
+            if(snk_fab_i.data > match_pause_quanta) then
+              match_pause_quanta <= snk_fab_i.data;
+            end if;  
+          end if;
+          if(hdr_offset(16) = '1' and is_perprio_pause = '1') then
+            match_pause_req           <= '1';
           end if;
         end if;
       end if;
     end if;
   end process;
 
-
-
-
+  match_is_pause_o        <= match_is_pause;
+  match_pause_prio_mask_o <= pause_prio_mask;
+  match_pause_quanta_o    <= match_pause_quanta;
+  
   p_match_hp : process(clk_rx_i)
     variable index : integer;
   begin
@@ -166,6 +213,14 @@ begin  -- behavioral
       data_i   => done_int,
       ppulse_o => match_done_o);
 
+  U_sync_pause : gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => clk_sys_i,
+      rst_n_i  => rst_n_sys_i,
+      data_i   => match_pause_req,
+      ppulse_o => match_pause_p_o);
 
 end behavioral;
 
