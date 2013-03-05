@@ -13,7 +13,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-use work.wbgen2_pkg.all;
 
 package ep_wbgen2_pkg is
   

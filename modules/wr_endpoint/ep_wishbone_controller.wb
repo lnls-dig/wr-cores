@@ -665,30 +665,5 @@ peripheral {
 				 access_bus = READ_WRITE;
 			};
 	 };
-
-
-		ram {
-			 name = "Event counters memory";
-			 description = "RMON event counters:\
-			 0x0 : TX PCS buffer underruns\
-			 0x4 : RX PCS invalid 8b10b codes\
-			 0x8 : RX PCS sync lost events\
-			 0xc : RX PCS buffer overruns\
-			 0x10: RX CRC errors\
-			 0x14: RX valid frames\
-			 0x18: RX runt frames\
-			 0x1c: RX giant frames\
-			 0x20: RX PCS errors\
-			 0x24: RX dropped frames";
-
-			 size = 32;
-			 width = 32;
-			 
-			 access_dev = READ_WRITE;
-			 access_bus = READ_WRITE;
-
-			 prefix = "rmon_ram";
-		};
-
 		
 };

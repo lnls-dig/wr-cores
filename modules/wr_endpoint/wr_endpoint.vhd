@@ -512,7 +512,6 @@ architecture syn of wr_endpoint is
 -- WB slave signals
 -------------------------------------------------------------------------------
 
-  signal rmon            : t_rmon_triggers;
   signal regs_fromwb     : t_ep_out_registers;
   signal regs_towb       : t_ep_in_registers;
   signal regs_towb_ep    : t_ep_in_registers;
@@ -537,14 +536,8 @@ architecture syn of wr_endpoint is
 -------------------------------------------------------------------------------
 -- RMON signals
 -------------------------------------------------------------------------------
+  signal rmon_trigs : t_rmon_triggers;
 
-  signal ep_rmon_ram_addr   : std_logic_vector(4 downto 0);
-  signal ep_rmon_ram_data_o : std_logic_vector(31 downto 0);
-  signal ep_rmon_ram_rd     : std_logic;
-  signal ep_rmon_ram_data_i : std_logic_vector(31 downto 0);
-  signal ep_rmon_ram_wr     : std_logic;
-
-  signal rmon_counters : std_logic_vector(31 downto 0);
 
   --signal rofifo_write, rofifo_full, oob_valid_d0 : std_logic;
 
@@ -823,27 +816,6 @@ begin
   --    );
 
 -------------------------------------------------------------------------------
--- RMON counters
--------------------------------------------------------------------------------
-
-  --U_RMON_CNT : ep_rmon_counters
-  --  generic map (
-  --    g_num_counters   => 12,
-  --    g_ram_addr_width => 5)
-  --  port map (
-  --    clk_sys_i       => clk_sys_i,
-  --    rst_n_i         => rst_n_i,
-  --    cntr_rst_i      => ep_ecr_rst_cnt,
-  --    cntr_pulse_i    => rmon_counters(11 downto 0),
-  --    ram_addr_o      => ep_rmon_ram_addr,
-  --    ram_data_i      => ep_rmon_ram_data_o,
-  --    ram_data_o      => ep_rmon_ram_data_i,
-  --    ram_wr_o        => ep_rmon_ram_wr,
-  --    cntr_overflow_o => open);
-
-  --ep_rmon_ram_rd <= '1';
-
--------------------------------------------------------------------------------
 -- Timestamping unit
 -------------------------------------------------------------------------------
 
@@ -921,12 +893,6 @@ begin
 
       tx_clk_i => clk_ref_i,
       rx_clk_i => phy_rx_clk_i,
-
-      ep_rmon_ram_wr_i   => ep_rmon_ram_wr,
-      ep_rmon_ram_rd_i   => ep_rmon_ram_rd,
-      ep_rmon_ram_data_i => ep_rmon_ram_data_i,
-      ep_rmon_ram_data_o => ep_rmon_ram_data_o,
-      ep_rmon_ram_addr_i => ep_rmon_ram_addr,
 
       regs_o => regs_fromwb,
       regs_i => regs_towb
