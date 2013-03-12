@@ -361,28 +361,28 @@ architecture syn of wr_endpoint is
       g_with_rx_buffer      : boolean;
       g_rx_buffer_size      : integer);
     port (
-      clk_sys_i              : in    std_logic;
-      clk_rx_i               : in    std_logic;
-      rst_n_sys_i            : in    std_logic;
-      rst_n_rx_i             : in    std_logic;
-      pcs_fab_i              : in    t_ep_internal_fabric;
-      pcs_fifo_almostfull_o  : out   std_logic;
-      pcs_busy_i             : in    std_logic;
-      src_wb_o               : out   t_wrf_source_out;
-      src_wb_i               : in    t_wrf_source_in;
-      fc_pause_p_o           : out   std_logic;
-      fc_pause_quanta_o      : out   std_logic_vector(15 downto 0);
-      fc_pause_prio_mask_o   : out   std_logic_vector(7 downto 0);
-      fc_buffer_occupation_o : out   std_logic_vector(7 downto 0);
-      rmon_o                 : inout t_rmon_triggers;
-      regs_i                 : in    t_ep_out_registers;
-      regs_o                 : out   t_ep_in_registers;
-      pfilter_pclass_o       : out   std_logic_vector(7 downto 0);
-      pfilter_drop_o         : out   std_logic;
-      pfilter_done_o         : out   std_logic;
-      rtu_rq_o               : out   t_ep_internal_rtu_request;
-      rtu_full_i             : in    std_logic;
-      rtu_rq_valid_o         : out   std_logic);
+      clk_sys_i              : in  std_logic;
+      clk_rx_i               : in  std_logic;
+      rst_n_sys_i            : in  std_logic;
+      rst_n_rx_i             : in  std_logic;
+      pcs_fab_i              : in  t_ep_internal_fabric;
+      pcs_fifo_almostfull_o  : out std_logic;
+      pcs_busy_i             : in  std_logic;
+      src_wb_o               : out t_wrf_source_out;
+      src_wb_i               : in  t_wrf_source_in;
+      fc_pause_p_o           : out std_logic;
+      fc_pause_quanta_o      : out std_logic_vector(15 downto 0);
+      fc_pause_prio_mask_o   : out std_logic_vector(7 downto 0);
+      fc_buffer_occupation_o : out std_logic_vector(7 downto 0);
+      rmon_o                 : out t_rmon_triggers;
+      regs_i                 : in  t_ep_out_registers;
+      regs_o                 : out t_ep_in_registers;
+      pfilter_pclass_o       : out std_logic_vector(7 downto 0);
+      pfilter_drop_o         : out std_logic;
+      pfilter_done_o         : out std_logic;
+      rtu_rq_o               : out t_ep_internal_rtu_request;
+      rtu_full_i             : in  std_logic;
+      rtu_rq_valid_o         : out std_logic);
   end component;
 
   component ep_1000basex_pcs
@@ -532,13 +532,6 @@ architecture syn of wr_endpoint is
   signal txfra_pause_ready : std_logic;
   signal txfra_pause_delay : std_logic_vector(15 downto 0);
 
-
--------------------------------------------------------------------------------
--- RMON signals
--------------------------------------------------------------------------------
-  signal rmon_trigs : t_rmon_triggers;
-
-
   --signal rofifo_write, rofifo_full, oob_valid_d0 : std_logic;
 
   --signal phase_meas    : std_logic_vector(31 downto 0);
@@ -582,7 +575,10 @@ architecture syn of wr_endpoint is
   signal pfilter_done         : std_logic;
   signal tx_pclass            : std_logic_vector(7  downto 0);  
   
-
+-------------------------------------------------------------------------------
+-- RMON signals
+-------------------------------------------------------------------------------
+  signal rx_path_rmon : t_rmon_triggers;
 
 begin
 
@@ -754,7 +750,7 @@ begin
       fc_pause_quanta_o    => fc_rx_pause_quanta_o,   --rxfra_pause_delay,
       fc_pause_prio_mask_o => fc_rx_pause_prio_mask_o,
 
-      rmon_o => rmon_trigs,
+      rmon_o => rx_path_rmon,
       regs_i => regs_fromwb,
       regs_o => regs_towb_rpath,
 

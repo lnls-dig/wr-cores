@@ -87,9 +87,9 @@ entity ep_rx_path is
     fc_buffer_occupation_o : out std_logic_vector(7 downto 0);
 
 -- RMON/statistic counters signals
-    rmon_o : inout t_rmon_triggers;
-    regs_i : in    t_ep_out_registers;
-    regs_o : out   t_ep_in_registers;
+    rmon_o : out t_rmon_triggers;
+    regs_i : in  t_ep_out_registers;
+    regs_o : out t_ep_in_registers;
 
 -- info for TRU module
     pfilter_pclass_o : out std_logic_vector(7 downto 0);
