@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT section
 -- Created    : 2009-06-16
--- Last update: 2012-03-21
+-- Last update: 2013-03-12
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -103,8 +103,8 @@ entity ep_tx_pcs_8bit is
 -- Timestamp strobe
     timestamp_trigger_p_a_o : out std_logic;
 
--- RMON counters
-    rmon_o : inout t_rmon_triggers;
+-- RMON events 
+    rmon_tx_underrun : out std_logic;
 
 -------------------------------------------------------------------------------
 -- PHY Interface
@@ -260,18 +260,18 @@ begin
 
 -- The PCS is reset or disabled
       if(reset_synced_txclk = '0' or mdio_mcr_pdown_synced = '1') then
-        tx_state           <= TX_COMMA;
-        timestamp_trigger_p_a_o  <= '0';
-        fifo_rd            <= '0';
-        tx_error           <= '0';
-        tx_odata_reg       <= (others => '0');
-        tx_is_k            <= '0';
-        tx_cr_alternate    <= '0';
-        tx_catch_disparity <= '0';
-        tx_cntr            <= (others => '0');
-        tx_odd_length      <= '0';
-        tx_rdreq_toggle    <= '0';
-        rmon_o.tx_underrun <= '0';
+        tx_state                <= TX_COMMA;
+        timestamp_trigger_p_a_o <= '0';
+        fifo_rd                 <= '0';
+        tx_error                <= '0';
+        tx_odata_reg            <= (others => '0');
+        tx_is_k                 <= '0';
+        tx_cr_alternate         <= '0';
+        tx_catch_disparity      <= '0';
+        tx_cntr                 <= (others => '0');
+        tx_odd_length           <= '0';
+        tx_rdreq_toggle         <= '0';
+        rmon_tx_underrun        <= '0';
         
       else
         
@@ -294,8 +294,8 @@ begin
 
             -- clear the RMON/error pulse after 2 cycles (DATA->COMMA->IDLE) to
             -- make sure is't long enough to trigger the event counter
-            rmon_o.tx_underrun <= '0';
-            tx_error           <= '0';
+            rmon_tx_underrun <= '0';
+            tx_error         <= '0';
 
 -- endpoint wants to send Config_Reg
             if(an_tx_en_synced = '1') then
@@ -403,8 +403,8 @@ begin
             tx_odata_reg <= c_preamble_char;
 
             if (tx_cntr = "0000") then
-              tx_state          <= TX_SFD;
-              tx_rdreq_toggle   <= '1';
+              tx_state        <= TX_SFD;
+              tx_rdreq_toggle <= '1';
             end if;
 
             tx_cntr <= tx_cntr - 1;
@@ -415,9 +415,9 @@ begin
 -------------------------------------------------------------------------------            
           when TX_SFD =>
 
-            tx_odata_reg    <= c_preamble_sfd;
-            tx_rdreq_toggle <= '1';
-            tx_state        <= TX_DATA;
+            tx_odata_reg            <= c_preamble_sfd;
+            tx_rdreq_toggle         <= '1';
+            tx_state                <= TX_DATA;
             timestamp_trigger_p_a_o <= '1';
 
           when TX_DATA =>
@@ -430,11 +430,11 @@ begin
 
             if((fifo_empty = '1' or fifo_fab.error = '1') and fifo_fab.eof = '0') then  --
               -- FIFO underrun?
-              tx_odata_reg       <= c_k30_7;  -- emit error propagation code
-              tx_is_k            <= '1';
-              tx_state           <= TX_GEN_ERROR;
-              tx_error           <= not fifo_fab.error;
-              rmon_o.tx_underrun <= '1';
+              tx_odata_reg     <= c_k30_7;  -- emit error propagation code
+              tx_is_k          <= '1';
+              tx_state         <= TX_GEN_ERROR;
+              tx_error         <= not fifo_fab.error;
+              rmon_tx_underrun <= '1';
             else
 
               if tx_rdreq_toggle = '1' then  -- send 16-bit word MSB or LSB

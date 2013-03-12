@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT section
 -- Created    : 2009-06-16
--- Last update: 2012-07-12
+-- Last update: 2013-03-12
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -96,8 +96,8 @@ entity ep_tx_pcs_16bit is
 -- Timestamp strobe
     timestamp_trigger_p_a_o : out std_logic;
 
--- RMON counters
-    rmon_o : inout t_rmon_triggers;
+-- RMON events
+    rmon_tx_underrun : out std_logic;
 
 -------------------------------------------------------------------------------
 -- PHY Interface
@@ -136,7 +136,7 @@ architecture behavioral of ep_tx_pcs_16bit is
   signal fifo_wr                         : std_logic;
   signal fifo_rd                         : std_logic := '0';
   signal fifo_ready                      : std_logic;
-  signal fifo_clear_n,fifo_clear_n_d0, fifo_clear_n_d1,fifo_clear_n_d2, fifo_clear_n_d3,fifo_clear_n_d4   : std_logic;
+  signal fifo_clear_n, fifo_clear_n_d0, fifo_clear_n_d1, fifo_clear_n_d2, fifo_clear_n_d3, fifo_clear_n_d4 : std_logic;
   signal fifo_read_int                   : std_logic;
   signal fifo_fab                        : t_ep_internal_fabric;
 
@@ -207,8 +207,8 @@ begin
  -- some hacks to make pdown (in particular killing the link) work with Xilix native FIFOs
  -- (the rst signal can be set (LOW) only after 4 cycles after rd_i is "unset" (LOW)
  -------------------------------------------------------------------------------------------
- fifo_clear_n_d0  <= '0' when (rst_n_i = '0') or (mdio_mcr_pdown_synced = '1') else '1';
- p_fifo_clean: process(phy_tx_clk_i)
+ fifo_clear_n_d0 <= '0' when (rst_n_i = '0') or (mdio_mcr_pdown_synced = '1') else '1';
+ p_fifo_clean : process(phy_tx_clk_i)
   begin
     if rising_edge(phy_tx_clk_i) then
       fifo_clear_n_d1 <= fifo_clear_n_d0;
@@ -220,12 +220,12 @@ begin
 
   fifo_clear_n <= fifo_clear_n_d4 when (fifo_clear_n_d0 = '0') else
                   fifo_clear_n_d0;
-  fifo_read_int <= fifo_rd and not (fifo_fab.eof or fifo_fab.error or fifo_fab.sof) and 
+  fifo_read_int <= fifo_rd and not (fifo_fab.eof or fifo_fab.error or fifo_fab.sof) and
                    fifo_clear_n_d0;
   -------------------------------------------------------------------------------------------
   f_pack_fifo_contents(pcs_fab_i, fifo_packed_in, fifo_wr, true);
 
-  
+
 
   U_TX_FIFO : generic_async_fifo
     generic map (
@@ -276,16 +276,16 @@ begin
 
 -- The PCS is reset or disabled
       if(reset_synced_txclk = '0' or mdio_mcr_pdown_synced = '1') then
-        tx_state           <= TX_COMMA_IDLE;
-        timestamp_trigger_p_a_o  <= '0';
-        fifo_rd            <= '0';
-        tx_error           <= '0';
-        tx_odata_reg       <= (others => '0');
-        tx_is_k            <= "00";
-        tx_cr_alternate    <= '0';
-        tx_catch_disparity <= '0';
-        tx_cntr            <= (others => '0');
-        rmon_o.tx_underrun <= '0';
+        tx_state                <= TX_COMMA_IDLE;
+        timestamp_trigger_p_a_o <= '0';
+        fifo_rd                 <= '0';
+        tx_error                <= '0';
+        tx_odata_reg            <= (others => '0');
+        tx_is_k                 <= "00";
+        tx_cr_alternate         <= '0';
+        tx_catch_disparity      <= '0';
+        tx_cntr                 <= (others => '0');
+        rmon_tx_underrun        <= '0';
       else
         case tx_state is
 -------------------------------------------------------------------------------
@@ -295,8 +295,8 @@ begin
 
             -- clear the RMON/error pulse after 2 cycles (DATA->COMMA->IDLE) to
             -- make sure is't long enough to trigger the event counter
-            rmon_o.tx_underrun <= '0';
-            tx_error           <= '0';
+            rmon_tx_underrun <= '0';
+            tx_error         <= '0';
 
             tx_is_k                   <= "10";
             tx_odata_reg(15 downto 8) <= c_K28_5;
@@ -403,8 +403,8 @@ begin
             tx_odata_reg <= c_preamble_char & c_preamble_char;
 
             if (tx_cntr = "0000") then
-              tx_state          <= TX_SFD;
-              fifo_rd           <= '1';
+              tx_state <= TX_SFD;
+              fifo_rd  <= '1';
             end if;
 
             tx_cntr <= tx_cntr - 1;
@@ -413,20 +413,20 @@ begin
 -- State SFD: outputs the start-of-frame delimeter (last byte of the preamble)
 -------------------------------------------------------------------------------            
           when TX_SFD =>
-            tx_is_k      <= "00";
-            tx_odata_reg <= c_preamble_char & c_preamble_sfd;
+            tx_is_k                 <= "00";
+            tx_odata_reg            <= c_preamble_char & c_preamble_sfd;
             timestamp_trigger_p_a_o <= '1';
-            tx_state     <= TX_DATA;
+            tx_state                <= TX_DATA;
 
           when TX_DATA =>
 
             if((fifo_empty = '1' or fifo_fab.error = '1') and fifo_fab.eof = '0') then  -- FIFO underrun?
-              tx_odata_reg       <= c_k30_7 & c_k23_7;  -- emit error propagation code
-              tx_is_k            <= "11";
-              tx_state           <= TX_GEN_ERROR;
-              tx_error           <= not fifo_fab.error;
-              rmon_o.tx_underrun <= '1';
-              fifo_rd            <= '0';
+              tx_odata_reg     <= c_k30_7 & c_k23_7;  -- emit error propagation code
+              tx_is_k          <= "11";
+              tx_state         <= TX_GEN_ERROR;
+              tx_error         <= not fifo_fab.error;
+              rmon_tx_underrun <= '1';
+              fifo_rd          <= '0';
             else
 
               if(fifo_fab.bytesel = '1') then
@@ -452,22 +452,22 @@ begin
 -------------------------------------------------------------------------------
           when TX_EPD =>
             timestamp_trigger_p_a_o <= '0';
-            tx_is_k            <= "11";
-            tx_odata_reg       <= c_k29_7 & c_k23_7;
-            tx_catch_disparity <= '1';
-            tx_cntr            <= "1000";
-            tx_state           <= TX_COMMA_IDLE;
+            tx_is_k                 <= "11";
+            tx_odata_reg            <= c_k29_7 & c_k23_7;
+            tx_catch_disparity      <= '1';
+            tx_cntr                 <= "1000";
+            tx_state                <= TX_COMMA_IDLE;
 
 --------------------------------------------------------------------------------
 -- State EXTEND: send the carrier extension
 -------------------------------------------------------------------------------
           when TX_EXTEND =>
             timestamp_trigger_p_a_o <= '0';
-            tx_is_k            <= "11";
-            tx_odata_reg       <= c_k23_7 & c_k23_7;
-            tx_catch_disparity <= '1';
-            tx_cntr            <= "0100";
-            tx_state           <= TX_COMMA_IDLE;
+            tx_is_k                 <= "11";
+            tx_odata_reg            <= c_k23_7 & c_k23_7;
+            tx_catch_disparity      <= '1';
+            tx_cntr                 <= "0100";
+            tx_state                <= TX_COMMA_IDLE;
 
 -------------------------------------------------------------------------------
 -- State GEN_ERROR: entered when an error occured. Just terminates the frame.
