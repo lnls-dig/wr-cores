@@ -269,6 +269,7 @@ entity wr_endpoint is
 -------------------------------------------------------------------------------
 -- Misc stuff
 -------------------------------------------------------------------------------
+    rmon_events_o : out std_logic_vector(11 downto 0);
 
     led_link_o : out std_logic;
     led_act_o  : out std_logic;
@@ -390,43 +391,43 @@ architecture syn of wr_endpoint is
       g_simulation : boolean;
       g_16bit      : boolean);
     port (
-      rst_n_i                       : in    std_logic;
-      clk_sys_i                     : in    std_logic;
-      rxpcs_fab_o                   : out   t_ep_internal_fabric;
-      rxpcs_fifo_almostfull_i       : in    std_logic;
-      rxpcs_busy_o                  : out   std_logic;
-      rxpcs_timestamp_trigger_p_a_o : out   std_logic;
-      rxpcs_timestamp_i             : in    std_logic_vector(31 downto 0);
-      rxpcs_timestamp_stb_i         : in    std_logic;
-      rxpcs_timestamp_valid_i       : in    std_logic;
-      txpcs_fab_i                   : in    t_ep_internal_fabric;
-      txpcs_error_o                 : out   std_logic;
-      txpcs_busy_o                  : out   std_logic;
-      txpcs_dreq_o                  : out   std_logic;
-      txpcs_timestamp_trigger_p_a_o : out   std_logic;
-      link_ok_o                     : out   std_logic;
-      link_ctr_i                    : in    std_logic := '1';
-      serdes_rst_o                  : out   std_logic;
-      serdes_syncen_o               : out   std_logic;
-      serdes_loopen_o               : out   std_logic;
-      serdes_enable_o               : out   std_logic;
-      serdes_tx_clk_i               : in    std_logic;
-      serdes_tx_data_o              : out   std_logic_vector(15 downto 0);
-      serdes_tx_k_o                 : out   std_logic_vector(1 downto 0);
-      serdes_tx_disparity_i         : in    std_logic;
-      serdes_tx_enc_err_i           : in    std_logic;
-      serdes_rx_clk_i               : in    std_logic;
-      serdes_rx_data_i              : in    std_logic_vector(15 downto 0);
-      serdes_rx_k_i                 : in    std_logic_vector(1 downto 0);
-      serdes_rx_enc_err_i           : in    std_logic;
-      serdes_rx_bitslide_i          : in    std_logic_vector(4 downto 0);
-      rmon_o                        : inout t_rmon_triggers;
-      mdio_addr_i                   : in    std_logic_vector(15 downto 0);
-      mdio_data_i                   : in    std_logic_vector(15 downto 0);
-      mdio_data_o                   : out   std_logic_vector(15 downto 0);
-      mdio_stb_i                    : in    std_logic;
-      mdio_rw_i                     : in    std_logic;
-      mdio_ready_o                  : out   std_logic);
+      rst_n_i                       : in  std_logic;
+      clk_sys_i                     : in  std_logic;
+      rxpcs_fab_o                   : out t_ep_internal_fabric;
+      rxpcs_fifo_almostfull_i       : in  std_logic;
+      rxpcs_busy_o                  : out std_logic;
+      rxpcs_timestamp_trigger_p_a_o : out std_logic;
+      rxpcs_timestamp_i             : in  std_logic_vector(31 downto 0);
+      rxpcs_timestamp_stb_i         : in  std_logic;
+      rxpcs_timestamp_valid_i       : in  std_logic;
+      txpcs_fab_i                   : in  t_ep_internal_fabric;
+      txpcs_error_o                 : out std_logic;
+      txpcs_busy_o                  : out std_logic;
+      txpcs_dreq_o                  : out std_logic;
+      txpcs_timestamp_trigger_p_a_o : out std_logic;
+      link_ok_o                     : out std_logic;
+      link_ctr_i                    : in  std_logic := '1';
+      serdes_rst_o                  : out std_logic;
+      serdes_syncen_o               : out std_logic;
+      serdes_loopen_o               : out std_logic;
+      serdes_enable_o               : out std_logic;
+      serdes_tx_clk_i               : in  std_logic;
+      serdes_tx_data_o              : out std_logic_vector(15 downto 0);
+      serdes_tx_k_o                 : out std_logic_vector(1 downto 0);
+      serdes_tx_disparity_i         : in  std_logic;
+      serdes_tx_enc_err_i           : in  std_logic;
+      serdes_rx_clk_i               : in  std_logic;
+      serdes_rx_data_i              : in  std_logic_vector(15 downto 0);
+      serdes_rx_k_i                 : in  std_logic_vector(1 downto 0);
+      serdes_rx_enc_err_i           : in  std_logic;
+      serdes_rx_bitslide_i          : in  std_logic_vector(4 downto 0);
+      rmon_o                        : out t_rmon_triggers;
+      mdio_addr_i                   : in  std_logic_vector(15 downto 0);
+      mdio_data_i                   : in  std_logic_vector(15 downto 0);
+      mdio_data_o                   : out std_logic_vector(15 downto 0);
+      mdio_stb_i                    : in  std_logic;
+      mdio_rw_i                     : in  std_logic;
+      mdio_ready_o                  : out std_logic);
   end component;
 
   component ep_timestamping_unit
@@ -578,7 +579,9 @@ architecture syn of wr_endpoint is
 -------------------------------------------------------------------------------
 -- RMON signals
 -------------------------------------------------------------------------------
+  signal pcs_rmon     : t_rmon_triggers;
   signal rx_path_rmon : t_rmon_triggers;
+  signal rmon : t_rmon_triggers;
 
 begin
 
@@ -652,7 +655,7 @@ begin
       serdes_rx_enc_err_i   => phy_rx_enc_err_i,
       serdes_rx_bitslide_i  => phy_rx_bitslide_i(4 downto 0),
 
-      rmon_o => rmon_trigs,
+      rmon_o => pcs_rmon,
 
       mdio_addr_i  => mdio_addr,
       mdio_data_i  => regs_fromwb.mdio_cr_data_o,
@@ -1024,6 +1027,22 @@ begin
       end if;
     end if;
   end process;
+
+
+  -------------------------- RMON events -----------------------------------
+  rmon.rx_pcs_err <= rx_path_rmon.rx_pcs_err;  --from ep_rx_path
+  rmon.rx_giant   <= rx_path_rmon.rx_giant;
+  rmon.rx_runt    <= rx_path_rmon.rx_runt;
+  rmon.rx_crc_err <= rx_path_rmon.rx_crc_err;
+  rmon.rx_pause   <= rx_path_rmon.rx_pause;
+  rmon.rx_pfilter_drop <= rx_path_rmon.rx_pfilter_drop;
+  rmon.tx_underrun  <= pcs_rmon.tx_underrun;
+  rmon.rx_overrun <= pcs_rmon.rx_overrun;
+  rmon.rx_invalid_code <= pcs_rmon.rx_invalid_code;
+  rmon.rx_sync_lost <= pcs_rmon.rx_sync_lost;
+
+  f_pack_rmon_triggers(rmon, rmon_events_o(9 downto 0));
+
 
 end syn;
 
