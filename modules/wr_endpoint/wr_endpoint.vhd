@@ -226,26 +226,26 @@ entity wr_endpoint is
 -------------------------------------------------------------------------------
 -- direct output of packet filter  (for TRU/HW-RSTP)
 -------------------------------------------------------------------------------
-   
-   pfilter_pclass_o       : out   std_logic_vector(7 downto 0);
-   pfilter_drop_o         : out   std_logic;
-   pfilter_done_o         : out   std_logic;
+
+   pfilter_pclass_o : out std_logic_vector(7 downto 0);
+   pfilter_drop_o   : out std_logic;
+   pfilter_done_o   : out std_logic;
 
 -------------------------------------------------------------------------------
 -- control of PAUSE sending (ML: not used and not tested... TRU uses packet injection) -- 
 -------------------------------------------------------------------------------
-   
-   fc_tx_pause_req_i   : in std_logic := '0';
-   fc_tx_pause_delay_i : in std_logic_vector(15 downto 0) := x"0000";
+
+   fc_tx_pause_req_i   : in  std_logic                     := '0';
+   fc_tx_pause_delay_i : in  std_logic_vector(15 downto 0) := x"0000";
    fc_tx_pause_ready_o : out std_logic;
 
 -------------------------------------------------------------------------------
 -- information about received PAUSE (for SWcore)
 -------------------------------------------------------------------------------
 
-   fc_rx_pause_start_p_o     : out std_logic;
-   fc_rx_pause_quanta_o      : out std_logic_vector(15 downto 0);
-   fc_rx_pause_prio_mask_o   : out std_logic_vector(7 downto 0);
+   fc_rx_pause_start_p_o   : out std_logic;
+   fc_rx_pause_quanta_o    : out std_logic_vector(15 downto 0);
+   fc_rx_pause_prio_mask_o : out std_logic_vector(7 downto 0);
 
 -------------------------------------------------------------------------------
 -- Packet Injection Interface (for TRU/HW-RSTP)
@@ -253,18 +253,18 @@ entity wr_endpoint is
 
 -- injection request: triggers transmission of the packet to be injected,
 -- allowed when inject_ready = 1
-    inject_req_i           : in  std_logic                     := '0';
+    inject_req_i : in std_logic := '0';
 
 -- injection ready flag: when true, user application can request asynchronous
 -- injection of a predefined packet
-    inject_ready_o         : out std_logic;
+    inject_ready_o : out std_logic;
 
 -- injection template selection (8 available)
-    inject_packet_sel_i    : in  std_logic_vector(2 downto 0)  := "000";
+    inject_packet_sel_i : in std_logic_vector(2 downto 0) := "000";
 
 -- user-defined value to be embedded in the injected packet at a predefined
 -- location
-    inject_user_value_i    : in  std_logic_vector(15 downto 0) := x"0000";
+    inject_user_value_i : in std_logic_vector(15 downto 0) := x"0000";
 
 -------------------------------------------------------------------------------
 -- Misc stuff
@@ -275,11 +275,11 @@ entity wr_endpoint is
     led_act_o  : out std_logic;
 
 -- HI physically kills the link (turn of laser)
-    link_kill_i : in  std_logic := '0';
+    link_kill_i : in std_logic := '0';
 
 -- HI indicates that link is up (so cable connected), LOW indicates that link is faulty 
 -- (e.g.: cable disconnected)
-    link_up_o   : out std_logic
+    link_up_o : out std_logic
     );
 
 end wr_endpoint;
@@ -350,8 +350,8 @@ architecture syn of wr_endpoint is
       inject_ready_o         : out std_logic;
       inject_packet_sel_i    : in  std_logic_vector(2 downto 0)  := "000";
       inject_user_value_i    : in  std_logic_vector(15 downto 0) := x"0000";
-      ep_ctrl_i              : in std_logic :='1';
-      regs_i : in t_ep_out_registers);
+      ep_ctrl_i              : in  std_logic                     := '1';
+      regs_i                 : in  t_ep_out_registers);
   end component;
 
   component ep_rx_path
@@ -570,18 +570,18 @@ architecture syn of wr_endpoint is
 -------------------------------------------------------------------------------
 -- TRU stuff
 -------------------------------------------------------------------------------
-  signal ep_ctrl              : std_logic;
-  signal pfilter_pclass       : std_logic_vector(7 downto 0);
-  signal pfilter_drop         : std_logic;
-  signal pfilter_done         : std_logic;
-  signal tx_pclass            : std_logic_vector(7  downto 0);  
-  
+  signal ep_ctrl        : std_logic;
+  signal pfilter_pclass : std_logic_vector(7 downto 0);
+  signal pfilter_drop   : std_logic;
+  signal pfilter_done   : std_logic;
+  signal tx_pclass      : std_logic_vector(7 downto 0);
+
 -------------------------------------------------------------------------------
 -- RMON signals
 -------------------------------------------------------------------------------
   signal pcs_rmon     : t_rmon_triggers;
   signal rx_path_rmon : t_rmon_triggers;
-  signal rmon : t_rmon_triggers;
+  signal rmon         : t_rmon_triggers;
 
 begin
 
@@ -636,8 +636,8 @@ begin
 
       txpcs_timestamp_trigger_p_a_o => txpcs_timestamp_trigger_p_a,
 
-      link_ok_o      => link_ok,
-      link_ctr_i     => ep_ctrl,
+      link_ok_o  => link_ok,
+      link_ctr_i => ep_ctrl,
 
       serdes_rst_o    => phy_rst_o,
       serdes_loopen_o => phy_loopen_o,
@@ -705,10 +705,10 @@ begin
       txtsu_stb_o          => txtsu_stb_o,
       txtsu_ack_i          => txtsu_ack_i,
 
-      inject_req_i => inject_req_i,
+      inject_req_i        => inject_req_i,
       inject_user_value_i => inject_user_value_i,
       inject_packet_sel_i => inject_packet_sel_i,
-      inject_ready_o => inject_ready_o
+      inject_ready_o      => inject_ready_o
       );
 
 
@@ -1006,43 +1006,64 @@ begin
   end generate gen_leds;
 
   -------------------------- TRU stuff -----------------------------------
-  link_up_o          <= link_ok; -- indicates that link is IP
-  
-  pfilter_pclass_o   <= pfilter_pclass;
-  pfilter_done_o     <= pfilter_done;
-  pfilter_drop_o     <= pfilter_drop;
+  link_up_o <= link_ok;                 -- indicates that link is IP
 
-  txfra_pause_req    <= fc_tx_pause_req_i;
-  fc_tx_pause_ready_o   <= txfra_pause_ready;
-  txfra_pause_delay  <= fc_tx_pause_delay_i;
+  pfilter_pclass_o <= pfilter_pclass;
+  pfilter_done_o   <= pfilter_done;
+  pfilter_drop_o   <= pfilter_drop;
+
+  txfra_pause_req     <= fc_tx_pause_req_i;
+  fc_tx_pause_ready_o <= txfra_pause_ready;
+  txfra_pause_delay   <= fc_tx_pause_delay_i;
 
   -- TRU needs to be able to share the control of ouput path, i.e. turn off the laser
-  p_ep_ctrl: process(clk_sys_i)
+  p_ep_ctrl : process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
       if rst_n_i = '0' then
-        ep_ctrl     <= '1';
+        ep_ctrl <= '1';
       else
-        ep_ctrl     <= not link_kill_i ;
+        ep_ctrl <= not link_kill_i;
       end if;
     end if;
   end process;
 
 
   -------------------------- RMON events -----------------------------------
-  rmon.rx_pcs_err <= rx_path_rmon.rx_pcs_err;  --from ep_rx_path
-  rmon.rx_giant   <= rx_path_rmon.rx_giant;
-  rmon.rx_runt    <= rx_path_rmon.rx_runt;
-  rmon.rx_crc_err <= rx_path_rmon.rx_crc_err;
-  rmon.rx_pause   <= rx_path_rmon.rx_pause;
+  rmon.rx_pcs_err      <= rx_path_rmon.rx_pcs_err;  --from ep_rx_path
+  rmon.rx_giant        <= rx_path_rmon.rx_giant;
+  rmon.rx_runt         <= rx_path_rmon.rx_runt;
+  rmon.rx_crc_err      <= rx_path_rmon.rx_crc_err;
+  rmon.rx_pause        <= rx_path_rmon.rx_pause;
   rmon.rx_pfilter_drop <= rx_path_rmon.rx_pfilter_drop;
-  rmon.tx_underrun  <= pcs_rmon.tx_underrun;
-  rmon.rx_overrun <= pcs_rmon.rx_overrun;
+  rmon.tx_underrun     <= pcs_rmon.tx_underrun;
+  rmon.rx_overrun      <= pcs_rmon.rx_overrun;
   rmon.rx_invalid_code <= pcs_rmon.rx_invalid_code;
-  rmon.rx_sync_lost <= pcs_rmon.rx_sync_lost;
+  rmon.rx_sync_lost    <= pcs_rmon.rx_sync_lost;
 
   f_pack_rmon_triggers(rmon, rmon_events_o(9 downto 0));
 
+  rmon_event_tx : gc_sync_ffs
+    generic map(
+      g_sync_edge => "negative")
+    port map (
+      clk_i    => clk_sys_i,
+      rst_n_i  => rst_n_i,
+      data_i   => txpcs_timestamp_trigger_p_a,
+      synced_o => open,
+      npulse_o => open,
+      ppulse_o => rmon_events_o(10));
+
+  rmon_event_rx : gc_sync_ffs
+    generic map(
+      g_sync_edge => "negative")
+    port map (
+      clk_i    => clk_sys_i,
+      rst_n_i  => rst_n_i,
+      data_i   => rxpcs_timestamp_trigger_p_a,
+      synced_o => open,
+      npulse_o => open,
+      ppulse_o => rmon_events_o(11));
 
 end syn;
 
