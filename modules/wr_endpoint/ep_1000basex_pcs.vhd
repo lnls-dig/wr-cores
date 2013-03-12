@@ -112,8 +112,8 @@ entity ep_1000basex_pcs is
     -- 1-pulse: TX timestamp trigger (to timestamping unit).
     txpcs_timestamp_trigger_p_a_o : out std_logic;
 
-    link_ok_o  : out std_logic;
-    link_ctr_i : in  std_logic;
+    link_ok_o : out std_logic;
+    link_ctr_i : in std_logic;
     -----------------------------------------------------------------------------
     -- GTP/GTX/TBI Serdes interface
     ---------------------------------------------------------------------------
@@ -167,8 +167,8 @@ entity ep_1000basex_pcs is
     serdes_rx_enc_err_i  : in std_logic;
     serdes_rx_bitslide_i : in std_logic_vector(4 downto 0);
 
-    -- RMON statistic counters
-    rmon_o : inout t_rmon_triggers;
+    -- RMON events, aligned to clk_sys
+    rmon_o : out t_rmon_triggers;
 
     --  MDIO interface
 
@@ -407,10 +407,10 @@ architecture rtl of ep_1000basex_pcs is
   signal tx_clk, rx_clk : std_logic;
 
   --RMON events
-  signal rmon_tx_underrun  : std_logic;
-  signal rmon_rx_overrun   : std_logic;
-  signal rmon_rx_inv_code  : std_logic;
-  signal rmon_rx_sync_lost : std_logic;
+  signal rmon_tx_underrun : std_logic;
+  signal rmon_rx_overrun  : std_logic;
+  signal rmon_rx_inv_code : std_logic;
+  signal rmon_rx_sync_lost: std_logic;
   
 begin  -- rtl
 
@@ -469,9 +469,9 @@ begin  -- rtl
         an_rx_valid_o   => an_rx_valid,
         an_idle_match_o => an_idle_match,
 
-        rmon_rx_overrun   => rmon_rx_overrun,
-        rmon_rx_inv_code  => rmon_rx_inv_code,
-        rmon_rx_sync_lost => rmon_rx_sync_lost,
+        rmon_rx_overrun  => rmon_rx_overrun,
+        rmon_rx_inv_code => rmon_rx_inv_code,
+        rmon_rx_sync_lost=> rmon_rx_sync_lost,
 
         phy_rx_clk_i     => serdes_rx_clk_i,
         phy_rx_data_i    => serdes_rx_data_i,
@@ -539,9 +539,9 @@ begin  -- rtl
         an_rx_valid_o   => an_rx_valid,
         an_idle_match_o => an_idle_match,
 
-        rmon_rx_overrun   => rmon_rx_overrun,
-        rmon_rx_inv_code  => rmon_rx_inv_code,
-        rmon_rx_sync_lost => rmon_rx_sync_lost,
+        rmon_rx_overrun  => rmon_rx_overrun,
+        rmon_rx_inv_code => rmon_rx_inv_code,
+        rmon_rx_sync_lost=> rmon_rx_sync_lost,
 
         phy_rx_clk_i     => serdes_rx_clk_i,
         phy_rx_data_i    => serdes_rx_data_i(7 downto 0),
@@ -554,8 +554,8 @@ begin  -- rtl
   txpcs_busy_o <= txpcs_busy_int;
 
   -- to enable killing of link (by ML)
-  mdio_mcr_pdown <= mdio_mcr_pdown_cpu or (not link_ctr_i);
-
+  mdio_mcr_pdown      <= mdio_mcr_pdown_cpu or (not link_ctr_i);
+ 
   serdes_rst_o        <= (not pcs_reset_n) or mdio_mcr_pdown;
   mdio_wr_spec_bslide <= serdes_rx_bitslide_i(4 downto 0);
 
@@ -681,7 +681,7 @@ begin  -- rtl
   serdes_loopen_o <= mdio_mcr_loopback;
 
   --RMON events
-  U_sync_tx_underrun : gc_sync_ffs
+  U_sync_tx_underrun: gc_sync_ffs
   generic map (
     g_sync_edge => "positive")
   port map (
@@ -692,7 +692,7 @@ begin  -- rtl
     npulse_o => open,
     ppulse_o => rmon_o.tx_underrun);
 
-  U_sync_rx_overrun : gc_sync_ffs
+  U_sync_rx_overrun: gc_sync_ffs
   generic map (
     g_sync_edge => "positive")
   port map (
@@ -703,7 +703,7 @@ begin  -- rtl
     npulse_o => open,
     ppulse_o => rmon_o.rx_overrun);
 
-  U_sync_rx_inv_code : gc_sync_ffs
+  U_sync_rx_inv_code: gc_sync_ffs
   generic map (
     g_sync_edge => "positive")
   port map (
@@ -714,7 +714,7 @@ begin  -- rtl
     npulse_o => open,
     ppulse_o => rmon_o.rx_invalid_code);
 
-  U_sync_rx_sync_lost : gc_sync_ffs
+  U_sync_rx_sync_lost: gc_sync_ffs
   generic map (
     g_sync_edge => "positive")
   port map (

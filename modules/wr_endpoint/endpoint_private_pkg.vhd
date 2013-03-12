@@ -152,7 +152,7 @@ package endpoint_private_pkg is
       serdes_rx_k_i           : in    std_logic;
       serdes_rx_enc_err_i     : in    std_logic;
       serdes_rx_bitslide_i    : in    std_logic_vector(3 downto 0);
-      rmon_o                  : inout t_rmon_triggers;
+      rmon_o                  : out t_rmon_triggers;
       mdio_addr_i             : in    std_logic_vector(15 downto 0);
       mdio_data_i             : in    std_logic_vector(15 downto 0);
       mdio_data_o             : out   std_logic_vector(15 downto 0);
