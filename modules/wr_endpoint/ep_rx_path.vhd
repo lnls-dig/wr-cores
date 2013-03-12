@@ -234,19 +234,19 @@ architecture behavioral of ep_rx_path is
 
   component ep_rx_status_reg_insert
     port (
-      clk_sys_i       : in  std_logic;
-      rst_n_i         : in  std_logic;
-      snk_fab_i       : in  t_ep_internal_fabric;
-      snk_dreq_o      : out std_logic;
-      src_fab_o       : out t_ep_internal_fabric;
-      src_dreq_i      : in  std_logic;
-      mbuf_valid_i    : in  std_logic;
-      mbuf_ack_o      : out std_logic;
-      mbuf_drop_i     : in  std_logic;
-      mbuf_pclass_i   : in  std_logic_vector(7 downto 0);
-      mbuf_is_hp_i    : in  std_logic;
-      mbuf_is_pause_i : in  std_logic;
-      rmon_o          : out t_rmon_triggers);
+      clk_sys_i           : in  std_logic;
+      rst_n_i             : in  std_logic;
+      snk_fab_i           : in  t_ep_internal_fabric;
+      snk_dreq_o          : out std_logic;
+      src_fab_o           : out t_ep_internal_fabric;
+      src_dreq_i          : in  std_logic;
+      mbuf_valid_i        : in  std_logic;
+      mbuf_ack_o          : out std_logic;
+      mbuf_drop_i         : in  std_logic;
+      mbuf_pclass_i       : in  std_logic_vector(7 downto 0);
+      mbuf_is_hp_i        : in  std_logic;
+      mbuf_is_pause_i     : in  std_logic;
+      rmon_pfilter_drop_o : out std_logic);
   end component;
 
   component ep_rx_buffer
@@ -484,19 +484,19 @@ begin  -- behavioral
 
   U_Gen_Status : ep_rx_status_reg_insert
     port map (
-      clk_sys_i       => clk_sys_i,
-      rst_n_i         => rst_n_sys_i,
-      snk_fab_i       => fab_pipe(7),
-      snk_dreq_o      => dreq_pipe(7),
-      src_fab_o       => fab_pipe(8),
-      src_dreq_i      => dreq_pipe(8),
-      mbuf_valid_i    => mbuf_valid,
-      mbuf_ack_o      => mbuf_rd,
-      mbuf_drop_i     => mbuf_pf_drop,
-      mbuf_pclass_i   => mbuf_pf_class,
-      mbuf_is_hp_i    => mbuf_is_hp,
-      mbuf_is_pause_i => mbuf_is_pause,
-      rmon_o          => open);
+      clk_sys_i           => clk_sys_i,
+      rst_n_i             => rst_n_sys_i,
+      snk_fab_i           => fab_pipe(7),
+      snk_dreq_o          => dreq_pipe(7),
+      src_fab_o           => fab_pipe(8),
+      src_dreq_i          => dreq_pipe(8),
+      mbuf_valid_i        => mbuf_valid,
+      mbuf_ack_o          => mbuf_rd,
+      mbuf_drop_i         => mbuf_pf_drop,
+      mbuf_pclass_i       => mbuf_pf_class,
+      mbuf_is_hp_i        => mbuf_is_hp,
+      mbuf_is_pause_i     => mbuf_is_pause,
+      rmon_pfilter_drop_o => rmon_o.rx_pfilter_drop);
 
   gen_with_rx_buffer : if g_with_rx_buffer generate
     U_Rx_Buffer : ep_rx_buffer
