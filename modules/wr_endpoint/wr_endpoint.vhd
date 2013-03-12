@@ -656,7 +656,7 @@ begin
       serdes_rx_enc_err_i   => phy_rx_enc_err_i,
       serdes_rx_bitslide_i  => phy_rx_bitslide_i(4 downto 0),
 
-      rmon_o => rmon,
+      rmon_o => rmon_trigs,
 
       mdio_addr_i  => mdio_addr,
       mdio_data_i  => regs_fromwb.mdio_cr_data_o,
@@ -754,7 +754,7 @@ begin
       fc_pause_quanta_o    => fc_rx_pause_quanta_o,   --rxfra_pause_delay,
       fc_pause_prio_mask_o => fc_rx_pause_prio_mask_o,
 
-      rmon_o => rmon,
+      rmon_o => rmon_trigs,
       regs_i => regs_fromwb,
       regs_o => regs_towb_rpath,
 
@@ -881,7 +881,7 @@ begin
     port map (
       rst_n_i    => rst_n_sys,
       clk_sys_i  => clk_sys_i,
-      wb_adr_i   => wb_in.adr(5 downto 0),
+      wb_adr_i   => wb_in.adr(4 downto 0),
       wb_dat_i   => wb_in.dat,
       wb_dat_o   => wb_out.dat,
       wb_cyc_i   => wb_in.cyc,

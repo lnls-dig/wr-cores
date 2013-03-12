@@ -272,9 +272,9 @@ package endpoint_private_pkg is
     port (
       rst_n_i            : in  std_logic;
       clk_sys_i          : in  std_logic;
-      wb_adr_i           : in  std_logic_vector(5 downto 0);
-      wb_dat_i           : in  std_logic_vector(31 downto 0);
-      wb_dat_o           : out std_logic_vector(31 downto 0);
+      wb_adr_i          : in  std_logic_vector(4 downto 0);
+      wb_dat_i          : in  std_logic_vector(31 downto 0);
+      wb_dat_o          : out std_logic_vector(31 downto 0);
       wb_cyc_i           : in  std_logic;
       wb_sel_i           : in  std_logic_vector(3 downto 0);
       wb_stb_i           : in  std_logic;
@@ -283,11 +283,6 @@ package endpoint_private_pkg is
       wb_stall_o         : out std_logic;
       tx_clk_i           : in  std_logic;
       rx_clk_i           : in  std_logic;
-      ep_rmon_ram_addr_i : in  std_logic_vector(4 downto 0);
-      ep_rmon_ram_data_o : out std_logic_vector(31 downto 0);
-      ep_rmon_ram_rd_i   : in  std_logic;
-      ep_rmon_ram_data_i : in  std_logic_vector(31 downto 0);
-      ep_rmon_ram_wr_i   : in  std_logic;
       regs_o             : out t_ep_out_registers;
       regs_i             : in  t_ep_in_registers);
   end component;
