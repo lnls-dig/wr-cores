@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2012-11-01
--- Last update: 2012-11-16
+-- Last update: 2013-03-12
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -35,6 +35,14 @@
 -- Public License along with this source; if not, download it   
 -- from http://www.gnu.org/licenses/lgpl-2.1.html
 --
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+-- Revisions  :
+-- Date        Version  Author          Description
+-- 2012-11-01  1.0      twlostow          Created
+-- 2013-03-12  1.1      mlipinsk          added empty-template protaciton 
+--                                        prepared signals for RMON
+-------------------------------------------------------------------------------
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -71,8 +79,9 @@ architecture rtl of ep_tx_packet_injection is
 
   type t_state is (WAIT_IDLE, SOF, DO_INJECT, EOF);
 
-  alias template_last : std_logic is mem_data_i(16);
-  alias template_user : std_logic is mem_data_i(17);
+  alias template_last  : std_logic is mem_data_i(16);
+  alias template_first : std_logic is mem_data_i(16);
+  alias template_user  : std_logic is mem_data_i(17);
 
   signal state   : t_state;
   signal counter : unsigned(8 downto 0);
@@ -82,11 +91,17 @@ architecture rtl of ep_tx_packet_injection is
 
   signal inj_src            : t_ep_internal_fabric;
   signal inject_req_latched : std_logic;
+  signal first_word         : std_logic; -- ML: used for masking the first word (we use the 
+                                         --     same bit for SOF and EOF
+  -- ML: singals for RMON counters
+  signal no_template_error  : std_logic; -- ML: indicates that injection was attempted with no valid template
+  signal inject_done        : std_logic; -- ML: indicates that requrested injection was successful
   
 begin  -- rtl
 
-  snk_dreq_o <= '0' when (state = DO_INJECT) else src_dreq_i;
-
+  snk_dreq_o  <= '0' when (state = DO_INJECT) else src_dreq_i;
+  inject_done <= '1' when (state = EOF and src_dreq_i = '1') else '0';
+  
   p_detect_within : process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
@@ -114,9 +129,12 @@ begin  -- rtl
         if(inject_req_i = '1') then
           inject_ready_o     <= '0';
           inject_req_latched <= '1';
-        elsif(state = EOF and src_dreq_i = '1') then
+        elsif(state = EOF and src_dreq_i = '1' ) then                     
           inject_ready_o     <= '1';
           inject_req_latched <= '0';
+        elsif(no_template_error = '1') then
+          inject_ready_o     <= '1';
+          inject_req_latched <= '0';        
         end if;
       end if;
     end if;
@@ -128,19 +146,23 @@ begin  -- rtl
       if rst_n_i = '0' then
         state         <= WAIT_IDLE;
         select_inject <= '0';
+        no_template_error <= '0';
       else
         case state is
           when WAIT_IDLE =>
             inj_src.sof    <= '0';
             inj_src.eof    <= '0';
             inj_src.dvalid <= '0';
---             inj_src.error  <= '0';
-            select_inject  <= '0'; -- added by ML
+            no_template_error <='0';
+            first_word     <= '0';
 
-            counter(8 downto 6) <= unsigned(inject_packet_sel_i);
-            counter(5 downto 0) <= (others => '0');
+            if(inject_req_i = '1') then --ML: we make sure that we remember the packet_sel_i 
+                                        --    only when req_i HIGH
+              counter(8 downto 6) <= unsigned(inject_packet_sel_i);
+              counter(5 downto 0) <= (others => '0');
+            end if;
 
-            if(within_packet = '0' and inject_req_latched = '1') then
+            if(within_packet = '0' and inject_req_latched = '1' and no_template_error = '0') then
               state         <= SOF;
               select_inject <= '1';
             else
@@ -148,7 +170,12 @@ begin  -- rtl
             end if;
             
           when SOF =>
-            if(src_dreq_i = '1') then
+            if(template_first = '0') then  -- ML: check that the first word is valid, abort if error
+              state             <= WAIT_IDLE;
+              no_template_error <= '1';
+            elsif(src_dreq_i = '1') then
+              first_word  <= '1';  -- since the same bit is for SOF and EOF, we need to mask SOF
+                                   -- during first word
               inj_src.sof <= '1';
               state       <= DO_INJECT;
             end if;
@@ -164,8 +191,12 @@ begin  -- rtl
             else
               inj_src.dvalid <= '0';
             end if;
-
-            if(template_last = '1' and inj_src.dvalid = '1') then
+            
+            if(first_word = '1' and template_first = '0') then -- ML: first word read
+              first_word <= '0';
+            end if;
+            
+            if(template_last = '1' and inj_src.dvalid = '1' and first_word = '0') then
               state <= EOF;
             end if;
             
