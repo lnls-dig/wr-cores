@@ -444,7 +444,7 @@ begin  -- behavioral
         vid_o       => vlan_vid,
         tag_done_o  => vlan_tag_done,
         is_tagged_o => vlan_is_tagged,
-        rmon_o      => rmon_o,
+        rmon_o      => open,
         regs_i      => regs_i,
         regs_o      => regs_o);
   end generate gen_with_vlan_unit;
