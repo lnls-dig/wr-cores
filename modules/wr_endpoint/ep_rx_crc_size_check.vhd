@@ -25,8 +25,11 @@ entity ep_rx_crc_size_check is
     src_fab_o  : out t_ep_internal_fabric;
     src_dreq_i : in  std_logic;
 
-    rmon_o : inout t_rmon_triggers;
-    regs_i : in    t_ep_out_registers
+    regs_i         : in  t_ep_out_registers;
+    rmon_pcs_err_o : out std_logic;
+    rmon_giant_o   : out std_logic;
+    rmon_runt_o    : out std_logic;
+    rmon_crc_err_o : out std_logic
     );
 
 end ep_rx_crc_size_check;
@@ -204,10 +207,10 @@ begin  -- behavioral
 
         state <= ST_WAIT_FRAME;
 
-        rmon_o.rx_pcs_err <= '0';
-        rmon_o.rx_giant   <= '0';
-        rmon_o.rx_runt    <= '0';
-        rmon_o.rx_crc_err <= '0';
+        rmon_pcs_err_o <= '0';
+        rmon_giant_o   <= '0';
+        rmon_runt_o    <= '0';
+        rmon_crc_err_o <= '0';
 
         src_fab_o.sof <= '0';
         dvalid_mask   <= "11";
@@ -215,17 +218,17 @@ begin  -- behavioral
       else
         case state is
           when ST_WAIT_FRAME =>
-            dvalid_mask       <= "11";
-            q_flush           <= '0';
-            q_purge           <= '0';
-            rmon_o.rx_pcs_err <= '0';
-            rmon_o.rx_giant   <= '0';
-            rmon_o.rx_runt    <= '0';
-            rmon_o.rx_crc_err <= '0';
-            q_bytesel         <= '0';
-            src_fab_o.eof     <= '0';
-            src_fab_o.error   <= '0';
-            src_fab_o.sof     <= '0';
+            dvalid_mask     <= "11";
+            q_flush         <= '0';
+            q_purge         <= '0';
+            rmon_pcs_err_o  <= '0';
+            rmon_giant_o    <= '0';
+            rmon_runt_o     <= '0';
+            rmon_crc_err_o  <= '0';
+            q_bytesel       <= '0';
+            src_fab_o.eof   <= '0';
+            src_fab_o.error <= '0';
+            src_fab_o.sof   <= '0';
 
             if(snk_fab_i.sof = '1') then
               state         <= ST_DATA;
@@ -242,10 +245,10 @@ begin  -- behavioral
 
             if(snk_fab_i.error = '1') then  -- an error from the source?
 
-              src_fab_o.error   <= '1';
-              rmon_o.rx_pcs_err <= '1';
-              state             <= ST_WAIT_FRAME;
-              q_purge           <= '1';
+              src_fab_o.error <= '1';
+              rmon_pcs_err_o  <= '1';
+              state           <= ST_WAIT_FRAME;
+              q_purge         <= '1';
 
             elsif(snk_fab_i.eof = '1' or snk_fab_i.addr = c_WRF_OOB)then
               if(size_check_ok = '0' or crc_match = '0') then  -- bad frame?
@@ -262,16 +265,16 @@ begin  -- behavioral
                 dvalid_mask <= "00";
               end if;
 
-              rmon_o.rx_runt    <= is_runt and (not regs_i.rfcr_a_runt_o);
-              rmon_o.rx_giant   <= is_giant and (not regs_i.rfcr_a_giant_o);
-              rmon_o.rx_crc_err <= not crc_match;
+              rmon_runt_o    <= is_runt and (not regs_i.rfcr_a_runt_o);
+              rmon_giant_o   <= is_giant and (not regs_i.rfcr_a_giant_o);
+              rmon_crc_err_o <= not crc_match;
             end if;
 
             
           when ST_OOB =>
-            rmon_o.rx_runt    <= '0';
-            rmon_o.rx_giant   <= '0';
-            rmon_o.rx_crc_err <= '0';
+            rmon_runt_o    <= '0';
+            rmon_giant_o   <= '0';
+            rmon_crc_err_o <= '0';
 
             if(q_dvalid_out = '1') then
               dvalid_mask <= dvalid_mask(0) & '1';
