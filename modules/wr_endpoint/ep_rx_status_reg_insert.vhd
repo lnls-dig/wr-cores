@@ -75,7 +75,6 @@ begin  -- rtl
             
           when WAIT_MBUF =>
             if(mbuf_valid_i = '1') then
-                rmon_o.rx_pause        <= mbuf_is_pause_i;
                 rmon_o.rx_pfilter_drop <= mbuf_drop_i;
 
                 if(mbuf_drop_i = '0' and mbuf_is_pause_i = '0') then
@@ -92,7 +91,6 @@ begin  -- rtl
                 sreg.error       <= '0';
             else
               rmon_o.rx_pfilter_drop        <= '0';
-              rmon_o.rx_pause               <= '0';
               rmon_o.rx_path_timing_failure <= '0';
             end if;
             

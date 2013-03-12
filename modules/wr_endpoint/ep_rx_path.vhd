@@ -301,6 +301,7 @@ architecture behavioral of ep_rx_path is
   signal ematch_done     : std_logic;
   signal ematch_is_hp    : std_logic;
   signal ematch_is_pause : std_logic;
+  signal fc_pause_p      : std_logic;
 
   signal pfilter_pclass : std_logic_vector(7 downto 0);
   signal pfilter_drop   : std_logic;
@@ -320,6 +321,9 @@ begin  -- behavioral
 
   fab_pipe(0) <= pcs_fab_i;
 
+  fc_pause_p_o    <= fc_pause_p;
+  rmon_o.rx_pause <= fc_pause_p;
+
   U_early_addr_match : ep_rx_early_address_match
 
     port map (
@@ -334,7 +338,7 @@ begin  -- behavioral
       match_is_pause_o        => ematch_is_pause,
       match_pause_quanta_o    => fc_pause_quanta_o,
       match_pause_prio_mask_o => fc_pause_prio_mask_o,
-      match_pause_p_o         => fc_pause_p_o,
+      match_pause_p_o         => fc_pause_p,
       regs_i                  => regs_i);
 
   gen_with_packet_filter : if(g_with_dpi_classifier) generate
