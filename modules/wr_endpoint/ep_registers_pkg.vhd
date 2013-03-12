@@ -91,10 +91,10 @@ package ep_wbgen2_pkg is
       pfcr1_mm_data_lsb_wr_o                   : std_logic;
       tcar_pcp_map_o                           : std_logic_vector(23 downto 0);
       tcar_pcp_map_load_o                      : std_logic;
-      fcr_rxpause_o                            : std_logic;
-      fcr_txpause_o                            : std_logic;
-      fcr_rxppause_prio_mode_o                 : std_logic;
-      fcr_txppause_prio_mode_o                 : std_logic;
+      fcr_rxpause_802_3_o                      : std_logic;
+      fcr_txpause_802_3_o                      : std_logic;
+      fcr_rxpause_802_1q_o                     : std_logic;
+      fcr_txpause_802_1q_o                     : std_logic;
       fcr_tx_thr_o                             : std_logic_vector(7 downto 0);
       fcr_tx_quanta_o                          : std_logic_vector(15 downto 0);
       mach_o                                   : std_logic_vector(15 downto 0);
@@ -148,10 +148,10 @@ package ep_wbgen2_pkg is
       pfcr1_mm_data_lsb_wr_o => '0',
       tcar_pcp_map_o => (others => '0'),
       tcar_pcp_map_load_o => '0',
-      fcr_rxpause_o => '0',
-      fcr_txpause_o => '0',
-      fcr_rxppause_prio_mode_o => '0',
-      fcr_txppause_prio_mode_o => '0',
+      fcr_rxpause_802_3_o => '0',
+      fcr_txpause_802_3_o => '0',
+      fcr_rxpause_802_1q_o => '0',
+      fcr_txpause_802_1q_o => '0',
       fcr_tx_thr_o => (others => '0'),
       fcr_tx_quanta_o => (others => '0'),
       mach_o => (others => '0'),

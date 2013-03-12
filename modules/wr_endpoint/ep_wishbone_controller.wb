@@ -422,37 +422,37 @@ peripheral {
 		 prefix = "FCR";
 
 		 field {
-				name = "RX Pause enable";
-				description = "1: enable reception of pause frames and TX path throttling \
-                       0: disable reception of pause frames";
-				prefix = "RXPAUSE";
+				name = "RX Pause 802.3 enable";
+				description = "1: enable reception of pause frames defined in 802.3 (all priorities) and TX path throttling \
+                       0: disable reception of pause frames defined in 802.3";
+				prefix = "RXPAUSE_802_3";
 				access_bus = READ_WRITE;
 				access_dev = READ_ONLY;
 				type = BIT;
 		 };
 		 field {
-				name = "TX Pause enable";
+				name = "TX Pause 802.3 enable";
 				description = "1: enable transmission of pause frames and RX path throttling \
                        0: disable transmission of pause frames";
-				prefix = "TXPAUSE";
+				prefix = "TXPAUSE_802_3";
 				access_bus = READ_WRITE;
 				access_dev = READ_ONLY;
 				type = BIT;
 		 };
 		 field {
-				name = "Rx Pause Type";
-				description = "1: priority-based (IEEE 802.1p) Flow Control \
-                       0: 802.3x standard Flow Control";
-				prefix = "RXPPAUSE_PRIO_MODE";
+				name = "Rx Pause 802.1Q enable";
+				description = "1: enable reception of priority-based pause frames (IEEE 802.1Q-2012 Flow Control)  \
+						0: disable reception of priority-based pause frames";
+				prefix = "RXPAUSE_802_1Q";
 				access_bus = READ_WRITE;
 				access_dev = READ_ONLY;
 				type = BIT;
 		 };
 		 field {
-				name = "Tx Pause Type";
-				description = "1: priority-based (IEEE 802.1p) Flow Control \
-                       0: 802.3x standard Flow Control";
-				prefix = "TXPPAUSE_PRIO_MODE";
+				name = "Tx Pause 802.1Q enable (not implemented)";
+				description = "1: enable transmission of priority-based pause frames (IEEE 802.1Q-2012) Flow Control \
+						0: disable transmission of priority-based pause frames";
+				prefix = "TXPAUSE_802_1Q";
 				access_bus = READ_WRITE;
 				access_dev = READ_ONLY;
 				type = BIT;

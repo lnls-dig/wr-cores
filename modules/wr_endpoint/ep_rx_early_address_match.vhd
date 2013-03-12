@@ -124,31 +124,31 @@ begin  -- behavioral
           end if;
           if(hdr_offset(7) = '1') then
             pause_match_int (4) <= f_compare_slv(snk_fab_i.data, x"0001"); -- 802.3 PAUSE
-            pause_match_int (5) <= f_compare_slv(snk_fab_i.data, x"0101"); -- per-prio PAUSE
+            pause_match_int (5) <= f_compare_slv(snk_fab_i.data, x"0101"); -- 802.1Q PAUSE (per-prio)
           end if;
           if(hdr_offset(8) = '1') then
             if(f_compare_slv(pause_match_int, b"0001_1111") = '1') then  -- 802.3 PAUSE
 
               match_is_pause            <= '1'; -- to indicate that frame shall be dropped
 
-              if((regs_i.fcr_rxpause_o = '1') and (regs_i.fcr_rxppause_prio_mode_o = '0')) then
+              if(regs_i.fcr_rxpause_802_3_o = '1') then
                 match_pause_req         <= '1';
                 match_pause_quanta      <= snk_fab_i.data;  
                 pause_prio_mask         <= (others => '1');
               end if;
 
-            elsif(f_compare_slv(pause_match_int, b"0010_1111") = '1') then  -- per-prio PAUSE
+            elsif(f_compare_slv(pause_match_int, b"0010_1111") = '1') then  -- 802.1Q PAUSE (per-prio)
 
               match_is_pause          <= '1'; -- to indicate that frame shall be dropped
 
-              if((regs_i.fcr_rxpause_o = '1') and (regs_i.fcr_rxppause_prio_mode_o = '1')) then
+              if(regs_i.fcr_rxpause_802_1q_o = '1') then
                 pause_prio_mask       <=  snk_fab_i.data(7 downto 0);
                 is_perprio_pause      <= '1';
               end if;
   
             end if;
           end if;
-          if((hdr_offset(16 downto 9) and pause_prio_mask) /= b"0000_0000") then
+          if (is_perprio_pause ='1' and ((hdr_offset(16 downto 9) and pause_prio_mask) /= b"0000_0000")) then
             if(snk_fab_i.data > match_pause_quanta) then
               match_pause_quanta <= snk_fab_i.data;
             end if;  
