@@ -131,7 +131,7 @@ begin  -- behavioral
 
               match_is_pause            <= '1'; -- to indicate that frame shall be dropped
 
-              if(regs_i.fcr_rxpause_802_3_o = '1') then
+              if(regs_i.fcr_rxpause_o = '1') then
                 match_pause_req         <= '1';
                 match_pause_quanta      <= snk_fab_i.data;  
                 pause_prio_mask         <= (others => '1');
