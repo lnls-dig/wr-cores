@@ -237,7 +237,7 @@ entity xwr_endpoint is
 -------------------------------------------------------------------------------
 -- Misc stuff
 -------------------------------------------------------------------------------
-    rmon_events_o        : out std_logic_vector(19 downto 0);
+    rmon_events_o        : out std_logic_vector(c_epevents_sz-1 downto 0);
 
     led_link_o : out std_logic;
     led_act_o  : out std_logic;

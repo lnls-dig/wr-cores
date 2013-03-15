@@ -53,6 +53,8 @@ package endpoint_pkg is
 
   type t_txtsu_timestamp_array is array(integer range <>) of t_txtsu_timestamp;
 
+  constant c_epevents_sz  : integer := 20;  --how many events the endpoint generates
+
   component xwr_endpoint
     generic (
       g_interface_mode        : t_wishbone_interface_mode      := CLASSIC;
@@ -133,7 +135,7 @@ package endpoint_pkg is
       inject_ready_o       : out std_logic;
       inject_packet_sel_i  : in  std_logic_vector(2 downto 0)  := "000";
       inject_user_value_i  : in  std_logic_vector(15 downto 0) := x"0000";
-      rmon_events_o        : out std_logic_vector(19 downto 0);
+      rmon_events_o        : out std_logic_vector(c_epevents_sz-1 downto 0);
       led_link_o           : out std_logic;
       led_act_o            : out std_logic;
       link_kill_i          : in  std_logic                     := '0';
@@ -242,7 +244,7 @@ package endpoint_pkg is
       inject_ready_o       : out std_logic;
       inject_packet_sel_i  : in  std_logic_vector(2 downto 0)  := "000";
       inject_user_value_i  : in  std_logic_vector(15 downto 0) := x"0000";
-      rmon_events_o        : out std_logic_vector(19 downto 0);
+      rmon_events_o        : out std_logic_vector(c_epevents_sz-1 downto 0);
       led_link_o           : out std_logic;
       led_act_o            : out std_logic;
       link_kill_i          : in  std_logic                     := '0';

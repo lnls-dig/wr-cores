@@ -48,6 +48,7 @@ library work;
 
 use work.gencores_pkg.all;
 use work.endpoint_private_pkg.all;
+use work.endpoint_pkg.all;
 use work.ep_wbgen2_pkg.all;
 use work.wr_fabric_pkg.all;
 use work.wishbone_pkg.all;
@@ -269,7 +270,7 @@ entity wr_endpoint is
 -------------------------------------------------------------------------------
 -- Misc stuff
 -------------------------------------------------------------------------------
-    rmon_events_o : out std_logic_vector(19 downto 0);
+    rmon_events_o : out std_logic_vector(c_epevents_sz-1 downto 0);
 
     led_link_o : out std_logic;
     led_act_o  : out std_logic;
@@ -1041,7 +1042,7 @@ begin
   rmon.rx_invalid_code <= pcs_rmon.rx_invalid_code;
   rmon.rx_sync_lost    <= pcs_rmon.rx_sync_lost;
 
-  f_pack_rmon_triggers(rmon, rmon_events_o(17 downto 0));
+  f_pack_rmon_triggers(rmon, rmon_events_o(c_epevents_sz-3 downto 0));
 
   rmon_event_tx : gc_sync_ffs
     generic map(
@@ -1052,7 +1053,7 @@ begin
       data_i   => txpcs_timestamp_trigger_p_a,
       synced_o => open,
       npulse_o => open,
-      ppulse_o => rmon_events_o(18));
+      ppulse_o => rmon_events_o(c_epevents_sz-2));
 
   rmon_event_rx : gc_sync_ffs
     generic map(
@@ -1063,7 +1064,7 @@ begin
       data_i   => rxpcs_timestamp_trigger_p_a,
       synced_o => open,
       npulse_o => open,
-      ppulse_o => rmon_events_o(19));
+      ppulse_o => rmon_events_o(c_epevents_sz-1));
 
 end syn;
 

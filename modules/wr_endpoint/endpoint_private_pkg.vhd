@@ -44,6 +44,7 @@ use ieee.numeric_std.all;
 
 use work.ep_wbgen2_pkg.all;
 use work.wr_fabric_pkg.all;
+use work.endpoint_pkg.all;
 
 package endpoint_private_pkg is
 
@@ -502,7 +503,7 @@ package body endpoint_private_pkg is
   procedure f_pack_rmon_triggers
     (
       signal trig_in  : in t_rmon_triggers;
-      signal trig_out : out std_logic_vector(17 downto 0)) is
+      signal trig_out : out std_logic_vector(c_epevents_sz-3 downto 0)) is
   begin
     --from 1000base pcs
     trig_out(0) <= trig_in.tx_underrun;
