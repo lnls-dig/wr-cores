@@ -392,7 +392,7 @@ package endpoint_private_pkg is
 
   procedure f_pack_rmon_triggers (
       signal trig_in  : in t_rmon_triggers;
-      signal trig_out : out std_logic_vector(9 downto 0));
+      signal trig_out : out std_logic_vector(c_epevents_sz-1 downto 0));
 
 end endpoint_private_pkg;
 
