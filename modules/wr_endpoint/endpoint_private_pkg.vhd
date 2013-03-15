@@ -102,9 +102,9 @@ package endpoint_private_pkg is
     rx_buffer_overrun      : std_logic;
     rx_rtu_overrun         : std_logic;
     rx_path_timing_failure : std_logic;
-
-    tx_pause    : std_logic;
-    tx_underrun : std_logic;
+    tx_pause               : std_logic;
+    tx_underrun            : std_logic;
+    rx_pclass              : std_logic_vector(7 downto 0);
   end record;
 
   -- Endpoint's internal fabric used to connect the submodules with each other.
@@ -502,7 +502,7 @@ package body endpoint_private_pkg is
   procedure f_pack_rmon_triggers
     (
       signal trig_in  : in t_rmon_triggers;
-      signal trig_out : out std_logic_vector(9 downto 0)) is
+      signal trig_out : out std_logic_vector(17 downto 0)) is
   begin
     --from 1000base pcs
     trig_out(0) <= trig_in.tx_underrun;
@@ -515,6 +515,7 @@ package body endpoint_private_pkg is
     trig_out(7) <= trig_in.rx_giant;
     trig_out(8) <= trig_in.rx_runt;
     trig_out(9) <= trig_in.rx_crc_err;
+    trig_out(17 downto 10) <= trig_in.rx_pclass(7 downto 0);
   end f_pack_rmon_triggers;
 
 

@@ -269,7 +269,7 @@ entity wr_endpoint is
 -------------------------------------------------------------------------------
 -- Misc stuff
 -------------------------------------------------------------------------------
-    rmon_events_o : out std_logic_vector(11 downto 0);
+    rmon_events_o : out std_logic_vector(19 downto 0);
 
     led_link_o : out std_logic;
     led_act_o  : out std_logic;
@@ -1041,7 +1041,7 @@ begin
   rmon.rx_invalid_code <= pcs_rmon.rx_invalid_code;
   rmon.rx_sync_lost    <= pcs_rmon.rx_sync_lost;
 
-  f_pack_rmon_triggers(rmon, rmon_events_o(9 downto 0));
+  f_pack_rmon_triggers(rmon, rmon_events_o(17 downto 0));
 
   rmon_event_tx : gc_sync_ffs
     generic map(
@@ -1052,7 +1052,7 @@ begin
       data_i   => txpcs_timestamp_trigger_p_a,
       synced_o => open,
       npulse_o => open,
-      ppulse_o => rmon_events_o(10));
+      ppulse_o => rmon_events_o(18));
 
   rmon_event_rx : gc_sync_ffs
     generic map(
@@ -1063,7 +1063,7 @@ begin
       data_i   => rxpcs_timestamp_trigger_p_a,
       synced_o => open,
       npulse_o => open,
-      ppulse_o => rmon_events_o(11));
+      ppulse_o => rmon_events_o(19));
 
 end syn;
 

@@ -322,7 +322,6 @@ begin  -- behavioral
   fab_pipe(0) <= pcs_fab_i;
 
   fc_pause_p_o    <= fc_pause_p;
-  rmon_o.rx_pause <= fc_pause_p;
 
   U_early_addr_match : ep_rx_early_address_match
 
@@ -535,6 +534,15 @@ begin  -- behavioral
   pfilter_pclass_o <= pfilter_pclass;
   pfilter_drop_o   <= pfilter_drop;
   pfilter_done_o   <= pfilter_done;
+
+
+  -----------------------------------------
+  -- RMON events
+  -----------------------------------------
+  rmon_o.rx_pause <= fc_pause_p;
+  GEN_PCLASS_EVT: for i in 0 to 7 generate
+    rmon_o.rx_pclass(i) <= pfilter_pclass(i) and pfilter_done;
+  end generate;
 
 end behavioral;
 
