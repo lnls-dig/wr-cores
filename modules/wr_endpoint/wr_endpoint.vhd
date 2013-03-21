@@ -1037,6 +1037,7 @@ begin
   rmon.rx_crc_err      <= rx_path_rmon.rx_crc_err;
   rmon.rx_pause        <= rx_path_rmon.rx_pause;
   rmon.rx_pfilter_drop <= rx_path_rmon.rx_pfilter_drop;
+  rmon.rx_pclass       <= rx_path_rmon.rx_pclass;
   rmon.tx_underrun     <= pcs_rmon.tx_underrun;
   rmon.rx_overrun      <= pcs_rmon.rx_overrun;
   rmon.rx_invalid_code <= pcs_rmon.rx_invalid_code;
