@@ -270,7 +270,7 @@ begin  -- behavioral
                   v_stored_fab.data(11 downto 0) := regs_i.vcr0_pvid_o;
                   v_src_fab.data(11 downto 0)    := regs_i.vcr0_pvid_o;
                 end if;
-                vid_o   <= snk_fab_i.data(11 downto 0);                       
+                vid_o   <= v_src_fab.data(11 downto 0);
                 -- assign the priority 
                 if(regs_i.vcr0_fix_prio_o = '1' or use_fixed_prio = '1') then
                   -- Forced priority (or a non-priority tagged frame)? Take the priority
@@ -339,6 +339,7 @@ begin  -- behavioral
                   src_fab_o.addr   <= c_WRF_DATA;
                   src_fab_o.data   <= regs_i.vcr0_prio_val_o & '0' & regs_i.vcr0_pvid_o;
                   src_fab_o.dvalid <= '1';
+                  vid_o            <= regs_i.vcr0_pvid_o; -- use the inserted PVID
                 end if;
 
                 if(hdr_offset(9) = '1') then
