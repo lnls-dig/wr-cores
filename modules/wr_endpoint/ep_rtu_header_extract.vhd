@@ -22,7 +22,9 @@ entity ep_rtu_header_extract is
     vlan_vid_i      : in std_logic_vector(11 downto 0);
     vlan_tag_done_i : in std_logic;
     vlan_is_tagged_i: in std_logic;
-
+     
+    rmon_drp_at_rtu_full_o: out std_logic;
+    
     rtu_rq_o       : out t_ep_internal_rtu_request;
     rtu_full_i     : in  std_logic;
     rtu_rq_valid_o : out std_logic
@@ -72,10 +74,14 @@ begin  -- rtl
           rtu_rq_o.dmac     <= (others => '0');
           in_packet         <= '0';
           rtu_rq_valid_basic<= '0';
+          rmon_drp_at_rtu_full_o <='0';
         else
-          
+          rmon_drp_at_rtu_full_o <='0';
+
           if(snk_fab_i.sof = '1' and rtu_full_i = '0') then
             in_packet <= '1';
+          elsif(snk_fab_i.sof = '1' and rtu_full_i = '1') then
+            rmon_drp_at_rtu_full_o <='1';
           end if;
 
           if(snk_fab_i.eof = '1' or snk_fab_i.error = '1') then

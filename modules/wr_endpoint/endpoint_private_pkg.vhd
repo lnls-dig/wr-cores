@@ -108,6 +108,7 @@ package endpoint_private_pkg is
     rx_pclass              : std_logic_vector(7 downto 0);
     tx_frame               : std_logic;
     rx_frame               : std_logic;
+    rx_drop_at_rtu_full    : std_logic;
   end record;
 
   -- Endpoint's internal fabric used to connect the submodules with each other.
@@ -521,6 +522,7 @@ package body endpoint_private_pkg is
     trig_out(17 downto 10) <= trig_in.rx_pclass(7 downto 0);
     trig_out(18)<= trig_in.tx_frame;
     trig_out(19)<= trig_in.rx_frame;
+    trig_out(20)<= trig_in.rx_drop_at_rtu_full;
   end f_pack_rmon_triggers;
 
 

@@ -123,6 +123,7 @@ architecture behavioral of ep_rx_path is
       vlan_vid_i       : in  std_logic_vector(11 downto 0);
       vlan_tag_done_i  : in  std_logic;
       vlan_is_tagged_i : in  std_logic;
+      rmon_drp_at_rtu_full_o: out std_logic;
       rtu_rq_o         : out t_ep_internal_rtu_request;
       rtu_full_i       : in  std_logic;
       rtu_rq_valid_o   : out std_logic);
@@ -477,6 +478,9 @@ begin  -- behavioral
       vlan_vid_i       => vlan_vid,
       vlan_tag_done_i  => vlan_tag_done,
       vlan_is_tagged_i => vlan_is_tagged,
+      
+      rmon_drp_at_rtu_full_o => rmon_o.rx_drop_at_rtu_full,
+      
       rtu_rq_o         => rtu_rq_o,
       rtu_full_i       => rtu_full_i,
       rtu_rq_valid_o   => rtu_rq_valid_o);
