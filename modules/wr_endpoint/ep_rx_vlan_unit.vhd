@@ -379,6 +379,7 @@ begin  -- behavioral
 
       if(rst_n_i = '0' or regs_i.ecr_rx_en_o = '0' or snk_fab_i.sof = '1')then
         tag_done_o <= '0';
+        tclass_o   <= "000";
       elsif(hdr_offset(9) = '1') then
         -- we're already after the headers, so prio_int is
         -- certainly valid
@@ -392,7 +393,7 @@ begin  -- behavioral
           when "101"  => tclass_o <= r_tcar_pcp_map(17 downto 15);
           when "110"  => tclass_o <= r_tcar_pcp_map(20 downto 18);
           when "111"  => tclass_o <= r_tcar_pcp_map(23 downto 21);
-          when others => tclass_o <= "XXX";  -- packet probably contains porn
+          when others => tclass_o <= "000";--"XXX";  -- packet probably contains porn
         end case;
       end if;
     end if;
