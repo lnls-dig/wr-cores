@@ -105,7 +105,8 @@ package endpoint_private_pkg is
     rx_path_timing_failure : std_logic;
     tx_pause               : std_logic;
     tx_underrun            : std_logic;
-    rx_pclass              : std_logic_vector(7 downto 0);
+    rx_pclass              : std_logic_vector(7 downto 0); -- packet class (from filter)
+    rx_tclass              : std_logic_vector(7 downto 0); -- traffic class (priority)
     tx_frame               : std_logic;
     rx_frame               : std_logic;
     rx_drop_at_rtu_full    : std_logic;
@@ -523,6 +524,7 @@ package body endpoint_private_pkg is
     trig_out(18)<= trig_in.tx_frame;
     trig_out(19)<= trig_in.rx_frame;
     trig_out(20)<= trig_in.rx_drop_at_rtu_full;
+    trig_out(28 downto 21) <= trig_in.rx_tclass(7 downto 0);
   end f_pack_rmon_triggers;
 
 

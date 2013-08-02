@@ -53,7 +53,7 @@ package endpoint_pkg is
 
   type t_txtsu_timestamp_array is array(integer range <>) of t_txtsu_timestamp;
 
-  constant c_epevents_sz  : integer := 21;  --how many events the endpoint generates
+  constant c_epevents_sz  : integer := 29;  --how many events the endpoint generates
 
   component xwr_endpoint
     generic (

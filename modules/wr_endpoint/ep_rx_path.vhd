@@ -317,6 +317,7 @@ architecture behavioral of ep_rx_path is
   signal mbuf_rd, mbuf_valid, mbuf_we, mbuf_pf_drop, mbuf_is_hp : std_logic;
   signal mbuf_is_pause, mbuf_full, mbuf_we_d0, mbuf_we_d1       : std_logic;
   signal mbuf_pf_class                                          : std_logic_vector(7 downto 0);
+  signal rtu_rq_valid                                           : std_logic;
 
 begin  -- behavioral
 
@@ -483,7 +484,7 @@ begin  -- behavioral
       
       rtu_rq_o         => rtu_rq_o,
       rtu_full_i       => rtu_full_i,
-      rtu_rq_valid_o   => rtu_rq_valid_o);
+      rtu_rq_valid_o   => rtu_rq_valid);
 
   U_Gen_Status : ep_rx_status_reg_insert
     port map (
@@ -539,7 +540,7 @@ begin  -- behavioral
   pfilter_drop_o   <= pfilter_drop;
   pfilter_done_o   <= pfilter_done;
 
-
+  rtu_rq_valid_o   <= rtu_rq_valid;
   -----------------------------------------
   -- RMON events
   -----------------------------------------
@@ -547,6 +548,15 @@ begin  -- behavioral
   GEN_PCLASS_EVT: for i in 0 to 7 generate
     rmon_o.rx_pclass(i) <= pfilter_pclass(i) and pfilter_done;
   end generate;
+
+  rmon_o.rx_tclass(0) <= rtu_rq_valid when (vlan_tclass = "000" and vlan_is_tagged = '1') else '0';
+  rmon_o.rx_tclass(1) <= rtu_rq_valid when (vlan_tclass = "001" and vlan_is_tagged = '1') else '0';
+  rmon_o.rx_tclass(2) <= rtu_rq_valid when (vlan_tclass = "010" and vlan_is_tagged = '1') else '0';
+  rmon_o.rx_tclass(3) <= rtu_rq_valid when (vlan_tclass = "011" and vlan_is_tagged = '1') else '0';
+  rmon_o.rx_tclass(4) <= rtu_rq_valid when (vlan_tclass = "100" and vlan_is_tagged = '1') else '0';
+  rmon_o.rx_tclass(5) <= rtu_rq_valid when (vlan_tclass = "101" and vlan_is_tagged = '1') else '0';
+  rmon_o.rx_tclass(6) <= rtu_rq_valid when (vlan_tclass = "110" and vlan_is_tagged = '1') else '0';
+  rmon_o.rx_tclass(7) <= rtu_rq_valid when (vlan_tclass = "111" and vlan_is_tagged = '1') else '0';
 
 end behavioral;
 
