@@ -247,7 +247,9 @@ begin
     generic map (
       g_data_width => 18,
       g_size       => g_size,
-      g_with_count => true)
+      g_with_almost_empty => false,
+      g_with_almost_full  => false,
+      g_with_count        => false)
     port map (
       rst_n_i        => q_reset,
       clk_i          => clk_sys_i,
