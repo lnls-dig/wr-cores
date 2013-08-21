@@ -163,7 +163,9 @@ package endpoint_pkg is
       g_with_rtu              : boolean                        := true;
       g_with_leds             : boolean                        := true;
       g_with_dmtd             : boolean                        := false;
-      g_with_packet_injection : boolean                        := false);
+      g_with_packet_injection : boolean                        := false;
+      g_use_new_rxcrc         : boolean                        := false;
+      g_use_new_txcrc         : boolean                        := false);
     port (
       clk_ref_i            : in  std_logic;
       clk_sys_i            : in  std_logic;

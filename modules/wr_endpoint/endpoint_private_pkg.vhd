@@ -370,6 +370,8 @@ package endpoint_private_pkg is
   end component;
 
   component ep_tx_crc_inserter
+    generic(
+      g_use_new_crc	: boolean := false);
     port (
       clk_sys_i  : in  std_logic;
       rst_n_i    : in  std_logic;

@@ -43,8 +43,11 @@ use work.gencores_pkg.all;
 use work.wr_fabric_pkg.all;
 use work.endpoint_private_pkg.all;
 use work.ep_wbgen2_pkg.all;
+use work.ep_crc32_pkg.all;
 
 entity ep_tx_crc_inserter is
+  generic(
+    g_use_new_crc	: boolean := false);
   port (
     clk_sys_i : in std_logic;
     rst_n_i   : in std_logic;
@@ -77,6 +80,9 @@ architecture behavioral of ep_tx_crc_inserter is
   signal stored_msb : std_logic_vector(7 downto 0);
   signal in_payload : std_logic;
   signal src_dreq_d0 : std_logic;
+
+  signal crc_p_value, crc_n_value : std_logic_vector(31 downto 0);
+  --signal crc_next, crc_new	:	std_logic_vector(31 downto 0);
   
 begin  -- behavioral
 
@@ -93,25 +99,55 @@ begin  -- behavioral
   crc_gen_reset  <= '1' when rst_n_i = '0' or snk_fab_i.sof = '1'                                         else '0';
   crc_gen_enable <= '1' when (snk_fab_i.dvalid = '1' and in_payload = '1') else '0';
 
-  U_tx_crc_generator : gc_crc_gen
-    generic map (
-      g_polynomial              => x"04C11DB7",
-      g_init_value              => x"ffffffff",
-      g_residue                 => x"38fb2284",
-      g_data_width              => 16,
-      g_half_width              => 8,
-      g_sync_reset              => 1,
-      g_dual_width              => 1,
-      g_registered_match_output => false,
-      g_registered_crc_output   => true)
-    port map (
-      clk_i   => clk_sys_i,
-      rst_i   => crc_gen_reset,
-      en_i    => crc_gen_enable,
-      half_i  => snk_fab_i.bytesel,
-      data_i  => snk_fab_i.data,
-      match_o => open,
-      crc_o   => crc_value);
+	gen_old_crc: if(g_use_new_crc = false) generate
+  	U_tx_crc_generator : gc_crc_gen
+  	  generic map (
+  	    g_polynomial              => x"04C11DB7",
+  	    g_init_value              => x"ffffffff",
+  	    g_residue                 => x"38fb2284",
+  	    g_data_width              => 16,
+  	    g_half_width              => 8,
+  	    g_sync_reset              => 1,
+  	    g_dual_width              => 1,
+  	    g_registered_match_output => false,
+  	    g_registered_crc_output   => true)
+  	  port map (
+  	    clk_i   => clk_sys_i,
+  	    rst_i   => crc_gen_reset,
+  	    en_i    => crc_gen_enable,
+  	    half_i  => snk_fab_i.bytesel,
+  	    data_i  => snk_fab_i.data,
+  	    match_o => open,
+  	    crc_o   => crc_value);
+	end generate;
+
+	gen_new_crc: if(g_use_new_crc = true) generate
+		p_check_crc_p: process(clk_sys_i)
+		begin
+			if falling_edge(clk_sys_i) then
+				if(crc_gen_reset = '1')then
+					crc_n_value <= c_CRC32_INIT_VALUE;
+				elsif(crc_gen_enable = '1') then
+					crc_n_value <= f_update_crc32_d8(crc_p_value, snk_fab_i.data(15 downto 8));
+				end if;
+			end if;
+		end process;
+
+		p_check_crc_n: process(clk_sys_i)
+		begin
+			if rising_edge(clk_sys_i) then
+				if(crc_gen_reset = '1') then
+					crc_p_value <= c_CRC32_INIT_VALUE;
+				elsif(crc_gen_enable = '1' and snk_fab_i.bytesel = '0') then
+					crc_p_value <= f_update_crc32_d8(crc_n_value, snk_fab_i.data(7 downto 0));
+				end if;
+			end if;
+		end process;
+
+		crc_value <= crc_p_value when odd_length = '0' else
+								 crc_n_value;
+
+	end generate;
 
   p_delay_dreq: process(clk_sys_i)
     begin

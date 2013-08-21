@@ -9,7 +9,7 @@ package ep_crc32_pkg is
   constant c_CRC32_INIT_VALUE   : std_logic_vector(31 downto 0) := x"00000000";
 
   function f_update_crc32_d16(d : std_logic_vector; data_in : std_logic_vector) return std_logic_vector;
-  function f_update_crc32_d8(d  : std_logic_vector; data_in : std_logic_vector) return std_logic_vector;
+  function f_update_crc32_d8(d  : std_logic_vector(31 downto 0); data_in : std_logic_vector(7 downto 0)) return std_logic_vector;
   
 end ep_crc32_pkg;
 
@@ -56,8 +56,8 @@ package body ep_crc32_pkg is
   end f_update_crc32_d16;
 
 
-  function f_update_crc32_d8(d : std_logic_vector; data_in : std_logic_vector) return std_logic_vector is
-    variable q : std_logic_vector(d'length-1 downto 0);
+  function f_update_crc32_d8(d : std_logic_vector(31 downto 0); data_in : std_logic_vector(7 downto 0)) return std_logic_vector is
+    variable q : std_logic_vector(31 downto 0);
   begin
     q(7)  := not ((not d(31)) xor (not d(25)) xor data_in(7) xor data_in(1));
     q(6)  := not ((not d(31)) xor (not d(30)) xor (not d(25)) xor (not d(24)) xor data_in(7) xor data_in(6) xor data_in(1) xor data_in(0));

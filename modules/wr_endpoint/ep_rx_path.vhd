@@ -65,7 +65,8 @@ entity ep_rx_path is
     g_with_rtu            : boolean := true;
     g_with_rx_buffer      : boolean := true;
     g_with_early_match    : boolean := false;
-    g_rx_buffer_size      : integer := 1024);
+    g_rx_buffer_size      : integer := 1024;
+    g_use_new_crc         :	boolean := false);
   port (
     clk_sys_i   : in std_logic;
     clk_rx_i    : in std_logic;
@@ -210,6 +211,8 @@ architecture behavioral of ep_rx_path is
   end component;
 
   component ep_rx_crc_size_check
+  	generic (
+      g_use_new_crc : boolean := false);
     port (
       clk_sys_i      : in  std_logic;
       rst_n_i        : in  std_logic;
@@ -433,6 +436,8 @@ begin  -- behavioral
       regs_i     => regs_i);
 
   U_crc_size_checker : ep_rx_crc_size_check
+    generic map (
+      g_use_new_crc	 => g_use_new_crc)
     port map (
       clk_sys_i      => clk_sys_i,
       rst_n_i        => rst_n_sys_i,
