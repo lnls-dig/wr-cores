@@ -47,7 +47,8 @@ use work.ep_wbgen2_pkg.all;
 
 entity ep_rx_buffer is
   generic (
-    g_size : integer := 1024
+    g_size    : integer := 1024;
+    g_with_fc : boolean := false
     );
   port(
     clk_sys_i : in std_logic;
@@ -162,9 +163,10 @@ architecture behavioral of ep_rx_buffer is
   signal q_usedw                 : std_logic_vector(f_log2_size(g_size)-1 downto 0);
   signal q_empty                 : std_logic;
   signal q_reset                 : std_logic;
-  signal q_wr, q_rd              : std_logic;
+  signal q_rd                    : std_logic;
   signal q_drop                  : std_logic;
   signal q_in_valid, q_out_valid : std_logic;
+  signal q_aempty, q_afull       : std_logic;
 
 
   signal state         : t_write_state;
@@ -180,7 +182,6 @@ begin
   begin
     if rising_edge(clk_sys_i) then
       if rst_n_i = '0' then
-        q_wr         <= '0';
         q_drop       <= '0';
         state        <= WAIT_FRAME;
         in_prev_addr <= (others => '0');
@@ -190,11 +191,9 @@ begin
           in_prev_addr <= snk_fab_i.addr;
         end if;
 
-        if(unsigned(q_usedw) = c_drop_threshold) then
+        if(q_afull = '1') then
           q_drop <= '1';
-        end if;
-
-        if(unsigned(q_usedw) = c_release_threshold) then
+        elsif(q_aempty = '1') then
           q_drop <= '0';
         end if;
 
@@ -247,9 +246,11 @@ begin
     generic map (
       g_data_width => 18,
       g_size       => g_size,
-      g_with_almost_empty => false,
-      g_with_almost_full  => false,
-      g_with_count        => false)
+      g_with_almost_empty => true,
+      g_with_almost_full  => true,
+      g_almost_empty_threshold  => c_release_threshold,
+      g_almost_full_threshold   => c_drop_threshold,
+      g_with_count              => g_with_fc)
     port map (
       rst_n_i        => q_reset,
       clk_i          => clk_sys_i,
@@ -259,8 +260,8 @@ begin
       rd_i           => q_rd,
       empty_o        => q_empty,
       full_o         => open,
-      almost_empty_o => open,
-      almost_full_o  => open,
+      almost_empty_o => q_aempty,
+      almost_full_o  => q_afull,
       count_o        => q_usedw);
 
   
@@ -293,6 +294,17 @@ begin
   src_fab_o  <= src_fab_int;
   snk_dreq_o <= '1';
 
-  level_o <= q_usedw(q_usedw'left downto q_usedw'left - 7);
+  GEN_FC: if g_with_fc = true generate
+    GEN_LEV_BIG : if f_log2_size(g_size)-1 > level_o'left generate
+      level_o <= q_usedw(q_usedw'left downto q_usedw'left - 7);
+    end generate;
+    GEN_LEV_SML : if f_log2_size(g_size)-1 < level_o'left+1 generate
+      level_o(q_usedw'left downto 0) <= q_usedw;
+    end generate;
+  end generate;
+
+  GEN_NOFC: if g_with_fc = false generate
+    level_o <= (others=>'X');
+  end generate;
 
 end behavioral;

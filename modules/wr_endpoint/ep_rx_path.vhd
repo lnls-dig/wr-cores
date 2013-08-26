@@ -259,7 +259,8 @@ architecture behavioral of ep_rx_path is
 
   component ep_rx_buffer
     generic (
-      g_size : integer);
+      g_size : integer;
+      g_with_fc : boolean := false);
     port (
       clk_sys_i  : in  std_logic;
       rst_n_i    : in  std_logic;
@@ -509,7 +510,8 @@ begin  -- behavioral
   gen_with_rx_buffer : if g_with_rx_buffer generate
     U_Rx_Buffer : ep_rx_buffer
       generic map (
-        g_size => g_rx_buffer_size)
+        g_size    => g_rx_buffer_size,
+        g_with_fc => false)
       port map (
         clk_sys_i  => clk_sys_i,
         rst_n_i    => rst_n_sys_i,
