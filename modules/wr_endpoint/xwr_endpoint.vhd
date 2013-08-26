@@ -60,7 +60,9 @@ entity xwr_endpoint is
     g_with_rtu              : boolean                        := true;
     g_with_leds             : boolean                        := true;
     g_with_dmtd             : boolean                        := true;
-    g_with_packet_injection : boolean                        := false
+    g_with_packet_injection : boolean                        := false;
+    g_use_new_rxcrc         : boolean                        := false;
+    g_use_new_txcrc         : boolean                        := false
     );
   port (
 
@@ -273,7 +275,9 @@ begin
       g_with_rtu              => g_with_rtu,
       g_with_leds             => g_with_leds,
       g_with_dmtd             => g_with_dmtd,
-      g_with_packet_injection => g_with_packet_injection)
+      g_with_packet_injection => g_with_packet_injection,
+      g_use_new_rxcrc         => g_use_new_rxcrc,
+      g_use_new_txcrc         => g_use_new_txcrc)
     port map (
       clk_ref_i            => clk_ref_i,
       clk_sys_i            => clk_sys_i,
