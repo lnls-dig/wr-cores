@@ -81,6 +81,7 @@ begin  -- rtl
 
                 if(mbuf_drop_i = '0' and mbuf_is_pause_i = '0') then
                   state <= GEN_STATUS;
+                  dreq_mask <= '1';
                 else
                   state <= WAIT_FRAME;
                   dreq_mask <= '1';
