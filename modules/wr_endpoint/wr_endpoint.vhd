@@ -584,6 +584,28 @@ architecture syn of wr_endpoint is
   signal rx_path_rmon : t_rmon_triggers;
   signal rmon         : t_rmon_triggers;
 
+-------------------------------------------------------------------------------
+-- chipscope (for desperates)
+-------------------------------------------------------------------------------
+  signal CONTROL0                   : std_logic_vector(35 downto 0);
+  signal TRIG0, TRIG1, TRIG2, TRIG3 : std_logic_vector(31 downto 0);
+
+  component chipscope_icon
+    port (
+      CONTROL0 : inout std_logic_vector(35 downto 0));
+  end component;
+
+  component chipscope_ila
+    port (
+      CONTROL : inout std_logic_vector(35 downto 0);
+      CLK     : in    std_logic;
+      TRIG0   : in    std_logic_vector(31 downto 0);
+      TRIG1   : in    std_logic_vector(31 downto 0);
+      TRIG2   : in    std_logic_vector(31 downto 0);
+      TRIG3   : in    std_logic_vector(31 downto 0));
+  end component;
+
+
 begin
 
   -----------------------------------------------------------------------------
@@ -1070,6 +1092,22 @@ begin
 
   f_pack_rmon_triggers(rmon, rmon_events_o(c_epevents_sz-1 downto 0));
 
+--   CS_ICON : chipscope_icon
+--    port map (
+--     CONTROL0 => CONTROL0);
+--   CS_ILA : chipscope_ila
+--    port map (
+--      CONTROL => CONTROL0,
+--      CLK     => phy_ref_clk_i,
+--      TRIG0   => TRIG0,
+--      TRIG1   => TRIG1,
+--      TRIG2   => TRIG2,
+--      TRIG3   => TRIG3);
+-- 
+--   TRIG0(15    downto   0) <= phy_rx_data_i;
+--   TRIG0(17    downto  16) <= phy_rx_k_i;
+--   TRIG0(              18) <= phy_rx_enc_err_i;
+--   TRIG0(23    downto  19) <= phy_rx_bitslide_i;
 
 end syn;
 
