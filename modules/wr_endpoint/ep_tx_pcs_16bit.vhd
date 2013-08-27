@@ -148,6 +148,8 @@ architecture behavioral of ep_tx_pcs_16bit is
   signal s_one                 : std_logic := '1';
 
   signal an_tx_en_synced : std_logic;
+  
+  constant tx_interframe_gap: unsigned(3 downto 0) := x"2"; --ML changed from "1000" to 0010
 begin
 
   U_sync_an_tx_en : gc_sync_ffs
@@ -455,7 +457,7 @@ begin
             tx_is_k                 <= "11";
             tx_odata_reg            <= c_k29_7 & c_k23_7;
             tx_catch_disparity      <= '1';
-            tx_cntr                 <= "1000";
+            tx_cntr                 <= tx_interframe_gap;
             tx_state                <= TX_COMMA_IDLE;
 
 --------------------------------------------------------------------------------
@@ -466,7 +468,7 @@ begin
             tx_is_k                 <= "11";
             tx_odata_reg            <= c_k23_7 & c_k23_7;
             tx_catch_disparity      <= '1';
-            tx_cntr                 <= "0100";
+            tx_cntr                 <= tx_interframe_gap-1;--"0100";
             tx_state                <= TX_COMMA_IDLE;
 
 -------------------------------------------------------------------------------
