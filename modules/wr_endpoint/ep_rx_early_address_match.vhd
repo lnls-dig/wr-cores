@@ -11,6 +11,9 @@ use work.ep_wbgen2_pkg.all;
 -- to filter out pause and HP frames in advance.
 
 entity ep_rx_early_address_match is
+  generic
+    (
+      g_early_hp_detection : boolean := false);
   port(
     clk_sys_i : in std_logic;
     clk_rx_i  : in std_logic;
@@ -164,7 +167,9 @@ begin  -- behavioral
   match_is_pause_o        <= match_is_pause;
   match_pause_prio_mask_o <= pause_prio_mask;
   match_pause_quanta_o    <= match_pause_quanta;
-  
+
+  gen_with_early_hp_det: if(g_early_hp_detection) generate
+  -- ML: the p_match_hp is not used, instead identification of HP is done in RTU 
   p_match_hp : process(clk_rx_i)
     variable index : integer;
   begin
@@ -190,6 +195,11 @@ begin  -- behavioral
       end if;
     end if;
   end process;
+  end generate gen_with_early_hp_det;
+  
+  gen_without_early_hp_det: if(not g_early_hp_detection) generate
+    match_is_hp_o <='0';
+  end generate gen_without_early_hp_det;
 
   p_gen_done : process(clk_rx_i)
   begin
