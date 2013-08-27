@@ -84,7 +84,8 @@ begin  -- rtl
             rmon_drp_at_rtu_full_o <='1';
           end if;
 
-          if(snk_fab_i.eof = '1' or snk_fab_i.error = '1') then
+          if((snk_fab_i.eof   = '1' and snk_fab_i.sof = '0') or -- in case both (sof & eof) are HIGH
+              snk_fab_i.error = '1') then
             in_packet <= '0';
           end if;
 
