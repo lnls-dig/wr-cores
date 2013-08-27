@@ -79,7 +79,9 @@ architecture behavioral of ep_tx_crc_inserter is
   
 begin  -- behavioral
 
-  in_payload     <= '1' when (state = IDLE or state = WAIT_CRC)                                           else '0';
+  in_payload     <= '1' when (state = IDLE or state = WAIT_CRC) else '0';
+-- ML: potential optimization (if desperate)
+-- in_payload     <= '1' when (state = IDLE or state = WAIT_CRC) or (src_dreq_d0 = '1' and odd_length = '0' and state = EMBED_2)) else '0';
   crc_gen_reset  <= '1' when rst_n_i = '0' or snk_fab_i.sof = '1'                                         else '0';
   crc_gen_enable <= '1' when (snk_fab_i.dvalid = '1' and in_payload = '1') else '0';
 
@@ -132,7 +134,7 @@ begin  -- behavioral
               stored_msb <= snk_fab_i.data(15 downto 8);
             end if;
 
-            if(snk_fab_i.eof = '1') then
+            if(snk_fab_i.eof = '1' or snk_fab_i.addr = c_WRF_OOB) then
               state <= EMBED_1;
             end if;
 
@@ -168,11 +170,13 @@ begin  -- behavioral
       when EMBED_1 =>
         if(odd_length = '1') then
           src_fab_o.data    <= stored_msb & crc_value(31 downto 24);
+          src_fab_o.addr    <= c_WRF_DATA;
           src_fab_o.bytesel <= '0';
           src_fab_o.dvalid <= src_dreq_d0;
           src_fab_o.eof <= '0';
         else
           src_fab_o.data    <= crc_value(31 downto 16);
+          src_fab_o.addr    <= c_WRF_DATA;
           src_fab_o.bytesel <= '0';
           src_fab_o.dvalid <= src_dreq_d0;
           src_fab_o.eof <= '0';
@@ -181,11 +185,13 @@ begin  -- behavioral
       when EMBED_2 =>
         if(odd_length = '1') then
           src_fab_o.data    <= crc_value(23 downto 8);
+          src_fab_o.addr    <= c_WRF_DATA;
           src_fab_o.bytesel <= '0';
           src_fab_o.dvalid <= src_dreq_d0;
           src_fab_o.eof <= '0';
         else
           src_fab_o.data    <= crc_value(15 downto 0);
+          src_fab_o.addr    <= c_WRF_DATA;
           src_fab_o.bytesel <= '0';
           src_fab_o.dvalid <= src_dreq_d0;
           src_fab_o.eof <= '1';
@@ -193,12 +199,14 @@ begin  -- behavioral
         
       when EMBED_3 =>
         src_fab_o.data    <= crc_value(7 downto 0) & "XXXXXXXX";
+        src_fab_o.addr    <= c_WRF_DATA;
         src_fab_o.bytesel <= '1';
         src_fab_o.dvalid <= src_dreq_d0;
         src_fab_o.eof <= '1';
 
       when others =>
         src_fab_o.data    <= snk_fab_i.data;
+        src_fab_o.addr    <= snk_fab_i.addr;
         src_fab_o.bytesel <= '0';
         src_fab_o.dvalid <= snk_fab_i.dvalid and not snk_fab_i.bytesel;
         src_fab_o.eof <= '0';
