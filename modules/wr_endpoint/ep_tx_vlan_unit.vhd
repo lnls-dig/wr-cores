@@ -223,6 +223,7 @@ begin  -- behavioral
         snk_dreq_o       <= src_dreq_i;
         src_fab_o.dvalid <= snk_fab_i.dvalid;
         src_fab_o.data   <= snk_fab_i.data;
+        src_fab_o.addr   <= snk_fab_i.addr;
 
       when CHECK_ETHERTYPE =>
         snk_dreq_o <= src_dreq_i;
@@ -232,6 +233,7 @@ begin  -- behavioral
           src_fab_o.dvalid <= '0';
         end if;
         src_fab_o.data <= snk_fab_i.data;
+        src_fab_o.addr <= snk_fab_i.addr;
         
       when PUSH_QHEADER_1 =>
         snk_dreq_o       <= '1';

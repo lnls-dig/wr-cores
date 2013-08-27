@@ -427,10 +427,13 @@ begin  -- behavioral
                   when others =>
                     state <= TXF_PAD;
                 end case;
-
+                
+                src_fab_o.addr   <= c_WRF_DATA;
+                
               else
                 src_fab_o.dvalid <= '0';
                 src_fab_o.data   <= (others => 'X');
+                src_fab_o.addr   <= (others => 'X');
               end if;
 
 -------------------------------------------------------------------------------
@@ -444,6 +447,7 @@ begin  -- behavioral
 
                 src_fab_o.data   <= (others => '0');
                 src_fab_o.dvalid <= '1';
+                src_fab_o.addr   <= (others => '0');
 
                 if(counter = x"1e") then
                   state <= TXF_GAP;
@@ -452,6 +456,7 @@ begin  -- behavioral
               else
                 src_fab_o.data   <= (others => '0');
                 src_fab_o.dvalid <= '0';
+                src_fab_o.addr   <= (others => '0');
               end if;
 
 -------------------------------------------------------------------------------
@@ -475,6 +480,8 @@ begin  -- behavioral
                 src_fab_o.data    <= (others => 'X');
                 src_fab_o.bytesel <= '0';
               end if;
+              
+              src_fab_o.addr    <= wb_snk_i.adr;
 
 -------------------------------------------------------------------------------
 -- TX FSM states: WAIT_CRC, EMBED_CRC: dealing with frame checksum field
@@ -538,8 +545,9 @@ begin  -- behavioral
     --if(regs_i.ecr_tx_en_o = '0') then
     if(tx_en = '0') then --ML
       wb_out.stall <= '0';              -- /dev/null if TX disabled
-    elsif((wb_snk_i.cyc xor snk_cyc_d0) = '1') then
-      wb_out.stall <= '1';              -- /block for 1 cycle right upon
+--     elsif((wb_snk_i.cyc xor snk_cyc_d0) = '1') then
+--    elsif(wb_snk_i.cyc = '1' and snk_cyc_d0 = '0') then -- ML: do it only at the SOF, not EOF
+--      wb_out.stall <= '1';              -- /block for 1 cycle right upon
                                         -- detection of a packet, so the FSM
                                         -- has time to catch up
     elsif(src_dreq_i = '1' and state /= TXF_GAP and state /= TXF_ABORT and state /= TXF_DELAYED_SOF) then
