@@ -58,7 +58,7 @@ architecture behavioral of ep_rx_vlan_unit is
 
   signal r_tcar_pcp_map : std_logic_vector(23 downto 0);
   signal is_tag_inserted: std_logic;
-
+  signal at_ethertype_not_Q :std_logic;
   procedure f_vlan_decision
     (tag_type       :     t_tag_type;
      qmode          : in  std_logic_vector(1 downto 0);
@@ -143,11 +143,12 @@ architecture behavioral of ep_rx_vlan_unit is
   
 begin  -- behavioral
 
+  at_ethertype_not_Q <= '1' when (hdr_offset(6) = '1' and snk_fab_i.dvalid = '1' and snk_fab_i.data /= x"8100") else '0';
   at_ethertype <= hdr_offset(6) and snk_fab_i.dvalid;
   at_tpid      <= hdr_offset(6) and snk_fab_i.dvalid and is_tagged;--unused 
   at_vid       <= hdr_offset(7) and snk_fab_i.dvalid and is_tagged;
 
-  snk_dreq_o <= src_dreq_i and dreq_mask and not at_ethertype;
+  snk_dreq_o <= src_dreq_i and dreq_mask and ((not at_ethertype) or at_ethertype_not_Q);
 
   p_decode_tag_type : process(snk_fab_i, is_tagged)
   begin
