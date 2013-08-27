@@ -81,8 +81,7 @@ architecture behavioral of ep_rx_crc_size_check is
   signal q_dvalid_in      : std_logic;
   signal q_dvalid_out     : std_logic;
   signal q_dreq_out       : std_logic;
-  signal dvalid_mask      : std_logic_vector(1 downto 0);
-
+  signal d_eof            : std_logic;
   
 begin  -- behavioral
 
@@ -204,6 +203,7 @@ begin  -- behavioral
         q_flush   <= '0';
         q_purge   <= '0';
         q_bytesel <= '0';
+        d_eof     <= '0';
 
         state <= ST_WAIT_FRAME;
 
@@ -213,12 +213,10 @@ begin  -- behavioral
         rmon_crc_err_o <= '0';
 
         src_fab_o.sof <= '0';
-        dvalid_mask   <= "11";
 
       else
         case state is
           when ST_WAIT_FRAME =>
-            dvalid_mask     <= "11";
             q_flush         <= '0';
             q_purge         <= '0';
             rmon_pcs_err_o  <= '0';
@@ -226,9 +224,9 @@ begin  -- behavioral
             rmon_runt_o     <= '0';
             rmon_crc_err_o  <= '0';
             q_bytesel       <= '0';
-            src_fab_o.eof   <= '0';
             src_fab_o.error <= '0';
             src_fab_o.sof   <= '0';
+            d_eof           <= '0';
 
             if(snk_fab_i.sof = '1') then
               state         <= ST_DATA;
@@ -257,12 +255,11 @@ begin  -- behavioral
                 q_purge         <= '1';
               elsif(snk_fab_i.eof = '1') then
                 q_flush       <= '1';
-                src_fab_o.eof <= '1';
+                d_eof         <= '1';
                 state         <= ST_WAIT_FRAME;
               else
                 state       <= ST_OOB;
                 --              q_flush     <= '1';
-                dvalid_mask <= "00";
               end if;
 
               rmon_runt_o    <= is_runt and (not regs_i.rfcr_a_runt_o);
@@ -276,14 +273,12 @@ begin  -- behavioral
             rmon_giant_o   <= '0';
             rmon_crc_err_o <= '0';
 
-            if(q_dvalid_out = '1') then
-              dvalid_mask <= dvalid_mask(0) & '1';
-            end if;
-
             q_flush <= snk_fab_i.eof;
-
-            if(q_empty = '1' and src_dreq_i = '1') then
-              src_fab_o.eof <= '1';
+            
+            if(src_dreq_i = '1' and snk_fab_i.eof='1') then
+              d_eof         <= '1';
+            elsif(q_empty = '1' or d_eof = '1') then 
+              d_eof         <= not d_eof; -- if already 1, will be 0, if not yet 0 will be 1
               state         <= ST_WAIT_FRAME;
             end if;
             
@@ -293,10 +288,13 @@ begin  -- behavioral
   end process;
 
 --  src_fab_o.sof <= regs_b.ecr_rx_en_o and snk_fab_i.sof;
-  src_fab_o.dvalid  <= q_dvalid_out and dvalid_mask(1) and dvalid_mask(0);
+  
+  --ML optimized queue_bypass so can remove masks tuff
+  src_fab_o.dvalid  <= q_dvalid_out;
   src_fab_o.data    <= q_out(15 downto 0);
   src_fab_o.addr    <= q_out(17 downto 16);
   src_fab_o.bytesel <= q_bytesel when q_out(17 downto 16) = c_WRF_DATA else '0';
+  src_fab_o.eof     <= d_eof;
 
 end behavioral;
 
