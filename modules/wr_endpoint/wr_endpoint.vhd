@@ -247,7 +247,7 @@ entity wr_endpoint is
    fc_rx_pause_start_p_o   : out std_logic;
    fc_rx_pause_quanta_o    : out std_logic_vector(15 downto 0);
    fc_rx_pause_prio_mask_o : out std_logic_vector(7 downto 0);
-
+   fc_rx_buffer_occupation_o : out std_logic_vector(7 downto 0);
 -------------------------------------------------------------------------------
 -- Packet Injection Interface (for TRU/HW-RSTP)
 -------------------------------------------------------------------------------
@@ -280,7 +280,10 @@ entity wr_endpoint is
 
 -- HI indicates that link is up (so cable connected), LOW indicates that link is faulty 
 -- (e.g.: cable disconnected)
-    link_up_o : out std_logic
+    link_up_o : out std_logic;
+    dbg_o     : out std_logic_vector(63 downto 0);
+    dbg_tx_pcs_wr_count_o     : out std_logic_vector(5 downto 0);
+    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5 downto 0)
     );
 
 end wr_endpoint;
@@ -352,7 +355,8 @@ architecture syn of wr_endpoint is
       inject_packet_sel_i    : in  std_logic_vector(2 downto 0)  := "000";
       inject_user_value_i    : in  std_logic_vector(15 downto 0) := x"0000";
       ep_ctrl_i              : in  std_logic                     := '1';
-      regs_i                 : in  t_ep_out_registers);
+      regs_i                 : in  t_ep_out_registers;
+      dbg_o                  : out std_logic_vector(11 downto 0));
   end component;
 
   component ep_rx_path
@@ -384,7 +388,8 @@ architecture syn of wr_endpoint is
       pfilter_done_o         : out std_logic;
       rtu_rq_o               : out t_ep_internal_rtu_request;
       rtu_full_i             : in  std_logic;
-      rtu_rq_valid_o         : out std_logic);
+      rtu_rq_valid_o         : out std_logic;
+      dbg_o                  : out std_logic_vector(29 downto 0));
   end component;
 
   component ep_1000basex_pcs
@@ -428,7 +433,9 @@ architecture syn of wr_endpoint is
       mdio_data_o                   : out std_logic_vector(15 downto 0);
       mdio_stb_i                    : in  std_logic;
       mdio_rw_i                     : in  std_logic;
-      mdio_ready_o                  : out std_logic);
+      mdio_ready_o                  : out std_logic;
+    dbg_tx_pcs_wr_count_o     : out std_logic_vector(5 downto 0);
+    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5 downto 0));
   end component;
 
   component ep_timestamping_unit
@@ -583,7 +590,7 @@ architecture syn of wr_endpoint is
   signal pcs_rmon     : t_rmon_triggers;
   signal rx_path_rmon : t_rmon_triggers;
   signal rmon         : t_rmon_triggers;
-
+ 
 -------------------------------------------------------------------------------
 -- chipscope (for desperates)
 -------------------------------------------------------------------------------
@@ -604,7 +611,6 @@ architecture syn of wr_endpoint is
       TRIG2   : in    std_logic_vector(31 downto 0);
       TRIG3   : in    std_logic_vector(31 downto 0));
   end component;
-
 
 begin
 
@@ -685,7 +691,9 @@ begin
       mdio_data_o  => regs_towb_ep.mdio_asr_rdata_i,
       mdio_stb_i   => regs_fromwb.mdio_cr_data_wr_o,
       mdio_rw_i    => regs_fromwb.mdio_cr_rw_o,
-      mdio_ready_o => regs_towb_ep.mdio_asr_ready_i);
+      mdio_ready_o => regs_towb_ep.mdio_asr_ready_i,
+      dbg_tx_pcs_wr_count_o => dbg_tx_pcs_wr_count_o,
+      dbg_tx_pcs_rd_count_o => dbg_tx_pcs_rd_count_o );
 
 
 -------------------------------------------------------------------------------
@@ -731,7 +739,8 @@ begin
       inject_req_i        => inject_req_i,
       inject_user_value_i => inject_user_value_i,
       inject_packet_sel_i => inject_packet_sel_i,
-      inject_ready_o      => inject_ready_o
+      inject_ready_o      => inject_ready_o,
+      dbg_o               => dbg_o(43 downto 32)
       );
 
 
@@ -775,6 +784,7 @@ begin
       fc_pause_p_o         => fc_rx_pause_start_p_o,  --rxfra_pause_p,
       fc_pause_quanta_o    => fc_rx_pause_quanta_o,   --rxfra_pause_delay,
       fc_pause_prio_mask_o => fc_rx_pause_prio_mask_o,
+      fc_buffer_occupation_o => fc_rx_buffer_occupation_o,
 
       rmon_o => rx_path_rmon,
       regs_i => regs_fromwb,
@@ -788,7 +798,8 @@ begin
       rtu_rq_o       => rtu_rq,
       rtu_rq_valid_o => rtu_rq_strobe_p1_o,
       src_wb_o       => src_out,
-      src_wb_i       => src_in
+      src_wb_i       => src_in,
+      dbg_o          => dbg_o(29 downto 0) 
       );
 
 

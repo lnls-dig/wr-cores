@@ -102,7 +102,8 @@ entity ep_rx_path is
 
     rtu_rq_o       : out t_ep_internal_rtu_request;
     rtu_full_i     : in  std_logic;
-    rtu_rq_valid_o : out std_logic
+    rtu_rq_valid_o : out std_logic;
+    dbg_o          : out std_logic_vector(29 downto 0)
     );
 end ep_rx_path;
 
@@ -557,6 +558,13 @@ begin  -- behavioral
   rmon_o.rx_tclass(5) <= rtu_rq_valid when (vlan_tclass = "101" and vlan_is_tagged = '1') else '0';
   rmon_o.rx_tclass(6) <= rtu_rq_valid when (vlan_tclass = "110" and vlan_is_tagged = '1') else '0';
   rmon_o.rx_tclass(7) <= rtu_rq_valid when (vlan_tclass = "111" and vlan_is_tagged = '1') else '0';
+
+  GEN_DBG: for i in 0 to 9 generate
+    dbg_o(i)    <= fab_pipe(i).sof;
+    dbg_o(i+10) <= fab_pipe(i).eof;
+    dbg_o(i+20) <= dreq_pipe(i);
+  end generate GEN_DBG;
+    
 
 end behavioral;
 

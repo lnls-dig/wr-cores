@@ -107,7 +107,10 @@ entity ep_tx_pcs_16bit is
     phy_tx_data_o      : out std_logic_vector(15 downto 0);
     phy_tx_k_o         : out std_logic_vector(1 downto 0);
     phy_tx_disparity_i : in  std_logic;
-    phy_tx_enc_err_i   : in  std_logic
+    phy_tx_enc_err_i   : in  std_logic;
+    
+    dbg_wr_count_o     : out std_logic_vector(5 downto 0);
+    dbg_rd_count_o     : out std_logic_vector(5 downto 0)
     );
 
 end ep_tx_pcs_16bit;
@@ -237,25 +240,29 @@ begin
       g_with_rd_almost_empty   => true,
       g_with_wr_almost_full    => true,
       g_almost_empty_threshold => 20,
-      g_almost_full_threshold  => 58)  -- fixme: make this a generic (or WB register)
+      g_almost_full_threshold  => 58) -- fixme: make this a generic (or WB register)
     port map (
       rst_n_i           => fifo_clear_n,
       clk_wr_i          => clk_sys_i,
       d_i               => fifo_packed_in,
       we_i              => fifo_wr,
-      wr_empty_o        => open,
-      wr_full_o         => open,
-      wr_almost_empty_o => open,
+      wr_empty_o        => dbg_wr_count_o(0), --open,
+      wr_full_o         => dbg_wr_count_o(1), --open,
+      wr_almost_empty_o => dbg_wr_count_o(2), --open,
       wr_almost_full_o  => fifo_almost_full,
-      wr_count_o        => open,
+      wr_count_o        => open, --dbg_wr_count_o,--open,
       clk_rd_i          => phy_tx_clk_i,
       q_o               => fifo_packed_out,
       rd_i              => fifo_read_int,
       rd_empty_o        => fifo_empty,
-      rd_full_o         => open,
+      rd_full_o         => dbg_rd_count_o(1) ,--open,
       rd_almost_empty_o => fifo_almost_empty,
-      rd_almost_full_o  => open,
-      rd_count_o        => open);
+      rd_almost_full_o  => dbg_rd_count_o(3),
+      rd_count_o        => open);--dbg_rd_count_o); --open);
+
+      dbg_wr_count_o(3) <= fifo_almost_full;
+      dbg_rd_count_o(0) <= fifo_empty;
+      dbg_rd_count_o(2) <= fifo_almost_empty;
 
   fifo_enough_data <= not fifo_almost_empty;
 

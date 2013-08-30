@@ -214,7 +214,7 @@ entity xwr_endpoint is
    fc_rx_pause_start_p_o     : out std_logic;
    fc_rx_pause_quanta_o      : out std_logic_vector(15 downto 0);
    fc_rx_pause_prio_mask_o   : out std_logic_vector(7 downto 0);
-
+   fc_rx_buffer_occupation_o : out std_logic_vector(7 downto 0);
 -------------------------------------------------------------------------------
 -- Packet Injection Interface (for TRU/HW-RSTP)
 -------------------------------------------------------------------------------
@@ -243,7 +243,10 @@ entity xwr_endpoint is
     led_act_o  : out std_logic;
 
     link_kill_i : in  std_logic := '0';
-    link_up_o   : out std_logic
+    link_up_o   : out std_logic;
+    dbg_o       : out std_logic_vector(63 downto 0);
+    dbg_tx_pcs_wr_count_o     : out std_logic_vector(5 downto 0);
+    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5 downto 0)
     );
 
 end xwr_endpoint;
@@ -356,11 +359,14 @@ begin
       fc_rx_pause_start_p_o   => fc_rx_pause_start_p_o,
       fc_rx_pause_quanta_o    => fc_rx_pause_quanta_o,
       fc_rx_pause_prio_mask_o => fc_rx_pause_prio_mask_o,
+      fc_rx_buffer_occupation_o =>fc_rx_buffer_occupation_o,
       inject_req_i         => inject_req_i,
       inject_user_value_i  => inject_user_value_i,
       inject_packet_sel_i  => inject_packet_sel_i,
-      inject_ready_o       => inject_ready_o
-      );
+      inject_ready_o       => inject_ready_o,
+      dbg_o                => dbg_o,
+      dbg_tx_pcs_wr_count_o=>dbg_tx_pcs_wr_count_o,
+      dbg_tx_pcs_rd_count_o=>dbg_tx_pcs_rd_count_o);
 
   wb_o.err <= '0';
   wb_o.rty <= '0';

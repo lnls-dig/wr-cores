@@ -177,7 +177,10 @@ entity ep_1000basex_pcs is
     mdio_data_o  : out std_logic_vector(15 downto 0);
     mdio_stb_i   : in  std_logic;
     mdio_rw_i    : in  std_logic;
-    mdio_ready_o : out std_logic
+    mdio_ready_o : out std_logic;
+    
+    dbg_tx_pcs_wr_count_o     : out std_logic_vector(5 downto 0);
+    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5 downto 0)
     );
 
 end ep_1000basex_pcs;
@@ -223,7 +226,10 @@ architecture rtl of ep_1000basex_pcs is
       phy_tx_data_o           : out std_logic_vector(15 downto 0);
       phy_tx_k_o              : out std_logic_vector(1 downto 0);
       phy_tx_disparity_i      : in  std_logic;
-      phy_tx_enc_err_i        : in  std_logic);
+      phy_tx_enc_err_i        : in  std_logic;
+      dbg_wr_count_o     : out std_logic_vector(5 downto 0);
+      dbg_rd_count_o     : out std_logic_vector(5 downto 0)
+);
   end component;
 
   component ep_rx_pcs_8bit
@@ -439,7 +445,9 @@ begin  -- rtl
         phy_tx_data_o      => serdes_tx_data_o,
         phy_tx_k_o         => serdes_tx_k_o,
         phy_tx_disparity_i => serdes_tx_disparity_i,
-        phy_tx_enc_err_i   => serdes_tx_enc_err_i
+        phy_tx_enc_err_i   => serdes_tx_enc_err_i,
+        dbg_wr_count_o     => dbg_tx_pcs_wr_count_o,
+        dbg_rd_count_o     => dbg_tx_pcs_rd_count_o     
         );
 
     U_RX_PCS : ep_rx_pcs_16bit

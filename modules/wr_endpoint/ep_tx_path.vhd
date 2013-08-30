@@ -131,7 +131,8 @@ entity ep_tx_path is
 -- Control registers
 -------------------------------------------------------------------------------
     ep_ctrl_i           : in std_logic :='1';
-    regs_i : in t_ep_out_registers
+    regs_i : in t_ep_out_registers;
+    dbg_o          : out std_logic_vector(11 downto 0)
     );
 
 
@@ -234,5 +235,11 @@ begin  -- rtl
 
   pcs_fab_o    <= fab_pipe(3);
   dreq_pipe(3) <= pcs_dreq_i;
+
+  GEN_DBG: for i in 0 to 3 generate
+    dbg_o(i)    <= fab_pipe(i).sof;
+    dbg_o(i+4)  <= fab_pipe(i).eof;
+    dbg_o(i+8)  <= dreq_pipe(i);
+  end generate GEN_DBG;
 
 end rtl;

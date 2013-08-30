@@ -131,6 +131,7 @@ package endpoint_pkg is
       fc_rx_pause_start_p_o     : out std_logic;
       fc_rx_pause_quanta_o      : out std_logic_vector(15 downto 0);
       fc_rx_pause_prio_mask_o   : out std_logic_vector(7 downto 0);      
+      fc_rx_buffer_occupation_o : out std_logic_vector(7 downto 0);
       inject_req_i         : in  std_logic                     := '0';
       inject_ready_o       : out std_logic;
       inject_packet_sel_i  : in  std_logic_vector(2 downto 0)  := "000";
@@ -139,7 +140,10 @@ package endpoint_pkg is
       led_link_o           : out std_logic;
       led_act_o            : out std_logic;
       link_kill_i          : in  std_logic                     := '0';
-      link_up_o            : out std_logic);
+      link_up_o            : out std_logic;
+      dbg_o     : out std_logic_vector(63 downto 0);
+    dbg_tx_pcs_wr_count_o     : out std_logic_vector(5 downto 0);
+    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5 downto 0));
   end component;
 
   component wr_endpoint
@@ -240,6 +244,7 @@ package endpoint_pkg is
       fc_rx_pause_start_p_o     : out std_logic;
       fc_rx_pause_quanta_o      : out std_logic_vector(15 downto 0);
       fc_rx_pause_prio_mask_o   : out std_logic_vector(7 downto 0);     
+      fc_rx_buffer_occupation_o : out std_logic_vector(7 downto 0);
       inject_req_i         : in  std_logic                     := '0';
       inject_ready_o       : out std_logic;
       inject_packet_sel_i  : in  std_logic_vector(2 downto 0)  := "000";
@@ -248,7 +253,10 @@ package endpoint_pkg is
       led_link_o           : out std_logic;
       led_act_o            : out std_logic;
       link_kill_i          : in  std_logic                     := '0';
-      link_up_o            : out std_logic);
+      link_up_o            : out std_logic;
+      dbg_o     : out std_logic_vector(63 downto 0);
+    dbg_tx_pcs_wr_count_o     : out std_logic_vector(5 downto 0);
+    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5 downto 0));
   end component;
   
   constant c_xwr_endpoint_sdb : t_sdb_device := (
