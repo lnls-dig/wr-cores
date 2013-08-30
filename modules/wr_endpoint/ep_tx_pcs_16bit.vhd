@@ -240,6 +240,20 @@ begin
       g_with_rd_almost_empty   => true,
       g_with_wr_almost_full    => true,
       g_almost_empty_threshold => 20,
+
+      -- ML this is a hack: we have a problem, the native FIFO that was used here
+      --    is not working ocrrectly (probably something with full/empty/etc signals
+      --    If this flags here are defined, another fifo (v6_hwfifo) is used, it is
+      --    not the best for resources... but works. We tried increaseing the size
+      --    of the FIFO, changing thresholds... not works very well. 
+      --    The native FIFO works somehow better with the following parameters
+      --        g_size = 1000
+      --        g_almost_full_threshold = 900
+      --     but it is still not good enough to use it
+      --     
+      g_with_rd_count          => true, -- ML debug
+      g_with_wr_count          => true, -- ML debug
+      
       g_almost_full_threshold  => 58) -- fixme: make this a generic (or WB register)
     port map (
       rst_n_i           => fifo_clear_n,
