@@ -38,6 +38,7 @@
 -- Date        Version  Author          Description
 -- 2012-11-01  1.0      twlostow	    Created
 -- 2013-04-24  1.1      mlipinsk	    corrected VLAN untagging
+-- 2013-09-02  1.2      mlipinsk	    optimized by 1-cycle
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -76,7 +77,7 @@ end ep_tx_vlan_unit;
 architecture behavioral of ep_tx_vlan_unit is
 
 
-  type t_state is (IDLE, CHECK_ETHERTYPE, PUSH_QHEADER_1, PUSH_QHEADER_2, POP_QHEADER_1, POP_QHEADER_2, POP_QHEADER_3, POP_ETHERTYPE);
+  type t_state is (IDLE, CHECK_ETHERTYPE, PUSH_QHEADER_1, POP_QHEADER_2, POP_QHEADER_3, POP_ETHERTYPE);
 
 -- general signals
   signal state   : t_state;
@@ -162,28 +163,17 @@ begin  -- behavioral
 
             if(snk_fab_i.dvalid = '1') then
               vut_stored_tag <= snk_fab_i.data;
-              state                <= PUSH_QHEADER_2;
-            end if;
-
-          when PUSH_QHEADER_2 =>
-
-            if(snk_fab_i.dvalid = '1') then
-              vut_stored_ethertype <= snk_fab_i.data; 
-              if(vut_untag = '1') then
-                state <= POP_ETHERTYPE;
-              else
-                state <= POP_QHEADER_1;
-              end if;
+              state          <= POP_ETHERTYPE;
             end if;
 
           when POP_ETHERTYPE =>
-            if(src_dreq_d0 = '1') then
-              state <= IDLE;
-            end if;
-
-          when POP_QHEADER_1 =>
-            if(src_dreq_d0 = '1') then
-              state <= POP_QHEADER_2;
+            if(snk_fab_i.dvalid = '1' ) then
+              vut_stored_ethertype <= snk_fab_i.data; 
+              if(vut_untag = '1') then
+                state <= IDLE; 
+              else
+                state <= POP_QHEADER_2;
+              end if;
             end if;
 
           when POP_QHEADER_2 =>
@@ -202,7 +192,7 @@ begin  -- behavioral
   end process;
 
 
-  p_main_fsm_comb : process(snk_fab_i, src_dreq_d0, state, vut_stored_tag, vut_stored_ethertype, counter)
+  p_main_fsm_comb : process(snk_fab_i, src_dreq_d0, state, vut_stored_tag, vut_stored_ethertype, counter,vut_untag)
   begin
 
     case state is
@@ -240,25 +230,21 @@ begin  -- behavioral
         src_fab_o.dvalid <= '0';
         src_fab_o.data   <= (others => 'X');
 
-      when PUSH_QHEADER_2 =>
-        snk_dreq_o       <= not snk_fab_i.dvalid;
-        src_fab_o.dvalid <= '0';
-        src_fab_o.data   <= (others => 'X');
-
 --       when CHECK_UNTAG =>
 --         snk_dreq_o       <= '0';
 --         src_fab_o.dvalid <= '0';
 --         src_fab_o.data   <= (others => 'X');
         
       when POP_ETHERTYPE =>
-        snk_dreq_o       <= src_dreq_i and src_dreq_d0;
-        src_fab_o.dvalid <= src_dreq_d0;
-        src_fab_o.data   <= vut_stored_ethertype;
-
-      when POP_QHEADER_1 =>
-        snk_dreq_o       <= '0';
-        src_fab_o.dvalid <= src_dreq_d0;
-        src_fab_o.data   <= x"8100";
+        if(vut_untag = '1') then
+          snk_dreq_o       <= src_dreq_i       and src_dreq_d0;
+          src_fab_o.dvalid <= snk_fab_i.dvalid and src_dreq_d0;
+          src_fab_o.data   <= snk_fab_i.data;
+        else
+          src_fab_o.data   <= x"8100";
+          snk_dreq_o       <= '0';
+          src_fab_o.dvalid <= src_dreq_d0;          
+        end if;
 
       when POP_QHEADER_2 =>
         snk_dreq_o       <= '0';
