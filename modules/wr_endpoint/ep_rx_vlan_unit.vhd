@@ -148,7 +148,7 @@ begin  -- behavioral
   at_tpid      <= hdr_offset(6) and snk_fab_i.dvalid and is_tagged;--unused 
   at_vid       <= hdr_offset(7) and snk_fab_i.dvalid and is_tagged;
 
-  snk_dreq_o <= src_dreq_i and dreq_mask and ((not at_ethertype) or at_ethertype_not_Q);
+  snk_dreq_o <= src_dreq_i and dreq_mask and not at_ethertype;
 
   p_decode_tag_type : process(snk_fab_i, is_tagged)
   begin
@@ -341,6 +341,7 @@ begin  -- behavioral
                   src_fab_o.data   <= regs_i.vcr0_prio_val_o & '0' & regs_i.vcr0_pvid_o;
                   src_fab_o.dvalid <= '1';
                   vid_o            <= regs_i.vcr0_pvid_o; -- use the inserted PVID
+                  dreq_mask        <= '1';
                 end if;
 
                 if(hdr_offset(9) = '1') then
