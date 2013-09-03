@@ -526,7 +526,8 @@ begin  -- behavioral
 
   U_RX_Wishbone_Master : ep_rx_wb_master
     generic map (
-      g_ignore_ack => true)
+      g_ignore_ack => true,
+      g_cyc_on_stall => true)
     port map (
       clk_sys_i  => clk_sys_i,
       rst_n_i    => rst_n_sys_i,
