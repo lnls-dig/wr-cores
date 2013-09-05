@@ -254,7 +254,7 @@ begin
       g_with_rd_count          => true, -- ML debug
       g_with_wr_count          => true, -- ML debug
       
-      g_almost_full_threshold  => 58) -- fixme: make this a generic (or WB register)
+      g_almost_full_threshold  => 50) -- fixme: make this a generic (or WB register)
     port map (
       rst_n_i           => fifo_clear_n,
       clk_wr_i          => clk_sys_i,
