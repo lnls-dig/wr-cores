@@ -68,7 +68,8 @@ begin  -- behavioral
   end generate;
 
   gen_nocyc_on_stall: if g_cyc_on_stall = false generate
-    snk_dreq_o <= '1' when (src_wb_i.stall = '0' and state /= FINISH_CYCLE and snk_fab_i.eof = '0' and snk_fab_i.error = '0' and snk_fab_i.sof = '0' and enter_idle = '0') else '0';
+--     snk_dreq_o <= '1' when (src_wb_i.stall = '0' and state /= FINISH_CYCLE and snk_fab_i.eof = '0' and snk_fab_i.error = '0' and snk_fab_i.sof = '0' and enter_idle = '0') else '0';
+    snk_dreq_o <= '1' when (src_wb_i.stall = '0' and state /= FINISH_CYCLE and snk_fab_i.eof = '0' and snk_fab_i.error = '0' and enter_idle = '0') else '0';
   end generate;
 
   p_count_acks : process(clk_sys_i)
