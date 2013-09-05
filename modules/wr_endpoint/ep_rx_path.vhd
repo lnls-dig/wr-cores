@@ -472,16 +472,37 @@ begin  -- behavioral
     vlan_is_tagged <= '0';
   end generate gen_without_vlan_unit;
 
+  gen_with_rx_buffer : if g_with_rx_buffer generate
+    U_Rx_Buffer : ep_rx_buffer
+      generic map (
+        g_size => g_rx_buffer_size)
+      port map (
+        clk_sys_i  => clk_sys_i,
+        rst_n_i    => rst_n_sys_i,
+        snk_fab_i  => fab_pipe(6),
+        snk_dreq_o => dreq_pipe(6),
+        src_fab_o  => fab_pipe(7),
+        src_dreq_i => dreq_pipe(7),
+        level_o    => fc_buffer_occupation_o,
+        regs_i     => regs_i,
+        rmon_o     => open);
+  end generate gen_with_rx_buffer;
+
+  gen_without_rx_buffer : if (not g_with_rx_buffer) generate
+    fab_pipe(7)  <= fab_pipe(6);
+    dreq_pipe(6) <= dreq_pipe(7);
+  end generate gen_without_rx_buffer;
+
   U_RTU_Header_Extract : ep_rtu_header_extract
     generic map (
       g_with_rtu => g_with_rtu)
     port map (
       clk_sys_i        => clk_sys_i,
       rst_n_i          => rst_n_sys_i,
-      snk_fab_i        => fab_pipe(6),
-      snk_dreq_o       => dreq_pipe(6),
-      src_fab_o        => fab_pipe(7),
-      src_dreq_i       => dreq_pipe(7),
+      snk_fab_i        => fab_pipe(7),
+      snk_dreq_o       => dreq_pipe(7),
+      src_fab_o        => fab_pipe(8),
+      src_dreq_i       => dreq_pipe(8),
       mbuf_is_pause_i  => mbuf_is_pause,  -- this module is in the pipe before ep_rx_status_reg_insert,
                                           -- however, we know that mbuf_is_pause is valid when it 
                                           -- is used by this module -- this is because blocks the pipe
@@ -502,10 +523,10 @@ begin  -- behavioral
     port map (
       clk_sys_i           => clk_sys_i,
       rst_n_i             => rst_n_sys_i,
-      snk_fab_i           => fab_pipe(7),
-      snk_dreq_o          => dreq_pipe(7),
-      src_fab_o           => fab_pipe(8),
-      src_dreq_i          => dreq_pipe(8),
+      snk_fab_i           => fab_pipe(8),
+      snk_dreq_o          => dreq_pipe(8),
+      src_fab_o           => fab_pipe(9),
+      src_dreq_i          => dreq_pipe(9),
       mbuf_valid_i        => mbuf_valid,
       mbuf_ack_o          => mbuf_rd,
       mbuf_drop_i         => mbuf_pf_drop,
@@ -513,27 +534,6 @@ begin  -- behavioral
       mbuf_is_hp_i        => mbuf_is_hp,
       mbuf_is_pause_i     => mbuf_is_pause,
       rmon_pfilter_drop_o => rmon_o.rx_pfilter_drop);
-
-  gen_with_rx_buffer : if g_with_rx_buffer generate
-    U_Rx_Buffer : ep_rx_buffer
-      generic map (
-        g_size => g_rx_buffer_size)
-      port map (
-        clk_sys_i  => clk_sys_i,
-        rst_n_i    => rst_n_sys_i,
-        snk_fab_i  => fab_pipe(8),
-        snk_dreq_o => dreq_pipe(8),
-        src_fab_o  => fab_pipe(9),
-        src_dreq_i => dreq_pipe(9),
-        level_o    => fc_buffer_occupation_o,
-        regs_i     => regs_i,
-        rmon_o     => open);
-  end generate gen_with_rx_buffer;
-
-  gen_without_rx_buffer : if (not g_with_rx_buffer) generate
-    fab_pipe(9)  <= fab_pipe(8);
-    dreq_pipe(8) <= dreq_pipe(9);
-  end generate gen_without_rx_buffer;
 
   U_RX_Wishbone_Master : ep_rx_wb_master
     generic map (
