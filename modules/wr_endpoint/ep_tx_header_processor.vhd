@@ -468,7 +468,24 @@ begin  -- behavioral
               if(eof_p1 = '1') then
                 src_fab_o.eof <= '1';
                 counter       <= (others => '0');
-                state         <= TXF_GAP;
+    
+                if(g_force_gap_length = 0) then
+                  -- Submit the TX timestamp to the TXTSU queue
+                  if(oob.valid = '1' and oob.oob_type = c_WRF_OOB_TYPE_TX) then
+                    if(pcs_busy_i = '0') then
+                      txtsu_stb_o          <= '1';
+                      txtsu_ts_incorrect_o <= not txts_timestamp_valid_i;
+                      txtsu_ts_value_o     <= txts_timestamp_i;
+                      txtsu_port_id_o      <= regs_i.ecr_portid_o;
+                      txtsu_fid_o          <= oob.frame_id;
+                      state                <= TXF_STORE_TSTAMP;
+                    end if;
+                  else
+                    state <= TXF_IDLE;
+                  end if;
+                else
+                  state         <= TXF_GAP;
+                end if;                
               end if;
 
               if(snk_valid = '1' and wb_snk_i.adr = c_WRF_DATA) then
