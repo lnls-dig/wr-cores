@@ -64,6 +64,7 @@ entity ep_rx_path is
     g_with_dpi_classifier : boolean := true;
     g_with_rtu            : boolean := true;
     g_with_rx_buffer      : boolean := true;
+    g_with_early_match    : boolean := false;
     g_rx_buffer_size      : integer := 1024);
   port (
     clk_sys_i   : in std_logic;
@@ -325,23 +326,33 @@ begin  -- behavioral
   fab_pipe(0) <= pcs_fab_i;
 
   fc_pause_p_o    <= fc_pause_p;
+  gen_with_early_match : if(g_with_early_match) generate
+    U_early_addr_match : ep_rx_early_address_match
+      port map (
+        clk_sys_i               => clk_sys_i,
+        clk_rx_i                => clk_rx_i,
+        rst_n_sys_i             => rst_n_sys_i,
+        rst_n_rx_i              => rst_n_rx_i,
+        snk_fab_i               => fab_pipe(0),
+        src_fab_o               => fab_pipe(1),
+        match_done_o            => ematch_done,
+        match_is_hp_o           => ematch_is_hp,
+        match_is_pause_o        => ematch_is_pause,
+        match_pause_quanta_o    => fc_pause_quanta_o,
+        match_pause_prio_mask_o => fc_pause_prio_mask_o,
+        match_pause_p_o         => fc_pause_p,
+        regs_i                  => regs_i);
+  end generate gen_with_early_match;
 
-  U_early_addr_match : ep_rx_early_address_match
-
-    port map (
-      clk_sys_i               => clk_sys_i,
-      clk_rx_i                => clk_rx_i,
-      rst_n_sys_i             => rst_n_sys_i,
-      rst_n_rx_i              => rst_n_rx_i,
-      snk_fab_i               => fab_pipe(0),
-      src_fab_o               => fab_pipe(1),
-      match_done_o            => ematch_done,
-      match_is_hp_o           => ematch_is_hp,
-      match_is_pause_o        => ematch_is_pause,
-      match_pause_quanta_o    => fc_pause_quanta_o,
-      match_pause_prio_mask_o => fc_pause_prio_mask_o,
-      match_pause_p_o         => fc_pause_p,
-      regs_i                  => regs_i);
+  gen_without_early_match : if(not g_with_early_match) generate
+    fab_pipe(1)          <= fab_pipe(0);
+    ematch_done          <= '1';
+    ematch_is_hp         <= '0';
+    ematch_is_pause      <= '0';
+    fc_pause_quanta_o    <= (others =>'0');
+    fc_pause_prio_mask_o <= (others =>'0');
+    fc_pause_p           <= '0';
+  end generate gen_without_early_match;
 
   gen_with_packet_filter : if(g_with_dpi_classifier) generate
     U_packet_filter : ep_packet_filter
@@ -526,8 +537,7 @@ begin  -- behavioral
 
   U_RX_Wishbone_Master : ep_rx_wb_master
     generic map (
-      g_ignore_ack => true,
-      g_cyc_on_stall => true)
+      g_ignore_ack => true)
     port map (
       clk_sys_i  => clk_sys_i,
       rst_n_i    => rst_n_sys_i,
