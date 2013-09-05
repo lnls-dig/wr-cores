@@ -148,7 +148,7 @@ begin  -- behavioral
   at_tpid      <= hdr_offset(6) and snk_fab_i.dvalid and is_tagged;--unused 
   at_vid       <= hdr_offset(7) and snk_fab_i.dvalid and is_tagged;
 
-  snk_dreq_o <= src_dreq_i and dreq_mask and not at_ethertype;
+  snk_dreq_o <= src_dreq_i and dreq_mask;-- and not at_ethertype;
 
   p_decode_tag_type : process(snk_fab_i, is_tagged)
   begin
@@ -288,29 +288,29 @@ begin  -- behavioral
               end if;
 
 -- new stuff
---               if(v_next_state = INSERT_TAG) then
---                 src_fab_o.eof     <= '0';              
---                 src_fab_o.dvalid  <= '1';
---                 src_fab_o.error   <= '0';
---                 src_fab_o.addr    <= c_WRF_DATA;
---                 src_fab_o.data    <= x"8100";
---                 src_fab_o.bytesel <= '0';
---               else
---                 src_fab_o.eof     <= v_src_fab.eof;              
---                 src_fab_o.dvalid  <= v_src_fab.dvalid;
---                 src_fab_o.error   <= v_src_fab.error;
---                 src_fab_o.addr    <= v_src_fab.addr;
---                 src_fab_o.data    <= v_src_fab.data;
---                 src_fab_o.bytesel <= v_src_fab.bytesel;
---               end if;
+              if(v_next_state = INSERT_TAG) then
+                src_fab_o.eof     <= '0';              
+                src_fab_o.dvalid  <= '1';
+                src_fab_o.error   <= '0';
+                src_fab_o.addr    <= c_WRF_DATA;
+                src_fab_o.data    <= x"8100";
+                src_fab_o.bytesel <= '0';
+              else
+                src_fab_o.eof     <= v_src_fab.eof;              
+                src_fab_o.dvalid  <= v_src_fab.dvalid;
+                src_fab_o.error   <= v_src_fab.error;
+                src_fab_o.addr    <= v_src_fab.addr;
+                src_fab_o.data    <= v_src_fab.data;
+                src_fab_o.bytesel <= v_src_fab.bytesel;
+              end if;
 
 -- old stuff
-              src_fab_o.eof     <= v_src_fab.eof;              
-              src_fab_o.dvalid  <= v_src_fab.dvalid;
-              src_fab_o.error   <= v_src_fab.error;
-              src_fab_o.addr    <= v_src_fab.addr;
-              src_fab_o.data    <= v_src_fab.data;
-              src_fab_o.bytesel <= v_src_fab.bytesel;
+--               src_fab_o.eof     <= v_src_fab.eof;              
+--               src_fab_o.dvalid  <= v_src_fab.dvalid;
+--               src_fab_o.error   <= v_src_fab.error;
+--               src_fab_o.addr    <= v_src_fab.addr;
+--               src_fab_o.data    <= v_src_fab.data;
+--               src_fab_o.bytesel <= v_src_fab.bytesel;
 
               dreq_mask  <= v_dreq_mask;
               stored_fab <= v_stored_fab;
@@ -350,7 +350,43 @@ begin  -- behavioral
 -- is disabled, so we can insert the original ethertype as the TPID
 
 -- new stuff
+                if(hdr_offset(7) = '1') then
+                  src_fab_o.addr   <= c_WRF_DATA;
+                  src_fab_o.data   <= regs_i.vcr0_prio_val_o & '0' & regs_i.vcr0_pvid_o;
+                  src_fab_o.dvalid <= '1';
+                  vid_o            <= regs_i.vcr0_pvid_o; -- use the inserted PVID
+                  dreq_mask        <= '0';
+                  stored_fab.bytesel <= snk_fab_i.bytesel;
+                  stored_fab.data    <= snk_fab_i.data;
+                  stored_fab.addr    <= snk_fab_i.addr;
+                  stored_fab.dvalid  <= '1';
+
+                end if;
+
+                if(hdr_offset(8) = '1') then
+                  src_fab_o.addr   <= c_WRF_DATA;
+                  src_fab_o.data   <= stored_ethertype;
+                  src_fab_o.dvalid <= '1';
+                  dreq_mask        <= '1';
+                end if;
+
+                if(hdr_offset(9) = '1') then
+                  src_fab_o.addr    <= stored_fab.addr;
+                  src_fab_o.data    <= stored_fab.data;
+                  src_fab_o.dvalid  <= stored_fab.dvalid;
+                  src_fab_o.bytesel <= stored_fab.bytesel;
+                  dreq_mask        <= '1';
+                  state            <= DATA;                  
+                end if;
+
+-- old stuff
 --                 if(hdr_offset(7) = '1') then
+--                   src_fab_o.addr   <= c_WRF_DATA;
+--                   src_fab_o.data   <= x"8100";
+--                   src_fab_o.dvalid <= '1';
+--                 end if;
+-- 
+--                 if(hdr_offset(8) = '1') then
 --                   src_fab_o.addr   <= c_WRF_DATA;
 --                   src_fab_o.data   <= regs_i.vcr0_prio_val_o & '0' & regs_i.vcr0_pvid_o;
 --                   src_fab_o.dvalid <= '1';
@@ -358,39 +394,13 @@ begin  -- behavioral
 --                   dreq_mask        <= '1';
 --                 end if;
 -- 
---                 if(hdr_offset(8) = '1') then
+--                 if(hdr_offset(9) = '1') then
 --                   src_fab_o.addr   <= c_WRF_DATA;
 --                   src_fab_o.data   <= stored_ethertype;
 --                   src_fab_o.dvalid <= '1';
 --                   dreq_mask        <= '1';
 --                   state            <= DATA;                  
 --                 end if;
-
--- old stuff
-                if(hdr_offset(7) = '1') then
-                  src_fab_o.addr   <= c_WRF_DATA;
-                  src_fab_o.data   <= x"8100";
-                  src_fab_o.dvalid <= '1';
-                end if;
-
-                if(hdr_offset(8) = '1') then
-                  src_fab_o.addr   <= c_WRF_DATA;
-                  src_fab_o.data   <= regs_i.vcr0_prio_val_o & '0' & regs_i.vcr0_pvid_o;
-                  src_fab_o.dvalid <= '1';
-                  vid_o            <= regs_i.vcr0_pvid_o; -- use the inserted PVID
-                  dreq_mask        <= '1';
-                end if;
-
-                if(hdr_offset(9) = '1') then
-                  src_fab_o.addr   <= c_WRF_DATA;
-                  src_fab_o.data   <= stored_ethertype;
-                  src_fab_o.dvalid <= '1';
-                  dreq_mask        <= '1';
-                  state            <= DATA;                  
-                end if;
-
-
-
 
                 hdr_offset <= hdr_offset(hdr_offset'left-1 downto 0) & '0';
               else
