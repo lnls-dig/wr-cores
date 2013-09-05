@@ -56,6 +56,7 @@ architecture behavioral of ep_rx_crc_size_check is
       empty_o : out std_logic);
   end component;
 
+
   type t_state is (ST_WAIT_FRAME, ST_DATA, ST_OOB);
 
   signal crc_gen_enable        : std_logic;
@@ -75,7 +76,6 @@ architecture behavioral of ep_rx_crc_size_check is
 
   signal q_flush, q_empty : std_logic;
   signal q_purge          : std_logic;
-  signal q_valid          : std_logic;
   signal q_in, q_out      : std_logic_vector(17 downto 0);
   signal q_bytesel        : std_logic;
   signal q_dvalid_in      : std_logic;
@@ -83,6 +83,32 @@ architecture behavioral of ep_rx_crc_size_check is
   signal q_dreq_out       : std_logic;
   signal d_eof            : std_logic;
   
+  -- bypass_queue stuff comes here
+  constant c_crc_size    : integer := 2;
+  constant c_dat_width   : integer := 18;
+
+  type t_queue_array is array(0 to c_crc_size-1) of std_logic_vector(c_dat_width-1 downto 0);
+
+  signal q_data           : t_queue_array;
+  signal q_valid          : std_logic_vector(c_crc_size-1 downto 0);
+
+  signal qempty, qfull    : std_logic;
+  signal sreg_enable      : std_logic;
+  signal oob_in           : std_logic;
+  signal dat_in           : std_logic;
+  signal valid_mask       : std_logic;
+
+  function f_queue_occupation(q : std_logic_vector; check_empty : std_logic) return std_logic is
+    variable i : integer;
+  begin
+    for i in 0 to q'length-1 loop
+      if(q(i) = check_empty) then
+        return '0';
+      end if;
+    end loop;  -- i
+    return '1';
+  end function;
+
 begin  -- behavioral
 
   crc_gen_reset  <= snk_fab_i.sof or (not rst_n_i);
@@ -131,26 +157,22 @@ begin  -- behavioral
 
   end generate gen_new_crc;
 
-  q_in(15 downto 0)  <= snk_fab_i.data;
-  q_in(17 downto 16) <= snk_fab_i.addr;
-  q_dvalid_in        <= '1' when snk_fab_i.dvalid = '1' and (state = ST_DATA or state = ST_OOB) else '0';
-
-  U_bypass_queue : ep_rx_bypass_queue
-    generic map (
-      g_size  => 3,
-      g_width => 18)
-    port map (
-      rst_n_i => rst_n_i,
-      clk_i   => clk_sys_i,
-      d_i     => q_in,
-      valid_i => q_dvalid_in,
-      dreq_o  => q_dreq_out,
-      q_o     => q_out,
-      valid_o => q_dvalid_out,
-      dreq_i  => src_dreq_i,
-      flush_i => q_flush,
-      purge_i => q_purge,
-      empty_o => q_empty);
+--   U_bypass_queue : ep_rx_bypass_queue
+--     generic map (
+--       g_size  => 3,
+--       g_width => 18)
+--     port map (
+--       rst_n_i => rst_n_i,
+--       clk_i   => clk_sys_i,
+--       d_i     => q_in,
+--       valid_i => q_dvalid_in,
+--       dreq_o  => q_dreq_out,
+--       q_o     => q_out,
+--       valid_o => q_dvalid_out,
+--       dreq_i  => src_dreq_i,
+--       flush_i => '0',
+--       purge_i => q_purge,
+--       empty_o => q_empty);
 
   snk_dreq_o <= q_dreq_out and not (snk_fab_i.eof or snk_fab_i.error);
 
@@ -193,14 +215,12 @@ begin  -- behavioral
   size_check_ok <= '0' when (is_runt = '1' and regs_i.rfcr_a_runt_o = '0') or
                    (is_giant = '1' and regs_i.rfcr_a_giant_o = '0') else '1';
 
-
   p_gen_output : process(clk_sys_i, rst_n_i)
   begin
     if rising_edge(clk_sys_i) then
 
       if rst_n_i = '0' or regs_i.ecr_rx_en_o = '0' then
 
-        q_flush   <= '0';
         q_purge   <= '0';
         q_bytesel <= '0';
         d_eof     <= '0';
@@ -217,7 +237,6 @@ begin  -- behavioral
       else
         case state is
           when ST_WAIT_FRAME =>
-            q_flush         <= '0';
             q_purge         <= '0';
             rmon_pcs_err_o  <= '0';
             rmon_giant_o    <= '0';
@@ -241,25 +260,24 @@ begin  -- behavioral
               q_bytesel <= snk_fab_i.bytesel;
             end if;
 
-            if(snk_fab_i.error = '1') then  -- an error from the source?
+            if(snk_fab_i.error = '1' or    -- an error from the source?
+               (q_bytesel = '1' and oob_in = '0')) then -- we expect bytesel at the last byte of data
 
               src_fab_o.error <= '1';
               rmon_pcs_err_o  <= '1';
               state           <= ST_WAIT_FRAME;
               q_purge         <= '1';
 
-            elsif(snk_fab_i.eof = '1' or snk_fab_i.addr = c_WRF_OOB)then
+            elsif(snk_fab_i.eof = '1' or oob_in = '1') then
               if(size_check_ok = '0' or crc_match = '0') then  -- bad frame?
                 state           <= ST_WAIT_FRAME;
                 src_fab_o.error <= '1';
                 q_purge         <= '1';
               elsif(snk_fab_i.eof = '1') then
-                q_flush       <= '1';
                 d_eof         <= '1';
                 state         <= ST_WAIT_FRAME;
               else
                 state       <= ST_OOB;
-                --              q_flush     <= '1';
               end if;
 
               rmon_runt_o    <= is_runt and (not regs_i.rfcr_a_runt_o);
@@ -272,13 +290,8 @@ begin  -- behavioral
             rmon_runt_o    <= '0';
             rmon_giant_o   <= '0';
             rmon_crc_err_o <= '0';
-
-            q_flush <= snk_fab_i.eof;
-            
+           
             if(src_dreq_i = '1' and snk_fab_i.eof='1') then
-              d_eof         <= '1';
-            elsif(q_empty = '1' or d_eof = '1') then 
-              d_eof         <= not d_eof; -- if already 1, will be 0, if not yet 0 will be 1
               state         <= ST_WAIT_FRAME;
             end if;
             
@@ -287,14 +300,69 @@ begin  -- behavioral
     end if;
   end process;
 
---  src_fab_o.sof <= regs_b.ecr_rx_en_o and snk_fab_i.sof;
-  
+  --
+  q_in(15 downto 0)  <= snk_fab_i.data;
+  q_in(17 downto 16) <= snk_fab_i.addr;
+  q_dvalid_in        <= '1' when snk_fab_i.dvalid = '1' and (state = ST_DATA or state = ST_OOB) else '0';
+
   --ML optimized queue_bypass so can remove masks tuff
   src_fab_o.dvalid  <= q_dvalid_out;
-  src_fab_o.data    <= q_out(15 downto 0);
-  src_fab_o.addr    <= q_out(17 downto 16);
-  src_fab_o.bytesel <= q_bytesel when q_out(17 downto 16) = c_WRF_DATA else '0';
-  src_fab_o.eof     <= d_eof;
+  src_fab_o.data    <= q_in(15 downto 0)  when (oob_in = '1') else q_out(15 downto 0);
+  src_fab_o.addr    <= q_in(17 downto 16) when (oob_in = '1') else q_out(17 downto 16) ;
+  src_fab_o.bytesel <= snk_fab_i.bytesel  when (dat_in = '1') else '0';
+  src_fab_o.eof     <= snk_fab_i.eof;
+
+
+  --------------------- the whole of bypass_queue is here ------------------------------------
+  -- it was put inside as the optimization made it far from "universal" and apparently this
+  -- was the cause of doing the bypass_queue a separate module
+  --------------------------------------------------------------------------------------------
+  qempty       <= f_queue_occupation(q_valid, '1') ;
+  qfull        <= f_queue_occupation(q_valid, '0');
+
+  q_dvalid_out <= (qfull and q_dvalid_in) or (oob_in and valid_mask);
+  q_dreq_out   <= (src_dreq_i or not qfull);
+  oob_in       <= '1' when (snk_fab_i.addr = c_WRF_OOB  and q_dvalid_in = '1') else '0';
+  dat_in       <= '1' when (snk_fab_i.addr = c_WRF_DATA and q_dvalid_in = '1') else '0';
+  
+
+  sreg_enable  <= '1' when ((q_dvalid_in = '1') or (qempty = '0' and q_dvalid_out = '1')) else '0';
+  
+  q_out        <= q_data(0);
+
+  p_fifo: process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if(sreg_enable = '1') then
+        q_data(c_crc_size-1)  <= q_in;
+        L0: for i in 0 to c_crc_size-2 loop
+            q_data(i)       <= q_data(i+1);
+        end loop L0;        
+      end if;
+    end if;
+  end process; 
+
+  p_queue : process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if rst_n_i = '0' or q_purge = '1' then
+        valid_mask <= '0';
+        q_valid    <= (others => '0');
+      else
+
+        valid_mask <= src_dreq_i;
+
+        if sreg_enable = '1' then
+          q_valid(0)                           <= q_dvalid_in;
+          if(oob_in = '1' ) then -- flashing CRC
+            q_valid                            <=(others => '0');
+          else
+            q_valid(q_valid'length-1 downto 1) <= q_valid(q_valid'length-2 downto 0);
+          end if;
+        end if;
+      end if;
+    end if;
+  end process;
 
 end behavioral;
 
