@@ -58,6 +58,7 @@ begin  -- rtl
   mbuf_ack_o      <= '1' when (mbuf_valid_i = '1' and state = WAIT_MBUF)                                                 else '0';
 
   snk_dreq_o <= src_dreq_i and dreq_mask and not snk_fab_i.sof;
+--   snk_dreq_o <= src_dreq_i and not snk_fab_i.sof;
 
   p_gen_status : process(clk_sys_i)
   begin
