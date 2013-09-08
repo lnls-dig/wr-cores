@@ -569,8 +569,8 @@ begin  -- behavioral
     if(tx_en = '0') then --ML
       wb_out.stall <= '0';              -- /dev/null if TX disabled
 --     elsif((wb_snk_i.cyc xor snk_cyc_d0) = '1') then
-   elsif(wb_snk_i.cyc = '1' and snk_cyc_d0 = '0') then -- ML: do it only at the SOF, not EOF
-     wb_out.stall <= '1';              -- /block for 1 cycle right upon
+--    elsif(wb_snk_i.cyc = '1' and snk_cyc_d0 = '0') then -- ML: do it only at the SOF, not EOF
+--      wb_out.stall <= '1';              -- /block for 1 cycle right upon
                                         -- detection of a packet, so the FSM
                                         -- has time to catch up
     elsif(src_dreq_i = '1' and state /= TXF_GAP and state /= TXF_ABORT and state /= TXF_DELAYED_SOF) then
