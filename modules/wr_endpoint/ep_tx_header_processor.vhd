@@ -164,6 +164,7 @@ architecture behavioral of ep_tx_header_processor is
   signal stall_int : std_logic;
   signal tx_en        : std_logic;
   signal ep_ctrl     : std_logic;
+  signal bitsel_d    : std_logic;
 
   function b2s (x : boolean)
     return std_logic is
@@ -316,6 +317,7 @@ begin  -- behavioral
         fc_pause_ready_o <= '1';
 
         txtsu_stb_o <= '0';
+        bitsel_d  <='0';
 
       else
 
@@ -469,7 +471,7 @@ begin  -- behavioral
                 src_fab_o.eof <= '1';
                 counter       <= (others => '0');
     
-                if(g_force_gap_length = 0) then
+                if(g_force_gap_length = 0 and bitsel_d = '1') then
                   -- Submit the TX timestamp to the TXTSU queue
                   if(oob.valid = '1' and oob.oob_type = c_WRF_OOB_TYPE_TX) then
                     if(pcs_busy_i = '0') then
@@ -498,6 +500,10 @@ begin  -- behavioral
                 src_fab_o.bytesel <= '0';
               end if;
               
+              if(wb_snk_i.sel(0) = '0') then
+                bitsel_d <='1';
+              end if;  
+
               src_fab_o.addr    <= wb_snk_i.adr;
 
 -------------------------------------------------------------------------------
@@ -563,8 +569,8 @@ begin  -- behavioral
     if(tx_en = '0') then --ML
       wb_out.stall <= '0';              -- /dev/null if TX disabled
 --     elsif((wb_snk_i.cyc xor snk_cyc_d0) = '1') then
---    elsif(wb_snk_i.cyc = '1' and snk_cyc_d0 = '0') then -- ML: do it only at the SOF, not EOF
---      wb_out.stall <= '1';              -- /block for 1 cycle right upon
+   elsif(wb_snk_i.cyc = '1' and snk_cyc_d0 = '0') then -- ML: do it only at the SOF, not EOF
+     wb_out.stall <= '1';              -- /block for 1 cycle right upon
                                         -- detection of a packet, so the FSM
                                         -- has time to catch up
     elsif(src_dreq_i = '1' and state /= TXF_GAP and state /= TXF_ABORT and state /= TXF_DELAYED_SOF) then
