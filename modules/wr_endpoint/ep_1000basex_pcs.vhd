@@ -179,8 +179,8 @@ entity ep_1000basex_pcs is
     mdio_rw_i    : in  std_logic;
     mdio_ready_o : out std_logic;
     
-    dbg_tx_pcs_wr_count_o     : out std_logic_vector(5 downto 0);
-    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5 downto 0)
+    dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
+    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0)
     );
 
 end ep_1000basex_pcs;
@@ -227,8 +227,8 @@ architecture rtl of ep_1000basex_pcs is
       phy_tx_k_o              : out std_logic_vector(1 downto 0);
       phy_tx_disparity_i      : in  std_logic;
       phy_tx_enc_err_i        : in  std_logic;
-      dbg_wr_count_o     : out std_logic_vector(5 downto 0);
-      dbg_rd_count_o     : out std_logic_vector(5 downto 0)
+      dbg_wr_count_o     : out std_logic_vector(5+4 downto 0);
+      dbg_rd_count_o     : out std_logic_vector(5+4 downto 0)
 );
   end component;
 

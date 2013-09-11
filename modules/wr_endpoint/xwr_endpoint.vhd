@@ -245,8 +245,8 @@ entity xwr_endpoint is
     link_kill_i : in  std_logic := '0';
     link_up_o   : out std_logic;
     dbg_o       : out std_logic_vector(63 downto 0);
-    dbg_tx_pcs_wr_count_o     : out std_logic_vector(5 downto 0);
-    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5 downto 0)
+    dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
+    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0)
     );
 
 end xwr_endpoint;

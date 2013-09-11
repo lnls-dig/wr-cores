@@ -133,7 +133,7 @@ end ep_tx_header_processor;
 
 architecture behavioral of ep_tx_header_processor is
 
-  constant c_IFG_LENGTH : integer := 6;
+  constant c_IFG_LENGTH : integer := g_force_gap_length ;--6;
 
   type t_tx_framer_state is (TXF_IDLE, TXF_DELAYED_SOF, TXF_ADDR, TXF_DATA, TXF_GAP, TXF_PAD, TXF_ABORT, TXF_STORE_TSTAMP);
 
@@ -471,7 +471,8 @@ begin  -- behavioral
                 src_fab_o.eof <= '1';
                 counter       <= (others => '0');
     
-                if(g_force_gap_length = 0 and bitsel_d = '1') then
+                if(g_force_gap_length = 0 and bitsel_d = '1') then -- only for odd
+--                 if(g_force_gap_length = 0 ) then
                   -- Submit the TX timestamp to the TXTSU queue
                   if(oob.valid = '1' and oob.oob_type = c_WRF_OOB_TYPE_TX) then
                     if(pcs_busy_i = '0') then
@@ -516,6 +517,7 @@ begin  -- behavioral
               src_fab_o.dvalid <= '0';
               wb_out.err       <= '0';
               wb_out.rty       <= '0';
+              src_fab_o.bytesel <= '0';
 
               if(counter = c_IFG_LENGTH or g_force_gap_length = 0) then
 

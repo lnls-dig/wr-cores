@@ -282,8 +282,8 @@ entity wr_endpoint is
 -- (e.g.: cable disconnected)
     link_up_o : out std_logic;
     dbg_o     : out std_logic_vector(63 downto 0);
-    dbg_tx_pcs_wr_count_o     : out std_logic_vector(5 downto 0);
-    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5 downto 0)
+    dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
+    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0)
     );
 
 end wr_endpoint;
@@ -434,8 +434,8 @@ architecture syn of wr_endpoint is
       mdio_stb_i                    : in  std_logic;
       mdio_rw_i                     : in  std_logic;
       mdio_ready_o                  : out std_logic;
-    dbg_tx_pcs_wr_count_o     : out std_logic_vector(5 downto 0);
-    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5 downto 0));
+    dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
+    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0));
   end component;
 
   component ep_timestamping_unit

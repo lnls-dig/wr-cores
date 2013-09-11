@@ -109,8 +109,8 @@ entity ep_tx_pcs_16bit is
     phy_tx_disparity_i : in  std_logic;
     phy_tx_enc_err_i   : in  std_logic;
     
-    dbg_wr_count_o     : out std_logic_vector(5 downto 0);
-    dbg_rd_count_o     : out std_logic_vector(5 downto 0)
+    dbg_wr_count_o     : out std_logic_vector(5+4 downto 0);
+    dbg_rd_count_o     : out std_logic_vector(5+4 downto 0)
     );
 
 end ep_tx_pcs_16bit;
@@ -151,8 +151,20 @@ architecture behavioral of ep_tx_pcs_16bit is
   signal s_one                 : std_logic := '1';
 
   signal an_tx_en_synced : std_logic;
+  signal wr_count       :  std_logic_vector(6 downto 0);
+  signal rd_count       :  std_logic_vector(6 downto 0);
   
   constant tx_interframe_gap: unsigned(3 downto 0) := x"2"; --ML changed from "1000" to 0010
+  -- effectively it is 6 cycles for IFG:
+  -- last data (CRC) of the previous frame
+  -- -----------------------------------------
+  -- 3 cycles for count down (2 downto 0)
+  -- 1 cycle fifo_rd
+  -- 1 read SOF from FIFO
+  -- 1 cycle in TX_SPD_PREAMBLE
+  -- -----------------------------------------
+  -- just now we send Preamble
+  -- 
 begin
 
   U_sync_an_tx_en : gc_sync_ffs
@@ -235,11 +247,11 @@ begin
   U_TX_FIFO : generic_async_fifo
     generic map (
       g_data_width             => 18,
-      g_size                   => 64,
+      g_size                   => 128,--64,
       g_with_rd_empty          => true,
       g_with_rd_almost_empty   => true,
       g_with_wr_almost_full    => true,
-      g_almost_empty_threshold => 20,
+      g_almost_empty_threshold => 40,
 
       -- ML this is a hack: we have a problem, the native FIFO that was used here
       --    is not working ocrrectly (probably something with full/empty/etc signals
@@ -254,7 +266,7 @@ begin
       g_with_rd_count          => true, -- ML debug
       g_with_wr_count          => true, -- ML debug
       
-      g_almost_full_threshold  => 50) -- fixme: make this a generic (or WB register)
+      g_almost_full_threshold  => 100) -- fixme: make this a generic (or WB register)
     port map (
       rst_n_i           => fifo_clear_n,
       clk_wr_i          => clk_sys_i,
@@ -264,7 +276,7 @@ begin
       wr_full_o         => dbg_wr_count_o(1), --open,
       wr_almost_empty_o => dbg_wr_count_o(2), --open,
       wr_almost_full_o  => fifo_almost_full,
-      wr_count_o        => open, --dbg_wr_count_o,--open,
+      wr_count_o        => wr_count,
       clk_rd_i          => phy_tx_clk_i,
       q_o               => fifo_packed_out,
       rd_i              => fifo_read_int,
@@ -272,11 +284,14 @@ begin
       rd_full_o         => dbg_rd_count_o(1) ,--open,
       rd_almost_empty_o => fifo_almost_empty,
       rd_almost_full_o  => dbg_rd_count_o(3),
-      rd_count_o        => open);--dbg_rd_count_o); --open);
+      rd_count_o        => rd_count); --rd_count);--dbg_rd_count_o); --open);
 
       dbg_wr_count_o(3) <= fifo_almost_full;
       dbg_rd_count_o(0) <= fifo_empty;
       dbg_rd_count_o(2) <= fifo_almost_empty;
+      
+      dbg_wr_count_o(9 downto 4) <= wr_count(5 downto 0);
+      dbg_rd_count_o(9 downto 4) <= rd_count(5 downto 0);
 
   fifo_enough_data <= not fifo_almost_empty;
 
