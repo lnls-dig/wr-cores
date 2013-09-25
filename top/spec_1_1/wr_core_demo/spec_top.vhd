@@ -88,7 +88,7 @@ entity spec_top is
       button2_i : in std_logic := 'H';
       
       spi_sclk_o : out std_logic;
-      spi_cs_o   : out std_logic;
+      spi_ncs_o  : out std_logic;
       spi_mosi_o : out std_logic;
       spi_miso_i : in  std_logic := 'L';
 
@@ -705,7 +705,7 @@ begin
       btn1_i     => button1_i,
       btn2_i     => button2_i,
       spi_sclk_o  => spi_sclk_o,
-      spi_cs_o    => spi_cs_o,
+      spi_ncs_o   => spi_ncs_o,
       spi_mosi_o  => spi_mosi_o,
       spi_miso_i  => spi_miso_i,
 

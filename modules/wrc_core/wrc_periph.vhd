@@ -61,6 +61,7 @@ entity wrc_periph is
     btn1_i      : in  std_logic;
     btn2_i      : in  std_logic;
     spi_sclk_o  : out std_logic;
+    spi_ncs_o   : out std_logic;
     spi_mosi_o  : out std_logic;
     spi_miso_i  : in  std_logic;
 
@@ -249,6 +250,7 @@ begin
     if rst_n_i = '0' then
       spi_sclk_o  <= '0';
       spi_mosi_o  <= '0';
+      spi_ncs_o   <= '1';
     else
       if(sysc_regs_o.gpsr_spi_sclk_load_o = '1' and sysc_regs_o.gpsr_spi_sclk_o = '1') then
         spi_sclk_o <= '1';
@@ -256,10 +258,10 @@ begin
         spi_sclk_o <= '0';
       end if;
 
-      if(sysc_regs_o.gpsr_spi_cs_load_o = '1' and sysc_regs_o.gpsr_spi_cs_o = '1') then
-        spi_sclk_o <= '1';
+      if(sysc_regs_o.gpsr_spi_ncs_load_o = '1' and sysc_regs_o.gpsr_spi_ncs_o = '1') then
+        spi_ncs_o <= '1';
       elsif(sysc_regs_o.gpcr_spi_cs_o = '1') then
-        spi_sclk_o <= '0';
+        spi_ncs_o <= '0';
       end if;
 
       if(sysc_regs_o.gpsr_spi_mosi_load_o = '1' and sysc_regs_o.gpsr_spi_mosi_o = '1') then
@@ -270,7 +272,7 @@ begin
     end if;
   end process;
   sysc_regs_i.gpsr_spi_sclk_i <= '0';
-  sysc_regs_i.gpsr_spi_cs_i   <= '0';
+  sysc_regs_i.gpsr_spi_ncs_i  <= '0';
   sysc_regs_i.gpsr_spi_mosi_i <= '0';
   sysc_regs_i.gpsr_spi_miso_i <= spi_miso_i;
 

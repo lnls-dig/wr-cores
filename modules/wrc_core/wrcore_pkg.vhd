@@ -216,7 +216,7 @@ package wrcore_pkg is
       btn1_i      : in  std_logic;
       btn2_i      : in  std_logic;
       spi_sclk_o  : out std_logic;
-      spi_cs_o    : out std_logic;
+      spi_ncs_o   : out std_logic;
       spi_mosi_o  : out std_logic;
       spi_miso_i  : in  std_logic;
       slave_i     : in  t_wishbone_slave_in_array(0 to 2);
@@ -350,7 +350,7 @@ package wrcore_pkg is
       btn1_i     : in  std_logic := 'H';
       btn2_i     : in  std_logic := 'H';
       spi_sclk_o : out std_logic;
-      spi_cs_o   : out std_logic;
+      spi_ncs_o  : out std_logic;
       spi_mosi_o : out std_logic;
       spi_miso_i : in  std_logic := '0';
 
@@ -482,7 +482,7 @@ package wrcore_pkg is
       btn1_i     : in  std_logic := '1';
       btn2_i     : in  std_logic := '1';
       spi_sclk_o : out std_logic;
-      spi_cs_o   : out std_logic;
+      spi_ncs_o  : out std_logic;
       spi_mosi_o : out std_logic;
       spi_miso_i : in  std_logic := '0';
 

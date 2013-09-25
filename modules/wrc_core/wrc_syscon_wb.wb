@@ -141,9 +141,9 @@ peripheral {
       };
 
       field {
-        name = "SPI bitbanged CS";
-        prefix = "spi_cs";
-        description = "write 1: drive SPI CS to 1\
+        name = "SPI bitbanged NCS";
+        prefix = "spi_ncs";
+        description = "write 1: drive SPI NCS to 1\
                        read: always 0";
         type = BIT;
         access_bus = READ_WRITE;
