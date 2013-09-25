@@ -256,6 +256,12 @@ begin
         spi_sclk_o <= '0';
       end if;
 
+      if(sysc_regs_o.gpsr_spi_cs_load_o = '1' and sysc_regs_o.gpsr_spi_cs_o = '1') then
+        spi_sclk_o <= '1';
+      elsif(sysc_regs_o.gpcr_spi_cs_o = '1') then
+        spi_sclk_o <= '0';
+      end if;
+
       if(sysc_regs_o.gpsr_spi_mosi_load_o = '1' and sysc_regs_o.gpsr_spi_mosi_o = '1') then
         spi_mosi_o <= '1';
       elsif(sysc_regs_o.gpcr_spi_mosi_o = '1') then
@@ -264,6 +270,7 @@ begin
     end if;
   end process;
   sysc_regs_i.gpsr_spi_sclk_i <= '0';
+  sysc_regs_i.gpsr_spi_cs_i   <= '0';
   sysc_regs_i.gpsr_spi_mosi_i <= '0';
   sysc_regs_i.gpsr_spi_miso_i <= spi_miso_i;
 
