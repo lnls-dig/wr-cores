@@ -215,6 +215,9 @@ package wrcore_pkg is
       memsize_i   : in  std_logic_vector(3 downto 0);
       btn1_i      : in  std_logic;
       btn2_i      : in  std_logic;
+      spi_sclk_o  : out std_logic;
+      spi_mosi_o  : out std_logic;
+      spi_miso_i  : in  std_logic;
       slave_i     : in  t_wishbone_slave_in_array(0 to 2);
       slave_o     : out t_wishbone_slave_out_array(0 to 2);
       uart_rxd_i  : in  std_logic;
@@ -345,6 +348,9 @@ package wrcore_pkg is
       sfp_det_i  : in  std_logic := '1';
       btn1_i     : in  std_logic := 'H';
       btn2_i     : in  std_logic := 'H';
+      spi_sclk_o : out std_logic;
+      spi_mosi_o : out std_logic;
+      spi_miso_i : in  std_logic := '0';
 
       uart_rxd_i : in  std_logic := 'H';
       uart_txd_o : out std_logic;
@@ -473,6 +479,9 @@ package wrcore_pkg is
       sfp_det_i  : in  std_logic := '1';
       btn1_i     : in  std_logic := '1';
       btn2_i     : in  std_logic := '1';
+      spi_sclk_o : out std_logic;
+      spi_mosi_o : out std_logic;
+      spi_miso_i : in  std_logic := '0';
 
       -----------------------------------------
       --UART

@@ -86,6 +86,11 @@ entity spec_top is
 
       button1_i : in std_logic := 'H';
       button2_i : in std_logic := 'H';
+      
+      spi_ncs_o  : out std_logic;
+      spi_sclk_o : out std_logic;
+      spi_mosi_o : out std_logic;
+      spi_miso_i : in  std_logic := 'L';
 
       thermo_id : inout std_logic;      -- 1-Wire interface to DS18B20
 
@@ -699,6 +704,9 @@ begin
       sfp_det_i  => sfp_mod_def0_b,
       btn1_i     => button1_i,
       btn2_i     => button2_i,
+      spi_sclk_o  => spi_sclk_o,
+      spi_mosi_o  => spi_mosi_o,
+      spi_miso_i  => spi_miso_i,
 
       uart_rxd_i => uart_rxd_i,
       uart_txd_o => uart_txd_o,
@@ -896,6 +904,7 @@ begin
   dio_sdn_n_o    <= '1';
 
   sfp_tx_disable_o <= '0';
+  spi_ncs_o <= '0';
 
 end rtl;
 

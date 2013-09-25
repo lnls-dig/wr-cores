@@ -166,6 +166,9 @@ entity wr_core is
     sfp_det_i  : in  std_logic := '1';
     btn1_i     : in  std_logic := '1';
     btn2_i     : in  std_logic := '1';
+    spi_sclk_o : out std_logic;
+    spi_mosi_o : out std_logic;
+    spi_miso_i : in  std_logic := '0';
 
     -----------------------------------------
     --UART
@@ -757,6 +760,9 @@ begin
       memsize_i   => "0000",
       btn1_i      => btn1_i,
       btn2_i      => btn2_i,
+      spi_sclk_o  => spi_sclk_o,
+      spi_mosi_o  => spi_mosi_o,
+      spi_miso_i  => spi_miso_i,
 
       slave_i => periph_slave_i,
       slave_o => periph_slave_o,
