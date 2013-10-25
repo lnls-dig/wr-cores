@@ -251,7 +251,8 @@ begin
       g_with_rd_empty          => true,
       g_with_rd_almost_empty   => true,
       g_with_wr_almost_full    => true,
-      g_almost_empty_threshold => 40,
+      g_almost_empty_threshold => 20, -- must be not more/equal then mini-frame size (so 64/2), 
+                                      -- therwise frames get stuck in PCS 40,
 
       -- ML this is a hack: we have a problem, the native FIFO that was used here
       --    is not working ocrrectly (probably something with full/empty/etc signals
