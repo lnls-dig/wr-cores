@@ -472,37 +472,16 @@ begin  -- behavioral
     vlan_is_tagged <= '0';
   end generate gen_without_vlan_unit;
 
-  gen_with_rx_buffer : if g_with_rx_buffer generate
-    U_Rx_Buffer : ep_rx_buffer
-      generic map (
-        g_size => g_rx_buffer_size)
-      port map (
-        clk_sys_i  => clk_sys_i,
-        rst_n_i    => rst_n_sys_i,
-        snk_fab_i  => fab_pipe(6),
-        snk_dreq_o => dreq_pipe(6),
-        src_fab_o  => fab_pipe(7),
-        src_dreq_i => dreq_pipe(7),
-        level_o    => fc_buffer_occupation_o,
-        regs_i     => regs_i,
-        rmon_o     => open);
-  end generate gen_with_rx_buffer;
-
-  gen_without_rx_buffer : if (not g_with_rx_buffer) generate
-    fab_pipe(7)  <= fab_pipe(6);
-    dreq_pipe(6) <= dreq_pipe(7);
-  end generate gen_without_rx_buffer;
-
   U_RTU_Header_Extract : ep_rtu_header_extract
     generic map (
       g_with_rtu => g_with_rtu)
     port map (
       clk_sys_i        => clk_sys_i,
       rst_n_i          => rst_n_sys_i,
-      snk_fab_i        => fab_pipe(7),
-      snk_dreq_o       => dreq_pipe(7),
-      src_fab_o        => fab_pipe(8),
-      src_dreq_i       => dreq_pipe(8),
+      snk_fab_i        => fab_pipe(6),
+      snk_dreq_o       => dreq_pipe(6),
+      src_fab_o        => fab_pipe(7),
+      src_dreq_i       => dreq_pipe(7),
       mbuf_is_pause_i  => mbuf_is_pause,  -- this module is in the pipe before ep_rx_status_reg_insert,
                                           -- however, we know that mbuf_is_pause is valid when it 
                                           -- is used by this module -- this is because blocks the pipe
@@ -518,6 +497,53 @@ begin  -- behavioral
       rtu_rq_o         => rtu_rq_o,
       rtu_full_i       => rtu_full_i,
       rtu_rq_valid_o   => rtu_rq_valid);
+
+  gen_with_rx_buffer : if g_with_rx_buffer generate
+    U_Rx_Buffer : ep_rx_buffer
+      generic map (
+        g_size => g_rx_buffer_size)
+      port map (
+        clk_sys_i  => clk_sys_i,
+        rst_n_i    => rst_n_sys_i,
+        snk_fab_i  => fab_pipe(7),
+        snk_dreq_o => dreq_pipe(7),
+        src_fab_o  => fab_pipe(8),
+        src_dreq_i => dreq_pipe(8),
+        level_o    => fc_buffer_occupation_o,
+        regs_i     => regs_i,
+        rmon_o     => open);
+  end generate gen_with_rx_buffer;
+
+  gen_without_rx_buffer : if (not g_with_rx_buffer) generate
+    fab_pipe(8)  <= fab_pipe(7);
+    dreq_pipe(7) <= dreq_pipe(8);
+  end generate gen_without_rx_buffer;
+
+--   U_RTU_Header_Extract : ep_rtu_header_extract
+--     generic map (
+--       g_with_rtu => g_with_rtu)
+--     port map (
+--       clk_sys_i        => clk_sys_i,
+--       rst_n_i          => rst_n_sys_i,
+--       snk_fab_i        => fab_pipe(7),
+--       snk_dreq_o       => dreq_pipe(7),
+--       src_fab_o        => fab_pipe(8),
+--       src_dreq_i       => dreq_pipe(8),
+--       mbuf_is_pause_i  => mbuf_is_pause,  -- this module is in the pipe before ep_rx_status_reg_insert,
+--                                           -- however, we know that mbuf_is_pause is valid when it 
+--                                           -- is used by this module -- this is because blocks the pipe
+--                                           -- untill mbuf_valid is HIGH, and rtu_rq_valid_o is inserted HIGH
+--                                           -- at the end of the header... (clear ??:)
+--       vlan_class_i     => vlan_tclass,
+--       vlan_vid_i       => vlan_vid,
+--       vlan_tag_done_i  => vlan_tag_done,
+--       vlan_is_tagged_i => vlan_is_tagged,
+--       
+--       rmon_drp_at_rtu_full_o => rmon_o.rx_drop_at_rtu_full,
+--       
+--       rtu_rq_o         => rtu_rq_o,
+--       rtu_full_i       => rtu_full_i,
+--       rtu_rq_valid_o   => rtu_rq_valid);
 
   U_Gen_Status : ep_rx_status_reg_insert
     port map (

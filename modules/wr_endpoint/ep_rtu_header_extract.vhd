@@ -106,7 +106,7 @@ begin  -- rtl
       end if;
     end process;
 
-    src_fab_o.sof <= snk_fab_i.sof and not rtu_full_i;
+    src_fab_o.sof <= snk_fab_i.sof and not rtu_full_i; -- null dev
     
     rtu_rq_valid_tagged <= rtu_rq_valid_basic and vlan_tag_done_i;
     
