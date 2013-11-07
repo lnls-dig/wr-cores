@@ -98,7 +98,12 @@ begin  -- rtl
           
           if(snk_fab_i.dvalid = '1'  and hdr_offset(6) = '1' and in_packet = '1') then
             rtu_rq_valid_basic <='1';
-          elsif(rtu_rq_valid_out = '1') then
+          elsif(rtu_rq_valid_out = '1' or   -- reset after making request or
+                snk_fab_i.error = '1') then -- when there is error in the header, so we don't 
+                                            -- make request for invalid frame which will be dumped
+                                            -- in the SWcore (which reads error status).
+                                            -- the special case when error occurs when the request
+                                            -- is made, we do end with the output of error (below, end of file)
             rtu_rq_valid_basic     <= '0';
           end if;
           
@@ -137,6 +142,6 @@ begin  -- rtl
   rtu_rq_o.has_vid   <= vlan_is_tagged_i;
   rtu_rq_o.prio      <= vlan_class_i;
   rtu_rq_o.has_prio  <= vlan_is_tagged_i;
-  rtu_rq_valid_o     <= rtu_rq_valid_out;
+  rtu_rq_valid_o     <= rtu_rq_valid_out and not snk_fab_i.error;
   
 end rtl;
