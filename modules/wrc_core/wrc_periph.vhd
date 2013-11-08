@@ -247,27 +247,29 @@ begin
   -------------------------------------
   p_drive_spi: process(clk_sys_i)
   begin
-    if rst_n_i = '0' then
-      spi_sclk_o  <= '0';
-      spi_mosi_o  <= '0';
-      spi_ncs_o   <= '1';
-    else
-      if(sysc_regs_o.gpsr_spi_sclk_load_o = '1' and sysc_regs_o.gpsr_spi_sclk_o = '1') then
-        spi_sclk_o <= '1';
-      elsif(sysc_regs_o.gpcr_spi_sclk_o = '1') then
-        spi_sclk_o <= '0';
-      end if;
+    if rising_edge(clk_sys_i) then
+      if rst_n_i = '0' then
+        spi_sclk_o  <= '0';
+        spi_mosi_o  <= '0';
+        spi_ncs_o   <= '1';
+      else
+        if(sysc_regs_o.gpsr_spi_sclk_load_o = '1' and sysc_regs_o.gpsr_spi_sclk_o = '1') then
+          spi_sclk_o <= '1';
+        elsif(sysc_regs_o.gpcr_spi_sclk_o = '1') then
+          spi_sclk_o <= '0';
+        end if;
 
-      if(sysc_regs_o.gpsr_spi_ncs_load_o = '1' and sysc_regs_o.gpsr_spi_ncs_o = '1') then
-        spi_ncs_o <= '1';
-      elsif(sysc_regs_o.gpcr_spi_cs_o = '1') then
-        spi_ncs_o <= '0';
-      end if;
+        if(sysc_regs_o.gpsr_spi_ncs_load_o = '1' and sysc_regs_o.gpsr_spi_ncs_o = '1') then
+          spi_ncs_o <= '1';
+        elsif(sysc_regs_o.gpcr_spi_cs_o = '1') then
+          spi_ncs_o <= '0';
+        end if;
 
-      if(sysc_regs_o.gpsr_spi_mosi_load_o = '1' and sysc_regs_o.gpsr_spi_mosi_o = '1') then
-        spi_mosi_o <= '1';
-      elsif(sysc_regs_o.gpcr_spi_mosi_o = '1') then
-        spi_mosi_o <= '0';
+        if(sysc_regs_o.gpsr_spi_mosi_load_o = '1' and sysc_regs_o.gpsr_spi_mosi_o = '1') then
+          spi_mosi_o <= '1';
+        elsif(sysc_regs_o.gpcr_spi_mosi_o = '1') then
+          spi_mosi_o <= '0';
+        end if;
       end if;
     end if;
   end process;
