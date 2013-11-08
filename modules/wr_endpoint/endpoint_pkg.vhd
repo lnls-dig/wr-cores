@@ -114,6 +114,7 @@ package endpoint_pkg is
       rtu_full_i           : in  std_logic                     := '0';
       rtu_almost_full_i    : in  std_logic                     := '0';
       rtu_rq_strobe_p1_o   : out std_logic;
+      rtu_rq_abort_o       : out std_logic;
       rtu_rq_smac_o        : out std_logic_vector(48 - 1 downto 0);
       rtu_rq_dmac_o        : out std_logic_vector(48 - 1 downto 0);
       rtu_rq_vid_o         : out std_logic_vector(12 - 1 downto 0);
@@ -220,6 +221,7 @@ package endpoint_pkg is
       rtu_full_i           : in  std_logic;
       rtu_almost_full_i    : in  std_logic;
       rtu_rq_strobe_p1_o   : out std_logic;
+      rtu_rq_abort_o       : out std_logic;
       rtu_rq_smac_o        : out std_logic_vector(48 - 1 downto 0);
       rtu_rq_dmac_o        : out std_logic_vector(48 - 1 downto 0);
       rtu_rq_vid_o         : out std_logic_vector(12 - 1 downto 0);

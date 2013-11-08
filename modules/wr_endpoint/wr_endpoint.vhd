@@ -192,6 +192,8 @@ entity wr_endpoint is
 
 -- request strobe, single HI pulse begins evaluation of the request. 
     rtu_rq_strobe_p1_o : out std_logic;
+    
+    rtu_rq_abort_o : out std_logic;
 
 -- source and destination MAC addresses extracted from the packet header
     rtu_rq_smac_o : out std_logic_vector(48 - 1 downto 0);
@@ -389,6 +391,7 @@ architecture syn of wr_endpoint is
       rtu_rq_o               : out t_ep_internal_rtu_request;
       rtu_full_i             : in  std_logic;
       rtu_rq_valid_o         : out std_logic;
+      rtu_rq_abort_o         : out std_logic;
       dbg_o                  : out std_logic_vector(29 downto 0));
   end component;
 
@@ -797,6 +800,7 @@ begin
       rtu_full_i     => rtu_full_i,
       rtu_rq_o       => rtu_rq,
       rtu_rq_valid_o => rtu_rq_strobe_p1_o,
+      rtu_rq_abort_o => rtu_rq_abort_o,
       src_wb_o       => src_out,
       src_wb_i       => src_in,
       dbg_o          => dbg_o(29 downto 0) 

@@ -27,6 +27,7 @@ entity ep_rtu_header_extract is
     
     rtu_rq_o       : out t_ep_internal_rtu_request;
     rtu_full_i     : in  std_logic;
+    rtu_rq_abort_o : out std_logic;
     rtu_rq_valid_o : out std_logic
     );
 
@@ -36,9 +37,11 @@ architecture rtl of ep_rtu_header_extract is
 
   signal hdr_offset : std_logic_vector(11 downto 0);
   signal in_packet  : std_logic;
+  signal in_header     : std_logic;
   signal rtu_rq_valid_basic   : std_logic;
   signal rtu_rq_valid_tagged   : std_logic;
   signal rtu_rq_valid_out   : std_logic;
+  signal rtu_rq_abort       : std_logic;
   
 
   procedure f_extract_rtu(signal q         : out std_logic_vector;
@@ -75,11 +78,14 @@ begin  -- rtl
           in_packet         <= '0';
           rtu_rq_valid_basic<= '0';
           rmon_drp_at_rtu_full_o <='0';
+          rtu_rq_abort     <= '0';
+          in_header        <= '0';
         else
           rmon_drp_at_rtu_full_o <='0';
 
           if(snk_fab_i.sof = '1' and rtu_full_i = '0') then
             in_packet <= '1';
+            in_header <= '1';
           elsif(snk_fab_i.sof = '1' and rtu_full_i = '1') then
             rmon_drp_at_rtu_full_o <='1';
           end if;
@@ -88,7 +94,12 @@ begin  -- rtl
               snk_fab_i.error = '1') then
             in_packet <= '0';
           end if;
-
+          
+          if(snk_fab_i.error = '1' or rtu_rq_valid_out = '1') then
+            in_header <= '0';
+          end if;
+          
+          
           f_extract_rtu(rtu_rq_o.dmac(47 downto 32), snk_fab_i, hdr_offset(0));
           f_extract_rtu(rtu_rq_o.dmac(31 downto 16), snk_fab_i, hdr_offset(1));
           f_extract_rtu(rtu_rq_o.dmac(15 downto 0), snk_fab_i, hdr_offset(2));
@@ -107,10 +118,18 @@ begin  -- rtl
             rtu_rq_valid_basic     <= '0';
           end if;
           
+          if(in_packet       = '1' and in_header    = '0' and -- if we have packet and the header is already processed
+             snk_fab_i.error = '1' and rtu_rq_abort = '0') then 
+            rtu_rq_abort <= '1';
+          else
+            rtu_rq_abort <= '0';
+          end if;
+          
         end if;
       end if;
     end process;
-
+ 
+    rtu_rq_abort_o <= rtu_rq_abort;
     src_fab_o.sof <= snk_fab_i.sof and not rtu_full_i; -- null dev
     
     rtu_rq_valid_tagged <= rtu_rq_valid_basic and vlan_tag_done_i;

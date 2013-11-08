@@ -104,6 +104,7 @@ entity ep_rx_path is
     rtu_rq_o       : out t_ep_internal_rtu_request;
     rtu_full_i     : in  std_logic;
     rtu_rq_valid_o : out std_logic;
+    rtu_rq_abort_o : out std_logic;
     dbg_o          : out std_logic_vector(29 downto 0)
     );
 end ep_rx_path;
@@ -128,6 +129,7 @@ architecture behavioral of ep_rx_path is
       rmon_drp_at_rtu_full_o: out std_logic;
       rtu_rq_o         : out t_ep_internal_rtu_request;
       rtu_full_i       : in  std_logic;
+      rtu_rq_abort_o   : out std_logic;
       rtu_rq_valid_o   : out std_logic);
   end component;
 
@@ -496,6 +498,7 @@ begin  -- behavioral
       
       rtu_rq_o         => rtu_rq_o,
       rtu_full_i       => rtu_full_i,
+      rtu_rq_abort_o   => rtu_rq_abort_o,
       rtu_rq_valid_o   => rtu_rq_valid);
 
   gen_with_rx_buffer : if g_with_rx_buffer generate

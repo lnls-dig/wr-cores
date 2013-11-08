@@ -166,6 +166,7 @@ entity xwr_endpoint is
 
 -- request strobe, single HI pulse begins evaluation of the request. 
     rtu_rq_strobe_p1_o : out std_logic;
+    rtu_rq_abort_o         : out std_logic;
 
 -- source and destination MAC addresses extracted from the packet header
     rtu_rq_smac_o : out std_logic_vector(48 - 1 downto 0);
@@ -330,6 +331,7 @@ begin
       rtu_full_i           => rtu_full_i,
       rtu_almost_full_i    => rtu_almost_full_i,
       rtu_rq_strobe_p1_o   => rtu_rq_strobe_p1_o,
+      rtu_rq_abort_o       => rtu_rq_abort_o,
       rtu_rq_smac_o        => rtu_rq_smac_o,
       rtu_rq_dmac_o        => rtu_rq_dmac_o,
       rtu_rq_vid_o         => rtu_rq_vid_o,
