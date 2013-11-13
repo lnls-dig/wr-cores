@@ -192,7 +192,8 @@ begin  -- behavioral
   end process;
 
 
-  p_main_fsm_comb : process(snk_fab_i, src_dreq_d0, state, vut_stored_tag, vut_stored_ethertype, counter,vut_untag)
+--   p_main_fsm_comb : process(snk_fab_i, src_dreq_d0, state, vut_stored_tag, vut_stored_ethertype, counter,vut_untag)
+  p_main_fsm_comb : process(snk_fab_i,src_dreq_i, src_dreq_d0, state, vut_stored_tag, vut_stored_ethertype, counter,vut_untag)
   begin
 
     case state is
