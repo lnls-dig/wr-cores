@@ -358,7 +358,7 @@ architecture syn of wr_endpoint is
       inject_user_value_i    : in  std_logic_vector(15 downto 0) := x"0000";
       ep_ctrl_i              : in  std_logic                     := '1';
       regs_i                 : in  t_ep_out_registers;
-      dbg_o                  : out std_logic_vector(11 downto 0));
+      dbg_o                  : out std_logic_vector(33 downto 0));
   end component;
 
   component ep_rx_path
@@ -743,7 +743,8 @@ begin
       inject_user_value_i => inject_user_value_i,
       inject_packet_sel_i => inject_packet_sel_i,
       inject_ready_o      => inject_ready_o,
-      dbg_o               => dbg_o(43 downto 32)
+      dbg_o               => dbg_o(63 downto 30)
+--       dbg_o               => dbg_o(43 downto 32)
       );
 
 

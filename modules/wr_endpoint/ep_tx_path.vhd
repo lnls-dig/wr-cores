@@ -132,7 +132,8 @@ entity ep_tx_path is
 -------------------------------------------------------------------------------
     ep_ctrl_i           : in std_logic :='1';
     regs_i : in t_ep_out_registers;
-    dbg_o          : out std_logic_vector(11 downto 0)
+--     dbg_o          : out std_logic_vector(11 downto 0)
+    dbg_o          : out std_logic_vector(33 downto 0)
     );
 
 
@@ -231,7 +232,8 @@ begin  -- rtl
       snk_fab_i  => fab_pipe(2),
       snk_dreq_o => dreq_pipe(2),
       src_fab_o  => fab_pipe(3),
-      src_dreq_i => dreq_pipe(3));
+      src_dreq_i => dreq_pipe(3),
+      dbg_o      => dbg_o(33 downto 31));
 
   pcs_fab_o    <= fab_pipe(3);
   dreq_pipe(3) <= pcs_dreq_i;
@@ -239,7 +241,12 @@ begin  -- rtl
   GEN_DBG: for i in 0 to 3 generate
     dbg_o(i)    <= fab_pipe(i).sof;
     dbg_o(i+4)  <= fab_pipe(i).eof;
-    dbg_o(i+8)  <= dreq_pipe(i);
   end generate GEN_DBG;
-
+    dbg_o(8)    <= dreq_pipe(0);
+    dbg_o(9)    <= dreq_pipe(1);
+    dbg_o(10)   <= dreq_pipe(2);
+    dbg_o(11) <= fab_pipe(0).dvalid;
+    dbg_o(12) <= fab_pipe(3).dvalid;
+    dbg_o(28 downto 13) <= fab_pipe(3).data;
+    dbg_o(30 downto 29) <= fab_pipe(3).addr;
 end rtl;

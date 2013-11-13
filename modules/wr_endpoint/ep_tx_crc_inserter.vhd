@@ -53,7 +53,8 @@ entity ep_tx_crc_inserter is
     snk_dreq_o : out std_logic;
 
     src_fab_o  : out t_ep_internal_fabric;
-    src_dreq_i : in  std_logic
+    src_dreq_i : in  std_logic;
+    dbg_o      : out std_logic_vector(2 downto 0)
     );
 end ep_tx_crc_inserter;
 
@@ -78,6 +79,13 @@ architecture behavioral of ep_tx_crc_inserter is
   signal src_dreq_d0 : std_logic;
   
 begin  -- behavioral
+
+  dbg_o          <= "111" when (state = IDLE) else
+                    "110" when (state = WAIT_CRC) else
+                    "101" when (state = EMBED_1) else
+                    "100" when (state = EMBED_2) else
+                    "011" when (state = EMBED_3) else
+                    "000";
 
   in_payload     <= '1' when (state = IDLE or state = WAIT_CRC) else '0';
 -- ML: potential optimization (if desperate)

@@ -375,7 +375,8 @@ package endpoint_private_pkg is
       snk_fab_i  : in  t_ep_internal_fabric;
       snk_dreq_o : out std_logic;
       src_fab_o  : out t_ep_internal_fabric;
-      src_dreq_i : in  std_logic);
+      src_dreq_i : in  std_logic;
+      dbg_o      : out std_logic_vector(2 downto 0));
   end component;
   
   procedure f_pack_fifo_contents (
