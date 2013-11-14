@@ -566,7 +566,7 @@ begin  -- behavioral
   tx_en <= regs_i.ecr_tx_en_o and ep_ctrl and ep_ctrl_i; 
 
   --p_gen_stall : process(src_dreq_i, state, regs_i, wb_snk_i, snk_cyc_d0, tx_en)
-  p_gen_stall : process(src_dreq_i, state, tx_en, wb_snk_i)
+  p_gen_stall : process(src_dreq_i, state, tx_en, wb_snk_i, eof_p1)
   begin
     --if(regs_i.ecr_tx_en_o = '0') then
     if(tx_en = '0') then --ML

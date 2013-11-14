@@ -230,7 +230,7 @@ begin  -- behavioral
         snk_dreq_o       <= '1';
         src_fab_o.dvalid <= '0';
         src_fab_o.data   <= (others => 'X');
-
+        src_fab_o.addr   <= c_WRF_DATA;
 --       when CHECK_UNTAG =>
 --         snk_dreq_o       <= '0';
 --         src_fab_o.dvalid <= '0';
@@ -246,16 +246,19 @@ begin  -- behavioral
           snk_dreq_o       <= '0';
           src_fab_o.dvalid <= src_dreq_d0;          
         end if;
+        src_fab_o.addr   <= c_WRF_DATA;
 
       when POP_QHEADER_2 =>
         snk_dreq_o       <= '0';
         src_fab_o.dvalid <= src_dreq_d0;
         src_fab_o.data   <= vut_stored_tag;--vut_stored_ethertype;
+        src_fab_o.addr   <= c_WRF_DATA;
 
       when POP_QHEADER_3 =>
         snk_dreq_o       <= src_dreq_i and src_dreq_d0;
         src_fab_o.dvalid <= src_dreq_d0;
         src_fab_o.data   <= vut_stored_ethertype; --vut_stored_tag;
+        src_fab_o.addr   <= c_WRF_DATA;
     end case;
   end process;
   

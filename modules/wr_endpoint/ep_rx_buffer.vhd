@@ -217,7 +217,7 @@ begin
     end if;
   end process;
 
-  p_pack_rbuf : process(state, fab_to_encode, in_prev_addr)
+  p_pack_rbuf : process(state, fab_to_encode, in_prev_addr, q_in, q_in_valid)
   begin
     f_pack_rbuf_contents(state, fab_to_encode, in_prev_addr, q_in, q_in_valid);
   end process;
@@ -283,7 +283,7 @@ begin
     end if;
   end process;
 
-  p_unpack : process(q_out, out_cur_addr, q_out_valid)
+  p_unpack : process(q_out, out_cur_addr, q_out_valid,src_fab_int)
   begin
     f_unpack_rbuf_contents(q_out, out_cur_addr, q_out_valid, src_fab_int);
   end process;
