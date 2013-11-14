@@ -67,6 +67,11 @@ begin  -- rtl
         rmon_pfilter_drop_o <= '0';
         state     <= WAIT_FRAME;
         dreq_mask <= '1';
+        sreg.match_class <= (others =>'0');
+        sreg.is_hp       <= '0';
+        sreg.has_crc     <= '0';
+        sreg.has_smac    <= '0';
+        sreg.error       <= '0';        
       else
         case state is
           when WAIT_FRAME =>
