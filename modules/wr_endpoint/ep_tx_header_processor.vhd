@@ -577,22 +577,21 @@ begin  -- behavioral
                                         -- detection of a packet, so the FSM
                                         -- has time to catch up
     
-    -- once data is finished - cyc=LOW - but not neceserily TXF_DATA state, we make
-    -- sure that we stall the input to prevent new frame coming (it happened that 
-    -- frames were lost because of that - no SOF detected. SOF can happen in in IDLE only
-    -- so we need to keep stall HIGH till IDLE
-    elsif(state = TXF_DATA and wb_snk_i.cyc = '0') then -- accept OOB as is      
+    -- stall at EOF - the SWcore should not send anything, but just in case, not to miss
+    -- SOF... the next cycle will be TXF_GAP (also stalling) or TXF_IDLE (can accept new frames)
+    elsif(eof_p1 = '1') then -- accept OOB as is      
       wb_out.stall <= '1';
       
-    -- when data is flowing, we make stall HIGH only  if dreq_i is low
+    -- when data is flowing (TXF_DATA) or we expect data (TXF_IDLE) stall only when no dreq_i 
+    -- from other modules
     elsif(src_dreq_i = '1' and state /= TXF_GAP and state /= TXF_ABORT and state /= TXF_DELAYED_SOF) then
       wb_out.stall <= '0';              -- during data/header phase - whenever
                                         -- the sink is ready to accept data
     
-    -- when we receive OOB, there we have allwas resources/possibilties to accept it
+    -- when we receive OOB, there we have always resources/possibilties to accept it
     -- since it is dumped in here, so we prevent dreq_i going LOW from stopping
     -- to receive OOB
-    elsif(wb_snk_i.adr = c_WRF_OOB and wb_snk_i.stb = '1') then -- accept OOB as is
+    elsif(wb_snk_i.adr = c_WRF_OOB and wb_snk_i.cyc = '1') then -- accept OOB as is
       wb_out.stall <= '0';              
 
     -- one other option renderds stall 
