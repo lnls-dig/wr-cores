@@ -133,7 +133,7 @@ end ep_tx_header_processor;
 
 architecture behavioral of ep_tx_header_processor is
 
-  constant c_IFG_LENGTH : integer := g_force_gap_length ;--6;
+  constant c_IFG_LENGTH : integer := g_force_gap_length ;--0;
 
   type t_tx_framer_state is (TXF_IDLE, TXF_DELAYED_SOF, TXF_ADDR, TXF_DATA, TXF_GAP, TXF_PAD, TXF_ABORT, TXF_STORE_TSTAMP);
 
@@ -467,12 +467,18 @@ begin  -- behavioral
 
             when TXF_DATA =>
 
+              -- ML: added this EOF force LOW to make sure that EOF is single cycle, withouth
+              -- this, it might have happened that we had eof_p1 but PCS was busy, so we set
+              -- src_fab_o.eof to HIGH but actually did not exit the TXF_DATA state... this
+              -- caused EOF to be longer than one cycle
+              src_fab_o.eof   <= '0'; 
+              
               if(eof_p1 = '1') then
                 src_fab_o.eof <= '1';
                 counter       <= (others => '0');
     
                 if(g_force_gap_length = 0 and bitsel_d = '1') then -- only for odd
---                 if(g_force_gap_length = 0 ) then
+
                   -- Submit the TX timestamp to the TXTSU queue
                   if(oob.valid = '1' and oob.oob_type = c_WRF_OOB_TYPE_TX) then
                     if(pcs_busy_i = '0') then
@@ -482,14 +488,18 @@ begin  -- behavioral
                       txtsu_port_id_o      <= regs_i.ecr_portid_o;
                       txtsu_fid_o          <= oob.frame_id;
                       state                <= TXF_STORE_TSTAMP;
-                    end if;
+                    else
+                       -- wait in the GAP state for pcs_busy_i LOW
+                      state                <= TXF_GAP;
+                    end if;                                      ---if(pcs_busy_i = '0') then
                   else
+                    -- dont need timestamp, don't need GAP, just go to IDLE
                     state <= TXF_IDLE;
-                  end if;
-                else
+                  end if;                                        -- if(oob.valid = '1' and oob.oob_type = c_WRF_OOB_TYPE_TX) then
+                else -- need some GAP
                   state         <= TXF_GAP;
-                end if;                
-              end if;
+                end if;                                          -- f(g_force_gap_length = 0 and bitsel_d = '1') then      
+              end if;                                            -- if(eof_p1 = '1') then
 
               if(snk_valid = '1' and wb_snk_i.adr = c_WRF_DATA) then
                 src_fab_o.data    <= wb_snk_i.dat;
@@ -519,7 +529,7 @@ begin  -- behavioral
               wb_out.rty       <= '0';
               src_fab_o.bytesel <= '0';
 
-              if(counter = c_IFG_LENGTH or g_force_gap_length = 0) then
+              if(counter >= c_IFG_LENGTH or g_force_gap_length = 0) then
 
                 -- Submit the TX timestamp to the TXTSU queue
                 if(oob.valid = '1' and oob.oob_type = c_WRF_OOB_TYPE_TX) then
@@ -539,7 +549,15 @@ begin  -- behavioral
                 counter <= counter + 1;
               end if;
 
-            when TXF_STORE_TSTAMP =>
+            when TXF_STORE_TSTAMP =>  -- to slow ??? anyway, we can finish the frame
+              
+              src_fab_o.eof    <= '0';
+              src_fab_o.error  <= '0';
+              src_fab_o.dvalid <= '0';
+              wb_out.err       <= '0';
+              wb_out.rty       <= '0';
+              src_fab_o.bytesel<= '0';
+
               if(txtsu_ack_i = '1') then
                 txtsu_stb_o <= '0';
                 state       <= TXF_IDLE;
@@ -584,7 +602,7 @@ begin  -- behavioral
       
     -- when data is flowing (TXF_DATA) or we expect data (TXF_IDLE) stall only when no dreq_i 
     -- from other modules
-    elsif(src_dreq_i = '1' and state /= TXF_GAP and state /= TXF_ABORT and state /= TXF_DELAYED_SOF) then
+    elsif(src_dreq_i = '1' and state /= TXF_GAP and state /= TXF_ABORT and state /= TXF_DELAYED_SOF and state /= TXF_STORE_TSTAMP) then
       wb_out.stall <= '0';              -- during data/header phase - whenever
                                         -- the sink is ready to accept data
     

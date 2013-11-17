@@ -423,7 +423,10 @@ package body endpoint_private_pkg is
         dout(13)           <= fab.error;
         dout(12 downto 0)  <= (others => 'X');
         dout_valid         <= '1';
-      elsif(fab.eof = '1') then
+      elsif(fab.eof = '1' and 
+         fab.dvalid = '1') then -- ML: it happened that the last word was "stalled" by PCS (dreq_i LOW)
+                                -- at the EOF... CRC indiated that this word is not valid (dvalid LOW)
+                                -- but this information was ignored... and tx was hanging the tree
         -- tag = 1x
         dout(17)          <= '1';
         dout(16)          <= fab.bytesel;
