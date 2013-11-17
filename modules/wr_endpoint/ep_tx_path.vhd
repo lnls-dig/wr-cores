@@ -149,6 +149,8 @@ architecture rtl of ep_tx_path is
   signal vlan_mem_addr : std_logic_vector(9 downto 0);
   signal vlan_mem_data : std_logic_vector(17 downto 0);
   
+  signal txtsu_stb     : std_logic;
+
 begin  -- rtl
 
   U_Header_Processor : ep_tx_header_processor
@@ -173,13 +175,14 @@ begin  -- rtl
       txtsu_fid_o            => txtsu_fid_o,
       txtsu_ts_value_o       => txtsu_ts_value_o,
       txtsu_ts_incorrect_o   => txtsu_ts_incorrect_o,
-      txtsu_stb_o            => txtsu_stb_o,
+      txtsu_stb_o            => txtsu_stb, --txtsu_stb_o,
       txtsu_ack_i            => txtsu_ack_i,
       txts_timestamp_i       => txts_timestamp_i,
       txts_timestamp_valid_i => txts_timestamp_valid_i,
       ep_ctrl_i              => ep_ctrl_i,
       regs_i                 => regs_i);
 
+  txtsu_stb_o <= txtsu_stb;
 
   assert not (g_with_packet_injection and not g_with_vlans)
     report "wr_endpoint: packet injection requires VLAN support to be enabled" severity failure;
@@ -245,8 +248,14 @@ begin  -- rtl
     dbg_o(8)    <= dreq_pipe(0);
     dbg_o(9)    <= dreq_pipe(1);
     dbg_o(10)   <= dreq_pipe(2);
-    dbg_o(11) <= fab_pipe(0).dvalid;
-    dbg_o(12) <= fab_pipe(3).dvalid;
-    dbg_o(28 downto 13) <= fab_pipe(3).data;
-    dbg_o(30 downto 29) <= fab_pipe(3).addr;
+    dbg_o(11)   <= fab_pipe(0).dvalid;
+    dbg_o(12)   <= fab_pipe(3).dvalid;
+    -- new 4 bits
+    dbg_o(13)   <= dreq_pipe(3);
+    dbg_o(14)   <= txtsu_stb;
+    dbg_o(15)   <= txtsu_ack_i;
+    dbg_o(16)   <= fab_pipe(1).dvalid;
+--     dbg_o(28 downto 13) <= fab_pipe(2).data;
+    dbg_o(28 downto 17) <= fab_pipe(2).data(11 downto 0);
+    dbg_o(30 downto 29) <= fab_pipe(2).addr;
 end rtl;
