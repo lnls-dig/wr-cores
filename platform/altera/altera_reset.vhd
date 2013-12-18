@@ -91,8 +91,8 @@ architecture rtl of altera_reset is
   -- We ensure timing between these nodes via the state machine
   attribute altera_attribute : string;
   attribute altera_attribute OF rtl : architecture is
-    ("-name SDC_STATEMENT ""set_false_path                                -to {altera_reset:*|locked[2]}"";"  &
-     "-name SDC_STATEMENT ""set_false_path -from {altera_reset:*|waiting} -to {altera_reset:*|nresets*}""");
+    ("-name SDC_STATEMENT ""set_false_path                                  -to {*|altera_reset:*|locked[2]}"";"  &
+     "-name SDC_STATEMENT ""set_false_path -from {*|altera_reset:*|waiting} -to {*|altera_reset:*|nresets*}""");
 
 begin
 

@@ -124,10 +124,10 @@ architecture rtl of altera_phase is
   -- We ensure timing between these nodes via the state machine
   attribute altera_attribute : string;
   attribute altera_attribute OF rtl : architecture is 
-    ("-name SDC_STATEMENT ""set_false_path -from {altera_phase:*|prime_trap} -to {altera_phase:*|raw_trap}"";"  &
-     "-name SDC_STATEMENT ""set_false_path -from {altera_phase:*|raw_trap}   -to {altera_phase:*|sync_trap*}"";" &
-     "-name SDC_STATEMENT ""set_false_path                                   -to {altera_phase:*|aligned*}"";" &
-     "-name SDC_STATEMENT ""set_false_path -from {altera_phase:*|gen_rstn*}  -to {altera_phase:*|sync_rstn*}""");
+    ("-name SDC_STATEMENT ""set_false_path -from {*|altera_phase:*|prime_trap} -to {*|altera_phase:*|raw_trap}"";"  &
+     "-name SDC_STATEMENT ""set_false_path -from {*|altera_phase:*|raw_trap}   -to {*|altera_phase:*|sync_trap*}"";" &
+     "-name SDC_STATEMENT ""set_false_path                                     -to {*|altera_phase:*|aligned*}"";" &
+     "-name SDC_STATEMENT ""set_false_path -from {*|altera_phase:*|gen_rstn*}  -to {*|altera_phase:*|sync_rstn*}""");
 begin
 
   -- Pulse width of phasedone_i can be less than clock period... so make a trap
