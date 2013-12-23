@@ -96,6 +96,7 @@ architecture rtl of spll_bangbang_pd is
   -- phase detector input signals (after division)
   signal pd_in_ref  : std_logic;
   signal pd_in_fbck : std_logic;
+  signal r_pd_in_fbck : std_logic;
 
   -- phase detector outputs
   signal pd_a, pd_b, pd_t, pd_ta : std_logic;
@@ -214,20 +215,20 @@ begin  -- rtl
 
 --  pd_in_ref <= clk_ref_div(0);
 
-  bb_pd_negedge : process(pd_in_fbck)
+  bb_pd_posnegedge : process(clk_fb_i)
   begin
-    if falling_edge(pd_in_fbck) then
-      pd_ta <= pd_in_ref;
-    end if;
-  end process;
-
-
-  bb_pd_posedge : process(pd_in_fbck)
-  begin
-    if rising_edge(pd_in_fbck) then
-      pd_b <= pd_in_ref;
-      pd_a <= pd_b;
-      pd_t <= pd_ta;
+    if rising_edge(clk_fb_i) then
+      r_pd_in_fbck <= pd_in_fbck;
+      
+      if r_pd_in_fbck = '1' and pd_in_fbck = '0' then -- falling edge
+        pd_ta <= pd_in_ref;
+      end if;
+      
+      if r_pd_in_fbck = '0' and pd_in_fbck = '1' then -- rising_edge
+        pd_b <= pd_in_ref;
+        pd_a <= pd_b;
+        pd_t <= pd_ta;
+      end if;
     end if;
   end process;
 
