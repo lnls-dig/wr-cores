@@ -659,6 +659,7 @@ begin
       g_aux_clks                  => 0,
       g_ep_rxbuf_size             => 1024,
       g_tx_runt_padding           => true,
+      g_pcs_16bit                 => false,
       g_dpram_initf               => "wrc.ram",
       g_aux_sdb                   => c_etherbone_sdb,
       g_dpram_size                => 131072/4,
