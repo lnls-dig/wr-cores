@@ -50,6 +50,7 @@ entity ep_tx_path is
     g_with_vlans            : boolean;
     g_with_timestamper      : boolean;
     g_with_packet_injection : boolean;
+    g_with_inj_ctrl         : boolean := true;
     g_force_gap_length      : integer
     );
 
@@ -143,13 +144,25 @@ architecture rtl of ep_tx_path is
 
   type t_fab_pipe is array(integer range <>) of t_ep_internal_fabric;
 
-  signal fab_pipe  : t_fab_pipe(3 downto 0);
-  signal dreq_pipe : std_logic_vector(3 downto 0);
+  signal fab_pipe  : t_fab_pipe(4 downto 0);
+  signal dreq_pipe : std_logic_vector(4 downto 0);
 
   signal vlan_mem_addr : std_logic_vector(9 downto 0);
   signal vlan_mem_data : std_logic_vector(17 downto 0);
   
   signal txtsu_stb     : std_logic;
+
+  signal inject_req            : std_logic;
+  signal inject_ready          : std_logic;
+  signal inject_packet_sel     : std_logic_vector(2 downto 0);
+  signal inject_user_value     : std_logic_vector(15 downto 0);
+
+  signal inj_ctr_req            : std_logic;
+  signal inj_ctr_ready          : std_logic;
+  signal inj_ctr_packet_sel     : std_logic_vector(2 downto 0);
+  signal inj_ctr_user_value     : std_logic_vector(15 downto 0);
+  signal inj_ctr_ena        : std_logic;
+
 
 begin  -- rtl
 
@@ -207,55 +220,100 @@ begin  -- rtl
   end generate gen_without_vlan_unit;
 
   gen_with_injection : if(g_with_packet_injection) generate
+    gen_with_inj_ctrl: if(g_with_inj_ctrl) generate
+      U_Injector_ctr: ep_tx_inject_ctrl
+        generic map (
+          g_min_if_gap_length   => 5)
+        port map (
+          clk_sys_i             => clk_sys_i,
+          rst_n_i               => rst_n_i,
+          snk_fab_i             => fab_pipe(1),
+          snk_dreq_o            => dreq_pipe(1),
+          src_fab_o             => fab_pipe(2),
+          src_dreq_i            => dreq_pipe(2),
+          inject_req_o          => inj_ctr_req,
+          inject_ready_i        => inj_ctr_ready,
+          inject_packet_sel_o   => inj_ctr_packet_sel,
+          inject_user_value_o   => inj_ctr_user_value,
+          inject_ctr_ena_o      => inj_ctr_ena,
+          regs_i                => regs_i);
+    end generate gen_with_inj_ctrl;
+
     U_Injector : ep_tx_packet_injection
       port map (
         clk_sys_i           => clk_sys_i,
         rst_n_i             => rst_n_i,
-        snk_fab_i           => fab_pipe(1),
-        snk_dreq_o          => dreq_pipe(1),
-        src_fab_o           => fab_pipe(2),
-        src_dreq_i          => dreq_pipe(2),
-        inject_req_i        => inject_req_i,
-        inject_ready_o      => inject_ready_o,
-        inject_packet_sel_i => inject_packet_sel_i,
-        inject_user_value_i => inject_user_value_i,
+        snk_fab_i           => fab_pipe(2),
+        snk_dreq_o          => dreq_pipe(2),
+        src_fab_o           => fab_pipe(3),
+        src_dreq_i          => dreq_pipe(3),
+        inject_req_i        => inject_req,
+        inject_ready_o      => inject_ready,
+        inject_packet_sel_i => inject_packet_sel,
+        inject_user_value_i => inject_user_value,
         mem_addr_o          => vlan_mem_addr,
         mem_data_i          => vlan_mem_data);
   end generate gen_with_injection;
 
+  inject_req        <= inj_ctr_req        when (inj_ctr_ena ='1') else inject_req_i;
+  inject_packet_sel <= inj_ctr_packet_sel when (inj_ctr_ena ='1') else inject_packet_sel_i;
+  inject_user_value <= inj_ctr_user_value when (inj_ctr_ena ='1') else inject_user_value_i;
+  inj_ctr_ready     <= inject_ready;
+  inject_ready_o    <= inject_ready;
+
+  gen_without_inj_ctrl: if(not g_with_inj_ctrl or not g_with_packet_injection) generate
+    fab_pipe(2)       <= fab_pipe(1);
+    dreq_pipe(1)      <= dreq_pipe(2);   
+    inj_ctr_req        <= '0';
+    inj_ctr_ready      <= '0';
+    inj_ctr_packet_sel <= (others => '0');
+    inj_ctr_user_value <= (others => '0');
+    inj_ctr_ena        <= '0';
+  end generate gen_without_inj_ctrl;
+
   gen_without_injection : if (not g_with_packet_injection) generate
-    fab_pipe(2)  <= fab_pipe(1);
-    dreq_pipe(1) <= dreq_pipe(2);
+    fab_pipe(3)  <= fab_pipe(2);
+    dreq_pipe(2) <= dreq_pipe(3);
   end generate gen_without_injection;
 
   U_Insert_CRC : ep_tx_crc_inserter
     port map (
       clk_sys_i  => clk_sys_i,
       rst_n_i    => rst_n_i,
-      snk_fab_i  => fab_pipe(2),
-      snk_dreq_o => dreq_pipe(2),
-      src_fab_o  => fab_pipe(3),
-      src_dreq_i => dreq_pipe(3),
+      snk_fab_i  => fab_pipe(3),
+      snk_dreq_o => dreq_pipe(3),
+      src_fab_o  => fab_pipe(4),
+      src_dreq_i => dreq_pipe(4),
       dbg_o      => dbg_o(33 downto 31));
 
-  pcs_fab_o    <= fab_pipe(3);
-  dreq_pipe(3) <= pcs_dreq_i;
+  pcs_fab_o    <= fab_pipe(4);
+  dreq_pipe(4) <= pcs_dreq_i;
 
-  GEN_DBG: for i in 0 to 3 generate
-    dbg_o(i)    <= fab_pipe(i).sof;
-    dbg_o(i+4)  <= fab_pipe(i).eof;
-  end generate GEN_DBG;
+--   GEN_DBG: for i in 0 to 3 generate
+--     dbg_o(i)    <= fab_pipe(i).sof;
+--     dbg_o(i+4)  <= fab_pipe(i).eof;
+--   end generate GEN_DBG;
+
+    dbg_o(0)    <= fab_pipe(0).sof;
+    dbg_o(1)    <= fab_pipe(2).sof;
+    dbg_o(2)    <= fab_pipe(3).sof;
+    dbg_o(3)    <= fab_pipe(4).sof;
+    dbg_o(4)    <= fab_pipe(0).eof;
+    dbg_o(5)    <= fab_pipe(2).eof;
+    dbg_o(6)    <= fab_pipe(3).eof;
+    dbg_o(7)    <= fab_pipe(4).eof;
+
     dbg_o(8)    <= dreq_pipe(0);
-    dbg_o(9)    <= dreq_pipe(1);
-    dbg_o(10)   <= dreq_pipe(2);
+    dbg_o(9)    <= dreq_pipe(2);
+    dbg_o(10)   <= dreq_pipe(3);
     dbg_o(11)   <= fab_pipe(0).dvalid;
-    dbg_o(12)   <= fab_pipe(3).dvalid;
+    dbg_o(12)   <= fab_pipe(4).dvalid;
     -- new 4 bits
-    dbg_o(13)   <= dreq_pipe(3);
+    dbg_o(13)   <= dreq_pipe(4);
     dbg_o(14)   <= txtsu_stb;
     dbg_o(15)   <= txtsu_ack_i;
-    dbg_o(16)   <= fab_pipe(1).dvalid;
+    dbg_o(16)   <= fab_pipe(2).dvalid;
 --     dbg_o(28 downto 13) <= fab_pipe(2).data;
-    dbg_o(28 downto 17) <= fab_pipe(2).data(11 downto 0);
-    dbg_o(30 downto 29) <= fab_pipe(2).addr;
+    dbg_o(28 downto 17) <= fab_pipe(3).data(11 downto 0);
+    dbg_o(30 downto 29) <= fab_pipe(3).addr;
 end rtl;

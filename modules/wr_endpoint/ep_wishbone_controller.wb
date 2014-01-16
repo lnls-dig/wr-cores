@@ -665,5 +665,49 @@ peripheral {
 				 access_bus = READ_WRITE;
 			};
 	 };
-		
+	
+	 reg {
+			name = "PCK Injection CTRL";
+			prefix = "INJ_CTRL";
+
+			field {
+				 name = "Config: Interframe GAP";
+				 prefix = "PIC_CONF_IFG";
+				 size = 16;
+				 type = SLV;
+				 access_dev = READ_WRITE;
+				 access_bus = READ_WRITE;
+				 load = LOAD_EXT;
+			};
+
+			field {
+				 name = "Config: packet pattern sel id";
+				 prefix = "PIC_CONF_SEL";
+				 size = 3;
+				 type = SLV;
+				 access_dev = READ_WRITE;
+				 access_bus = READ_WRITE;
+				 load = LOAD_EXT;
+			};
+
+
+			field {
+				 name = "Interframe GAP config valid";
+				 prefix = "PIC_VALID";
+				 type = BIT;
+				 align = 4;
+				 access_dev = READ_WRITE;
+				 access_bus = READ_WRITE;
+				 load = LOAD_EXT;
+			};
+			field {
+				 name = "Frame Generation Enabled";
+				 prefix = "PIC_ENA";
+				 type = BIT;
+				 access_dev = READ_WRITE;
+				 access_bus = READ_WRITE;
+				 load = LOAD_EXT;
+			};
+	 };
+	
 };

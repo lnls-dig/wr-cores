@@ -34,6 +34,7 @@ files = [	"endpoint_private_pkg.vhd",
                 "ep_wishbone_controller.vhd",
                 "ep_registers_pkg.vhd",
                 "ep_crc32_pkg.vhd",
+                "ep_tx_inject_ctrl.vhd",
                 "endpoint_pkg.vhd",
                 "wr_endpoint.vhd",
                 "xwr_endpoint.vhd"

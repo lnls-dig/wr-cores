@@ -144,17 +144,23 @@ begin  -- rtl
   begin
     if rising_edge(clk_sys_i) then
       if rst_n_i = '0' then
-        state         <= WAIT_IDLE;
-        select_inject <= '0';
+        state             <= WAIT_IDLE;
+        select_inject     <= '0';
         no_template_error <= '0';
+        inj_src.sof       <= '0';
+        inj_src.eof       <= '0';
+        inj_src.dvalid    <= '0';
+        inj_src.bytesel   <= '0';    
+        first_word        <= '0';        
       else
         case state is
           when WAIT_IDLE =>
-            inj_src.sof    <= '0';
-            inj_src.eof    <= '0';
-            inj_src.dvalid <= '0';
+            inj_src.sof       <= '0';
+            inj_src.eof       <= '0';
+            inj_src.dvalid    <= '0';
+            inj_src.bytesel   <= '0';
             no_template_error <='0';
-            first_word     <= '0';
+            first_word        <= '0';
 
             if(inject_req_i = '1') then --ML: we make sure that we remember the packet_sel_i 
                                         --    only when req_i HIGH
@@ -197,11 +203,13 @@ begin  -- rtl
             end if;
             
             if(template_last = '1' and inj_src.dvalid = '1' and first_word = '0') then
+              inj_src.bytesel   <= template_user;
               state <= EOF;
             end if;
             
           when EOF =>
-            inj_src.dvalid <= '0';
+            inj_src.dvalid    <= '0';
+            inj_src.bytesel   <= '0';
             if(src_dreq_i = '1') then
               inj_src.eof   <= '1';
               state         <= WAIT_IDLE;
@@ -212,12 +220,12 @@ begin  -- rtl
     end if;
   end process;
 
-  inj_src.bytesel <= '0';
+--   inj_src.bytesel <= '0';
   inj_src.error   <= '0';
 
-  p_inj_src_data : process(template_user, inject_user_value_i, mem_data_i)
+  p_inj_src_data : process(template_user, inject_user_value_i, mem_data_i,template_last,first_word)
   begin
-    if(template_user = '1') then
+    if(template_user = '1' and template_last = '0' and first_word = '0') then
       inj_src.data <= inject_user_value_i;
     else
       inj_src.data <= mem_data_i(15 downto 0);

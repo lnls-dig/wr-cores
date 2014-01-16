@@ -379,6 +379,26 @@ package endpoint_private_pkg is
       dbg_o      : out std_logic_vector(2 downto 0));
   end component;
   
+  component ep_tx_inject_ctrl
+    generic(
+      g_min_if_gap_length     : integer
+      );
+    port (
+      clk_sys_i             : in  std_logic;
+      rst_n_i               : in  std_logic;
+      snk_fab_i             : in  t_ep_internal_fabric;
+      snk_dreq_o            : out std_logic;
+      src_fab_o             : out t_ep_internal_fabric;
+      src_dreq_i            : in  std_logic;
+      inject_req_o          : out std_logic;
+      inject_ready_i        : in  std_logic;
+      inject_packet_sel_o   : out std_logic_vector(2 downto 0);
+      inject_user_value_o   : out std_logic_vector(15 downto 0);
+      inject_ctr_ena_o      : out std_logic;
+      regs_i                : in t_ep_out_registers);
+  end component;
+
+
   procedure f_pack_fifo_contents (
     signal fab        : in  t_ep_internal_fabric;
     signal dout       : out std_logic_vector;
