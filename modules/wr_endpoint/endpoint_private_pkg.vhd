@@ -395,7 +395,8 @@ package endpoint_private_pkg is
       inject_packet_sel_o   : out std_logic_vector(2 downto 0);
       inject_user_value_o   : out std_logic_vector(15 downto 0);
       inject_ctr_ena_o      : out std_logic;
-      regs_i                : in t_ep_out_registers);
+      regs_i                : in  t_ep_out_registers;
+      regs_o                : out t_ep_in_registers);
   end component;
 
 

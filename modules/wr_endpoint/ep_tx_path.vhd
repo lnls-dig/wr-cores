@@ -133,6 +133,7 @@ entity ep_tx_path is
 -------------------------------------------------------------------------------
     ep_ctrl_i           : in std_logic :='1';
     regs_i : in t_ep_out_registers;
+    regs_o : out t_ep_in_registers;
 --     dbg_o          : out std_logic_vector(11 downto 0)
     dbg_o          : out std_logic_vector(33 downto 0)
     );
@@ -200,45 +201,72 @@ begin  -- rtl
   assert not (g_with_packet_injection and not g_with_vlans)
     report "wr_endpoint: packet injection requires VLAN support to be enabled" severity failure;
 
+  gen_with_inj_ctrl: if(g_with_inj_ctrl and g_with_packet_injection) generate
+    -- the injector control has two main purposes:
+    -- 1) control ep_tx_packet_injector so that it continuously generatres frames with
+    --    desired interframe gap
+    -- 2) block the possible traffic coming from SWcore 
+    --    - so that it does not disturb generation which is done only between frames from SWcore
+    --    - each frame coming from SWcore is "scanned" by Ethertype in the RAM which is used
+    --      for generation -> if ep_tx_vlan_unit is used (if dev/null was done after this module)
+    --      when ep_tx_packet_injection is used to genrate frame... we have problem cause two
+    --      modules read from the same RAM
+    U_Injector_ctr: ep_tx_inject_ctrl
+      generic map (
+        g_min_if_gap_length   => 5)
+      port map (
+        clk_sys_i             => clk_sys_i,
+        rst_n_i               => rst_n_i,
+        snk_fab_i             => fab_pipe(0),
+        snk_dreq_o            => dreq_pipe(0),
+        src_fab_o             => fab_pipe(1),
+        src_dreq_i            => dreq_pipe(1),
+        inject_req_o          => inj_ctr_req,
+        inject_ready_i        => inj_ctr_ready,
+        inject_packet_sel_o   => inj_ctr_packet_sel,
+        inject_user_value_o   => inj_ctr_user_value,
+        inject_ctr_ena_o      => inj_ctr_ena,
+        regs_i                => regs_i,
+        regs_o                => regs_o);
+  end generate gen_with_inj_ctrl;
+
+  inject_req        <= inj_ctr_req        when (inj_ctr_ena ='1') else inject_req_i;
+  inject_packet_sel <= inj_ctr_packet_sel when (inj_ctr_ena ='1') else inject_packet_sel_i;
+  inject_user_value <= inj_ctr_user_value when (inj_ctr_ena ='1') else inject_user_value_i;
+  inj_ctr_ready     <= inject_ready;
+  inject_ready_o    <= inject_ready;
+
+  gen_without_inj_ctrl: if((not g_with_inj_ctrl) or (not g_with_packet_injection)) generate
+    fab_pipe(1)        <= fab_pipe(0);
+    dreq_pipe(0)       <= dreq_pipe(1);   
+    inj_ctr_req        <= '0';
+    inj_ctr_ready      <= '0';
+    inj_ctr_packet_sel <= (others => '0');
+    inj_ctr_user_value <= (others => '0');
+    inj_ctr_ena        <= '0';
+    regs_o.inj_ctrl_pic_ena_i <='0';
+  end generate gen_without_inj_ctrl;
+
   gen_with_vlan_unit : if(g_with_vlans) generate
     U_VLAN_Unit : ep_tx_vlan_unit
       port map (
         clk_sys_i         => clk_sys_i,
         rst_n_i           => rst_n_i,
-        snk_fab_i         => fab_pipe(0),
-        snk_dreq_o        => dreq_pipe(0),
-        src_fab_o         => fab_pipe(1),
-        src_dreq_i        => dreq_pipe(1),
+        snk_fab_i         => fab_pipe(1),
+        snk_dreq_o        => dreq_pipe(1),
+        src_fab_o         => fab_pipe(2),
+        src_dreq_i        => dreq_pipe(2),
         inject_mem_addr_i => vlan_mem_addr,
         inject_mem_data_o => vlan_mem_data,
         regs_i            => regs_i);
   end generate gen_with_vlan_unit;
 
   gen_without_vlan_unit : if(not g_with_vlans) generate
-    fab_pipe(1)  <= fab_pipe(0);
-    dreq_pipe(0) <= dreq_pipe(1);
+    fab_pipe(2)  <= fab_pipe(1);
+    dreq_pipe(1) <= dreq_pipe(2);
   end generate gen_without_vlan_unit;
 
   gen_with_injection : if(g_with_packet_injection) generate
-    gen_with_inj_ctrl: if(g_with_inj_ctrl) generate
-      U_Injector_ctr: ep_tx_inject_ctrl
-        generic map (
-          g_min_if_gap_length   => 5)
-        port map (
-          clk_sys_i             => clk_sys_i,
-          rst_n_i               => rst_n_i,
-          snk_fab_i             => fab_pipe(1),
-          snk_dreq_o            => dreq_pipe(1),
-          src_fab_o             => fab_pipe(2),
-          src_dreq_i            => dreq_pipe(2),
-          inject_req_o          => inj_ctr_req,
-          inject_ready_i        => inj_ctr_ready,
-          inject_packet_sel_o   => inj_ctr_packet_sel,
-          inject_user_value_o   => inj_ctr_user_value,
-          inject_ctr_ena_o      => inj_ctr_ena,
-          regs_i                => regs_i);
-    end generate gen_with_inj_ctrl;
-
     U_Injector : ep_tx_packet_injection
       port map (
         clk_sys_i           => clk_sys_i,
@@ -254,22 +282,6 @@ begin  -- rtl
         mem_addr_o          => vlan_mem_addr,
         mem_data_i          => vlan_mem_data);
   end generate gen_with_injection;
-
-  inject_req        <= inj_ctr_req        when (inj_ctr_ena ='1') else inject_req_i;
-  inject_packet_sel <= inj_ctr_packet_sel when (inj_ctr_ena ='1') else inject_packet_sel_i;
-  inject_user_value <= inj_ctr_user_value when (inj_ctr_ena ='1') else inject_user_value_i;
-  inj_ctr_ready     <= inject_ready;
-  inject_ready_o    <= inject_ready;
-
-  gen_without_inj_ctrl: if(not g_with_inj_ctrl or not g_with_packet_injection) generate
-    fab_pipe(2)       <= fab_pipe(1);
-    dreq_pipe(1)      <= dreq_pipe(2);   
-    inj_ctr_req        <= '0';
-    inj_ctr_ready      <= '0';
-    inj_ctr_packet_sel <= (others => '0');
-    inj_ctr_user_value <= (others => '0');
-    inj_ctr_ena        <= '0';
-  end generate gen_without_inj_ctrl;
 
   gen_without_injection : if (not g_with_packet_injection) generate
     fab_pipe(3)  <= fab_pipe(2);
@@ -294,26 +306,34 @@ begin  -- rtl
 --     dbg_o(i+4)  <= fab_pipe(i).eof;
 --   end generate GEN_DBG;
 
-    dbg_o(0)    <= fab_pipe(0).sof;
-    dbg_o(1)    <= fab_pipe(2).sof;
-    dbg_o(2)    <= fab_pipe(3).sof;
-    dbg_o(3)    <= fab_pipe(4).sof;
-    dbg_o(4)    <= fab_pipe(0).eof;
-    dbg_o(5)    <= fab_pipe(2).eof;
-    dbg_o(6)    <= fab_pipe(3).eof;
-    dbg_o(7)    <= fab_pipe(4).eof;
+    dbg_o(0)    <= fab_pipe(0).sof;             -- 64
+    dbg_o(1)    <= fab_pipe(2).sof;             -- 65
+    dbg_o(2)    <= fab_pipe(3).sof;             -- 66
+    dbg_o(3)    <= fab_pipe(4).sof;             -- 67
+    dbg_o(4)    <= fab_pipe(0).eof;             -- 68
+    dbg_o(5)    <= fab_pipe(2).eof;             -- 69
+    dbg_o(6)    <= fab_pipe(3).eof;             -- 70
+    dbg_o(7)    <= fab_pipe(4).eof;             -- 71
 
-    dbg_o(8)    <= dreq_pipe(0);
-    dbg_o(9)    <= dreq_pipe(2);
-    dbg_o(10)   <= dreq_pipe(3);
-    dbg_o(11)   <= fab_pipe(0).dvalid;
-    dbg_o(12)   <= fab_pipe(4).dvalid;
+    dbg_o(8)    <= dreq_pipe(0);                -- 72
+    dbg_o(9)    <= dreq_pipe(2);                -- 73
+    dbg_o(10)   <= dreq_pipe(3);                -- 74 
+    dbg_o(11)   <= fab_pipe(0).dvalid;          -- 75
+    dbg_o(12)   <= fab_pipe(4).dvalid;          -- 32
     -- new 4 bits
-    dbg_o(13)   <= dreq_pipe(4);
-    dbg_o(14)   <= txtsu_stb;
-    dbg_o(15)   <= txtsu_ack_i;
-    dbg_o(16)   <= fab_pipe(2).dvalid;
+    dbg_o(13)   <= dreq_pipe(4);                -- 33
+    dbg_o(14)   <= txtsu_stb;                   -- 34
+    dbg_o(15)   <= txtsu_ack_i;                 -- 35
+    dbg_o(16)   <= fab_pipe(2).dvalid;          -- 36
 --     dbg_o(28 downto 13) <= fab_pipe(2).data;
-    dbg_o(28 downto 17) <= fab_pipe(3).data(11 downto 0);
+    dbg_o(17)   <= inj_ctr_req;                 -- 37    
+    dbg_o(18)   <= inject_req;                  -- 38
+    dbg_o(19)   <= inject_ready;                -- 39                inj_ctr_user_value;
+    dbg_o(20)   <= inj_ctr_ena;                 -- 40
+    dbg_o(23 downto 21) <= inject_packet_sel;   -- 41-43
+    dbg_o(24)   <= inject_req_i;                -- 43
+    dbg_o(28 downto 25) <= fab_pipe(3).data(3 downto 0);
+--     dbg_o(28 downto 17) <= fab_pipe(3).data(11 downto 0);
     dbg_o(30 downto 29) <= fab_pipe(3).addr;
+    
 end rtl;

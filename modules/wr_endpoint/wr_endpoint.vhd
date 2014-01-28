@@ -358,6 +358,7 @@ architecture syn of wr_endpoint is
       inject_user_value_i    : in  std_logic_vector(15 downto 0) := x"0000";
       ep_ctrl_i              : in  std_logic                     := '1';
       regs_i                 : in  t_ep_out_registers;
+      regs_o                 : out t_ep_in_registers;
       dbg_o                  : out std_logic_vector(33 downto 0));
   end component;
 
@@ -529,7 +530,7 @@ architecture syn of wr_endpoint is
   signal regs_towb_ep    : t_ep_in_registers;
   signal regs_towb_tsu   : t_ep_in_registers;
   signal regs_towb_rpath : t_ep_in_registers;
-
+  signal regs_towb_tpath : t_ep_in_registers;
 
 -------------------------------------------------------------------------------
 -- flow control signals
@@ -728,6 +729,7 @@ begin
       fc_flow_enable_i => txfra_flow_enable,
       ep_ctrl_i        => ep_ctrl,
       regs_i           => regs_fromwb,
+      regs_o           => regs_towb_tpath,
 
       txts_timestamp_i       => txts_timestamp_value,
       txts_timestamp_valid_i => txts_timestamp_valid,
@@ -941,7 +943,7 @@ begin
   wb_out.err   <= '0';
   wb_out.int   <= '0';
 
-  regs_towb <= regs_towb_ep or regs_towb_tsu or regs_towb_rpath;
+  regs_towb <= regs_towb_ep or regs_towb_tsu or regs_towb_rpath or regs_towb_tpath;
 
 
   p_link_activity : process(clk_sys_i)

@@ -66,7 +66,8 @@ entity ep_tx_inject_ctrl is
     inject_user_value_o   : out std_logic_vector(15 downto 0);
     inject_ctr_ena_o      : out std_logic;
 
-    regs_i                : in t_ep_out_registers
+    regs_i                : in  t_ep_out_registers;
+    regs_o                : out t_ep_in_registers
     );
 end ep_tx_inject_ctrl;
 
@@ -84,7 +85,7 @@ architecture rtl of ep_tx_inject_ctrl is
     rx_timestamp_valid => '0',
     data               => (others => '0'),
     addr               => (others => '0'));
-  type t_state is (IDLE, INJECT_REQ, INJECT, IFG);
+  type t_state is (IDLE, INJECT_REQ, INJECT, IFG, END_GEN);
   
   -- Wishbone settings
   signal if_gap_value  : unsigned(15 downto 0);
@@ -106,9 +107,7 @@ begin  -- rtl
       else
         if(snk_fab_i.sof = '1')then
           within_packet <= '1';
-        end if;
-
-        if(snk_fab_i.eof = '1' or snk_fab_i.error = '1') then
+        elsif(snk_fab_i.eof = '1' or snk_fab_i.error = '1') then
           within_packet <= '0';
         end if;
       end if;
@@ -147,8 +146,12 @@ begin  -- rtl
         case state is
           when IDLE =>
             
-            if(gen_ena = '1' and within_packet = '0') then
-              inject_req_o   <= '1';
+            --  start when 
+            --  1) inject enabled, and 
+            --  2) no packet being received from SWcore and 
+            --  3) no packet being just started (otherwise, we could have two SOFs
+            if(gen_ena = '1' and within_packet = '0' and snk_fab_i.sof = '0') then 
+              inject_req_o   <= '1';                                
               if_gap_cnt     <= if_gap_offset;
               frame_id_cnt   <= (others => '0');
               state          <= INJECT_REQ;
@@ -168,18 +171,28 @@ begin  -- rtl
           
           when IFG =>
             
-            if(gen_ena = '0' or within_packet = '1') then --gen disabled or "impossible excep"
-              state           <= IDLE;
+            if(gen_ena = '0' ) then --gen disabled
               if_gap_cnt      <= (others => '0');
-              frame_id_cnt    <= (others => '0');              
+              frame_id_cnt    <= (others => '0');             
+              if(within_packet = '0') then  -- if there is no frame being currently dumped
+                state           <= IDLE;    -- go to idle state          
+              else                          -- if there is a frame being dumped, 
+                state           <= END_GEN; -- wait until it finishes
+              end if;
             elsif(if_gap_cnt < if_gap_value) then
               if_gap_cnt <= if_gap_cnt + 1;
             else
               inject_req_o   <= '1';
               if_gap_cnt     <= if_gap_offset;
               state          <= INJECT_REQ;          
-
             end if;
+            
+          when END_GEN =>
+          
+            if(within_packet = '0') then -- now we can gracefully come back to normal functing
+              state           <= IDLE; 
+            end if;
+          
           when others =>
 
             state           <= IDLE;
@@ -191,11 +204,14 @@ begin  -- rtl
     end if;
   end process;
 
-  inject_user_value_o <= std_logic_vector(frame_id_cnt);
-  inject_packet_sel_o <= pck_sel;
-  inject_ctr_ena_o    <= gen_ena;
-  snk_dreq_o          <= src_dreq_i when (state = IDLE) else '1';         -- dev/null if gen
-  src_fab_o           <= snk_fab_i  when (state = IDLE) else src_fab_null;-- dev/null if gen
-
+  inject_user_value_o            <= std_logic_vector(frame_id_cnt);
+  inject_packet_sel_o            <= pck_sel;
+  inject_ctr_ena_o               <= gen_ena;
+  snk_dreq_o                     <= src_dreq_i when (state = IDLE) else '1';         -- dev/null if gen
+  src_fab_o                      <= snk_fab_i  when (state = IDLE) else src_fab_null;-- dev/null if gen
+  regs_o.inj_ctrl_pic_conf_ifg_i <= std_logic_vector(if_gap_value);
+  regs_o.inj_ctrl_pic_conf_sel_i <= pck_sel;
+  regs_o.inj_ctrl_pic_valid_i    <= '0';
+  regs_o.inj_ctrl_pic_ena_i      <= gen_ena;
 
 end rtl;
