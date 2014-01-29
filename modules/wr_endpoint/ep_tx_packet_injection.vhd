@@ -149,8 +149,7 @@ begin  -- rtl
         no_template_error <= '0';
         inj_src.sof       <= '0';
         inj_src.eof       <= '0';
-        inj_src.dvalid    <= '0';
-        inj_src.bytesel   <= '0';    
+        inj_src.dvalid    <= '0'; 
         first_word        <= '0';        
       else
         case state is
@@ -158,7 +157,6 @@ begin  -- rtl
             inj_src.sof       <= '0';
             inj_src.eof       <= '0';
             inj_src.dvalid    <= '0';
-            inj_src.bytesel   <= '0';
             no_template_error <='0';
             first_word        <= '0';
 
@@ -202,18 +200,16 @@ begin  -- rtl
               first_word <= '0';
             end if;
             
-            if(template_last = '1' and inj_src.dvalid = '1' and first_word = '0') then
-              inj_src.bytesel   <= template_user;
-              state <= EOF;
+            if(template_last = '1' and inj_src.dvalid = '1' and first_word = '0' and src_dreq_i = '1') then
+              inj_src.dvalid    <= '0';       
+              state             <= EOF;
+              inj_src.eof       <= '1';
             end if;
             
           when EOF =>
-            inj_src.dvalid    <= '0';
-            inj_src.bytesel   <= '0';
             if(src_dreq_i = '1') then
-              inj_src.eof   <= '1';
               state         <= WAIT_IDLE;
-              --select_inject <= '0'; -- removed by ML: we miss EOF on src_fab_o with this
+              select_inject <= '0'; 
             end if;
         end case;
       end if;
@@ -221,6 +217,8 @@ begin  -- rtl
   end process;
 
 --   inj_src.bytesel <= '0';
+  -- the last word cannot be user-defined as we use the user bit to indicate  odd size
+  inj_src.bytesel <= template_user when (template_last = '1' and first_word = '0') else '0';
   inj_src.error   <= '0';
 
   p_inj_src_data : process(template_user, inject_user_value_i, mem_data_i,template_last,first_word)
