@@ -97,6 +97,16 @@ architecture rtl of ep_tx_inject_ctrl is
   signal within_packet : std_logic;
   signal state         : t_state;
 
+  -- translation betwen if_gap_value and real IFG:
+  -- | ----------------------------------------- |
+  -- | if_gap_value | gap in words | gap in time |
+  -- |   0          |     7        |   112 ns    | disallowed 
+  -- | ......................................... |
+  -- |   5          |     12       |   192 ns    | minimal leagal
+  -- |   6          |     13       |   208 ns    | 
+  -- | ......................................... |
+  -- |   65536      |     65546    |   1.048ms   | maximum allowed due to register size (16 bits)
+  -- | ----------------------------------------- |
 begin  -- rtl
 
   p_detect_within : process(clk_sys_i)
