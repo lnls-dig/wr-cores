@@ -65,6 +65,7 @@ entity ep_tx_inject_ctrl is
     inject_packet_sel_o   : out std_logic_vector(2 downto 0);
     inject_user_value_o   : out std_logic_vector(15 downto 0);
     inject_ctr_ena_o      : out std_logic;
+    inject_ctr_mode_o     : out std_logic_vector(1 downto 0);
 
     regs_i                : in  t_ep_out_registers;
     regs_o                : out t_ep_in_registers
@@ -91,6 +92,7 @@ architecture rtl of ep_tx_inject_ctrl is
   signal if_gap_value  : unsigned(15 downto 0);
   signal pck_sel       : std_logic_vector(2  downto 0);
   signal gen_ena       : std_logic;
+  signal inj_mode      : std_logic_vector(1 downto 0);
 
   signal if_gap_cnt    : unsigned(15 downto 0);
   signal frame_id_cnt  : unsigned(15 downto 0);
@@ -133,9 +135,10 @@ begin  -- rtl
           gen_ena      <= '0';
       else
         if(regs_i.inj_ctrl_pic_ena_load_o = '1') then  -- writing the register
-          if (regs_i.inj_ctrl_pic_valid_o  = '1') then
+          if (regs_i.inj_ctrl_pic_conf_valid_o  = '1') then
             if_gap_value <= unsigned(regs_i.inj_ctrl_pic_conf_ifg_o);
             pck_sel      <= regs_i.inj_ctrl_pic_conf_sel_o;
+            inj_mode     <= regs_i.inj_ctrl_pic_conf_mode_o(1 downto 0);
           end if;
           gen_ena        <= regs_i.inj_ctrl_pic_ena_o;
         end if;
@@ -217,11 +220,13 @@ begin  -- rtl
   inject_user_value_o            <= std_logic_vector(frame_id_cnt);
   inject_packet_sel_o            <= pck_sel;
   inject_ctr_ena_o               <= gen_ena;
+  inject_ctr_mode_o              <= inj_mode;
   snk_dreq_o                     <= src_dreq_i when (state = IDLE) else '1';         -- dev/null if gen
   src_fab_o                      <= snk_fab_i  when (state = IDLE) else src_fab_null;-- dev/null if gen
   regs_o.inj_ctrl_pic_conf_ifg_i <= std_logic_vector(if_gap_value);
   regs_o.inj_ctrl_pic_conf_sel_i <= pck_sel;
-  regs_o.inj_ctrl_pic_valid_i    <= '0';
+  regs_o.inj_ctrl_pic_conf_valid_i  <= '0';
   regs_o.inj_ctrl_pic_ena_i      <= gen_ena;
+  regs_o.inj_ctrl_pic_conf_mode_i<= '0' & inj_mode;
 
 end rtl;

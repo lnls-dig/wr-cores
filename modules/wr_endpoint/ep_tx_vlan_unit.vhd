@@ -33,6 +33,10 @@
 -- from http://www.gnu.org/licenses/lgpl-2.1.html
 --
 -------------------------------------------------------------------------------
+-- FIXME: redo ram split between VLAN/PCK_INJ to use the unused 256 words and
+--        enable storing full-size frame (now max is 1024 bits, if we add 2x256
+--        bytes it will be exactly what we need) -> this requires chagnes in 
+--        HDL+SW+SV 
 -------------------------------------------------------------------------------
 -- Revisions  :
 -- Date        Version  Author          Description
@@ -98,6 +102,10 @@ begin  -- behavioral
 
   vut_rd_vid <= snk_fab_i.data(11 downto 0);
 
+  -- FIXME:
+  -- ML: currently 256 words of the ram are not used and we don't have space to store 
+  --     max size frame (max tempalte is 512x2bytes = 1024 bytes)
+  --     we can use the unused bytes, just that some changes to sw+hw are needed
   mem_addr_muxed <= ("00" & vut_rd_vid(11 downto 4)) when state /= IDLE else inject_mem_addr_i;
 
   U_Untagged_Set_RAM : generic_dpram

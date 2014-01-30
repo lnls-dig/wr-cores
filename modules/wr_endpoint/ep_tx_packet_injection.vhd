@@ -68,6 +68,11 @@ entity ep_tx_packet_injection is
       inject_ready_o      : out std_logic;
       inject_packet_sel_i : in  std_logic_vector(2 downto 0);
       inject_user_value_i : in  std_logic_vector(15 downto 0);
+      inject_mode_i       : in  std_logic_vector(1 downto 0);
+      -- 0 : default
+      -- 1 : corrupt
+      -- 2 : unused
+      -- 3 : unused
 
       mem_addr_o : out std_logic_vector(9 downto 0);
       mem_data_i : in  std_logic_vector(17 downto 0)
@@ -150,14 +155,16 @@ begin  -- rtl
         inj_src.sof       <= '0';
         inj_src.eof       <= '0';
         inj_src.dvalid    <= '0'; 
-        first_word        <= '0';        
+        inj_src.error     <= '0';
+        first_word        <= '0';    
       else
         case state is
           when WAIT_IDLE =>
             inj_src.sof       <= '0';
             inj_src.eof       <= '0';
             inj_src.dvalid    <= '0';
-            no_template_error <='0';
+            inj_src.error     <= '0';
+            no_template_error <= '0';
             first_word        <= '0';
 
             if(inject_req_i = '1') then --ML: we make sure that we remember the packet_sel_i 
@@ -203,10 +210,16 @@ begin  -- rtl
             if(template_last = '1' and inj_src.dvalid = '1' and first_word = '0' and src_dreq_i = '1') then
               inj_src.dvalid    <= '0';       
               state             <= EOF;
-              inj_src.eof       <= '1';
+              if(inject_mode_i = "01") then
+                inj_src.error     <= '1';    
+              else
+                inj_src.eof       <= '1';
+              end if;
             end if;
             
           when EOF =>
+            inj_src.eof       <= '0';
+            inj_src.error     <= '0';
             if(src_dreq_i = '1') then
               state         <= WAIT_IDLE;
               select_inject <= '0'; 
@@ -219,7 +232,7 @@ begin  -- rtl
 --   inj_src.bytesel <= '0';
   -- the last word cannot be user-defined as we use the user bit to indicate  odd size
   inj_src.bytesel <= template_user when (template_last = '1' and first_word = '0') else '0';
-  inj_src.error   <= '0';
+--   inj_src.error   <= '0';
 
   p_inj_src_data : process(template_user, inject_user_value_i, mem_data_i,template_last,first_word)
   begin

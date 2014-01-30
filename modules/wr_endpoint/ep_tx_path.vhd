@@ -157,12 +157,14 @@ architecture rtl of ep_tx_path is
   signal inject_ready          : std_logic;
   signal inject_packet_sel     : std_logic_vector(2 downto 0);
   signal inject_user_value     : std_logic_vector(15 downto 0);
+  signal inject_mode           : std_logic_vector( 1 downto 0);
 
   signal inj_ctr_req            : std_logic;
   signal inj_ctr_ready          : std_logic;
   signal inj_ctr_packet_sel     : std_logic_vector(2 downto 0);
   signal inj_ctr_user_value     : std_logic_vector(15 downto 0);
-  signal inj_ctr_ena        : std_logic;
+  signal inj_ctr_ena            : std_logic;
+  signal inj_ctr_mode           : std_logic_vector( 1 downto 0);
 
 
 begin  -- rtl
@@ -226,6 +228,7 @@ begin  -- rtl
         inject_packet_sel_o   => inj_ctr_packet_sel,
         inject_user_value_o   => inj_ctr_user_value,
         inject_ctr_ena_o      => inj_ctr_ena,
+        inject_ctr_mode_o     => inj_ctr_mode,
         regs_i                => regs_i,
         regs_o                => regs_o);
   end generate gen_with_inj_ctrl;
@@ -233,6 +236,7 @@ begin  -- rtl
   inject_req        <= inj_ctr_req        when (inj_ctr_ena ='1') else inject_req_i;
   inject_packet_sel <= inj_ctr_packet_sel when (inj_ctr_ena ='1') else inject_packet_sel_i;
   inject_user_value <= inj_ctr_user_value when (inj_ctr_ena ='1') else inject_user_value_i;
+  inject_mode       <= inj_ctr_mode       when (inj_ctr_ena ='1') else "00";
   inj_ctr_ready     <= inject_ready;
   inject_ready_o    <= inject_ready;
 
@@ -279,6 +283,7 @@ begin  -- rtl
         inject_ready_o      => inject_ready,
         inject_packet_sel_i => inject_packet_sel,
         inject_user_value_i => inject_user_value,
+        inject_mode_i       => inject_mode,
         mem_addr_o          => vlan_mem_addr,
         mem_data_i          => vlan_mem_data);
   end generate gen_with_injection;

@@ -334,6 +334,7 @@ package endpoint_private_pkg is
       inject_ready_o      : out std_logic;
       inject_packet_sel_i : in  std_logic_vector(2 downto 0);
       inject_user_value_i : in  std_logic_vector(15 downto 0);
+      inject_mode_i       : in  std_logic_vector(1 downto 0);
       mem_addr_o          : out std_logic_vector(9 downto 0);
       mem_data_i          : in  std_logic_vector(17 downto 0));
   end component;
@@ -395,6 +396,7 @@ package endpoint_private_pkg is
       inject_packet_sel_o   : out std_logic_vector(2 downto 0);
       inject_user_value_o   : out std_logic_vector(15 downto 0);
       inject_ctr_ena_o      : out std_logic;
+      inject_ctr_mode_o     : out std_logic_vector(1 downto 0);
       regs_i                : in  t_ep_out_registers;
       regs_o                : out t_ep_in_registers);
   end component;

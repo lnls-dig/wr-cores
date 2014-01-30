@@ -690,12 +690,21 @@ peripheral {
 				 load = LOAD_EXT;
 			};
 
+			field {
+				 name = "Config: packet generate mode";
+				 prefix = "PIC_CONF_MODE";
+				 size = 3;
+				 type = SLV;
+				 align= 4;
+				 access_dev = READ_WRITE;
+				 access_bus = READ_WRITE;
+				 load = LOAD_EXT;
+			};
 
 			field {
-				 name = "Interframe GAP config valid";
-				 prefix = "PIC_VALID";
+				 name = "Config: valid";
+				 prefix = "PIC_CONF_VALID";
 				 type = BIT;
-				 align = 4;
 				 access_dev = READ_WRITE;
 				 access_bus = READ_WRITE;
 				 load = LOAD_EXT;
@@ -704,6 +713,7 @@ peripheral {
 				 name = "Frame Generation Enabled";
 				 prefix = "PIC_ENA";
 				 type = BIT;
+				 align = 4;
 				 access_dev = READ_WRITE;
 				 access_bus = READ_WRITE;
 				 load = LOAD_EXT;
