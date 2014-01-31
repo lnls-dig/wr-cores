@@ -689,10 +689,17 @@ peripheral {
 				 access_bus = READ_WRITE;
 				 load = LOAD_EXT;
 			};
-
 			field {
-				 name = "Config: packet generate mode";
-				 prefix = "PIC_CONF_MODE";
+				 name = "Config: valid";
+				 prefix = "PIC_CONF_VALID";
+				 type = BIT;
+				 access_dev = READ_WRITE;
+				 access_bus = READ_WRITE;
+				 load = LOAD_EXT;
+			};
+			field {
+				 name = "Mode: packet generate mode";
+				 prefix = "PIC_MODE_ID";
 				 size = 3;
 				 type = SLV;
 				 align= 4;
@@ -702,13 +709,14 @@ peripheral {
 			};
 
 			field {
-				 name = "Config: valid";
-				 prefix = "PIC_CONF_VALID";
+				 name = "Mode: valid";
+				 prefix = "PIC_MODE_VALID";
 				 type = BIT;
 				 access_dev = READ_WRITE;
 				 access_bus = READ_WRITE;
 				 load = LOAD_EXT;
 			};
+
 			field {
 				 name = "Frame Generation Enabled";
 				 prefix = "PIC_ENA";

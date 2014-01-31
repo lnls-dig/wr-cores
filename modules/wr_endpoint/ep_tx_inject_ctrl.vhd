@@ -133,16 +133,18 @@ begin  -- rtl
           if_gap_value <= (others=>'0');
           pck_sel      <= (others=>'0');
           gen_ena      <= '0';
+          inj_mode     <= (others=>'0');
       else
         if(regs_i.inj_ctrl_pic_ena_load_o = '1') then  -- writing the register
           if (regs_i.inj_ctrl_pic_conf_valid_o  = '1') then
             if_gap_value <= unsigned(regs_i.inj_ctrl_pic_conf_ifg_o);
             pck_sel      <= regs_i.inj_ctrl_pic_conf_sel_o;
-            inj_mode     <= regs_i.inj_ctrl_pic_conf_mode_o(1 downto 0);
+          end if;
+          if(regs_i.inj_ctrl_pic_mode_valid_o = '1') then
+            inj_mode     <= regs_i.inj_ctrl_pic_mode_id_o(1 downto 0);
           end if;
           gen_ena        <= regs_i.inj_ctrl_pic_ena_o;
         end if;
-
       end if;
     end if;
   end process;  
@@ -227,6 +229,6 @@ begin  -- rtl
   regs_o.inj_ctrl_pic_conf_sel_i <= pck_sel;
   regs_o.inj_ctrl_pic_conf_valid_i  <= '0';
   regs_o.inj_ctrl_pic_ena_i      <= gen_ena;
-  regs_o.inj_ctrl_pic_conf_mode_i<= '0' & inj_mode;
+  regs_o.inj_ctrl_pic_mode_id_i  <= '0' & inj_mode;
 
 end rtl;
