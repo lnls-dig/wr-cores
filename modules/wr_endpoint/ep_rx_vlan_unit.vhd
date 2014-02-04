@@ -58,7 +58,7 @@ architecture behavioral of ep_rx_vlan_unit is
 
   signal r_tcar_pcp_map : std_logic_vector(23 downto 0);
   signal is_tag_inserted: std_logic;
-  signal at_ethertype_not_Q :std_logic;
+
   procedure f_vlan_decision
     (tag_type       :     t_tag_type;
      qmode          : in  std_logic_vector(1 downto 0);
@@ -139,11 +139,8 @@ architecture behavioral of ep_rx_vlan_unit is
   end procedure;
 
   
-  
-  
 begin  -- behavioral
 
-  at_ethertype_not_Q <= '1' when (hdr_offset(6) = '1' and snk_fab_i.dvalid = '1' and snk_fab_i.data /= x"8100") else '0';
   at_ethertype <= hdr_offset(6) and snk_fab_i.dvalid;
   at_tpid      <= hdr_offset(6) and snk_fab_i.dvalid and is_tagged;--unused 
   at_vid       <= hdr_offset(7) and snk_fab_i.dvalid and is_tagged;
@@ -173,10 +170,10 @@ begin  -- behavioral
     if rising_edge(clk_sys_i) then
       if rst_n_i = '0' or regs_i.ecr_rx_en_o = '0' then
         hdr_offset(hdr_offset'left downto 1) <= (others => '0');
-        hdr_offset(0)                        <= '1';
-        state                                <= WAIT_FRAME;
-        dreq_mask                            <= '0';
-        vid_o                                <= (others =>'0');
+        hdr_offset(0)    <= '1';
+        state            <= WAIT_FRAME;
+        dreq_mask        <= '0';
+        vid_o            <= (others =>'0');
         is_tag_inserted  <= '0';
         is_tagged        <= '0';
         src_fab_o.eof    <= '0';
@@ -184,7 +181,6 @@ begin  -- behavioral
         src_fab_o.dvalid <= '0';
         
       else
-
         if(snk_fab_i.error = '1') then
           state <= DISCARD_FRAME;
         else
@@ -260,7 +256,6 @@ begin  -- behavioral
                 -- (ACCESS, TRUNK, UNQUALIFIED), and whether the frame is tagged
                 -- or not.
                 f_vlan_decision(comb_tag_type, regs_i.vcr0_qmode_o, admit, use_pvid, use_fixed_prio);
-
 
                 -- assign the VID
                 if(admit = '0') then    -- oops...
