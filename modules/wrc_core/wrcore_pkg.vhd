@@ -190,10 +190,11 @@ package wrcore_pkg is
 
   component wrc_periph is
     generic(
-      g_phys_uart    : boolean := true;
-      g_virtual_uart : boolean := false;
-      g_cntr_period  : integer := 62500;
-      g_mem_words    : integer := 16384
+      g_phys_uart       : boolean := true;
+      g_virtual_uart    : boolean := false;
+      g_cntr_period     : integer := 62500;
+      g_mem_words       : integer := 16384;
+      g_vuart_fifo_size : integer := 1024
       );
     port(
       clk_sys_i   : in  std_logic;
@@ -296,7 +297,8 @@ package wrcore_pkg is
       g_address_granularity       : t_wishbone_address_granularity := BYTE;
       g_aux_sdb                   : t_sdb_device                   := c_wrc_periph3_sdb;
       g_softpll_channels_config   : t_softpll_channel_config_array := c_softpll_default_channel_config;
-      g_softpll_enable_debugger   : boolean                        := false
+      g_softpll_enable_debugger   : boolean                        := false;
+      g_vuart_fifo_size           : integer                        := 1024
       );
     port(
       clk_sys_i  : in std_logic;
@@ -395,7 +397,8 @@ package wrcore_pkg is
       g_address_granularity       : t_wishbone_address_granularity := WORD;
       g_aux_sdb                   : t_sdb_device                   := c_wrc_periph3_sdb;
       g_softpll_channels_config   : t_softpll_channel_config_array := c_softpll_default_channel_config;
-      g_softpll_enable_debugger   : boolean                        := false
+      g_softpll_enable_debugger   : boolean                        := false;
+      g_vuart_fifo_size           : integer                        := 1024
       );
     port(
       ---------------------------------------------------------------------------

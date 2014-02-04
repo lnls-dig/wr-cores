@@ -33,10 +33,11 @@ use work.sysc_wbgen2_pkg.all;
 
 entity wrc_periph is
   generic(
-    g_phys_uart    : boolean := true;
-    g_virtual_uart : boolean := false;
-    g_cntr_period  : integer := 62500;
-    g_mem_words    : integer := 16384   --in 32-bit words
+    g_phys_uart       : boolean := true;
+    g_virtual_uart    : boolean := false;
+    g_cntr_period     : integer := 62500;
+    g_mem_words       : integer := 16384;   --in 32-bit words
+    g_vuart_fifo_size : integer := 1024
     );
   port(
     clk_sys_i : in std_logic;
@@ -264,7 +265,8 @@ begin
       g_with_virtual_uart   => g_virtual_uart,
       g_with_physical_uart  => g_phys_uart,
       g_interface_mode      => PIPELINED,
-      g_address_granularity => BYTE
+      g_address_granularity => BYTE,
+      g_vuart_fifo_size     => g_vuart_fifo_size
       )
     port map(
       clk_sys_i => clk_sys_i,

@@ -94,7 +94,8 @@ entity wr_core is
     g_address_granularity       : t_wishbone_address_granularity := WORD;
     g_aux_sdb                   : t_sdb_device                   := c_wrc_periph3_sdb;
     g_softpll_channels_config   : t_softpll_channel_config_array := c_softpll_default_channel_config;
-    g_softpll_enable_debugger   : boolean                        := false
+    g_softpll_enable_debugger   : boolean                        := false;
+    g_vuart_fifo_size           : integer                        := 1024
     );
   port(
     ---------------------------------------------------------------------------
@@ -723,9 +724,10 @@ begin
   -----------------------------------------------------------------------------
   PERIPH : wrc_periph
     generic map(
-      g_phys_uart    => g_phys_uart,
-      g_virtual_uart => g_virtual_uart,
-      g_mem_words    => g_dpram_size)
+      g_phys_uart       => g_phys_uart,
+      g_virtual_uart    => g_virtual_uart,
+      g_mem_words       => g_dpram_size,
+      g_vuart_fifo_size => g_vuart_fifo_size)
     port map(
       clk_sys_i   => clk_sys_i,
       rst_n_i     => rst_n_i,
