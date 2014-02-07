@@ -60,6 +60,8 @@ package wr_altera_pkg is
       outclk_0   : out std_logic;        -- 125 MHz
       outclk_1   : out std_logic;        -- 200 MHz
       outclk_2   : out std_logic;        --  25 MHz
+      outclk_3   : out std_logic;        --1000 MHz
+      outclk_4   : out std_logic;        -- 125 MHz, 1/8 duty cycle, -1.5ns phase
       rst        : in  std_logic := 'X';
       locked     : out std_logic;
       scanclk    : in  std_logic;
