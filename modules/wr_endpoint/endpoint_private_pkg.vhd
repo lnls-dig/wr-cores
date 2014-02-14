@@ -222,7 +222,9 @@ package endpoint_private_pkg is
       src_dreq_i        : in  std_logic;
       inject_mem_addr_i : in  std_logic_vector(9 downto 0);
       inject_mem_data_o : out std_logic_vector(17 downto 0);
-      regs_i            : in  t_ep_out_registers);
+      uram_offset_wr_i  : in  std_logic;
+      uram_offset_i     : in  std_logic_vector(9 downto 0);
+      uram_data_i       : in  std_logic_vector(17 downto 0));
   end component;
   
   component ep_timestamping_unit

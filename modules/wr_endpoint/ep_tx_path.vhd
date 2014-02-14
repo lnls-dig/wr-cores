@@ -263,7 +263,9 @@ begin  -- rtl
         src_dreq_i        => dreq_pipe(2),
         inject_mem_addr_i => vlan_mem_addr,
         inject_mem_data_o => vlan_mem_data,
-        regs_i            => regs_i);
+        uram_offset_wr_i  => regs_i.vcr1_offset_wr_o,
+        uram_offset_i     => regs_i.vcr1_offset_o,
+        uram_data_i       => regs_i.vcr1_data_o);
   end generate gen_with_vlan_unit;
 
   gen_without_vlan_unit : if(not g_with_vlans) generate

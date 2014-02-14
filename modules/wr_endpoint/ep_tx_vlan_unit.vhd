@@ -72,7 +72,9 @@ entity ep_tx_vlan_unit is
     inject_mem_addr_i : in  std_logic_vector(9 downto 0);
     inject_mem_data_o : out std_logic_vector(17 downto 0);
 
-    regs_i : in t_ep_out_registers
+    uram_offset_wr_i  : in std_logic;
+    uram_offset_i     : in std_logic_vector(9 downto 0);
+    uram_data_i       : in std_logic_vector(17 downto 0)
     );
 
 
@@ -120,9 +122,9 @@ begin  -- behavioral
       wea_i   => '0',
       aa_i    => mem_addr_muxed,
       qa_o    => mem_rdata,
-      web_i   => regs_i.vcr1_offset_wr_o,
-      ab_i    => regs_i.vcr1_offset_o,
-      db_i    => regs_i.vcr1_data_o);
+      web_i   => uram_offset_wr_i,
+      ab_i    => uram_offset_i,
+      db_i    => uram_data_i);
 
   inject_mem_data_o <= mem_rdata;
 
