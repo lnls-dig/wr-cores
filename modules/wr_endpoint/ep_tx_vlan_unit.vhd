@@ -43,6 +43,7 @@
 -- 2012-11-01  1.0      twlostow	    Created
 -- 2013-04-24  1.1      mlipinsk	    corrected VLAN untagging
 -- 2013-09-02  1.2      mlipinsk	    optimized by 1-cycle
+-- 2014-02-14  1.3      greg.d        Bufixed to use in WRSW NIC
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -91,7 +92,7 @@ architecture behavioral of ep_tx_vlan_unit is
 
   signal vut_rd_vid : std_logic_vector(11 downto 0);
   signal vut_wr_vid : std_logic_vector(11 downto 0);
-  signal vut_untag  : std_logic;
+  signal vut_untag, vut_untag_reg  : std_logic;
 
   signal vut_stored_tag       : std_logic_vector(15 downto 0);
   signal vut_stored_ethertype : std_logic_vector(15 downto 0);
@@ -99,6 +100,7 @@ architecture behavioral of ep_tx_vlan_unit is
   signal mem_addr_muxed : std_logic_vector(9 downto 0);
   signal mem_rdata      : std_logic_vector(17 downto 0);
   signal src_dreq_d0    : std_logic;
+  signal flush_ethtype  : std_logic;
 
 begin  -- behavioral
 
@@ -143,13 +145,17 @@ begin  -- behavioral
     if rising_edge(clk_sys_i) then
       if rst_n_i = '0' then
         state <= IDLE;
+        flush_ethtype <= '0';
       else
         case state is
           when IDLE =>
+            if(src_dreq_i='1') then
+              flush_ethtype <= '0';
+            end if;
             if(snk_fab_i.sof = '1') then
               counter <= (others => '0');
             end if;
-            if(snk_fab_i.dvalid = '1' and counter /= 6) then
+            if(snk_fab_i.dvalid = '1' and snk_fab_i.addr = c_WRF_DATA and counter /= 6) then
               counter <= counter + 1;
             end if;
 
@@ -170,6 +176,7 @@ begin  -- behavioral
             end if;
 
           when PUSH_QHEADER_1 =>
+            vut_untag_reg <= '0';
 
             if(snk_fab_i.dvalid = '1') then
               vut_stored_tag <= snk_fab_i.data;
@@ -177,13 +184,18 @@ begin  -- behavioral
             end if;
 
           when POP_ETHERTYPE =>
-            if(snk_fab_i.dvalid = '1' ) then
+            flush_ethtype <= src_dreq_i;
+            if(vut_untag = '1') then
+              vut_untag_reg <= '1';
+            end if;
+            if(snk_fab_i.dvalid = '1') then
               vut_stored_ethertype <= snk_fab_i.data; 
-              if(vut_untag = '1') then
-                state <= IDLE; 
-              else
-                state <= POP_QHEADER_2;
-              end if;
+            end if;
+            if( (vut_untag = '1' or vut_untag_reg = '1') and src_dreq_i = '1') then
+              state <= IDLE; 
+            end if;
+            if(vut_untag='0' and vut_untag_reg='0' and src_dreq_d0='1') then
+              state <= POP_QHEADER_2;
             end if;
 
           when POP_QHEADER_2 =>
@@ -222,7 +234,8 @@ begin  -- behavioral
     case state is
       when IDLE =>
         snk_dreq_o       <= src_dreq_i;
-        src_fab_o.dvalid <= snk_fab_i.dvalid;
+        -- validate Ethertype from POP_ETHERTYPE state if dreq was high
+        src_fab_o.dvalid <= snk_fab_i.dvalid or (flush_ethtype and src_dreq_d0);
         src_fab_o.data   <= snk_fab_i.data;
         src_fab_o.addr   <= snk_fab_i.addr;
 
