@@ -327,6 +327,13 @@ begin  -- behavioral
         if(pcs_error_i = '1') then
           state      <= TXF_IDLE;
           wb_out.rty <= '1';
+          ----------------------------------------------------------------------------------
+          src_fab_o.error  <= '1'; -- nasty-bug-fix: it might happen that PCS throws error
+                                   -- to a previous frame, but we already start sending
+                                   -- the next one, in this case the frame is stopped being
+                                   -- sent but PCS does not know why... in the end we see
+                                   -- two SOFs in PACs
+          ----------------------------------------------------------------------------------                         
         elsif(abort_now = '1') then
           -- abort the current frame
           state            <= TXF_ABORT;
