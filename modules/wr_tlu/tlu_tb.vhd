@@ -4,12 +4,12 @@ use ieee.numeric_std.all;
 use work.genram_pkg.all;
 use work.wishbone_pkg.all;
 use work.gencores_pkg.all;
-use work.wr_tlu_pkg.all;
+use work.tlu_pkg.all;
 
-entity wr_tlu_tb is
-end wr_tlu_tb;
+entity tlu_tb is
+end tlu_tb;
 
-architecture rtl of wr_tlu_tb is 
+architecture rtl of tlu_tb is 
 
    constant c_dummy_slave_in     : t_wishbone_slave_in   := ('0', '0', x"00000000", x"F", '0', x"00000000");
    constant c_dummy_slave_out    : t_wishbone_slave_out  := ('0', '0', '0', '0', '0', x"00000000");
@@ -235,6 +235,8 @@ begin
         wait for v_T*2;
         s_triggers <= (x"00", x"00", x"00");
         
+         s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_STAT, 32)), x"F", '0', x"00000000");      wait for v_T;
+        report "FIFO Status before:" severity warning; 
         for i in 0 to c_num_triggers-1 loop
            s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_CH_SEL, 32)), x"F", '1', std_logic_vector(to_unsigned(i, 32))); wait for v_T;
            s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_TS_CNT, 32)), x"F", '0', x"00000000");      wait for v_T;
@@ -255,7 +257,8 @@ begin
         end loop;
         
         wait for v_T*9;
-         
+        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_STAT, 32)), x"F", '0', x"00000000");      wait for v_T;
+        report "FIFO Status after:" severity warning;   
         wait until rst_n = '0';
   end process;
 

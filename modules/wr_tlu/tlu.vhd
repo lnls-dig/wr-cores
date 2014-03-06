@@ -67,7 +67,7 @@ use work.wishbone_pkg.all;
 use work.genram_pkg.all;
 use work.gencores_pkg.all;
 use work.wb_irq_pkg.all;
-use work.wr_tlu_pkg.all;
+use work.tlu_pkg.all;
 
 entity wr_tlu is
    generic( g_num_triggers : natural := 1;
@@ -79,8 +79,9 @@ entity wr_tlu is
       clk_sys_i         : in  std_logic;    -- local clock domain
       rst_sys_n_i       : in  std_logic;
 
-      triggers_i        : in  t_trigger_array(g_num_triggers-1 downto 0);  -- trigger vectors for latch. meant to be used with 8bits from lvds derserializer for 1GhZ res
-                                                                -- if you only have a normal signal, connect it as triggers_i(m) => (others => s_my_signal)
+      triggers_i        : in  t_trigger_array(g_num_triggers-1 downto 0);  -- trigger vectors for latch. meant to be used with 8bits from
+                                                                           -- lvds derserializer for 1GhZ res
+                                                                           -- connect single ended inputs as triggers_i(m) => (others => s_my_signal)     
       tm_tai_cyc_i      : in  std_logic_vector(63 downto 0);   -- TAI Timestamp in 8ns cycles  
 
       ctrl_slave_i      : in  t_wishbone_slave_in;             -- Wishbone slave interface (sys_clk domain)
@@ -88,7 +89,7 @@ entity wr_tlu is
       
       irq_master_o      : out t_wishbone_master_out;           -- msi irq src 
       irq_master_i      : in  t_wishbone_master_in
-   );              
+   );               
 
 end wr_tlu;
 
