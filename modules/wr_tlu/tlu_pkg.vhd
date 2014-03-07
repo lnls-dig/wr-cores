@@ -29,6 +29,7 @@ package tlu_pkg is
        name          => "GSI_TM_LATCH_V2    ")));
 
 
+   function f_gpio_to_trigger_array(gpio : std_logic_vector) return t_trigger_array;
     
    component wr_tlu is
    generic( g_num_triggers : natural := 1;
@@ -52,5 +53,20 @@ package tlu_pkg is
       irq_master_i      : in  t_wishbone_master_in
    );              
    end component;
+
+end tlu_pkg;
+
+package body tlu_pkg is
+
+  
+function f_gpio_to_trigger_array(gpio : std_logic_vector) return t_trigger_array is
+   variable i : natural := 0;
+   variable result : t_trigger_array(gpio'left downto 0);
+   begin
+      for i in 0 to gpio'left loop
+         result(i) := (others => gpio(i));
+      end loop;
+      return result;
+   end f_gpio_to_trigger_array;
 
 end tlu_pkg;
