@@ -29,12 +29,13 @@
 --! ***** make sure to keep cycle line HI while manipulating 0x5C - 0x74
 --!  
 --! 0x5C, wo  writing anything here will pop selected channel
---! 0x60, ro, fifo fill count
---! 0x64, ro, fifo q - Cycle Count High word
---! 0x68, ro, fifo q - Cycle Count Low word  
---! 0x6C, ro, fifo q - Sub cycle word
---! 0x70, rw, MSI msg to be sent 
---! 0x74, rw, MSI adr to send to
+--! 0x60, wo, Test selected channel
+--! 0x64, ro, fifo fill count
+--! 0x68, ro, fifo q - Cycle Count High word
+--! 0x6c, ro, fifo q - Cycle Count Low word  
+--! 0x70, ro, fifo q - Sub cycle word
+--! 0x74, rw, MSI msg to be sent 
+--! 0x78, rw, MSI adr to send to
 --!----------------------------------------------------------------------------
 --1
 --! @author Mathias Kreider <m.kreider@gsi.de>
@@ -119,8 +120,6 @@ architecture behavioral of wr_tlu is
       for i in input'left downto 0 loop 
          if input(i) = '0' then
             result := result + 1;
-         else
-            return std_logic_vector(result);      
          end if;
       end loop;
       return std_logic_vector(result); 
@@ -166,6 +165,10 @@ architecture behavioral of wr_tlu is
   signal trigger_active_ref_clk     : channels;
   signal trigger_edge_ref_clk       : channels;
 
+   signal s_adr : unsigned(7 downto 0);
+   attribute syn_keep: boolean;
+   attribute syn_keep of s_adr: signal is true;
+
 -------------------------------------------------------------------------------
 -- WB BUS INTERFACE
 -------------------------------------------------------------------------------
@@ -179,7 +182,7 @@ architecture behavioral of wr_tlu is
    constant c_STAT      : natural := 0;               --0x00, ro, fifo n..0 status (0 empty, 1 ne)
    constant c_CLR       : natural := c_STAT     +4;   --0x04, wo, Clear channels n..0
    constant c_TEST      : natural := c_CLR      +4;   --0x08, ro, trigger n..0 status
-   constant c_ACT_GET   : natural := c_TEST     +4;   --0x08, ro, trigger n..0 status
+   constant c_ACT_GET   : natural := c_TEST     +4;   --0x0C, ro, trigger n..0 status
    constant c_ACT_SET   : natural := c_ACT_GET  +4;   --0x10, wo, Activate trigger n..0
    constant c_ACT_CLR   : natural := c_ACT_SET  +4;   --0x14, wo, deactivate trigger n..0
    constant c_EDG_GET   : natural := c_ACT_CLR  +4;   --0x18, ro, trigger n..0 latch edge (1 pos, 0 neg)
@@ -197,13 +200,13 @@ architecture behavioral of wr_tlu is
    constant c_CH_SEL    : natural := c_TC_LO    +4;   --0x58, rw, channels select  
 -- ***** CAREFUL! From here on, all addresses depend on channels select Reg !
    constant c_TS_POP    : natural := c_CH_SEL   +4;   --0x5C, wo  writing anything here will pop selected channel
-   constant c_TS_TEST   : natural := c_TS_POP   +4;   --0x60, wo, Test channels n..0
+   constant c_TS_TEST   : natural := c_TS_POP   +4;   --0x60, wo, Test selected channel
    constant c_TS_CNT    : natural := c_TS_TEST  +4;   --0x64, ro, fifo fill count
    constant c_TS_HI     : natural := c_TS_CNT   +4;   --0x68, ro, fifo q - Cycle Count Hi
-   constant c_TS_LO     : natural := c_TS_HI    +4;   --0x68, ro, fifo q - Cycle Count Lo  
-   constant c_TS_SUB    : natural := c_TS_LO    +4;   --0x6C, ro, fifo q - Sub cycle word
-   constant c_TS_MSG    : natural := c_TS_SUB   +4;   --0x70, rw, MSI msg to be sent 
-   constant c_TS_DST_ADR: natural := c_TS_MSG   +4;   --0x74, rw, MSI adr to send to
+   constant c_TS_LO     : natural := c_TS_HI    +4;   --0x6C, ro, fifo q - Cycle Count Lo  
+   constant c_TS_SUB    : natural := c_TS_LO    +4;   --0x70, ro, fifo q - Sub cycle word
+   constant c_TS_MSG    : natural := c_TS_SUB   +4;   --0x74, rw, MSI msg to be sent 
+   constant c_TS_DST_ADR: natural := c_TS_MSG   +4;   --0x78, rw, MSI adr to send to
    
    signal r_rst_n    : std_logic; 
    signal r_csl      : t_wishbone_data;
@@ -232,6 +235,7 @@ begin  -- behavioral
         r_corrected_time_1 <= tm_tai_cyc_i;
         r_corrected_time_2 <= r_corrected_time_1;
         r_corrected_time_3 <= r_corrected_time_2;
+        
       end if;
     end process sub_time_delay;
  
@@ -342,10 +346,13 @@ begin  -- behavioral
 
    edge_sel : with trigger_edge_ref_clk(i) select
       subcycle(i)    <= triggers_neg_edge_synced(i)  when '1',
-                        triggers_pos_edge_synced(i)      when others;
-   sub_aux(i) <= f_deser2ns(subcycle(i));
+                        triggers_pos_edge_synced(i)  when others;
+   sub_aux(i)        <= f_deser2ns(subcycle(i));
    
-   tm_fifo_in(i)     <= r_corrected_time_3 & sub_aux(i);   
+
+
+   
+   tm_fifo_in(i)   <= r_corrected_time_3 & sub_aux(i);
    
    we(i) <=    '1' when trigger_active_ref_clk(i) = '1' and (unsigned(subcycle(i)) /= 0)
          else  '0';
@@ -369,6 +376,8 @@ begin  -- behavioral
    ctrl_slave_o.err     <= r_c_err;
    ctrl_slave_o.dat     <= r_c_dato;
   
+   s_adr <= unsigned(ctrl_slave_i.adr(7 downto 2)) & "00";
+  
    process(clk_sys_i)
       variable v_ch_sl : natural range g_num_triggers-1 downto 0;
       variable v_en, v_we  : std_logic;
@@ -390,11 +399,11 @@ begin  -- behavioral
             
          else
             -- Fire and Forget Registers        
-             v_en    := ctrL_slave_i.cyc and ctrl_slave_i.stb;
-             v_adr   := to_integer(unsigned(ctrl_slave_i.adr(7 downto 2)) & "00");
+             v_en    := ctrl_slave_i.cyc and ctrl_slave_i.stb;
+             v_adr   := to_integer(s_adr);
              v_we    := ctrl_slave_i.we;
-             v_dati  := ctrL_slave_i.dat;
-             v_sel   := ctrL_slave_i.sel;
+             v_dati  := ctrl_slave_i.dat;
+             v_sel   := ctrl_slave_i.sel;
          
             r_c_ack     <= '0';
             r_c_err     <= '0';

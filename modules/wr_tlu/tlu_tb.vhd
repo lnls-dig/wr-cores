@@ -167,46 +167,46 @@ begin
         
         
         
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_EDG_NEG, 32)), x"F", '1', x"00000002"); wait for v_T;
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_MSK_SET, 32)), x"F", '1', x"00000007"); wait for v_T;
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_IE, 32)),  x"F", '1', x"00000001"); wait for v_T;
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_ACT_SET, 32)), x"F", '1', x"00000007"); wait for v_T;
+        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_EDG_NEG, 32)), x"F", '1', x"00000002"); wait for v_T;
+        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_MSK_SET, 32)), x"F", '1', x"00000007"); wait for v_T;
+        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_IE, 32)),  x"F", '1', x"00000001"); wait for v_T;
+        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_ACT_SET, 32)), x"F", '1', x"00000007"); wait for v_T;
         s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
         for i in 0 to c_num_triggers-1 loop
-           s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_CH_SEL, 32)),      x"F", '1', std_logic_vector(to_unsigned(i, 32)));              wait for v_T;
-           s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_TS_MSG, 32)),      x"F", '1', x"abcd" & std_logic_vector(to_unsigned(i, 16)) );   wait for v_T;
-           s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_TS_DST_ADR, 32)),  x"F", '1', x"1234" & std_logic_vector(to_unsigned(i, 16)) );   wait for v_T;
+           s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_CH_SEL, 32)),      x"F", '1', std_logic_vector(to_unsigned(i, 32)));              wait for v_T;
+           s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TS_MSG, 32)),      x"F", '1', x"abcd" & std_logic_vector(to_unsigned(i, 16)) );   wait for v_T;
+           s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TS_DST_ADR, 32)),  x"F", '1', x"1234" & std_logic_vector(to_unsigned(i, 16)) );   wait for v_T;
            s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
         end loop;
            
            
         
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_TEST, 32)), x"F", '1', x"000000FF");      wait for v_T;
+        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"000000FF");      wait for v_T;
         s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
         wait for v_T*9;
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_TEST, 32)), x"F", '1', x"00000000");      wait for v_T;
+        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"00000000");      wait for v_T;
         s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
         wait for v_T*9;
         
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_TEST, 32)), x"F", '1', x"0000007F");      wait for v_T;
+        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"0000007F");      wait for v_T;
         s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
         wait for v_T*9;
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_TEST, 32)), x"F", '1', x"0000003F");      wait for v_T;
+        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"0000003F");      wait for v_T;
         s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
         wait for v_T*9;
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_TEST, 32)), x"F", '1', x"0000001F");      wait for v_T;
+        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"0000001F");      wait for v_T;
         s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
         wait for v_T*9;
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_TEST, 32)), x"F", '1', x"0000000F");      wait for v_T;
+        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"0000000F");      wait for v_T;
         s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
         wait for v_T*9;
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_TEST, 32)), x"F", '1', x"00000007");      wait for v_T;
+        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"00000007");      wait for v_T;
         s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
         wait for v_T*9;
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_TEST, 32)), x"F", '1', x"00000003");      wait for v_T;
+        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"00000003");      wait for v_T;
         s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
         wait for v_T*9;
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_TEST, 32)), x"F", '1', x"00000001");      wait for v_T;
+        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"00000001");      wait for v_T;
         s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
         wait for v_T*9;
         
@@ -235,29 +235,29 @@ begin
         wait for v_T*2;
         s_triggers <= (x"00", x"00", x"00");
         
-         s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_STAT, 32)), x"F", '0', x"00000000");      wait for v_T;
+         s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_STAT, 32)), x"F", '0', x"00000000");      wait for v_T;
         report "FIFO Status before:" severity warning; 
         for i in 0 to c_num_triggers-1 loop
-           s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_CH_SEL, 32)), x"F", '1', std_logic_vector(to_unsigned(i, 32))); wait for v_T;
-           s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_TS_CNT, 32)), x"F", '0', x"00000000");      wait for v_T;
+           s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_CH_SEL, 32)), x"F", '1', std_logic_vector(to_unsigned(i, 32))); wait for v_T;
+           s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TS_CNT, 32)), x"F", '0', x"00000000");      wait for v_T;
            s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); 
            v_cnt := to_integer(unsigned(s_ctrl_o.dat));
            
            wait for v_T;
            while v_cnt /= 0 loop
-              s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_TS_HI, 32)), x"F", '0', x"00000000");      wait for v_T;
-              s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_TS_LO, 32)), x"F", '0', x"00000000");     wait for v_T;
-              s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_TS_SUB, 32)), x"F", '0', x"00000000");     wait for v_T;
-              s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_TS_POP, 32)), x"F", '1', x"00000001");     wait for v_T;
+              s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TS_HI, 32)), x"F", '0', x"00000000");      wait for v_T;
+              s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TS_LO, 32)), x"F", '0', x"00000000");     wait for v_T;
+              s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TS_SUB, 32)), x"F", '0', x"00000000");     wait for v_T;
+              s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TS_POP, 32)), x"F", '1', x"00000001");     wait for v_T;
               s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for 3*v_T;
-              s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_TS_CNT, 32)), x"F", '0', x"00000000");      wait for v_T;
+              s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TS_CNT, 32)), x"F", '0', x"00000000");      wait for v_T;
               v_cnt := to_integer(unsigned(s_ctrl_o.dat));
               s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
            end loop;
         end loop;
         
         wait for v_T*9;
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(c_STAT, 32)), x"F", '0', x"00000000");      wait for v_T;
+        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_STAT, 32)), x"F", '0', x"00000000");      wait for v_T;
         report "FIFO Status after:" severity warning;   
         wait until rst_n = '0';
   end process;
