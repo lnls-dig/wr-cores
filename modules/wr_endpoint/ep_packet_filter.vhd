@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2012-12-12
+-- Last update: 2014-03-18
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -282,7 +282,7 @@ begin  -- behavioral
     end if;
   end process;
 
-  result_cmp <= '1' when ((pmem_rdata and mask) xor insn.cmp_value) = x"0000" else '0';
+  result_cmp <= '1' when ((pmem_rdata and mask) = insn.cmp_value) else '0';
 
   insn <= f_decode_insn(ir);
   ra   <= f_pick_reg(regs, insn.ra) when insn.mode = c_MODE_LOGIC else result_cmp;
