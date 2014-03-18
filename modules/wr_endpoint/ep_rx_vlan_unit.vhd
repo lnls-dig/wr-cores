@@ -25,7 +25,6 @@ entity ep_rx_vlan_unit is
        tag_done_o : out std_logic;
        is_tagged_o: out std_logic;
 
-       rmon_o : inout t_rmon_triggers;
        regs_i : in    t_ep_out_registers;
        regs_o : out   t_ep_in_registers
        );

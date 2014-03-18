@@ -194,7 +194,6 @@ architecture behavioral of ep_rx_path is
       vid_o       : out   std_logic_vector(11 downto 0);
       tag_done_o  : out   std_logic;
       is_tagged_o : out   std_logic;
-      rmon_o      : inout t_rmon_triggers;
       regs_i      : in    t_ep_out_registers;
       regs_o      : out   t_ep_in_registers);
   end component;
@@ -465,7 +464,6 @@ begin  -- behavioral
         vid_o       => vlan_vid,
         tag_done_o  => vlan_tag_done,
         is_tagged_o => vlan_is_tagged,
-        rmon_o      => open,
         regs_i      => regs_i,
         regs_o      => regs_o);
   end generate gen_with_vlan_unit;
