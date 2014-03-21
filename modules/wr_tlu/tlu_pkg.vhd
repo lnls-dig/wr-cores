@@ -53,6 +53,26 @@ package tlu_pkg is
       irq_master_i      : in  t_wishbone_master_in
    );              
    end component;
+   
+   component wr_tlu_fsm is
+   generic( g_offset       : natural := 10);  
+   port (
+      clk_ref_i         : in  std_logic;    -- tranceiver clock domain
+      rst_ref_n_i       : in  std_logic;
+      
+      trigger_i         : in  t_trigger;  -- trigger vector for latch. meant to be used with 8bits from
+      tm_tai_cyc_i      : in  std_logic_vector(63 downto 0);   -- TAI Timestamp in 8ns cycles  
+
+      captured_time_o   : out std_logic_vector(64 + 3 - 1 downto 0);
+      valid_o           : out std_logic;
+
+      -- sys clk domain signals, sync them first
+      stable_i          : t_wishbone_data;
+      active_i          : std_logic;
+      edge_i            : std_logic
+   );               
+
+end component;
 
 end tlu_pkg;
 

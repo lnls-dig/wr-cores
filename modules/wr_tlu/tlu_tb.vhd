@@ -22,8 +22,8 @@ architecture rtl of tlu_tb is
 	signal rst_n            : std_logic := '0';
 	
    -- Clock period definitions
-   constant clk_period_sys  : time      := 8 ns;
-   constant clk_period_ref  : time      := 7 ns;
+   constant clk_period_sys  : time      := 10 ns;
+   constant clk_period_ref  : time      := 8 ns;
    
    signal s_ctrl_i : t_wishbone_slave_in;
    signal s_ctrl_o : t_wishbone_slave_out;
@@ -39,7 +39,7 @@ architecture rtl of tlu_tb is
    constant c_STAT      : natural := 0;               --0x00, ro, fifo n..0 status (0 empty, 1 ne)
    constant c_CLR       : natural := c_STAT     +4;   --0x04, wo, Clear channels n..0
    constant c_TEST      : natural := c_CLR      +4;   --0x08, ro, trigger n..0 status
-   constant c_ACT_GET   : natural := c_TEST     +4;   --0x08, ro, trigger n..0 status
+   constant c_ACT_GET   : natural := c_TEST     +4;   --0x0C, ro, trigger n..0 status
    constant c_ACT_SET   : natural := c_ACT_GET  +4;   --0x10, wo, Activate trigger n..0
    constant c_ACT_CLR   : natural := c_ACT_SET  +4;   --0x14, wo, deactivate trigger n..0
    constant c_EDG_GET   : natural := c_ACT_CLR  +4;   --0x18, ro, trigger n..0 latch edge (1 pos, 0 neg)
@@ -57,13 +57,14 @@ architecture rtl of tlu_tb is
    constant c_CH_SEL    : natural := c_TC_LO    +4;   --0x58, rw, channels select  
 -- ***** CAREFUL! From here on, all addresses depend on channels select Reg !
    constant c_TS_POP    : natural := c_CH_SEL   +4;   --0x5C, wo  writing anything here will pop selected channel
-   constant c_TS_TEST   : natural := c_TS_POP   +4;   --0x60, wo, Test channels n..0
+   constant c_TS_TEST   : natural := c_TS_POP   +4;   --0x60, wo, Test selected channel
    constant c_TS_CNT    : natural := c_TS_TEST  +4;   --0x64, ro, fifo fill count
    constant c_TS_HI     : natural := c_TS_CNT   +4;   --0x68, ro, fifo q - Cycle Count Hi
-   constant c_TS_LO     : natural := c_TS_HI    +4;   --0x68, ro, fifo q - Cycle Count Lo  
-   constant c_TS_SUB    : natural := c_TS_LO    +4;   --0x6C, ro, fifo q - Sub cycle word
-   constant c_TS_MSG    : natural := c_TS_SUB   +4;   --0x70, rw, MSI msg to be sent 
-   constant c_TS_DST_ADR: natural := c_TS_MSG   +4;   --0x74, rw, MSI adr to send to
+   constant c_TS_LO     : natural := c_TS_HI    +4;   --0x6C, ro, fifo q - Cycle Count Lo  
+   constant c_TS_SUB    : natural := c_TS_LO    +4;   --0x70, ro, fifo q - Sub cycle word
+   constant c_STABLE    : natural := c_TS_SUB   +4;   --0x70, rw, stable time in ns, how long a signal has to be constant before edges are detected
+   constant c_TS_MSG    : natural := c_STABLE   +4;   --0x74, rw, MSI msg to be sent 
+   constant c_TS_DST_ADR: natural := c_TS_MSG   +4;   --0x78, rw, MSI adr to send to
    
    
    -------------------------------------------------------- 
@@ -123,7 +124,7 @@ begin
          s_irq_i.stall <= '0';
          s_irq_i.dat <= (others => '0');
       else
-         r_ref_time <= std_logic_vector(unsigned(r_ref_time) +2);
+         r_ref_time <= std_logic_vector(unsigned(r_ref_time) +1);
          s_irq_i.ack <= s_irq_o.cyc and s_irq_o.stb;
       end if;
    end if;  
@@ -156,18 +157,18 @@ begin
         
         i := 50;
         s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000");
-        s_triggers <= (x"00", x"ff", x"00");
+        s_triggers <= (x"00", x"00", x"00");
         wait until rst_n = '1';
         wait until rising_edge(clk_sys);
-        wait for v_T*5; 
+        wait for v_T*5.5; 
         
-        s_triggers <= (x"00", x"ff", x"00");
+        s_triggers <= (x"00", x"00", x"00");
         wait for v_T*9;
         
         
         
         
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_EDG_NEG, 32)), x"F", '1', x"00000002"); wait for v_T;
+        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_EDG_POS, 32)), x"F", '1', x"0000000f"); wait for v_T;
         s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_MSK_SET, 32)), x"F", '1', x"00000007"); wait for v_T;
         s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_IE, 32)),  x"F", '1', x"00000001"); wait for v_T;
         s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_ACT_SET, 32)), x"F", '1', x"00000007"); wait for v_T;
@@ -181,38 +182,74 @@ begin
            
            
         
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"000000FF");      wait for v_T;
-        s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
-        wait for v_T*9;
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"00000000");      wait for v_T;
-        s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
-        wait for v_T*9;
+        --s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"000000FF");      wait for v_T;
+--        s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
+--        wait for v_T*9;
+--        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"00000000");      wait for v_T;
+--        s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
+--        wait for v_T*9;
+--        
+--        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"0000007F");      wait for v_T;
+--        s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
+--        wait for v_T*9;
+--        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"0000003F");      wait for v_T;
+--        s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
+--        wait for v_T*9;
+--        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"0000001F");      wait for v_T;
+--        s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
+--        wait for v_T*9;
+--        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"0000000F");      wait for v_T;
+--        s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
+--        wait for v_T*9;
+--        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"00000007");      wait for v_T;
+--        s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
+--        wait for v_T*9;
+--        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"00000003");      wait for v_T;
+--        s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
+--        wait for v_T*9;
+--        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"00000001");      wait for v_T;
+--        s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
+--        wait for v_T*9;
         
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"0000007F");      wait for v_T;
-        s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
-        wait for v_T*9;
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"0000003F");      wait for v_T;
-        s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
-        wait for v_T*9;
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"0000001F");      wait for v_T;
-        s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
-        wait for v_T*9;
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"0000000F");      wait for v_T;
-        s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
-        wait for v_T*9;
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"00000007");      wait for v_T;
-        s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
-        wait for v_T*9;
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"00000003");      wait for v_T;
-        s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
-        wait for v_T*9;
-        s_ctrl_i <= ('1', '1', std_logic_vector(to_unsigned(16#100# + c_TEST, 32)), x"F", '1', x"00000001");      wait for v_T;
-        s_ctrl_i <= ('0', '0', x"00000000", x"F", '0', x"00000000"); wait for v_T;
-        wait for v_T*9;
+        wait until rising_edge(clk_ref);
+        v_t := clk_period_ref;
+        wait for v_T/2; 
+        
+        s_triggers <= (x"00", x"00", x"00");
+        wait for v_T*20;
         
         report "TRIGGER!" severity warning;
-        s_triggers <= (x"00", x"ff", x"00");
+        s_triggers <= (x"00", x"01", x"00");
         wait for v_T;
+        s_triggers <= (x"00", x"0f", x"00");
+        wait for v_T;
+        s_triggers <= (x"00", x"a1", x"00");
+        wait for v_T;
+        s_triggers <= (x"00", x"fe", x"00");
+        wait for v_T;
+        s_triggers <= (x"00", x"00", x"00");
+        wait for v_T*20;
+      
+        
+        report "TRIGGER!" severity warning;
+        s_triggers <= (x"00", x"AF", x"00");
+        wait for v_T;
+        s_triggers <= (x"00", x"f0", x"00");
+        wait for v_T;
+        
+        s_triggers <= (x"00", x"00", x"00");
+        wait for v_T*10;
+        
+        s_triggers <= (x"00", x"FF", x"00");
+        wait for v_T*10;
+        report "TRIGGER!" severity warning;
+        s_triggers <= (x"00", x"F0", x"00");
+        wait for v_T;
+        s_triggers <= (x"00", x"0F", x"00");
+        wait for v_T;
+        
+        s_triggers <= (x"00", x"ff", x"00");
+        wait for v_T*20;
         ------------------------------------------
         report "Glitch" severity note;
         s_triggers <= (x"0f", x"0f", x"0f");
