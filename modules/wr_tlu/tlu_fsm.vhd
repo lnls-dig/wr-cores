@@ -1,4 +1,4 @@
---! @file wr_tlu.vhd
+--! @file wr_tlu_fsm.vhd
 --! @brief Timestamp latch unit for WR core with WB b4 interface
 --!
 --! Copyright (C) 2011-2012 GSI Helmholtz Centre for Heavy Ion Research GmbH 
@@ -102,9 +102,10 @@ architecture behavioral of wr_tlu_fsm is
    signal r_state : t_state;
 
    signal r_wed0,
-          r_wed1        : std_logic;
+          r_wed1,
+          r_wed2        : std_logic;
    
-   signal s_wed_start   : std_logic;
+   signal s_we          : std_logic;
 
 
    signal r_timeshift   : unsigned(31 downto 0);
@@ -145,15 +146,15 @@ captured_time_o <= s_add_x(66 downto 0);
    
    valid_o <= r_wed1;
    
-   --delay valid signal to compensate for adder delay 
+   --delay we signal to fifo in order to compensate for adder delay 
    we_delay: process(clk_ref_i)
    begin
    if rising_edge(clk_ref_i) then
       if(rst_ref_n_i = '0') then
          r_wed0    <= '0';
       else
-         r_wed0   <= s_wed_start;
-         r_wed1   <= r_wed0; 
+         r_wed0   <= s_we;
+         r_wed1   <= r_wed0;
       end if;
    end if;      
  end process;
@@ -175,21 +176,31 @@ captured_time_o <= s_add_x(66 downto 0);
          r_cnt       <= (others => '0');
          r_cntUnbr   <= (others => '0');
       else
-         s_wed_start <= '0';
+         s_we <= '0';
          
+         -- unbroken bit sequence count from msb
+         -- count starting from MSB is there to catch unbroken sequences spread over two incoming bytes 
          v_1unbr_msb  := to_unsigned(f_countUnbroken(trigger_i, '1', "msb"), r_cntUnbr'length);
          v_0unbr_msb  := to_unsigned(f_countUnbroken(trigger_i, '0', "msb"), r_cntUnbr'length);
+         -- unbroken bit sequence count from lsb
          v_1unbr_lsb  := to_unsigned(f_countUnbroken(trigger_i, '1', "lsb"), r_cntUnbr'length);
          v_0unbr_lsb  := to_unsigned(f_countUnbroken(trigger_i, '0', "lsb"), r_cntUnbr'length);
+         -- bit count
          v_1          := to_unsigned(f_count(trigger_i, '1'), r_cnt'length);
          v_0          := to_unsigned(f_count(trigger_i, '0'), r_cnt'length);
          
          
-         v_diff := (r_cnt + r_cntUnbr);
+         
+         
+         v_diff := (r_cnt - r_cntUnbr); 
+         r_timeshift <= (r_cntUnbr + ('0' & v_diff(v_diff'left downto 1)) +  to_unsigned(g_offset, 32));
+                                
+      
+         
          
          case r_state is
                            
-            when e_LOW        => if(trigger_i /=  x"00") then
+            when e_LOW        => if(trigger_i /=  x"00") then -- any changes lead to check for transition point
                                     r_cnt       <= v_1;
                                     r_cntUnbr   <= v_1unbr_lsb;
                                     r_state     <= e_TRANS_RISE;
@@ -203,9 +214,8 @@ captured_time_o <= s_add_x(66 downto 0);
                                  end if;  
             
                                  if(r_cntUnbr + v_1unbr_msb >= unsigned(stable_i)) then
-                                    s_wed_start <= edge_i and active_i;
-                                    r_timeshift <= (r_cntUnbr + 8 + ('0' & v_diff(v_diff'left downto 1)) +  to_unsigned(g_offset, 32));
-                                    
+                                    s_we <= edge_i and active_i;
+                                   
                                     r_state     <= e_HIGH;
                                  end if;   
                                 
@@ -224,8 +234,7 @@ captured_time_o <= s_add_x(66 downto 0);
                                  end if;  
             
                                  if(r_cntUnbr + v_0unbr_msb >= unsigned(stable_i)) then
-                                    s_wed_start <= not edge_i and active_i;
-                                    r_timeshift <= (r_cntUnbr +('0' & v_diff(v_diff'left downto 1)) +  to_unsigned(g_offset, 32)) ;
+                                    s_we <= not edge_i and active_i;
                                     
                                     r_state     <= e_LOW;
                                  end if;  
