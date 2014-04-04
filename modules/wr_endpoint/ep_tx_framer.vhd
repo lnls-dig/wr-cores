@@ -155,6 +155,7 @@ architecture behavioral of ep_tx_framer is
   signal snk_valid : std_logic;
 
   signal sof_p1, eof_p1, abort_p1, error_p1 : std_logic;
+  signal sof_reg  : std_logic;
   signal snk_cyc_d0                         : std_logic;
 
   signal decoded_status : t_wrf_status_reg;
@@ -274,7 +275,23 @@ begin  -- behavioral
     end if;
   end process;
 
-  sof_p1    <= not snk_cyc_d0 and snk_i.cyc;
+  gen_sof: process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if (rst_n_i = '0') then
+        sof_reg <= '0';
+      else
+        if (snk_cyc_d0 = '0' and snk_i.cyc = '1' and state /= TXF_IDLE) then
+          sof_reg <= '1';
+        elsif(state = TXF_IDLE and pcs_dreq_i = '1') then
+          sof_reg <= '0';
+        end if;
+      end if;
+    end if;
+  end process;
+
+  sof_p1    <= (not snk_cyc_d0 and snk_i.cyc) or sof_reg when (state = TXF_IDLE and pcs_dreq_i = '1')
+               else '0';
   eof_p1    <= snk_cyc_d0 and not snk_i.cyc;
   snk_valid <= (snk_i.cyc and snk_i.stb and snk_i.we) and not stall_int;
 
