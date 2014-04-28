@@ -98,7 +98,7 @@ architecture behavioral of wr_tlu_fsm is
 
    constant c_datbits : natural := 72;
 
-   type   t_state is (e_LOW, e_TRANS_RISE, e_HIGH, e_TRANS_FALL);
+   type   t_state is (e_LOW, e_TRANS_RISE, e_HIGH, e_TRANS_FALL, e_ERROR);
    signal r_state : t_state;
 
    signal r_wed0,
@@ -239,7 +239,10 @@ captured_time_o <= s_add_x(66 downto 0);
                                     r_state     <= e_LOW;
                                  end if;  
             
-            when others       => r_state <=  e_LOW;
+            
+            when e_ERROR       => r_state <=  e_LOW;
+            
+            when others       => r_state  <=  e_ERROR;
          end case;
          
       end if;

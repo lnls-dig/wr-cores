@@ -16,13 +16,14 @@ architecture rtl of tlu_tb is
    constant c_dummy_master_out   : t_wishbone_master_out := c_dummy_slave_in;
    constant c_dummy_master_in    : t_wishbone_master_in  := c_dummy_slave_out;
 
-   signal r_ref_time : std_logic_vector(63 downto 0);   
+   signal r_ref_time : std_logic_vector(63 downto 0);
+   signal r_test_time : std_logic_vector(63 downto 0);   
   
-   signal clk_sys, clk_ref : std_logic := '0';
+   signal clk_sys, clk_ref, clk_test : std_logic := '0';
 	signal rst_n            : std_logic := '0';
 	
    -- Clock period definitions
-   constant clk_period_sys  : time      := 10 ns;
+   constant clk_period_sys  : time      := 8 ns;
    constant clk_period_ref  : time      := 8 ns;
    
    signal s_ctrl_i : t_wishbone_slave_in;
@@ -106,13 +107,19 @@ begin
    
    clk_process2 :process
    begin
+        clk_test <= '0';
+        wait for 500 ps;  --for 0.5 ns signal is '0'.
+         clk_test <= '1';
+        wait for 500 ps;  --for 0.5 ns signal is '0'
+   end process;
+   
+   clk_process3 :process
+   begin
         clk_ref <= '0';
         wait for clk_period_ref/2;  --for 0.5 ns signal is '0'.
         clk_ref <= '1';
         wait for clk_period_ref/2;  --for next 0.5 ns signal is '1'.
    end process;
-   
-   
    
    sample :process(clk_ref)
    begin
@@ -128,7 +135,18 @@ begin
          s_irq_i.ack <= s_irq_o.cyc and s_irq_o.stb;
       end if;
    end if;  
-   end process;   
+   end process;
+   
+   sample2 :process(clk_test)
+   begin
+   if(rising_edge(clk_test)) then
+      if(rst_n = '0') then
+         r_test_time <= (others => '0' );
+      else
+         r_test_time <= std_logic_vector(unsigned(r_test_time) +1);
+      end if;
+   end if;  
+   end process;      
      
   
    
@@ -213,22 +231,70 @@ begin
         
         wait until rising_edge(clk_ref);
         v_t := clk_period_ref;
-        wait for v_T/2; 
+        wait for 7 ns; 
         
         s_triggers <= (x"00", x"00", x"00");
         wait for v_T*20;
         
         report "TRIGGER!" severity warning;
-        s_triggers <= (x"00", x"01", x"00");
+        s_triggers <= (x"00", x"00", x"00");
+        wait for v_T;
+        s_triggers <= (x"00", x"03", x"00");
+        wait for v_T;
+        s_triggers <= (x"00", x"fc", x"00");
+        wait for v_T;
+        s_triggers <= (x"00", x"00", x"00");
+        wait for v_T;
+        s_triggers <= (x"00", x"00", x"00");
+        wait for v_T*5;
+        
+        report "TRIGGER!" severity warning;
+        s_triggers <= (x"00", x"00", x"00");
+        wait for v_T;
+        s_triggers <= (x"00", x"07", x"00");
+        wait for v_T;
+        s_triggers <= (x"00", x"f8", x"00");
+        wait for v_T;
+        s_triggers <= (x"00", x"00", x"00");
+        wait for v_T;
+        s_triggers <= (x"00", x"00", x"00");
+        wait for v_T*5;
+        
+        report "TRIGGER!" severity warning;
+        s_triggers <= (x"00", x"00", x"00");
         wait for v_T;
         s_triggers <= (x"00", x"0f", x"00");
         wait for v_T;
-        s_triggers <= (x"00", x"a1", x"00");
-        wait for v_T;
-        s_triggers <= (x"00", x"fe", x"00");
+        s_triggers <= (x"00", x"f0", x"00");
         wait for v_T;
         s_triggers <= (x"00", x"00", x"00");
-        wait for v_T*20;
+        wait for v_T;
+        s_triggers <= (x"00", x"00", x"00");
+        wait for v_T*5;
+        
+        report "TRIGGER!" severity warning;
+        s_triggers <= (x"00", x"00", x"00");
+        wait for v_T;
+        s_triggers <= (x"00", x"ff", x"00");
+        wait for v_T;
+        s_triggers <= (x"00", x"00", x"00");
+        wait for v_T;
+        s_triggers <= (x"00", x"00", x"00");
+        wait for v_T;
+        s_triggers <= (x"00", x"00", x"00");
+        wait for v_T*5;
+        
+        report "TRIGGER!" severity warning;
+        s_triggers <= (x"00", x"00", x"00");
+        wait for v_T;
+        s_triggers <= (x"00", x"ff", x"00");
+        wait for v_T;
+        s_triggers <= (x"00", x"ff", x"00");
+        wait for v_T;
+        s_triggers <= (x"00", x"ff", x"00");
+        wait for v_T;
+        s_triggers <= (x"00", x"00", x"00");
+        wait for v_T*5;
       
         
         report "TRIGGER!" severity warning;

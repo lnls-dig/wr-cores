@@ -71,7 +71,7 @@ use work.wb_irq_pkg.all;
 use work.tlu_pkg.all;
 
 entity wr_tlu is
-   generic( g_offset       : natural := 0;
+   generic( g_offset       : natural := 6;
             g_num_triggers : natural := 1;
             g_fifo_depth   : natural := 32;
             g_auto_msg     : boolean := false);  
@@ -111,46 +111,14 @@ architecture behavioral of wr_tlu is
   subtype t_cnt is std_logic_vector(f_log2_size(g_fifo_depth)-1 downto 0);
   type    t_cnt_array is array (0 to g_num_triggers-1) of t_cnt;
 
-  
-  
-   function f_count(input : std_logic_vector; thing2count : std_logic) return natural is
-      variable result, i : natural;
-      
-   begin
-      result := 0;
-      for i in input'left downto 0 loop 
-         if input(i) = thing2count then
-            result := result + 1;
-         end if;
-      end loop;
-      return result; 
-   end f_count;
-   
-   function f_countUnbroken(input : std_logic_vector; thing2count : std_logic) return natural is
-      variable result, i : natural;   
-   begin
-      result := 0;
-      
-      for i in 0 to input'left loop 
-         if input(i) = thing2count then   
-            result := result + 1;
-         else
-            exit;
-         end if;
-      end loop; 
-      
-      return result; 
-   end f_countUnbroken;
-   
--------------------------------------------------------------------------------
+ -------------------------------------------------------------------------------
 
   -----------------------------------------------------------------------------
   -- LATCH UNIT(s)
   -----------------------------------------------------------------------------
   signal s_triggers                 : t_trigger_array(g_num_triggers-1 downto 0);
   -- these control registers must be synced to ref_clk domain
-   signal trigger_active_ref_clk     : channels;
-   signal trigger_edge_ref_clk       : channels;
+
    
   -- tm latch registers
   signal tm_fifo_in                 : t_tm_array;
@@ -176,9 +144,6 @@ architecture behavioral of wr_tlu is
 
 
    signal s_adr : unsigned(7 downto 0);
-   attribute syn_keep: boolean;
-   attribute syn_keep of s_adr: signal is true;
-
 -------------------------------------------------------------------------------
 -- WB BUS INTERFACE
 -------------------------------------------------------------------------------
@@ -221,9 +186,8 @@ architecture behavioral of wr_tlu is
    
    signal r_rst_n    : std_logic; 
    signal r_csl      : t_wishbone_data;
-   signal r_clr, 
-          r_ref_clr_0,
-          r_ref_clr_1   : channels;
+   signal r_clr      : channels;   
+   signal r_stable   : t_wishbone_data;
    signal r_test     : t_trigger_array(g_num_triggers-1 downto 0);
    signal r_test_all : t_trigger;  
    signal r_msk      : channels;
@@ -234,95 +198,105 @@ architecture behavioral of wr_tlu is
    signal r_msg, 
           s_msg      : t_wishbone_data_array(g_num_triggers-1 downto 0);   
    signal r_dst      : t_wishbone_address_array(g_num_triggers-1 downto 0);
-   signal r_irq_0,
-          r_irq_1    : channels;
-   signal r_stable       : t_wishbone_data;
-   signal r_stable_ref   : t_wishbone_data;
+
+   -- sync chains
+   signal r_clr1,
+          r_clr_ref_synced       : channels;
    
-                    
+   signal r_triggers1,
+          r_triggers_ref_synced  : t_trigger_array(g_num_triggers-1 downto 0);  
+   
+   signal r_act1,
+          r_act_ref_synced       : channels;
+          
+   signal r_edg1,
+          r_edg_ref_synced       : channels;
+   
+   signal r_stable1,
+          r_stable_ref_synced     : t_wishbone_data;
+   
+   
+   signal r_irq1,
+          r_irq_sys_synced       : channels;         
+   
+   signal tm_tai_cyc1,
+          tm_tai_cyc_sys_synced  : std_logic_vector(63 downto 0);                                
 -----------------------------------------------------------------------------
 
 begin  -- behavioral
 
 
-  stable_time : for j in r_stable'range generate
-    sync_trig_edge_reg : gc_sync_ffs
-   generic map (
-     g_sync_edge => "positive")
-   port map (
-     clk_i    => clk_ref_i,
-     rst_n_i  => rst_ref_n_i,
-     data_i   => r_stable(j),
-     synced_o => r_stable_ref(j),
-     npulse_o => open,
-     ppulse_o => open);  
-end generate;
-  
+   ref_sync_chains : process(clk_ref_i)
+   begin
+     if rising_edge(clk_ref_i) then 
+        r_triggers1           <= s_triggers;
+        r_triggers_ref_synced <= r_triggers1;
+         
+        r_act1                <= r_act;
+        r_act_ref_synced      <= r_act1; 
+        
+        r_edg1                <= r_edg;
+        r_edg_ref_synced      <= r_edg1;
+        
+        r_stable1             <= r_stable;
+        r_stable_ref_synced   <= r_stable1;
+     end if;           
+   end process;
+       
+   sys_sync_chains : process(clk_sys_i)
+   begin
+      if rising_edge(clk_sys_i) then
+         r_irq1                  <= we;
+         r_irq_sys_synced        <= r_irq1;
+         
+         tm_tai_cyc1             <= tm_tai_cyc_i;
+         tm_tai_cyc_sys_synced   <= tm_tai_cyc1;
+      end if;          
+   end process;
+
+    
      
 -------------------------------------------------------------------------------
 -- BEGIN TRIGGER channels GENERATE
 -------------------------------------------------------------------------------
 
-  trig_sync : for i in 0 to g_num_triggers-1 generate
+   trig_sync : for i in 0 to g_num_triggers-1 generate
 
-    nRst_fifo(i)  <= rst_ref_n_i and r_ref_clr_1(i);
-    
    fifo_clr_logic : process(clk_ref_i, r_clr(i))
    begin
       if(r_clr(i) = '1') then
-         r_ref_clr_0(i) <= '0';
-         r_ref_clr_1(i) <= '0';
+         r_clr1(i)            <= '0';
+         r_clr_ref_synced(i)  <= '0';
       elsif clk_ref_i'event and clk_ref_i = '1' then  -- rising clock edge
-        r_ref_clr_0(i) <= '1';
-        r_ref_clr_1(i) <= r_ref_clr_0(i);
+        r_clr1(i)             <= '1';
+        r_clr_ref_synced(i)   <= r_clr1(i);
       end if;           
-    end process;
+   end process; 
+
+   nRst_fifo(i)  <= rst_ref_n_i and r_clr_ref_synced(i);
     
-   sync_trig_edge_reg : gc_sync_ffs
-   generic map (
-     g_sync_edge => "positive")
-   port map (
-     clk_i    => clk_ref_i,
-     rst_n_i  => rst_ref_n_i,
-     data_i   => r_edg(i),
-     synced_o => trigger_edge_ref_clk(i),
-     npulse_o => open,
-     ppulse_o => open);
-
-   sync_trig_active_reg : gc_sync_ffs
-   generic map (
-     g_sync_edge => "positive")
-   port map (
-     clk_i    => clk_ref_i,
-     rst_n_i  => rst_ref_n_i,
-     data_i   => r_act(i),
-     synced_o => trigger_active_ref_clk(i),
-     npulse_o => open,
-     ppulse_o => open);
-
-   
    fsm: wr_tlu_fsm 
-   generic map( g_offset => g_offset) 
+   generic map( g_offset => g_offset+2) -- +2 for sync chain latency 
    port map(
       clk_ref_i         => clk_ref_i,    -- tranceiver clock domain
       rst_ref_n_i       => rst_ref_n_i,
       
-      trigger_i         => s_triggers(i),
+      trigger_i         => r_triggers_ref_synced(i),
       tm_tai_cyc_i      => tm_tai_cyc_i,
 
       captured_time_o   => tm_fifo_in(i),
       valid_o           => we(i),
 
       -- sys clk domain signals, sync them first
-      stable_i          => r_stable_ref,
-      active_i          => trigger_active_ref_clk(i),
-      edge_i            => trigger_edge_ref_clk(i)
+      stable_i          => r_stable_ref_synced,
+      active_i          => r_act_ref_synced(i),
+      edge_i            => r_edg_ref_synced(i)
    );
    
-   
+   --combine software triggers with trigger inputs
    s_triggers(i) <= triggers_i(i) or r_test(i) or r_test_all;
  
-  
+   --timestamp fifos
    rd(i) <= r_pop(i);
    
      generic_async_fifo_1 : generic_async_fifo
@@ -365,9 +339,6 @@ end generate;
      rd_almost_full_o  => open,
      rd_count_o        => rd_count(i));
 
-        
-
-   
   end generate trig_sync;
 
 -------------------------------------------------------------------------------
@@ -410,11 +381,11 @@ end generate;
             r_stable <= std_logic_vector(to_unsigned(8, r_stable'length));
          else
             -- Fire and Forget Registers        
-             v_en    := ctrl_slave_i.cyc and ctrl_slave_i.stb;
-             v_adr   := to_integer(s_adr);
-             v_we    := ctrl_slave_i.we;
-             v_dati  := ctrl_slave_i.dat;
-             v_sel   := ctrl_slave_i.sel;
+            v_en    := ctrl_slave_i.cyc and ctrl_slave_i.stb and not r_c_stall;
+            v_adr   := to_integer(s_adr);
+            v_we    := ctrl_slave_i.we;
+            v_dati  := ctrl_slave_i.dat;
+            v_sel   := ctrl_slave_i.sel;
          
             r_c_ack     <= '0';
             r_c_err     <= '0';
@@ -454,7 +425,7 @@ end generate;
                                                 r_c_stall      <= '1'; 
                                              end if;
                      
-                     when c_STABLE        => r_stable <= f_wb_wr(r_stable,          v_dati, v_sel, "owr"); -- time in ns signal has to stay stable                                     
+                     when c_STABLE        => r_stable          <= f_wb_wr(r_stable,          v_dati, v_sel, "owr"); -- time in ns signal has to stay stable                                     
                      when c_TS_TEST       => r_test(v_ch_sl)   <= f_wb_wr(r_test(v_ch_sl),   v_dati, v_sel, "owr"); -- soft trigger test 
                      when c_TS_MSG        => r_msg(v_ch_sl)    <= f_wb_wr(r_msg(v_ch_sl),    v_dati, v_sel, "owr"); -- msi channel message  
                      when c_TS_DST_ADR    => r_dst(v_ch_sl)    <= f_wb_wr(r_dst(v_ch_sl),    v_dati, v_sel, "owr"); -- msi destination address                    
@@ -471,13 +442,19 @@ end generate;
                      when c_MSK_GET       => r_c_dato(r_msk'range)               <= r_msk;         -- interrupt generation mask
                      when c_CH_NUM        => r_c_dato(4 downto 0)                <= std_logic_vector(to_unsigned(g_num_triggers, 5)); -- number of channels
                      when c_CH_DEPTH      => r_c_dato(15 downto 0)               <= std_logic_vector(to_unsigned(g_fifo_depth , 16)); -- channel depth
-                     when c_TC_HI         => r_c_dato                            <= tm_tai_cyc_i(63 downto 32); -- current time hi word. read 1st
-                                                                 r_tm_tai_cyc_LO <= tm_tai_cyc_i(31 downto 0);                      
+                     when c_TC_HI         => r_c_dato                            <= tm_tai_cyc_sys_synced(63 downto 32); -- current time hi word. read 1st
+                                                                 r_tm_tai_cyc_LO <= tm_tai_cyc_sys_synced(31 downto 0);                      
                      when c_TC_LO         => r_c_dato                            <= r_tm_tai_cyc_LO;
                      when c_CH_SEL        => r_c_dato(r_csl'range)               <= r_csl;     -- current time lo word. read 2nd
                      -- ***** CAREFUL! From here on, all addresses depend on channels select Reg !
                      when c_STABLE        => r_c_dato                            <= r_stable; -- time in ns signal has to stay stable                                                               
-                     when c_TS_CNT        => r_c_dato(rd_count(v_ch_sl)'range)   <= rd_count(v_ch_sl); 
+                     -- FIXME: Tom's fifo has no actual element cnt, ie. can only count to N-1 and is therefore not able to show full/empty in count
+                     -- this is a workaround: if count is 0 but the buffer not empty, return N instead of count 
+                     when c_TS_CNT        => if(rd_empty(v_ch_sl) = '0' and unsigned(rd_count(v_ch_sl)) = 0) then
+                                                r_c_dato(rd_count(v_ch_sl)'length downto 0) <= std_logic_vector(to_unsigned(g_fifo_depth,rd_count(v_ch_sl)'length+1)); 
+                                             else
+                                                r_c_dato(rd_count(v_ch_sl)'range)   <= rd_count(v_ch_sl); 
+                                             end if;
                      when c_TS_HI         => r_c_dato                            <= tm_fifo_out(v_ch_sl)(64+3-1 downto 32+3+0); -- timestamp hi word
                      when c_TS_LO         => r_c_dato                            <= tm_fifo_out(v_ch_sl)(32+3-1 downto   +3+0); -- timestamp lo word
                      when c_TS_SUB        => r_c_dato(2 downto 0)                <= tm_fifo_out(v_ch_sl)(2 downto           0); -- timestamp sub nano word
@@ -496,13 +473,7 @@ end generate;
    -- MSI IRQ Interface
    ----------------------------------------------------------------------------- 
    
-   sync_irq_in : process(clk_sys_i)
-   begin
-      if rising_edge(clk_sys_i) then
-         r_irq_0 <= we;
-         r_irq_1 <= r_irq_0;
-      end if;
-   end process sync_irq_in;
+
 
    irq_msg : for i in 0 to g_num_triggers-1 generate
    with g_auto_msg select
@@ -527,7 +498,7 @@ end generate;
                en_i           => r_ie(0),  
                mask_i         => r_msk,
             --irq lines
-               irq_i          => r_irq_1
+               irq_i          => r_irq_sys_synced
    );
 
 end behavioral;
