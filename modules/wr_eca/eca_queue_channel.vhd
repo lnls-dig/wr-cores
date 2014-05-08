@@ -1,5 +1,5 @@
---! @file eca_gpio_channel.vhd
---! @brief ECA-GPIO Adapter
+--! @file eca_queue channel.vhd
+--! @brief ECA-Queue Adapter
 --! @author Wesley W. Terpstra <w.terpstra@gsi.de>
 --!
 --! Copyright (C) 2013 GSI Helmholtz Centre for Heavy Ion Research GmbH 
@@ -17,7 +17,9 @@
 --! 0x0C RW : Queue overflow interrupt address (i_master_o.adr=reg, i_master_o.dat=[0=dropped])
 --! 0x10 R  : Queued actions
 --! 0x14 RW : Dropped actions
---! 0x18 -- reserved --
+--! 0x18 R  : Meta-data 
+--!   0x0 R : eca index
+--!   0x1 R : channel index
 --! 0x1C R  : flags (0x1=late, 0x2=conflict)
 --! 0x20 R  : Event1
 --! 0x24 R  : Event0
@@ -412,7 +414,8 @@ begin
         when  3 => q_slave_o.dat(rq_int_dropped'range) <= rq_int_dropped;
         when  4 => q_slave_o.dat(rq_queued'range)   <= std_logic_vector(rq_queued);
         when  5 => q_slave_o.dat(rq_dropped'range)  <= std_logic_vector(rq_dropped);
-        when  6 => null; -- reserved
+        when  6 => q_slave_o.dat(31 downto 24) <= a_channel_i.eca_idx;
+                   q_slave_o.dat(23 downto 16) <= a_channel_i.chl_idx;
         when  7 => q_slave_o.dat(0) <= sq_late;
                    q_slave_o.dat(1) <= sq_conflict;
         -- Protect clock crossing (rq_widx updates well after memory written)

@@ -64,7 +64,7 @@ package eca_pkg is
 
  constant c_eca_queue_sdb : t_sdb_device := (
     abi_class     => x"0000", -- undocumented device
-    abi_ver_major => x"01",
+    abi_ver_major => x"02",
     abi_ver_minor => x"00",
     wbd_endian    => c_sdb_endian_big,
     wbd_width     => x"7", -- 8/16/32-bit port granularity
