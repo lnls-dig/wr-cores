@@ -121,7 +121,7 @@ status_t ActionQueue::hook_overflow(bool enable, uint32_t dest) {
   return EB_OK;
 }
 
-status_t ActionQueue::pop(QueueEntry& queue) {
+status_t ActionQueue::pop(ActionEntry& queue) {
   Cycle cycle;
   eb_status_t  status;
   eb_data_t    queued, flags;
@@ -150,8 +150,10 @@ status_t ActionQueue::pop(QueueEntry& queue) {
   if ((status = cycle.close()) != EB_OK)
     return status;
   
-  queue.late     = (flags & 1) != 0;
-  queue.conflict = (flags & 2) != 0;
+  queue.status =
+    (flags & 2) != 0 ? CONFLICT :
+    (flags & 1) != 0 ? LATE     :
+    VALID;
   queue.event = event1; queue.event <<= 32; queue.event += event0;
   queue.param = param1; queue.param <<= 32; queue.param += param0;
   queue.tag   = tag;

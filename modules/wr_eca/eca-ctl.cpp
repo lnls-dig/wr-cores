@@ -186,11 +186,7 @@ static void dump_channel(ECA& eca, ActionChannel& channel) {
   
   for (unsigned i = 0; i < queue.size(); ++i) {
     ActionEntry& ae = queue[i];
-    char late = ' ';
-    if ((ae.time >> 63) != 0) {
-      ae.time = -ae.time;
-      late='!';
-    }
+    char late = (ae.status != VALID)?'!':' ';
     
     if (numeric) {
       printf("0x%016"PRIx64"  0x%016"PRIx64"  0x%08"PRIx32"  0x%08"PRIx32" %c0x%016"PRIx64"\n", 
@@ -199,6 +195,30 @@ static void dump_channel(ECA& eca, ActionChannel& channel) {
       printf("0x%016"PRIx64"  0x%016"PRIx64"  0x%08"PRIx32"  0x%08"PRIx32" %c%s\n", 
             ae.event, ae.param, ae.tag, ae.tef, late, eca.date(ae.time).c_str());
     }
+  }
+}
+
+static void dump_queue_entry(ECA& eca, ActionEntry& qe) {
+  if (!quiet) {
+    if (numeric) {
+      printf("----------------------------------------------------------------------------------\n");
+      printf("EventID             Param               Tag         Tef         Execution Time\n");
+      printf("----------------------------------------------------------------------------------\n");
+    } else {
+      printf("---------------------------------------------------------------------------------------------\n");
+      printf("EventID             Param               Tag         Tef         Execution Time (TAI)\n");
+      printf("---------------------------------------------------------------------------------------------\n");
+    }
+  }
+  
+  char late = (qe.status != VALID)?'!':' ';
+  
+  if (numeric) {
+    printf("0x%016"PRIx64"  0x%016"PRIx64"  0x%08"PRIx32"  0x%08"PRIx32" %c0x%016"PRIx64"\n", 
+          qe.event, qe.param, qe.tag, qe.tef, late, qe.time);
+  } else {
+    printf("0x%016"PRIx64"  0x%016"PRIx64"  0x%08"PRIx32"  0x%08"PRIx32" %c%s\n", 
+          qe.event, qe.param, qe.tag, qe.tef, late, eca.date(qe.time).c_str());
   }
 }
 
@@ -661,7 +681,7 @@ int main(int argc, char** argv) {
       return 1;
     }
     
-    QueueEntry qe;
+    ActionEntry qe;
     if (verbose) {
       printf("Popping ActionQueue #%d (0x%"EB_ADDR_FMT") on ECA #%d \"%s\" (0x%"EB_ADDR_FMT")\n",
              channel_id, ecas[eca_id].channels[channel_id].queue.front().address,
@@ -669,6 +689,8 @@ int main(int argc, char** argv) {
     }
     if ((status = ecas[eca_id].channels[channel_id].queue.front().pop(qe)) != EB_OK)
       die(status, "ActionQueue::pop()");
+    
+    dump_queue_entry(ecas[eca_id], qe);
   }
   
   /* -------------------------------------------------------------------- */

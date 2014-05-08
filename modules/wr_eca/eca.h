@@ -53,6 +53,12 @@ struct EventEntry {
    : event(e), param(p), tef(t), time(i) { }
 };
 
+enum ActionStatus {
+  VALID = 0,
+  CONFLICT,
+  LATE
+};
+
 /* An action queued to be executed has these fields */
 struct ActionEntry {
   Event event;
@@ -60,17 +66,10 @@ struct ActionEntry {
   Tag   tag;
   Tef   tef;
   Time  time;
+  ActionStatus status;
   
-  ActionEntry(Event e = 0, Param p = 0, Tag a = 0, Tef t = 0, Time i = 0)
-   : event(e), param(p), tag(a), tef(t), time(i) { }
-};
-
-struct QueueEntry : public ActionEntry {
-  bool late;
-  bool conflict;
-  
-  QueueEntry(Event e = 0, Param p = 0, Tag a = 0, Tef t = 0, Time i = 0, bool l = false, bool c = false)
-   : ActionEntry(e, p, a, t, i), late(l), conflict(c) { }
+  ActionEntry(Event e = 0, Param p = 0, Tag a = 0, Tef t = 0, Time i = 0, ActionStatus s = VALID)
+   : event(e), param(p), tag(a), tef(t), time(i), status(s) { }
 };
 
 /* Software condition table entry fields */
@@ -152,7 +151,7 @@ struct ActionQueue {
   status_t hook_overflow(bool enable, uint32_t dest);
   
   /* Pop the next queued action from the queue */
-  status_t pop(QueueEntry& queue);
+  status_t pop(ActionEntry& queue);
 };
 
 /* ======================================================================= */

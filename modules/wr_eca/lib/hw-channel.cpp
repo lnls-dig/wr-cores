@@ -203,9 +203,7 @@ status_t ActionChannel::load(std::vector<ActionEntry>& table) {
     ae.tag   = tag;
     ae.tef   = tef;
     ae.time  = time1;  ae.time  <<= 32; ae.time  += time0;
-    
-    /* late events have negative timestamps */
-    if (((ctl >> 24) & ECAC_STATUS_LATE) == 1) ae.time = -ae.time;
+    ae.status = (((ctl >> 24) & ECAC_STATUS_LATE) == 1)?LATE:VALID;
     
     table.push_back(ae);
   }
