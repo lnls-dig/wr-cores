@@ -113,6 +113,38 @@ static void render_eca(unsigned i, const ECA& eca) {
       printf("\n");
     }
   }
+  for (unsigned c = 0; c < eca.channels.size(); ++c) {
+    const ActionChannel& ac = eca.channels[c];
+    if (!ac.queue.empty()) {
+      const ActionQueue& aq = ac.queue.front();
+      printf("  ActionQueue #%d (0x%"EB_ADDR_FMT")", c, aq.address);
+      if (verbose) {
+        printf(" - API v%d.%d; \"%s\" v%d (%4x-%02x-%02x)\n",
+               aq.sdb_ver_major, aq.sdb_ver_minor, aq.sdb_name.c_str(), aq.sdb_version,
+               aq.sdb_date >> 16, (aq.sdb_date >> 8) & 0xFF, aq.sdb_date & 0xFF);
+      } else {
+        printf("\n");
+      }
+      printf("    fill:%d/%d, dropped:%d, arrival-int:",
+        aq.queued_actions, aq.queue_size, aq.dropped_actions);
+      if (aq.arrival_enable) {
+        printf("0x%"PRIx32, aq.arrival_dest);
+      } else {
+        printf("disabled");
+      }
+      printf(", overflow-int:");
+      if (aq.overflow_enable) {
+        printf("0x%"PRIx32, aq.overflow_dest);
+      } else {
+        printf("disabled");
+      }
+      if (aq.dropped_actions) {
+        printf(" !!!!!!!!\n");
+      } else {
+        printf("\n");
+      }
+    }
+  }
   for (unsigned s = 0; s < eca.streams.size(); ++s) {
     const EventStream& es = eca.streams[s];
     printf("  Stream  #%d (0x%"EB_ADDR_FMT")", s, es.address);
