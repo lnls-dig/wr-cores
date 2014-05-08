@@ -384,6 +384,8 @@ begin
     q_channel_o(i).tag      <= r1_a_tag;
     q_channel_o(i).tef      <= r1_a_tef;
     q_channel_o(i).time     <= s1_a_action_time;
+    q_channel_o(i).eca_idx  <= (others => '0'); -- meta-data added by channel
+    q_channel_o(i).chl_idx  <= (others => '0');
   end generate;
   
 end rtl;

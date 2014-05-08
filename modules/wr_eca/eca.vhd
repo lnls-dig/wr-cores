@@ -851,6 +851,7 @@ begin
   channels : for channel_idx in 0 to g_num_channels-1 generate
     channel : eca_channel
       generic map(
+        g_channel_idx     => channel_idx,
         g_log_table_size  => g_log_queue_len,
         g_log_latency     => g_log_queue_len,
         g_log_queue_depth => g_log_queue_len+1)
@@ -859,6 +860,7 @@ begin
         rst_n_i   =>  a_rst_n_i,
         drain_i   => ra0_cq_drain (channel_idx),
         freeze_i  => ra0_cq_freeze(channel_idx),
+        eca_idx_i => rc_ce_idx,   -- crosses clock domains, but held stable
         addr_i    => rc_cq_index, -- crosses clock domains, but held stable
         fill_o    => sa_qc_fill   (channel_idx),
         full_o    => sa_qw_full   (channel_idx),
