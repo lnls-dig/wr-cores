@@ -238,9 +238,6 @@ status_t ECA::probe(Device device, std::vector<ECA>& ecas) {
   }
   
   /* Phase 3 -- Deduce stream relationships */
-  std::vector<uint8_t> ids;
-  ids.resize(record.streams.size());
-  
   for (unsigned s = 0; s < record.streams.size(); ++s) {
     EventStream& es = record.streams[s];
     
@@ -248,12 +245,7 @@ status_t ECA::probe(Device device, std::vector<ECA>& ecas) {
     status = device.read(es.address, EB_DATA32, &id);
     if (status != EB_OK) return status;
     
-    ids[s] = id;
-  }
-  
-  for (unsigned s = 0; s < record.streams.size(); ++s) {
-    EventStream& es = record.streams[s];
-    uint8_t mid = ids[s];
+    uint8_t mid = id;
     if (mid >= ecas.size()) {
       /* fprintf(stderr, "Unmatched ECA Event stream; id: %d\n", mid); */
       continue;
