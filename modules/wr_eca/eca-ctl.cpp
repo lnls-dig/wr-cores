@@ -79,17 +79,18 @@ static void die(eb_status_t status, const char* what) {
 }
 
 static void render_eca(unsigned i, const ECA& eca) {
-  printf("ECA #%d %s  \"%s\" (0x%"EB_ADDR_FMT") -- %s\n", 
-    i, eca.disabled?"disabled":"enabled ", eca.name.c_str(), eca.address,
-    eca.interrupts?"generating interrupts":"dropping interrupts");
+  printf("ECA #%d %s  \"%s\" (0x%"EB_ADDR_FMT")\n", 
+    i, eca.disabled?"disabled":"enabled ", eca.name.c_str(), eca.address);
   if (verbose) {
     printf("    API v%d.%d; \"%s\" v%d (%4x-%02x-%02x)\n",
            eca.sdb_ver_major, eca.sdb_ver_minor, eca.sdb_name.c_str(), eca.sdb_version,
            eca.sdb_date >> 16, (eca.sdb_date >> 8) & 0xFF, eca.sdb_date & 0xFF);
   }
-  printf("    table:%d,%s  queue:%d,%s  freq:%s\n", eca.table_size, eca.inspect_table?"rw":"wo",
-                                                    eca.queue_size, eca.inspect_queue?"rw":"wo",
-                                                    eca.frequency().c_str());
+  printf("    table:%d,%s  queue:%d,%s  freq:%s  int:%s\n", 
+    eca.table_size, eca.inspect_table?"rw":"wo",
+    eca.queue_size, eca.inspect_queue?"rw":"wo",
+    eca.frequency().c_str(), 
+    eca.disabled?"disabled":"enabled");
   if (numeric)
     printf("    time:0x%"PRIx64"\n", eca.time);
   else
@@ -97,16 +98,20 @@ static void render_eca(unsigned i, const ECA& eca) {
   
   for (unsigned c = 0; c < eca.channels.size(); ++c) {
     const ActionChannel& ac = eca.channels[c];
-    printf("  Channel #%d %s \"%s\" -- ",
+    printf("  Channel #%d %s \"%s\"\n",
            c, ac.draining?"draining":ac.frozen?"frozen  ":"active  ", ac.name.c_str());
+    printf("    fill:%d, maxfill:%d, total:%d, conflicts:%d, late:%d, int:",
+           ac.fill, ac.max_fill, ac.valid, ac.conflict, ac.late);
     if (ac.int_enable) {
-      printf("sending interrupts to 0x%"PRIx32"\n", ac.int_dest);
+      printf("0x%"PRIx32, ac.int_dest);
     } else {
-      printf("dropping interrupts\n");
+      printf("disabled");
     }
-    printf("    fill:%d, maxfill:%d, total:%d, conflicts:%d, late:%d%s\n",
-           ac.fill, ac.max_fill, ac.valid, ac.conflict, ac.late,
-           (ac.late||ac.conflict||ac.max_fill==eca.queue_size-1)?" !!!!!!!!":"");
+    if (ac.late||ac.conflict||ac.max_fill==eca.queue_size-1) {
+      printf(" !!!!!!!!\n");
+    } else {
+      printf("\n");
+    }
   }
   for (unsigned s = 0; s < eca.streams.size(); ++s) {
     const EventStream& es = eca.streams[s];
