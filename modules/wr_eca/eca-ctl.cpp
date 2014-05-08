@@ -121,7 +121,7 @@ static void render_eca(unsigned i, const ECA& eca) {
   }
 }
 
-static void dump_queue(ECA& eca, ActionChannel& channel) {
+static void dump_channel(ECA& eca, ActionChannel& channel) {
   eb_status_t status;
   std::vector<ActionEntry> queue;
   
@@ -535,7 +535,7 @@ int main(int argc, char** argv) {
       fprintf(stderr, "%s: channel #%d must be frozen to be inspected\n", program, channel_id);
       return 1;
     }
-    dump_queue(ecas[eca_id], ecas[eca_id].channels[channel_id]);
+    dump_channel(ecas[eca_id], ecas[eca_id].channels[channel_id]);
   }
   
   /* -------------------------------------------------------------------- */

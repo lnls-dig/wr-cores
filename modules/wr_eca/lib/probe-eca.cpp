@@ -209,23 +209,23 @@ status_t ECA::probe(Device device, std::vector<ECA>& ecas) {
       if ((status = cycle.open(device)) != EB_OK)
         return status;
       
-      cycle.write(eca.address + ECAQ_SELECT, EB_DATA32, c << 16);
+      cycle.write(eca.address + ECAC_SELECT, EB_DATA32, c << 16);
       for (unsigned j = 0; j < 64; ++j)
-        cycle.read(eca.address + ECAQ_CTL, EB_DATA32, &name[j]);
-      cycle.read(eca.address + ECAQ_INT_DEST, EB_DATA32, &dest);
-      cycle.read(eca.address + ECAQ_FILL,     EB_DATA32, &fill);
-      cycle.read(eca.address + ECAQ_VALID,    EB_DATA32, &valid);
-      cycle.read(eca.address + ECAQ_CONFLICT, EB_DATA32, &conflict);
-      cycle.read(eca.address + ECAQ_LATE,     EB_DATA32, &late);
+        cycle.read(eca.address + ECAC_CTL, EB_DATA32, &name[j]);
+      cycle.read(eca.address + ECAC_INT_DEST, EB_DATA32, &dest);
+      cycle.read(eca.address + ECAC_FILL,     EB_DATA32, &fill);
+      cycle.read(eca.address + ECAC_VALID,    EB_DATA32, &valid);
+      cycle.read(eca.address + ECAC_CONFLICT, EB_DATA32, &conflict);
+      cycle.read(eca.address + ECAC_LATE,     EB_DATA32, &late);
       
       if ((status = cycle.close()) != EB_OK)
         return status;
       
       ac.name       = eca_extract_name(name);
       ac.queue_size = eca.inspect_queue?eca.queue_size:0;
-      ac.draining   = (name[0] & ECAQ_CTL_DRAIN)    != 0;
-      ac.frozen     = (name[0] & ECAQ_CTL_FREEZE)   != 0;
-      ac.int_enable = (name[0] & ECAQ_CTL_INT_MASK) != 0;
+      ac.draining   = (name[0] & ECAC_CTL_DRAIN)    != 0;
+      ac.frozen     = (name[0] & ECAC_CTL_FREEZE)   != 0;
+      ac.int_enable = (name[0] & ECAC_CTL_INT_MASK) != 0;
       ac.int_dest   = dest;
       ac.fill       = (fill >> 16) & 0xFFFF;
       ac.max_fill   = (fill >>  0) & 0xFFFF;
