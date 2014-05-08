@@ -28,6 +28,7 @@
 #include <etherbone.h>
 #include <string>
 #include <vector>
+#include <list>
 
 namespace GSI_ECA {
 
@@ -62,6 +63,14 @@ struct ActionEntry {
   
   ActionEntry(Event e = 0, Param p = 0, Tag a = 0, Tef t = 0, Time i = 0)
    : event(e), param(p), tag(a), tef(t), time(i) { }
+};
+
+struct QueueEntry : public ActionEntry {
+  bool late;
+  bool conflict;
+  
+  QueueEntry(Event e = 0, Param p = 0, Tag a = 0, Tef t = 0, Time i = 0, bool l = false, bool c = false)
+   : ActionEntry(e, p, a, t, i), late(l), conflict(c) { }
 };
 
 /* Software condition table entry fields */
@@ -100,6 +109,52 @@ class Table {
   friend struct ECA;
 };
 
+
+/* ======================================================================= */
+/* Software interface to hardware action queues                            */
+/* ======================================================================= */
+struct ActionQueue {
+  /* ------------------------------------------------------------------- */
+  /* Constant hardware values                                            */
+  /* ------------------------------------------------------------------- */
+  uint8_t     sdb_ver_major;
+  uint8_t     sdb_ver_minor;
+  uint32_t    sdb_version;
+  uint32_t    sdb_date;
+  std::string sdb_name;
+  
+  uint16_t     queue_size;
+  
+  /* ------------------------------------------------------------------- */
+  /* Mutable hardware registers; only modify using methods below         */
+  /* ------------------------------------------------------------------- */
+  bool         arrival_enable;  /* Enable arrival interrupt delivery */
+  uint32_t     arrival_dest;    /* Destination for arrival interrupt */
+  bool         overflow_enable; /* Enable overflow interrupt delivery */
+  uint32_t     overflow_dest;   /* Destination for overflow interrupt */
+  uint32_t     queued_actions;  /* # of actions queued to be read */
+  uint32_t     dropped_actions; /* # of actions dropped due to overflow */
+  
+  /* ------------------------------------------------------------------- */
+  /* Access/modify the underlying hardware                               */
+  /* ------------------------------------------------------------------- */
+  
+  Device       device;       /* Device which hosts this ECA */
+  eb_address_t address;      /* Wishbone base address */
+  
+  /* Reload mutable registers from hardware */
+  status_t refresh(); 
+  /* Clear all dropped counter */
+  status_t reset();
+  
+  /* Hook/unhook interrupt handling */
+  status_t hook_arrival (bool enable, uint32_t dest);
+  status_t hook_overflow(bool enable, uint32_t dest);
+  
+  /* Pop the next queued action from the queue */
+  status_t pop(QueueEntry& queue);
+};
+
 /* ======================================================================= */
 /* Software interface to hardware action channels                          */
 /* ======================================================================= */
@@ -109,6 +164,8 @@ struct ActionChannel {
   /* ------------------------------------------------------------------- */
   std::string  name;         /* Channel instance name */
   unsigned     queue_size;   /* Size of the inspectable queue */
+  
+  std::list<ActionQueue> queue; /* Only present if an AQ is connected */
   
   /* ------------------------------------------------------------------- */
   /* Mutable hardware registers; only modify using methods below         */

@@ -31,6 +31,7 @@
 #define GSI_VENDOR_ID	0x651
 #define ECA_DEVICE_ID	0x8752bf44U
 #define ECAE_DEVICE_ID	0x8752bf45U
+#define ECAQ_DEVICE_ID	0x9bfa4560U
 
 #define ECA_FEATURE_INSPECT_TABLE 0x1
 #define ECA_FEATURE_INSPECT_QUEUE 0x2
@@ -96,6 +97,24 @@
 #define ECAC_TEF	0x74
 #define ECAC_TIME1	0x78
 #define ECAC_TIME0	0x7C
+
+#define ECAQ_CTL	0x0
+#define ECAQ_INT_MASK	0x4
+#define ECAQ_ARRIVAL	0x8
+#define ECAQ_OVERFLOW	0xC
+#define ECAQ_QUEUED	0x10
+#define ECAQ_DROPPED	0x14
+#define ECAQ_META	0x18
+#define ECAQ_FLAGS	0x1C
+
+#define ECAQ_EVENT1	0x20
+#define ECAQ_EVENT0	0x24
+#define ECAQ_PARAM1	0x28
+#define ECAQ_PARAM0	0x2C
+#define ECAQ_TAG	0x30
+#define ECAQ_TEF	0x34
+#define ECAQ_TIME1	0x38
+#define ECAQ_TIME0	0x3C
 
 namespace GSI_ECA {
 
