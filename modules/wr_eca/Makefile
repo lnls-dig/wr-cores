@@ -2,7 +2,7 @@ PREFIX   ?= /usr/local
 STAGING  ?= 
 EB       ?= no
 
-ifeq ($(EB),no))
+ifeq ($(EB),no)
 EB_LIB ?= -letherbone
 EB_INC ?=
 else
