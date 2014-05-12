@@ -65,6 +65,7 @@ use work.eca_pkg.all;
 
 entity eca_channel is
   generic(
+    g_channel_idx     : natural;
     g_log_table_size  : natural := 8;
     g_log_latency     : natural := 8;  -- Must be <= g_log_table_size
     g_log_queue_depth : natural := 9); -- Must be >  g_log_latency
@@ -73,6 +74,7 @@ entity eca_channel is
     rst_n_i   : in  std_logic;
     freeze_i  : in  std_logic; -- stop action outflow and use addr_i=>inspect_o
     drain_i   : in  std_logic; -- stop action in+outflow and erase tables
+    eca_idx_i : in  std_logic_vector(7 downto 0);
     addr_i    : in  std_logic_vector(g_log_table_size-1 downto 0);
     fill_o    : out std_logic_vector(g_log_table_size   downto 0);
     full_o    : out std_logic;
@@ -402,6 +404,8 @@ begin
   channel_o.tag      <= td_dispatch_tag;
   channel_o.tef      <= td_dispatch_tef;
   channel_o.time     <= td_dispatch_time;
+  channel_o.eca_idx  <= eca_idx_i;
+  channel_o.chl_idx  <= std_logic_vector(to_unsigned(g_channel_idx, 8));
   
   inspect_o.valid    <= td_dispatch_valid;
   inspect_o.conflict <= '0';
@@ -411,6 +415,8 @@ begin
   inspect_o.tag      <= td_dispatch_tag;
   inspect_o.tef      <= td_dispatch_tef;
   inspect_o.time     <= td_dispatch_time;
+  inspect_o.eca_idx  <= eca_idx_i;
+  inspect_o.chl_idx  <= std_logic_vector(to_unsigned(g_channel_idx, 8));
   
   dispatch_manage_kill  <= dispatch_valid1;
   dispatch_manage_index <= dispatch_index1;

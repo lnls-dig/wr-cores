@@ -31,6 +31,7 @@
 #define GSI_VENDOR_ID	0x651
 #define ECA_DEVICE_ID	0x8752bf44U
 #define ECAE_DEVICE_ID	0x8752bf45U
+#define ECAQ_DEVICE_ID	0x9bfa4560U
 
 #define ECA_FEATURE_INSPECT_TABLE 0x1
 #define ECA_FEATURE_INSPECT_QUEUE 0x2
@@ -66,36 +67,54 @@
 #define ECA_FREQ_2S	0x3D
 #define ECA_FREQ_DIV	0x3E
 
-#define ECAQ_STATUS_VALID	0x01
-#define ECAQ_STATUS_LATE	0x02
+#define ECAC_STATUS_VALID	0x01
+#define ECAC_STATUS_LATE	0x02
 
-#define ECAQ_CTL_DRAIN		0x01
-#define ECAQ_CTL_FREEZE		0x02
-#define ECAQ_CTL_INT_MASK	0x04
+#define ECAC_CTL_DRAIN		0x01
+#define ECAC_CTL_FREEZE		0x02
+#define ECAC_CTL_INT_MASK	0x04
 
-#define ECAQ_SELECT	0x40
-#define ECAQ_CHANNEL	0x40
-#define ECAQ_INDEX	0x42
-#define ECAQ_CTL	0x44
-#define ECAQ_STATUS	0x44
-#define ECAQ_NAME	0x45
-#define ECAQ_CTL_CLEAR	0x46
-#define ECAQ_CTL_SET	0x47
-#define ECAQ_INT_DEST	0x48
-#define ECAQ_FILL	0x50
-#define ECAQ_MAX_FILL	0x52
-#define ECAQ_VALID	0x54
-#define ECAQ_CONFLICT	0x58
-#define ECAQ_LATE	0x5C
+#define ECAC_SELECT	0x40
+#define ECAC_CHANNEL	0x40
+#define ECAC_INDEX	0x42
+#define ECAC_CTL	0x44
+#define ECAC_STATUS	0x44
+#define ECAC_NAME	0x45
+#define ECAC_CTL_CLEAR	0x46
+#define ECAC_CTL_SET	0x47
+#define ECAC_INT_DEST	0x48
+#define ECAC_FILL	0x50
+#define ECAC_MAX_FILL	0x52
+#define ECAC_VALID	0x54
+#define ECAC_CONFLICT	0x58
+#define ECAC_LATE	0x5C
 
-#define ECAQ_EVENT1	0x60
-#define ECAQ_EVENT0	0x64
-#define ECAQ_PARAM1	0x68
-#define ECAQ_PARAM0	0x6C
-#define ECAQ_TAG	0x70
-#define ECAQ_TEF	0x74
-#define ECAQ_TIME1	0x78
-#define ECAQ_TIME0	0x7C
+#define ECAC_EVENT1	0x60
+#define ECAC_EVENT0	0x64
+#define ECAC_PARAM1	0x68
+#define ECAC_PARAM0	0x6C
+#define ECAC_TAG	0x70
+#define ECAC_TEF	0x74
+#define ECAC_TIME1	0x78
+#define ECAC_TIME0	0x7C
+
+#define ECAQ_CTL	0x0
+#define ECAQ_INT_MASK	0x4
+#define ECAQ_ARRIVAL	0x8
+#define ECAQ_OVERFLOW	0xC
+#define ECAQ_QUEUED	0x10
+#define ECAQ_DROPPED	0x14
+#define ECAQ_META	0x18
+#define ECAQ_FLAGS	0x1C
+
+#define ECAQ_EVENT1	0x20
+#define ECAQ_EVENT0	0x24
+#define ECAQ_PARAM1	0x28
+#define ECAQ_PARAM0	0x2C
+#define ECAQ_TAG	0x30
+#define ECAQ_TEF	0x34
+#define ECAQ_TIME1	0x38
+#define ECAQ_TIME0	0x3C
 
 namespace GSI_ECA {
 

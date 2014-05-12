@@ -2,7 +2,7 @@ PREFIX   ?= /usr/local
 STAGING  ?= 
 EB       ?= no
 
-ifeq ($(EB),no))
+ifeq ($(EB),no)
 EB_LIB ?= -letherbone
 EB_INC ?=
 else
@@ -33,7 +33,7 @@ eca-ctl:	eca-ctl.o libeca.a
 eca-table:	eca-table.o libeca.a
 	$(CXX) $(CXXFLAGS) -o $@ $^ -Wl,-rpath,$(PREFIX)/lib $(EB_LIB) 
 
-libeca.a:	lib/hw-eca.o lib/hw-stream.o lib/hw-channel.o \
+libeca.a:	lib/hw-eca.o lib/hw-stream.o lib/hw-channel.o lib/hw-queue.o \
 		lib/load-table.o lib/store-table.o \
 		lib/table.o lib/probe-eca.o
 	rm -f $@

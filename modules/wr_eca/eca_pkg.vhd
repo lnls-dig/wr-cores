@@ -64,7 +64,7 @@ package eca_pkg is
 
  constant c_eca_queue_sdb : t_sdb_device := (
     abi_class     => x"0000", -- undocumented device
-    abi_ver_major => x"01",
+    abi_ver_major => x"02",
     abi_ver_minor => x"00",
     wbd_endian    => c_sdb_endian_big,
     wbd_width     => x"7", -- 8/16/32-bit port granularity
@@ -75,7 +75,7 @@ package eca_pkg is
     vendor_id     => x"0000000000000651",
     device_id     => x"9bfa4560",
     version       => x"00000001",
-    date          => x"20131107",
+    date          => x"20140508",
     name          => "ECA_UNIT:ACTION_QUE")));
 
   constant c_event_bits : natural := 64;
@@ -100,6 +100,8 @@ package eca_pkg is
     tag      : t_tag;
     tef      : t_tef;
     time     : t_time;
+    eca_idx  : std_logic_vector(7 downto 0);
+    chl_idx  : std_logic_vector(7 downto 0);
   end record t_channel;
   
   type t_name          is array(63 downto 0)      of t_ascii;
@@ -419,6 +421,7 @@ package eca_pkg is
   
   component eca_channel is
     generic(
+      g_channel_idx     : natural;
       g_log_table_size  : natural := 8;
       g_log_latency     : natural := 8;  -- Must be <= g_log_table_size
       g_log_queue_depth : natural := 9); -- Must be >  g_log_latency
@@ -427,6 +430,7 @@ package eca_pkg is
       rst_n_i   : in  std_logic;
       freeze_i  : in  std_logic; -- stop action outflow and use addr_i=>inspect_o
       drain_i   : in  std_logic; -- stop action in+outflow and erase tables
+      eca_idx_i : in  std_logic_vector(7 downto 0);
       addr_i    : in  std_logic_vector(g_log_table_size-1 downto 0);
       fill_o    : out std_logic_vector(g_log_table_size   downto 0); 
       full_o    : out std_logic;

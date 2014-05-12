@@ -39,6 +39,7 @@ struct SearchRecord {
   eb_status_t status;
   std::vector<ECA>* ecas;
   std::vector<EventStream> streams;
+  std::vector<ActionQueue> queues;
 };
 
 static void trim(std::string& s) {
@@ -63,6 +64,19 @@ void eca_sdb_search(SearchRecord* record, Device dev, const struct sdb_table* sd
       case sdb_record_device: {
         if (des->device.sdb_component.product.vendor_id == GSI_VENDOR_ID) {
           switch (des->device.sdb_component.product.device_id) {
+            case ECAQ_DEVICE_ID: {
+              if (des->device.abi_ver_major != 2) break;
+              ActionQueue aq;
+              aq.address       = des->device.sdb_component.addr_first;
+              aq.sdb_ver_major = des->device.abi_ver_major;
+              aq.sdb_ver_minor = des->device.abi_ver_minor;
+              aq.sdb_version   = des->device.sdb_component.product.version;
+              aq.sdb_date      = des->device.sdb_component.product.date;
+              aq.sdb_name      = std::string((const char*)&des->device.sdb_component.product.name[0], 19);
+              trim(aq.sdb_name);
+              record->queues.push_back(aq);
+              break;
+            }
             case ECAE_DEVICE_ID: {
               if (des->device.abi_ver_major != 2) break;
               EventStream es;
@@ -209,23 +223,23 @@ status_t ECA::probe(Device device, std::vector<ECA>& ecas) {
       if ((status = cycle.open(device)) != EB_OK)
         return status;
       
-      cycle.write(eca.address + ECAQ_SELECT, EB_DATA32, c << 16);
+      cycle.write(eca.address + ECAC_SELECT, EB_DATA32, c << 16);
       for (unsigned j = 0; j < 64; ++j)
-        cycle.read(eca.address + ECAQ_CTL, EB_DATA32, &name[j]);
-      cycle.read(eca.address + ECAQ_INT_DEST, EB_DATA32, &dest);
-      cycle.read(eca.address + ECAQ_FILL,     EB_DATA32, &fill);
-      cycle.read(eca.address + ECAQ_VALID,    EB_DATA32, &valid);
-      cycle.read(eca.address + ECAQ_CONFLICT, EB_DATA32, &conflict);
-      cycle.read(eca.address + ECAQ_LATE,     EB_DATA32, &late);
+        cycle.read(eca.address + ECAC_CTL, EB_DATA32, &name[j]);
+      cycle.read(eca.address + ECAC_INT_DEST, EB_DATA32, &dest);
+      cycle.read(eca.address + ECAC_FILL,     EB_DATA32, &fill);
+      cycle.read(eca.address + ECAC_VALID,    EB_DATA32, &valid);
+      cycle.read(eca.address + ECAC_CONFLICT, EB_DATA32, &conflict);
+      cycle.read(eca.address + ECAC_LATE,     EB_DATA32, &late);
       
       if ((status = cycle.close()) != EB_OK)
         return status;
       
       ac.name       = eca_extract_name(name);
       ac.queue_size = eca.inspect_queue?eca.queue_size:0;
-      ac.draining   = (name[0] & ECAQ_CTL_DRAIN)    != 0;
-      ac.frozen     = (name[0] & ECAQ_CTL_FREEZE)   != 0;
-      ac.int_enable = (name[0] & ECAQ_CTL_INT_MASK) != 0;
+      ac.draining   = (name[0] & ECAC_CTL_DRAIN)    != 0;
+      ac.frozen     = (name[0] & ECAC_CTL_FREEZE)   != 0;
+      ac.int_enable = (name[0] & ECAC_CTL_INT_MASK) != 0;
       ac.int_dest   = dest;
       ac.fill       = (fill >> 16) & 0xFFFF;
       ac.max_fill   = (fill >>  0) & 0xFFFF;
@@ -238,9 +252,6 @@ status_t ECA::probe(Device device, std::vector<ECA>& ecas) {
   }
   
   /* Phase 3 -- Deduce stream relationships */
-  std::vector<uint8_t> ids;
-  ids.resize(record.streams.size());
-  
   for (unsigned s = 0; s < record.streams.size(); ++s) {
     EventStream& es = record.streams[s];
     
@@ -248,18 +259,59 @@ status_t ECA::probe(Device device, std::vector<ECA>& ecas) {
     status = device.read(es.address, EB_DATA32, &id);
     if (status != EB_OK) return status;
     
-    ids[s] = id;
-  }
-  
-  for (unsigned s = 0; s < record.streams.size(); ++s) {
-    EventStream& es = record.streams[s];
-    uint8_t mid = ids[s];
+    uint8_t mid = id;
     if (mid >= ecas.size()) {
       /* fprintf(stderr, "Unmatched ECA Event stream; id: %d\n", mid); */
       continue;
     }
     es.device = ecas[mid].device;
     ecas[mid].streams.push_back(es);
+  }
+  
+  /* Phase 4 -- Deduce queue relationships */
+  for (unsigned q = 0; q < record.queues.size(); ++q) {
+    eb_data_t ctl, mask;
+    eb_data_t arrival, overflow;
+    eb_data_t queued, dropped;
+    
+    ActionQueue& aq = record.queues[q];
+    
+    if ((status = cycle.open(device)) != EB_OK)
+      return status;
+    
+    cycle.read(aq.address + ECAQ_CTL,       EB_DATA32, &ctl);
+    cycle.read(aq.address + ECAQ_INT_MASK,  EB_DATA32, &mask);
+    cycle.read(aq.address + ECAQ_ARRIVAL,   EB_DATA32, &arrival);
+    cycle.read(aq.address + ECAQ_OVERFLOW,  EB_DATA32, &overflow);
+    cycle.read(aq.address + ECAQ_QUEUED,    EB_DATA32, &queued);
+    cycle.read(aq.address + ECAQ_DROPPED,   EB_DATA32, &dropped);
+    cycle.read(aq.address + ECAQ_META,      EB_DATA32, &id);
+    
+    if ((status = cycle.close()) != EB_OK)
+      return status;
+    
+    uint8_t mid = (id >> 24) & 0xFF;
+    uint8_t cid = (id >> 16) & 0xFF;
+    
+    if (mid >= ecas.size() || cid >= ecas[mid].channels.size()) {
+      /* fprintf(stderr, "Unmatched ECA Queue; id: %d idx: %d\n", mid, idx); */
+      continue;
+    }
+    if (!ecas[mid].channels[cid].queue.empty()) {
+      /* fprintf(stderr, "Duplicate ECA Queue; id: %d idx: %d\n", mid, idx); */
+      continue;
+    }
+    
+    aq.device          = ecas[mid].device;
+    aq.queue_size      = (ctl >> 16) & 0xFFFF;
+    aq.arrival_enable  = (mask & 1) != 0;
+    aq.overflow_enable = (mask & 2) != 0;
+    aq.arrival_dest    = arrival  & 0xFFFFFFFF;
+    aq.overflow_dest   = overflow & 0xFFFFFFFF;
+    aq.queued_actions  = queued   & 0xFFFFFFFF;
+    aq.dropped_actions = dropped  & 0xFFFFFFFF;
+    
+    ecas[mid].channels[cid].queue.push_back(aq);
   }
   
   return EB_OK;

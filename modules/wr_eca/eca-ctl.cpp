@@ -61,10 +61,15 @@ static void help(void) {
   fprintf(stderr, "  activate         allow the channel to emit+receive actions\n");
   fprintf(stderr, "  freeze           prevent hardware from changing Q contents\n");
   fprintf(stderr, "  drain            empty and deactivate the channel\n");
-  fprintf(stderr, "  unhook           disable interrupts from this channel\n");
-  fprintf(stderr, "  hook <addr>      enable interrupts to <addr> from this channel\n");
   fprintf(stderr, "  reset            reset the channel's max_full counter\n");
   fprintf(stderr, "  inspect          display the contents of a frozen channel\n");
+  fprintf(stderr, "  pop              pop the next pending event from an action queue\n");
+  fprintf(stderr, "  cunhook          disable conflict/late  interrupts from this channel\n");
+  fprintf(stderr, "  aunhook          disable queue arrival  interrupts from this channel\n");
+  fprintf(stderr, "  ounhook          disable queue overflow interrupts from this channel\n");
+  fprintf(stderr, "  chook <addr>     enable conflict/late  interrupts to <addr> from this channel\n");
+  fprintf(stderr, "  ahook <addr>     enable queue arrival  interrupts to <addr> from this channel\n");
+  fprintf(stderr, "  ohook <addr>     enable queue overflow interrupts to <addr> from this channel\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "  send <event> <param> <tef> <time>  write to an event stream\n");
   fprintf(stderr, "\n");
@@ -79,17 +84,18 @@ static void die(eb_status_t status, const char* what) {
 }
 
 static void render_eca(unsigned i, const ECA& eca) {
-  printf("ECA #%d %s  \"%s\" (0x%"EB_ADDR_FMT") -- %s\n", 
-    i, eca.disabled?"disabled":"enabled ", eca.name.c_str(), eca.address,
-    eca.interrupts?"generating interrupts":"dropping interrupts");
+  printf("ECA #%d %s  \"%s\" (0x%"EB_ADDR_FMT")\n", 
+    i, eca.disabled?"disabled":"enabled ", eca.name.c_str(), eca.address);
   if (verbose) {
     printf("    API v%d.%d; \"%s\" v%d (%4x-%02x-%02x)\n",
            eca.sdb_ver_major, eca.sdb_ver_minor, eca.sdb_name.c_str(), eca.sdb_version,
            eca.sdb_date >> 16, (eca.sdb_date >> 8) & 0xFF, eca.sdb_date & 0xFF);
   }
-  printf("    table:%d,%s  queue:%d,%s  freq:%s\n", eca.table_size, eca.inspect_table?"rw":"wo",
-                                                    eca.queue_size, eca.inspect_queue?"rw":"wo",
-                                                    eca.frequency().c_str());
+  printf("    table:%d,%s  queue:%d,%s  freq:%s  int:%s\n", 
+    eca.table_size, eca.inspect_table?"rw":"wo",
+    eca.queue_size, eca.inspect_queue?"rw":"wo",
+    eca.frequency().c_str(), 
+    eca.disabled?"disabled":"enabled");
   if (numeric)
     printf("    time:0x%"PRIx64"\n", eca.time);
   else
@@ -97,16 +103,52 @@ static void render_eca(unsigned i, const ECA& eca) {
   
   for (unsigned c = 0; c < eca.channels.size(); ++c) {
     const ActionChannel& ac = eca.channels[c];
-    printf("  Channel #%d %s \"%s\" -- ",
+    printf("  Channel #%d %s \"%s\"\n",
            c, ac.draining?"draining":ac.frozen?"frozen  ":"active  ", ac.name.c_str());
+    printf("    fill:%d, maxfill:%d, total:%d, conflicts:%d, late:%d, int:",
+           ac.fill, ac.max_fill, ac.valid, ac.conflict, ac.late);
     if (ac.int_enable) {
-      printf("sending interrupts to 0x%"PRIx32"\n", ac.int_dest);
+      printf("0x%"PRIx32, ac.int_dest);
     } else {
-      printf("dropping interrupts\n");
+      printf("disabled");
     }
-    printf("    fill:%d, maxfill:%d, total:%d, conflicts:%d, late:%d%s\n",
-           ac.fill, ac.max_fill, ac.valid, ac.conflict, ac.late,
-           (ac.late||ac.conflict||ac.max_fill==eca.queue_size-1)?" !!!!!!!!":"");
+    if (ac.late||ac.conflict||ac.max_fill==eca.queue_size-1) {
+      printf(" !!!!!!!!\n");
+    } else {
+      printf("\n");
+    }
+  }
+  for (unsigned c = 0; c < eca.channels.size(); ++c) {
+    const ActionChannel& ac = eca.channels[c];
+    if (!ac.queue.empty()) {
+      const ActionQueue& aq = ac.queue.front();
+      printf("  ActionQueue #%d (0x%"EB_ADDR_FMT")", c, aq.address);
+      if (verbose) {
+        printf(" - API v%d.%d; \"%s\" v%d (%4x-%02x-%02x)\n",
+               aq.sdb_ver_major, aq.sdb_ver_minor, aq.sdb_name.c_str(), aq.sdb_version,
+               aq.sdb_date >> 16, (aq.sdb_date >> 8) & 0xFF, aq.sdb_date & 0xFF);
+      } else {
+        printf("\n");
+      }
+      printf("    fill:%d/%d, dropped:%d, arrival-int:",
+        aq.queued_actions, aq.queue_size, aq.dropped_actions);
+      if (aq.arrival_enable) {
+        printf("0x%"PRIx32, aq.arrival_dest);
+      } else {
+        printf("disabled");
+      }
+      printf(", overflow-int:");
+      if (aq.overflow_enable) {
+        printf("0x%"PRIx32, aq.overflow_dest);
+      } else {
+        printf("disabled");
+      }
+      if (aq.dropped_actions) {
+        printf(" !!!!!!!!\n");
+      } else {
+        printf("\n");
+      }
+    }
   }
   for (unsigned s = 0; s < eca.streams.size(); ++s) {
     const EventStream& es = eca.streams[s];
@@ -121,7 +163,7 @@ static void render_eca(unsigned i, const ECA& eca) {
   }
 }
 
-static void dump_queue(ECA& eca, ActionChannel& channel) {
+static void dump_channel(ECA& eca, ActionChannel& channel) {
   eb_status_t status;
   std::vector<ActionEntry> queue;
   
@@ -144,11 +186,7 @@ static void dump_queue(ECA& eca, ActionChannel& channel) {
   
   for (unsigned i = 0; i < queue.size(); ++i) {
     ActionEntry& ae = queue[i];
-    char late = ' ';
-    if ((ae.time >> 63) != 0) {
-      ae.time = -ae.time;
-      late='!';
-    }
+    char late = (ae.status != VALID)?'!':' ';
     
     if (numeric) {
       printf("0x%016"PRIx64"  0x%016"PRIx64"  0x%08"PRIx32"  0x%08"PRIx32" %c0x%016"PRIx64"\n", 
@@ -157,6 +195,30 @@ static void dump_queue(ECA& eca, ActionChannel& channel) {
       printf("0x%016"PRIx64"  0x%016"PRIx64"  0x%08"PRIx32"  0x%08"PRIx32" %c%s\n", 
             ae.event, ae.param, ae.tag, ae.tef, late, eca.date(ae.time).c_str());
     }
+  }
+}
+
+static void dump_queue_entry(ECA& eca, ActionEntry& qe) {
+  if (!quiet) {
+    if (numeric) {
+      printf("----------------------------------------------------------------------------------\n");
+      printf("EventID             Param               Tag         Tef         Execution Time\n");
+      printf("----------------------------------------------------------------------------------\n");
+    } else {
+      printf("---------------------------------------------------------------------------------------------\n");
+      printf("EventID             Param               Tag         Tef         Execution Time (TAI)\n");
+      printf("---------------------------------------------------------------------------------------------\n");
+    }
+  }
+  
+  char late = (qe.status != VALID)?'!':' ';
+  
+  if (numeric) {
+    printf("0x%016"PRIx64"  0x%016"PRIx64"  0x%08"PRIx32"  0x%08"PRIx32" %c0x%016"PRIx64"\n", 
+          qe.event, qe.param, qe.tag, qe.tef, late, qe.time);
+  } else {
+    printf("0x%016"PRIx64"  0x%016"PRIx64"  0x%08"PRIx32"  0x%08"PRIx32" %c%s\n", 
+          qe.event, qe.param, qe.tag, qe.tef, late, eca.date(qe.time).c_str());
   }
 }
 
@@ -257,9 +319,11 @@ int main(int argc, char** argv) {
       fprintf(stderr, "%s: unexpected extra arguments -- '%s'\n", program, argv[optind+6]);
       return 1;
     }
-  } else if (strcasecmp(command, "hook") == 0) {
+  } else if (strcasecmp(command, "chook") == 0 || 
+             strcasecmp(command, "ahook") == 0 ||
+             strcasecmp(command, "ohook") == 0) {
     if (optind+3 > argc) {
-      fprintf(stderr, "%s: expecting exactly one argument: hook <address>\n", program);
+      fprintf(stderr, "%s: expecting exactly one argument: %s <address>\n", command, program);
       return 1;
     }
     if (optind+3 < argc) {
@@ -470,13 +534,13 @@ int main(int argc, char** argv) {
   }
   
   /* -------------------------------------------------------------------- */
-  else if (!strcasecmp(command, "unhook")) {
+  else if (!strcasecmp(command, "cunhook")) {
     if (channel_id == -1) {
-      fprintf(stderr, "%s: specify a channel to unhook interrupts with -c\n", program);
+      fprintf(stderr, "%s: specify a channel to unhook conflict/late interrupts with -c\n", program);
       return 1;
     }
     if (verbose) {
-      printf("Unhooking Channel #%d \"%s\" on ECA #%d \"%s\" (0x%"EB_ADDR_FMT") from interrupts\n",
+      printf("Unhooking Channel #%d \"%s\" on ECA #%d \"%s\" (0x%"EB_ADDR_FMT") from conflict/late interrupts\n",
              channel_id, ecas[eca_id].channels[channel_id].name.c_str(),
              eca_id, ecas[eca_id].name.c_str(), ecas[eca_id].address);
     }
@@ -485,9 +549,9 @@ int main(int argc, char** argv) {
   }
   
   /* -------------------------------------------------------------------- */
-  else if (!strcasecmp(command, "hook")) {
+  else if (!strcasecmp(command, "chook")) {
     if (channel_id == -1) {
-      fprintf(stderr, "%s: specify a channel to hook interrupts with -c\n", program);
+      fprintf(stderr, "%s: specify a channel to hook conflict/late interrupts with -c\n", program);
       return 1;
     }
     
@@ -498,12 +562,135 @@ int main(int argc, char** argv) {
     }
 
     if (verbose) {
-      printf("Hooking Channel #%d \"%s\" on ECA #%d \"%s\" (0x%"EB_ADDR_FMT") to interrupts on 0x%"EB_ADDR_FMT"\n",
+      printf("Hooking Channel #%d \"%s\" on ECA #%d \"%s\" (0x%"EB_ADDR_FMT") to conflict/late interrupts on 0x%"EB_ADDR_FMT"\n",
              channel_id, ecas[eca_id].channels[channel_id].name.c_str(),
              eca_id, ecas[eca_id].name.c_str(), ecas[eca_id].address, hook);
     }
     if ((status = ecas[eca_id].channels[channel_id].hook(true, hook)) != EB_OK)
       die(status, "ActionChannel::hook(true)");
+  }
+  
+  /* -------------------------------------------------------------------- */
+  else if (!strcasecmp(command, "aunhook")) {
+    if (channel_id == -1) {
+      fprintf(stderr, "%s: specify an action queue to unhook arrival interrupts with -c\n", program);
+      return 1;
+    }
+    if (ecas[eca_id].channels[channel_id].queue.empty()) {
+      fprintf(stderr, "%s: ECA channel #%d does not have an attached action queue\n",
+        program, channel_id);
+      return 1;
+    }
+    
+    if (verbose) {
+      printf("Unhooking ActionQueue #%d (0x%"EB_ADDR_FMT") on ECA #%d \"%s\" (0x%"EB_ADDR_FMT") from arrival interrupts\n",
+             channel_id, ecas[eca_id].channels[channel_id].queue.front().address,
+             eca_id, ecas[eca_id].name.c_str(), ecas[eca_id].address);
+    }
+    if ((status = ecas[eca_id].channels[channel_id].queue.front().hook_arrival(false, 0)) != EB_OK)
+      die(status, "ActionQueue::hook_arrival(false)");
+  }
+  
+  /* -------------------------------------------------------------------- */
+  else if (!strcasecmp(command, "ahook")) {
+    if (channel_id == -1) {
+      fprintf(stderr, "%s: specify a channel to hook conflict/late interrupts with -c\n", program);
+      return 1;
+    }
+    hook = strtoul(argv[optind+2], &value_end, 0);
+    if (*value_end != 0) {
+      fprintf(stderr, "%s: invalid address -- '%s'\n", program, argv[optind+2]);
+      return 1;
+    }
+    if (ecas[eca_id].channels[channel_id].queue.empty()) {
+      fprintf(stderr, "%s: ECA channel #%d does not have an attached action queue\n",
+        program, channel_id);
+      return 1;
+    }
+    
+    if (verbose) {
+      printf("Hooking ActionQueue #%d (0x%"EB_ADDR_FMT") on ECA #%d \"%s\" (0x%"EB_ADDR_FMT") to arrival interrupts on 0x%"EB_ADDR_FMT"\n",
+             channel_id, ecas[eca_id].channels[channel_id].queue.front().address,
+             eca_id, ecas[eca_id].name.c_str(), ecas[eca_id].address, hook);
+    }
+    if ((status = ecas[eca_id].channels[channel_id].queue.front().hook_arrival(true, hook)) != EB_OK)
+      die(status, "ActionQueue::hook_arrival(true)");
+  }
+  
+  /* -------------------------------------------------------------------- */
+  else if (!strcasecmp(command, "ounhook")) {
+    if (channel_id == -1) {
+      fprintf(stderr, "%s: specify an action queue to unhook overflow interrupts with -c\n", program);
+      return 1;
+    }
+    if (ecas[eca_id].channels[channel_id].queue.empty()) {
+      fprintf(stderr, "%s: ECA channel #%d does not have an attached action queue\n",
+        program, channel_id);
+      return 1;
+    }
+    
+    if (verbose) {
+      printf("Unhooking ActionQueue #%d (0x%"EB_ADDR_FMT") on ECA #%d \"%s\" (0x%"EB_ADDR_FMT") from overflow interrupts\n",
+             channel_id, ecas[eca_id].channels[channel_id].queue.front().address,
+             eca_id, ecas[eca_id].name.c_str(), ecas[eca_id].address);
+    }
+    if ((status = ecas[eca_id].channels[channel_id].queue.front().hook_overflow(false, 0)) != EB_OK)
+      die(status, "ActionQueue::hook_overflow(false)");
+  }
+  
+  /* -------------------------------------------------------------------- */
+  else if (!strcasecmp(command, "ohook")) {
+    if (channel_id == -1) {
+      fprintf(stderr, "%s: specify a channel to hook conflict/late interrupts with -c\n", program);
+      return 1;
+    }
+    hook = strtoul(argv[optind+2], &value_end, 0);
+    if (*value_end != 0) {
+      fprintf(stderr, "%s: invalid address -- '%s'\n", program, argv[optind+2]);
+      return 1;
+    }
+    if (ecas[eca_id].channels[channel_id].queue.empty()) {
+      fprintf(stderr, "%s: ECA channel #%d does not have an attached action queue\n",
+        program, channel_id);
+      return 1;
+    }
+    
+    if (verbose) {
+      printf("Hooking ActionQueue #%d (0x%"EB_ADDR_FMT") on ECA #%d \"%s\" (0x%"EB_ADDR_FMT") to overflow interrupts on 0x%"EB_ADDR_FMT"\n",
+             channel_id, ecas[eca_id].channels[channel_id].queue.front().address,
+             eca_id, ecas[eca_id].name.c_str(), ecas[eca_id].address, hook);
+    }
+    if ((status = ecas[eca_id].channels[channel_id].queue.front().hook_overflow(true, hook)) != EB_OK)
+      die(status, "ActionQueue::hook_overflow(true)");
+  }
+  
+  /* -------------------------------------------------------------------- */
+  else if (!strcasecmp(command, "pop")) {
+    if (channel_id == -1) {
+      fprintf(stderr, "%s: specify a channel pop with -c\n", program);
+      return 1;
+    }
+    if (ecas[eca_id].channels[channel_id].queue.empty()) {
+      fprintf(stderr, "%s: ECA channel #%d does not have an attached action queue\n",
+        program, channel_id);
+      return 1;
+    }
+    if (ecas[eca_id].channels[channel_id].queue.front().queued_actions == 0) {
+      fprintf(stderr, "%s: ActionQueue #%d is empty\n",
+        program, channel_id);
+      return 1;
+    }
+    
+    ActionEntry qe;
+    if (verbose) {
+      printf("Popping ActionQueue #%d (0x%"EB_ADDR_FMT") on ECA #%d \"%s\" (0x%"EB_ADDR_FMT")\n",
+             channel_id, ecas[eca_id].channels[channel_id].queue.front().address,
+             eca_id, ecas[eca_id].name.c_str(), ecas[eca_id].address);
+    }
+    if ((status = ecas[eca_id].channels[channel_id].queue.front().pop(qe)) != EB_OK)
+      die(status, "ActionQueue::pop()");
+    
+    dump_queue_entry(ecas[eca_id], qe);
   }
   
   /* -------------------------------------------------------------------- */
@@ -535,7 +722,7 @@ int main(int argc, char** argv) {
       fprintf(stderr, "%s: channel #%d must be frozen to be inspected\n", program, channel_id);
       return 1;
     }
-    dump_queue(ecas[eca_id], ecas[eca_id].channels[channel_id]);
+    dump_channel(ecas[eca_id], ecas[eca_id].channels[channel_id]);
   }
   
   /* -------------------------------------------------------------------- */
