@@ -323,7 +323,7 @@ int main(int argc, char** argv) {
              strcasecmp(command, "ahook") == 0 ||
              strcasecmp(command, "ohook") == 0) {
     if (optind+3 > argc) {
-      fprintf(stderr, "%s: expecting exactly one argument: %s <address>\n", command, program);
+      fprintf(stderr, "%s: expecting exactly one argument: %s <address>\n", program, command);
       return 1;
     }
     if (optind+3 < argc) {
@@ -395,12 +395,12 @@ int main(int argc, char** argv) {
   }
   
   /* Select default channel */
-  if (channel_id == -1 && ecas[eca_id].channels.size() == 1) {
+  if (channel_id == -1 && eca_id != -1 && ecas[eca_id].channels.size() == 1) {
     channel_id = 0;
   }
   
   /* Select default stream */
-  if (stream_id == -1 && ecas[eca_id].streams.size() == 1) {
+  if (stream_id == -1 && eca_id != -1 && ecas[eca_id].streams.size() == 1) {
     stream_id = 0;
   }
   
