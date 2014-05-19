@@ -99,8 +99,8 @@ architecture rtl of altera_phase is
   --   |PULSE| >= sync_trap'length
 
   type t_state is (SETUP_REQUEST, PULSE1, PULSE2, PULSE3, WAIT_TRAP);
-  subtype t_output is std_logic_vector(g_outputs-1 downto 0);
-  type t_output_array is array (natural range <>) of t_output;
+  subtype t_sync_chain is std_logic_vector(2 downto 0);
+  type t_sync_array is array (natural range <>) of t_sync_chain;
   
   constant c_modulus : natural_vector(g_outputs-1 downto 0)
             := f_modulus(g_vco_freq, g_output_freq);
@@ -110,16 +110,16 @@ architecture rtl of altera_phase is
   signal state      : t_state                                     := SETUP_REQUEST;
   signal prime_trap : std_logic                                   := '1';
   signal raw_trap   : std_logic                                   := '0';
-  signal sync_trap  : std_logic_vector(2 downto 0)                := (others => '0');
+  signal sync_trap  : t_sync_chain                                := (others => '0');
   signal phasesel   : std_logic_vector(g_select_bits-1 downto 0)  := (others => '-');
   signal phasestep  : std_logic                                   := '0';
   
   signal output     : unsigned(f_ceil_log2(g_outputs)-1 downto 0) := (others => '0');
   signal request    : std_logic                                   := '1';
   signal phase      : phase_offset_vector(g_outputs-1 downto 0)   := c_init_phase;
-  signal aligned    : t_output_array(2 downto 0)                  := (others => (others => '0'));
-  signal gen_rstn   : t_output                                    := (others => '0');
-  signal sync_rstn  : t_output_array(2 downto 0)                  := (others => (others => '0'));
+  signal aligned    : t_sync_array(g_outputs-1 downto 0)          := (others => (others => '0'));
+  signal gen_rstn   : std_logic_vector(g_outputs-1 downto 0)      := (others => '0');
+  signal sync_rstn  : t_sync_array(g_outputs-1 downto 0)          := (others => (others => '0'));
   
   -- We ensure timing between these nodes via the state machine
   attribute altera_attribute : string;
@@ -148,7 +148,7 @@ begin
     elsif rising_edge(clk_i) then
       sync_trap <= raw_trap & sync_trap(sync_trap'left downto 1);
       for i in 0 to g_outputs-1 loop
-        aligned(i) <= f_active_high(offset_i(i) = phase(i)) & aligned(i)(t_output'left downto 1);
+        aligned(i) <= f_active_high(offset_i(i) = phase(i)) & aligned(i)(t_sync_chain'left downto 1);
       end loop;
     end if;
   end process;
@@ -286,7 +286,7 @@ begin
       if gen_rstn(i) = '0' then
         sync_rstn(i) <= (others => '0');
       elsif rising_edge(clks_i(i)) then
-        sync_rstn(i) <= '1' & sync_rstn(i)(t_output'left downto 1);
+        sync_rstn(i) <= '1' & sync_rstn(i)(t_sync_chain'left downto 1);
       end if;
     end process;
   end generate;
