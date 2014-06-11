@@ -97,6 +97,7 @@ architecture behavioral of ep_rx_crc_size_check is
   signal oob_in           : std_logic;
   signal dat_in           : std_logic;
   signal valid_mask       : std_logic;
+  signal err_on_giant     : std_logic;
 
   function f_queue_occupation(q : std_logic_vector; check_empty : std_logic) return std_logic is
     variable i : integer;
@@ -202,7 +203,7 @@ begin  -- behavioral
           is_runt <= '0';
         end if;
 
-        if(byte_cntr > unsigned(regs_i.rfcr_mru_o)) then
+        if(byte_cntr > unsigned(regs_i.rfcr_mru_o) and snk_fab_i.sof = '0') then
           is_giant <= '1';
         else
           is_giant <= '0';
@@ -214,6 +215,7 @@ begin  -- behavioral
 
   size_check_ok <= '0' when (is_runt = '1' and regs_i.rfcr_a_runt_o = '0') or
                    (is_giant = '1' and regs_i.rfcr_a_giant_o = '0') else '1';
+  err_on_giant  <= '1' when (is_giant = '1' and regs_i.rfcr_a_giant_o = '0') else '0';
 
   p_gen_output : process(clk_sys_i, rst_n_i)
   begin
@@ -268,7 +270,8 @@ begin  -- behavioral
               state           <= ST_WAIT_FRAME;
               q_purge         <= '1';
 
-            elsif(snk_fab_i.eof = '1' or oob_in = '1') then
+--             elsif(snk_fab_i.eof = '1' or oob_in = '1') then 
+            elsif(snk_fab_i.eof = '1' or oob_in = '1' or err_on_giant = '1') then
               if(size_check_ok = '0' or crc_match = '0') then  -- bad frame?
                 state           <= ST_WAIT_FRAME;
                 src_fab_o.error <= '1';
