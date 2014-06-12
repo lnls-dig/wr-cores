@@ -226,7 +226,7 @@ begin  -- behavioral
                 if(snk_fab_i.data = x"8100") then  -- got a 802.1q tagged frame
                   is_tagged <= '1';
                 else
-                  if (regs_i.vcr0_qmode_o = c_QMODE_PORT_ACCESS or regs_i.vcr0_qmode_o = c_QMODE_PORT_UNQUALIFIED) then
+                  if (regs_i.vcr0_qmode_o = c_QMODE_PORT_ACCESS) then
                     prio_int <= regs_i.vcr0_prio_val_o;
                     is_tag_inserted  <= '1';
                     v_src_fab.dvalid := '0';
