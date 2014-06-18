@@ -329,7 +329,6 @@ architecture rtl of wr_softpll_ng is
 
   signal rst_n_refclk  : std_logic;
   signal rst_n_extclk  : std_logic;
-  signal rst_n_dmtdclk : std_logic;
   signal rst_n_rxclk   : std_logic_vector(g_num_ref_inputs-1 downto 0);
   signal rst_n_fb      : std_logic;
 
@@ -364,7 +363,10 @@ architecture rtl of wr_softpll_ng is
 
   -- Temporary vectors for DDMTD clock selection (straight/reversed)
   signal dmtd_ref_clk_in, dmtd_ref_clk_dmtd : std_logic_vector(g_num_ref_inputs-1 downto 0);
+  signal rst_n_dmtd_ref_clk : std_logic_vector(g_num_ref_inputs-1 downto 0);
+  
   signal dmtd_fb_clk_in, dmtd_fb_clk_dmtd   : std_logic_vector(g_num_outputs-1 downto 0);
+  signal rst_n_dmtd_fb_clk : std_logic_vector(g_num_outputs-1 downto 0);
 
   signal bb_sync_en, bb_sync_done : std_logic;
   signal ext_ref_present          : std_logic;
@@ -411,30 +413,26 @@ begin  -- rtl
       sl_ack_o   => wb_ack_o,
       sl_stall_o => wb_stall_o);
 
-  sync_ffs_rst2 : gc_sync_ffs
-    generic map (
-      g_sync_edge => "positive")
-    port map (
-      clk_i    => clk_dmtd_i,
-      rst_n_i  => '1',
-      data_i   => rst_n_i,
-      synced_o => rst_n_dmtdclk,
-      npulse_o => open,
-      ppulse_o => open);
-
-
-
   gen_ref_dmtds : for i in 0 to g_num_ref_inputs-1 generate
 
     dmtd_ref_clk_in(i)   <= f_pick(g_reverse_dmtds, clk_dmtd_i, clk_ref_i(i));
     dmtd_ref_clk_dmtd(i) <= f_pick(g_reverse_dmtds, clk_ref_i(i), clk_dmtd_i);
+
+    U_sync_rst_dmtd_ref : gc_sync_ffs
+      generic map (
+        g_sync_edge => "positive")
+      port map (
+        clk_i    => dmtd_ref_clk_dmtd(i),
+        rst_n_i  => '1',
+        data_i   => rst_n_i,
+        synced_o => rst_n_dmtd_ref_clk(i));
 
     DMTD_REF : dmtd_with_deglitcher
       generic map (
         g_counter_bits      => g_tag_bits,
         g_divide_input_by_2 => g_divide_input_by_2)
       port map (
-        rst_n_dmtdclk_i => rst_n_dmtdclk,
+        rst_n_dmtdclk_i => rst_n_dmtd_ref_clk(i),
         rst_n_sysclk_i  => rst_n_i,
 
         clk_dmtd_i    => dmtd_ref_clk_dmtd(i),
@@ -465,12 +463,21 @@ begin  -- rtl
       dmtd_fb_clk_in(i)   <= f_pick(g_reverse_dmtds, clk_dmtd_i, clk_fb_i(i));
       dmtd_fb_clk_dmtd(i) <= f_pick(g_reverse_dmtds, clk_fb_i(i), clk_dmtd_i);
 
+      U_sync_rst_dmtd_fb : gc_sync_ffs
+        generic map (
+          g_sync_edge => "positive")
+        port map (
+          clk_i    => dmtd_fb_clk_dmtd(i),
+          rst_n_i  => '1',
+          data_i   => rst_n_i,
+          synced_o => rst_n_dmtd_fb_clk(i));
+
       DMTD_FB : dmtd_with_deglitcher
         generic map (
           g_counter_bits      => g_tag_bits,
           g_divide_input_by_2 => g_divide_input_by_2)
         port map (
-          rst_n_dmtdclk_i => rst_n_dmtdclk,
+          rst_n_dmtdclk_i => rst_n_dmtd_fb_clk(i),
           rst_n_sysclk_i  => rst_n_i,
           clk_dmtd_i      => dmtd_fb_clk_dmtd(i),
           clk_dmtd_en_i   => '1',
