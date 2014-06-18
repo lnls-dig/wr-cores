@@ -162,7 +162,20 @@ architecture behavioral of ep_packet_filter is
   signal stage1, stage2      : std_logic;
   signal r_pfcr1_mm_data_lsb : std_logic_vector(11 downto 0);
   
+  signal pfcr0_enable_rxclk : std_logic;
+  
 begin  -- behavioral
+
+  U_sync_pfcr0_enable : gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => clk_rx_i,
+      rst_n_i  => '1',
+      data_i   => regs_i.pfcr0_enable_o,
+      synced_o => pfcr0_enable_rxclk,
+      npulse_o => open,
+      ppulse_o => open);
 
   process(clk_sys_i)
   begin
@@ -314,7 +327,7 @@ begin  -- behavioral
         done_int <= '0';
         drop_o   <= '0';
       else
-        if(regs_i.pfcr0_enable_o = '0') then
+        if(pfcr0_enable_rxclk = '0') then
           done_int <= '0';
           drop_o   <= '0';
           pclass_o <= (others => '0');
