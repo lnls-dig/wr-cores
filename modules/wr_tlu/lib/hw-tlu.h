@@ -1,6 +1,11 @@
 #define GSI_VENDOR_ID 0x651
 #define TLU_DEVICE_ID 0x10051981U
 
+//1 pop => (3rd+rec+adr + 1wr+rec+adr))* 4bytes = 32bytes 
+
+#define POP_TS_OPSIZE         32
+#define UDP_MAX_POPS          46 // 1500 / 32
+
 #define TLU_READY           0x00 //
 #define TLU_CLEAR           0x04
 #define TLU_TEST            0x08

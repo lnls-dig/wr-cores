@@ -70,7 +70,7 @@ struct TLU {
   /* Access/modify the underlying hardware                               */
   /* ------------------------------------------------------------------- */
   
-  Device       device;       /* Device which hosts this ECA */
+  Device       device;       /* Device which hosts this TLU */
   eb_address_t address;      /* Wishbone base address */
   
   /* Reload mutable registers from hardware */
