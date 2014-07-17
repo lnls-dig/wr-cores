@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-Co-HT
 -- Created    : 2010-02-25
--- Last update: 2013-07-29
+-- Last update: 2014-07-15
 -- Platform   : FPGA-generic
 -- Standard   : VHDL '93
 -------------------------------------------------------------------------------
@@ -132,7 +132,6 @@ architecture rtl of dmtd_with_deglitcher is
   signal stab_cntr : unsigned(15 downto 0);
   signal free_cntr : unsigned(g_counter_bits-1 downto 0);
 
-  signal in_d0, in_d1 : std_logic;
   signal s_one        : std_logic;
 
   signal clk_in                                           : std_logic;

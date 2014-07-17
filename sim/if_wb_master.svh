@@ -406,7 +406,7 @@ endclass // CIWBMasterAccessor
 
 	if(request_queue.size() > 0)
 	  begin
-
+	     
              
 	     wb_cycle_t c;
 	     wb_cycle_result_t res;
@@ -416,6 +416,7 @@ endclass // CIWBMasterAccessor
              case(c.ctype)
                PIPELINED:
                  begin
+		    
 		    pipelined_cycle(c.data, c.rw, c.data.size(), res);
 	            c.result  =res;
                  end
