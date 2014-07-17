@@ -54,44 +54,20 @@ peripheral {
 
    reg {
       name = "External Clock Control Register";
-			prefix = "ECCR";
+      prefix = "ECCR";
 
-      field {
-         name = "Enable External Clock BB Detector";
+  field {
+         name = "Enable External Clock PLL";
          prefix = "EXT_EN";
          type = BIT;
          access_bus = READ_WRITE;
 				 access_dev = READ_ONLY;
       };
-
-
       field {
          name = "External Clock Input Available";
          description = "1: This instance of wr_softpll_ng supports external 10MHz clock input\
           0: no support for external 10 MHz clock input.";
          prefix = "EXT_SUPPORTED";
-         type = BIT;
-         access_bus = READ_ONLY;
-         access_dev = WRITE_ONLY;
-      };
-
-
-      field {
-         name = "Enable PPS/phase alignment";
-         description = "write 1: starts aligning the external and local oscillator clock edges to be in phase\
-         right after the pulse on SYNC (PPS) input.\
-         write 0: no effect.";
-         prefix = "ALIGN_EN";
-         type = BIT;
-         access_bus = READ_WRITE;
-				 access_dev = READ_ONLY;
-      };
-
-      field {
-         name = "PPS/phase alignment done";
-         description = "1: phase alignment triggered by writing to ALIGN_EN done.\
-          0: phase alignment in progress.";
-         prefix = "ALIGN_DONE";
          type = BIT;
          access_bus = READ_ONLY;
          access_dev = WRITE_ONLY;
@@ -106,9 +82,127 @@ peripheral {
          access_bus = READ_ONLY;
          access_dev = WRITE_ONLY;
       };
+   };
 
+   reg {
+      name = "Aligner Control Register";
+      prefix = "AL_CR";
+			
+			field {
+				 name = "Aligner sample valid/select on channel";
+				 prefix = "VALID";
+				 type = SLV;
+				 size = 9;
+         access_bus = READ_WRITE;
+         access_dev = READ_WRITE;
+				 load = LOAD_EXT;
+			};
+
+			field {
+				 name = "Aligner required on channel";
+				 prefix = "REQUIRED";
+				 type = SLV;
+				 size = 9;
+         access_bus = READ_ONLY;
+         access_dev = WRITE_ONLY;
+			};
+   };
+
+   reg {
+      name = "Aligner Counter REF register";
+      prefix = "AL_CREF";
+			
+			field {
+				 name = "Aligner reference counter";
+				 type = SLV;
+				 size = 32;
+         access_bus = READ_ONLY;
+         access_dev = WRITE_ONLY;
+			};
+   };
+
+   reg {
+      name = "Aligner Counter IN register";
+      prefix = "AL_CIN";
+			
+			field {
+				 name = "Aligner reference counter";
+				 type = SLV;
+				 size = 32;
+         access_bus = READ_ONLY;
+         access_dev = WRITE_ONLY;
+			};
    };
   
+	 reg {
+			name = "DMTD VCO Frequency";
+			prefix = "F_DMTD";
+			
+			field {
+				 name = "FREQ";
+				 prefix = "FREQ";
+				 type = SLV;
+				 size = 28;
+				 access_bus = READ_ONLY;
+				 access_dev = WRITE_ONLY;
+			};
+
+			field {
+				 name = "VALID";
+				 prefix = "VALID";
+				 type = BIT;
+				 access_bus = READ_WRITE;
+				 access_dev = READ_WRITE;
+				 load = LOAD_EXT;
+			};
+	 };
+
+	 reg {
+			name = "REF VCO Frequency";
+			prefix = "F_REF";
+			
+			field {
+				 name = "FREQ";
+				 prefix = "FREQ";
+				 type = SLV;
+				 size = 28;
+				 access_bus = READ_ONLY;
+				 access_dev = WRITE_ONLY;
+			};
+
+			field {
+				 name = "VALID";
+				 prefix = "VALID";
+				 type = BIT;
+				 access_bus = READ_WRITE;
+				 access_dev = READ_WRITE;
+				 load = LOAD_EXT;
+			};
+	 };
+
+	 reg {
+			name = "EXT VCO Frequency";
+			prefix = "F_EXT";
+			
+			field {
+				 name = "FREQ";
+				 prefix = "FREQ";
+				 type = SLV;
+				 size = 28;
+				 access_bus = READ_ONLY;
+				 access_dev = WRITE_ONLY;
+			};
+
+			field {
+				 name = "VALID";
+				 prefix = "VALID";
+				 type = BIT;
+				 access_bus = READ_WRITE;
+				 access_dev = READ_WRITE;
+				 load = LOAD_EXT;
+			};
+	 };
+
 	 reg {
 			align = 4; 
 			name = "Output Channel Control Register";
@@ -132,49 +226,39 @@ peripheral {
 				 access_bus = READ_WRITE;
 				 access_dev = READ_ONLY;
 			};
-
-      field {
-				 name = "Output Channel Phase Detector Type";
-         description = "Phase detector type used by corresponding output: 0 = DDMTD, 1 = BangBang";
-				 prefix = "OUT_DET_TYPE";
-				 type = SLV;
-				 size = 8;
-				 access_bus = READ_ONLY;
-				 access_dev = WRITE_ONLY;
-			};
-	 };
-	 
-	 reg {
-			name = "Reference Channel Tagging Enable Register";
-			prefix = "RCER";
-			
-			field {
-				 name = "Reference Channel Enable";
-				 description = "write 1: enables tag generation on the input channel corresponding to the written bit\
-				 write 0: disables tag generation";
-				 type = SLV;
-				 size = 32;
-				 access_bus = READ_WRITE;
-				 access_dev = READ_WRITE;
-				 load = LOAD_EXT;
-			};
 	 };
 
-	 reg {
-			name = "Output Channel Tagging Enable Register";
-			prefix = "OCER";
-			
-			field {
-				 name = "Output Channel Enable";
-				 description = "write 1: enables tag generation on the output channel corresponding to the written bit\
+			reg {
+				 name = "Reference Channel Tagging Enable Register";
+				 prefix = "RCER";
+				 
+				 field {
+						name = "Reference Channel Enable";
+						description = "write 1: enables tag generation on the input channel corresponding to the written bit\
 				 write 0: disables tag generation";
-				 type = SLV;
-				 size = 8;
-				 access_bus = READ_WRITE;
-				 access_dev = READ_WRITE;
-				 load = LOAD_EXT;
+						type = SLV;
+						size = 32;
+						access_bus = READ_WRITE;
+						access_dev = READ_WRITE;
+						load = LOAD_EXT;
+				 };
 			};
-	 };
+
+			reg {
+				 name = "Output Channel Tagging Enable Register";
+				 prefix = "OCER";
+				 
+				 field {
+						name = "Output Channel Enable";
+						description = "write 1: enables tag generation on the output channel corresponding to the written bit\
+				 write 0: disables tag generation";
+						type = SLV;
+						size = 8;
+						access_bus = READ_WRITE;
+						access_dev = READ_WRITE;
+						load = LOAD_EXT;
+				 };
+			};
 
    reg {
 			align = 8;
@@ -240,41 +324,8 @@ peripheral {
       };
    };
 
-   reg {
-      name = "Counter Resync Register - input channels";
-      prefix = "CRR_IN";
-      
-      field {
-         name = "Counter Resync";
-         description = "write 1: triggers resynchronization of this channel's DDMTD free-running counter with Out Clock 0\
-         write 0: no effect\
-         read 1: resync in progress\
-         read 0: resync done";
-         size = 32;
-         type = SLV;
-         access_bus = READ_WRITE;
-         access_dev = READ_WRITE;
-         load = LOAD_EXT;
-      };
-   };
 
-   reg {
-      name = "Counter Resync Register - output channels";
-      prefix = "CRR_OUT";
-      
-      field {
-         name = "Counter Resync";
-         description = "write 1: triggers resynchronization of this channel's DDMTD free-running counter with Out Clock 0\
-         write 0: no effect";
-         size = 16;
-         type = SLV;
-         access_bus = READ_WRITE;
-         access_dev = READ_WRITE;
-         load = LOAD_EXT;
-      };
-   };
-
-  	 fifo_reg {
+	 fifo_reg {
 			name = "Debug FIFO Register - Host side";		
 			prefix = "DFR_HOST";
 			direction = CORE_TO_BUS;		 		 
@@ -330,43 +381,6 @@ peripheral {
 				 type = BIT;
 			};
 	 };
-
- reg {
-      name = "Aux clock configuration register";
-      prefix = "AUX_CR";
-
-      field {
-         name = "Aux output select";
-         prefix = "AUX_SEL";
-         size = 3;
-         type = PASS_THROUGH;
-      };
-
-      field {
-         name = "BB reference divider";
-         description = "Reference clock division factor. Applicable only for aux channels with BB phase detector.";
-         prefix = "DIV_REF";
-         size = 6;
-         type = PASS_THROUGH;
-      };
-
-      field {
-         name = "BB feedback divider";
-         description = "Reference clock division factor. Applicable only for aux channels with BB phase detector.";
-         prefix = "DIV_FB";
-         size = 6;
-         type = PASS_THROUGH;
-      };
-
-      field {
-         name = "BB gating frequency select";
-         description = "BB detector output gating frequency. GATE = log2(period in clk_ref cycles).";
-         prefix = "GATE";
-         size = 4;
-         type = PASS_THROUGH;
-      };
-   };
-
 
 
 	 irq {
