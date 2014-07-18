@@ -146,7 +146,7 @@ entity wr_softpll_ng is
     wb_ack_o   : out std_logic;
     wb_stall_o : out std_logic;
     wb_irq_o   : out std_logic;
-    debug_o    : out std_logic_vector(3 downto 0);
+    debug_o    : out std_logic_vector(5 downto 0);
 
 -- Debug FIFO readout interrupt
     dbg_fifo_irq_o : out std_logic
@@ -183,7 +183,8 @@ architecture rtl of wr_softpll_ng is
       deglitch_threshold_i : in  std_logic_vector(15 downto 0);
       dbg_dmtdout_o        : out std_logic;
       tag_o                : out std_logic_vector(g_counter_bits-1 downto 0);
-      tag_stb_p1_o         : out std_logic);
+      tag_stb_p1_o         : out std_logic;
+			dbg_clk_d3_o         : out std_logic);
   end component;
 
   component spll_wb_slave
@@ -464,7 +465,8 @@ begin  -- rtl
         shift_dir_i  => '0',
 
         deglitch_threshold_i => deglitch_thr_slv,
-        dbg_dmtdout_o        => open);
+        dbg_dmtdout_o        => open,
+				dbg_clk_d3_o         => debug_o(4));
 
 
   end generate gen_feedback_dmtds;
@@ -472,6 +474,9 @@ begin  -- rtl
   gen_with_ext_clock_input : if(g_with_ext_clock_input) generate
 
 
+		debug_o(0) <= fb_resync_out(0);
+		debug_o(1) <= tags_p(g_num_ref_inputs + g_num_outputs);
+		debug_o(2) <= tags_p(g_num_ref_inputs);
     
     U_DMTD_EXT : dmtd_with_deglitcher
       generic map (
@@ -497,7 +502,8 @@ begin  -- rtl
         shift_dir_i  => '0',
 
         deglitch_threshold_i => deglitch_thr_slv,
-        dbg_dmtdout_o        => open);
+        dbg_dmtdout_o        => debug_o(3),
+				dbg_clk_d3_o         => debug_o(5));
 
     U_Aligner_EXT : spll_aligner
       generic map (
