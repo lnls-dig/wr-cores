@@ -166,7 +166,8 @@ architecture rtl of wr_softpll_ng is
   component dmtd_with_deglitcher
     generic (
       g_counter_bits      : natural;
-      g_divide_input_by_2 : boolean);
+      g_divide_input_by_2 : boolean;
+			g_reverse           :	boolean);
     port (
       rst_n_dmtdclk_i      : in  std_logic;
       rst_n_sysclk_i       : in  std_logic;
@@ -385,14 +386,12 @@ begin  -- rtl
 
   gen_ref_dmtds : for i in 0 to g_num_ref_inputs-1 generate
 
-    dmtd_ref_clk_in(i)   <= f_pick(g_reverse_dmtds, clk_dmtd_i, clk_ref_i(i));
-    dmtd_ref_clk_dmtd(i) <= f_pick(g_reverse_dmtds, clk_ref_i(i), clk_dmtd_i);
 
     U_sync_rst_dmtd_ref : gc_sync_ffs
       generic map (
         g_sync_edge => "positive")
       port map (
-        clk_i    => dmtd_ref_clk_dmtd(i),
+        clk_i    => clk_dmtd_i,
         rst_n_i  => '1',
         data_i   => rst_n_i,
         synced_o => rst_n_dmtd_ref_clk(i));
@@ -400,16 +399,17 @@ begin  -- rtl
     DMTD_REF : dmtd_with_deglitcher
       generic map (
         g_counter_bits      => g_tag_bits,
-        g_divide_input_by_2 => g_divide_input_by_2)
+        g_divide_input_by_2 => g_divide_input_by_2,
+				g_reverse	=> g_reverse_dmtds)
       port map (
         rst_n_dmtdclk_i => rst_n_dmtd_ref_clk(i),
         rst_n_sysclk_i  => rst_n_i,
 
-        clk_dmtd_i    => dmtd_ref_clk_dmtd(i),
+        clk_dmtd_i    => clk_dmtd_i,
         clk_dmtd_en_i => '1',
 
         clk_sys_i => clk_sys_i,
-        clk_in_i  => dmtd_ref_clk_in(i),
+        clk_in_i  => clk_ref_i(i),
 
         resync_done_o    => open,
         resync_start_p_i => '0',
@@ -428,14 +428,12 @@ begin  -- rtl
 
   gen_feedback_dmtds : for i in 0 to g_num_outputs-1 generate
     
-    dmtd_fb_clk_in(i)   <= f_pick(g_reverse_dmtds, clk_dmtd_i, clk_fb_i(i));
-    dmtd_fb_clk_dmtd(i) <= f_pick(g_reverse_dmtds, clk_fb_i(i), clk_dmtd_i);
 
     U_sync_rst_dmtd_fb : gc_sync_ffs
       generic map (
         g_sync_edge => "positive")
       port map (
-        clk_i    => dmtd_fb_clk_dmtd(i),
+        clk_i    => clk_dmtd_i,
         rst_n_i  => '1',
         data_i   => rst_n_i,
         synced_o => rst_n_dmtd_fb_clk(i));
@@ -443,16 +441,17 @@ begin  -- rtl
     DMTD_FB : dmtd_with_deglitcher
       generic map (
         g_counter_bits      => g_tag_bits,
-        g_divide_input_by_2 => g_divide_input_by_2)
+        g_divide_input_by_2 => g_divide_input_by_2,
+				g_reverse => g_reverse_dmtds)
       port map (
         rst_n_dmtdclk_i => rst_n_dmtd_fb_clk(i),
         rst_n_sysclk_i  => rst_n_i,
 
-        clk_dmtd_i    => dmtd_fb_clk_dmtd(i),
+        clk_dmtd_i    => clk_dmtd_i,
         clk_dmtd_en_i => '1',
 
         clk_sys_i => clk_sys_i,
-        clk_in_i  => dmtd_fb_clk_in(i),
+        clk_in_i  => clk_fb_i(i),
 
         resync_done_o    => open,
         resync_start_p_i => '0',
@@ -481,7 +480,8 @@ begin  -- rtl
     U_DMTD_EXT : dmtd_with_deglitcher
       generic map (
         g_counter_bits      => g_tag_bits,
-        g_divide_input_by_2 => g_divide_input_by_2)
+        g_divide_input_by_2 => g_divide_input_by_2,
+				g_reverse	=> g_reverse_dmtds)
       port map (
         rst_n_dmtdclk_i => rst_n_i,     -- FIXME!
         rst_n_sysclk_i  => rst_n_i,
