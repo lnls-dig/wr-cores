@@ -7,7 +7,10 @@ const uint64_t BASE_WRPC = 'h0080000;
 module main;
    reg clk_125m_pllref = 0;
    reg clk_20m_vcxo = 0;
+   reg clk_ext = 0;
    
+
+   always #50ns clk_ext <= ~clk_ext;
    always #4ns clk_125m_pllref <= ~clk_125m_pllref;
    always #20ns clk_20m_vcxo <= ~clk_20m_vcxo;
    
@@ -44,7 +47,7 @@ module main;
       //$display("dupa1");
       //acc.write('ha0400, 'h0deadbee);
       //$display("dupa2");
-      acc.write('ha021c, 'hfafa);
+      //acc.write('ha021c, 'hfafa);
       $display("dupa3");
       
       

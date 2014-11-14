@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk
 -- Company    : Elproma
 -- Created    : 2011-02-02
--- Last update: 2013-02-08
+-- Last update: 2014-07-15
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -78,7 +78,6 @@ entity xwr_core is
     g_interface_mode            : t_wishbone_interface_mode      := PIPELINED;
     g_address_granularity       : t_wishbone_address_granularity := WORD;
     g_aux_sdb                   : t_sdb_device                   := c_wrc_periph3_sdb;
-    g_softpll_channels_config   : t_softpll_channel_config_array := c_softpll_default_channel_config;
     g_softpll_enable_debugger   : boolean                        := false;
     g_vuart_fifo_size           : integer                        := 1024
     );
@@ -101,6 +100,8 @@ entity xwr_core is
 
     -- External 10 MHz reference (cesium, GPSDO, etc.), used in Grandmaster mode
     clk_ext_i : in std_logic := '0';
+
+    clk_ext_mul_i : in std_logic := '0';
 
     -- External PPS input (cesium, GPSDO, etc.), used in Grandmaster mode
     pps_ext_i : in std_logic := '0';
@@ -229,17 +230,17 @@ begin
       g_interface_mode            => g_interface_mode,
       g_address_granularity       => g_address_granularity,
       g_aux_sdb                   => g_aux_sdb,
-      g_softpll_channels_config   => g_softpll_channels_config,
       g_softpll_enable_debugger   => g_softpll_enable_debugger,
       g_vuart_fifo_size           => g_vuart_fifo_size)
     port map(
-      clk_sys_i  => clk_sys_i,
-      clk_dmtd_i => clk_dmtd_i,
-      clk_ref_i  => clk_ref_i,
-      clk_aux_i  => clk_aux_i,
-      clk_ext_i  => clk_ext_i,
-      pps_ext_i  => pps_ext_i,
-      rst_n_i    => rst_n_i,
+      clk_sys_i     => clk_sys_i,
+      clk_dmtd_i    => clk_dmtd_i,
+      clk_ref_i     => clk_ref_i,
+      clk_aux_i     => clk_aux_i,
+      clk_ext_i     => clk_ext_i,
+      clk_ext_mul_i => clk_ext_mul_i,
+      pps_ext_i     => pps_ext_i,
+      rst_n_i       => rst_n_i,
 
       dac_hpll_load_p1_o => dac_hpll_load_p1_o,
       dac_hpll_data_o    => dac_hpll_data_o,
