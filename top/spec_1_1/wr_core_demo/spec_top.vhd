@@ -653,7 +653,8 @@ begin
       g_virtual_uart              => true,
       g_aux_clks                  => 0,
       g_ep_rxbuf_size             => 1024,
-      g_dpram_initf               => "",       --wrc.ram",
+      g_dpram_initf               => "wrc.ram",
+      g_aux_sdb                   => c_etherbone_sdb,
       g_dpram_size                => 90112/4,  --16384,
       g_interface_mode            => PIPELINED,
       g_address_granularity       => BYTE)
