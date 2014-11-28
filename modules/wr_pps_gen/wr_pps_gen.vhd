@@ -174,8 +174,8 @@ architecture behavioral of wr_pps_gen is
   signal wb_out       : t_wishbone_slave_out;
   signal wb_in        : t_wishbone_slave_in;
 
-  signal ns_overflow_2nd                        : std_logic;
-  signal pps_in_d0, pps_ext_d0, pps_ext_retimed : std_logic;
+  signal ns_overflow_2nd       : std_logic;
+  signal pps_in_d0, pps_ext_d0 : std_logic;
 
   signal retime_counter : unsigned(4 downto 0);
   signal pps_valid_int  : std_logic;
@@ -361,8 +361,8 @@ begin  -- behavioral
   p_drive_pps_valid : process(clk_ref_i)
   begin
     if rising_edge(clk_ref_i) then
-      if rst_synced_refclk = '0' then
-        pps_valid_int   <= '1';
+      if rst_synced_refclk = '0' or ppsg_cr_cnt_rst = '1' then
+        pps_valid_int   <= '0';
         ns_overflow_2nd <= '0';
       else
         if(sync_in_progress = '1' or adjust_in_progress_nsec = '1' or adjust_in_progress_utc = '1') then
@@ -453,8 +453,6 @@ begin  -- behavioral
       end if;
     end if;
   end process;
-
---  pps_out_o <=pps_ext_retimed;
 
   Uwb_slave : pps_gen_wb
     port map (
