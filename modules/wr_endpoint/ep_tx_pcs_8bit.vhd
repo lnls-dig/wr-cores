@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT section
 -- Created    : 2009-06-16
--- Last update: 2012-03-21
+-- Last update: 2014-11-28
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -490,10 +490,18 @@ begin
     end if;
   end process;
 
-  tx_busy <= '1' when (fifo_empty = '0') or (tx_state /= TX_IDLE and tx_state /= TX_COMMA) else '0';
+  process(phy_tx_clk_i)
+  begin
+    if rising_edge(phy_tx_clk_i) then
+      if fifo_empty = '0' or (tx_state /= TX_IDLE and tx_state /= TX_COMMA) then
+        tx_busy <= '1';
+      else
+        tx_busy <= '0';
+      end if;
+    end if;
+  end process;
 
   pcs_dreq_o <= not fifo_almost_full;
-
 
 end behavioral;
 
