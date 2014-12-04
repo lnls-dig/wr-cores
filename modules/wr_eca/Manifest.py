@@ -3,6 +3,7 @@ files = [
   "eca_adder.vhd",
   "eca_channel.vhd",
   "eca_gpio_channel.vhd",
+  "eca_scubus_channel.vhd",
   "eca_offset.vhd",
   "eca_pkg.vhd",
   "eca_sdp.vhd",

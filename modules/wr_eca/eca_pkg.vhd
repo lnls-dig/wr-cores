@@ -235,6 +235,16 @@ package eca_pkg is
       gpio_o    : out std_logic_vector(15 downto 0));
   end component;
   
+  -- sends channel_i.tag to the scu bus
+  component eca_scubus_channel is
+  port(
+    clk_i     : in  std_logic;
+    rst_n_i   : in  std_logic;
+    channel_i : in  t_channel;
+    tag_valid : out std_logic;
+    tag       : out std_logic_vector(31 downto 0));  
+  end component eca_scubus_channel;
+  
   ---------------------- Internals ------------------------
   
   function f_eca_active_high(x : boolean) return std_logic;
