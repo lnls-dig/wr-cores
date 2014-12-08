@@ -547,8 +547,7 @@ begin
       slave_i => spll_wb_in,
       slave_o => spll_wb_out,
 
-      debug_o => dio_o
-      );
+      debug_o => open);
 
   clk_fb(0)                       <= clk_ref_i;
   clk_fb(g_aux_clks downto 1)     <= clk_aux_i;
@@ -593,7 +592,10 @@ begin
       g_with_dpi_classifier => true,
       g_with_vlans          => false,
       g_with_rtu            => false,
-      g_with_leds           => true)
+      g_with_leds           => true,
+      g_with_packet_injection => false,
+      g_use_new_rxcrc       => true,
+      g_use_new_txcrc       => false)
     port map (
       clk_ref_i      => clk_ref_i,
       clk_sys_i      => clk_sys_i,
@@ -633,6 +635,7 @@ begin
       txtsu_ack_i          => ep_txtsu_ack,
       wb_i                 => ep_wb_in,
       wb_o                 => ep_wb_out,
+      rmon_events_o        => open,
       led_link_o           => ep_led_link,
       led_act_o            => led_act_o);
 

@@ -277,7 +277,7 @@ package wrcore_pkg is
       out_status_o    : out std_logic_vector(4*g_num_outputs-1 downto 0);
       slave_i         : in  t_wishbone_slave_in;
       slave_o         : out t_wishbone_slave_out;
-      debug_o         : out std_logic_vector(3 downto 0);
+      debug_o         : out std_logic_vector(5 downto 0);
       dbg_fifo_irq_o  : out std_logic);
   end component;
   
