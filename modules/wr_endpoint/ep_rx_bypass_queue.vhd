@@ -36,6 +36,7 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
+use work.wr_fabric_pkg.all;
 
 entity ep_rx_bypass_queue is
   generic(
@@ -84,7 +85,7 @@ architecture behavioral of ep_rx_bypass_queue is
     return '1';
   end function;
 
-  type t_queue_array is array(0 to g_width-1) of std_logic_vector(g_size-1 downto 0);
+  type t_queue_array is array(0 to g_size-1) of std_logic_vector(g_width-1 downto 0);
 
   signal q_data  : t_queue_array;
   signal q_valid : std_logic_vector(g_size-1 downto 0);
@@ -97,6 +98,8 @@ architecture behavioral of ep_rx_bypass_queue is
 
   signal sreg_enable : std_logic;
   
+  signal first_word :  std_logic_vector(g_width-1 downto 0);
+  signal oob_in     : std_logic;
 begin  -- behavioral
 
   qempty <= f_queue_occupation(q_valid, '1');
@@ -104,21 +107,23 @@ begin  -- behavioral
 
   empty_o <= qempty;
 
-  gen_sreg : for i in 0 to g_width-1 generate
+  first_word <= q_data(g_size-1) ;
 
-    U_sreg : ep_shift_reg
-      generic map (
-        g_size => g_size)
-      port map (
-        clk_i => clk_i,
-        ce_i  => sreg_enable,
-        d_i   => d_i(i),
-        q_o   => q_o(i));
+  process(clk_i)
+  begin
+    if rising_edge(clk_i) then
+      if(sreg_enable = '1') then
+        q_data(g_size-1)  <= d_i;
+        L0: for i in 0 to g_size-2 loop
+            q_data(i)       <= q_data(i+1);
+        end loop L0;        
+      end if;
+    end if;
+  end process;
 
-  end generate gen_sreg;
-
-
-  sreg_enable <= '1' when ((valid_i = '1') or (qempty = '0' and (flushing = '1') and valid_int = '1')) else '0';
+  q_o         <= q_data(g_size-1) when (first_word(17 downto 16) = c_WRF_OOB) else q_data(0);
+  oob_in      <= '1'  when (first_word(17 downto 16) = c_WRF_OOB and q_valid(0) = '1') else '0';
+  sreg_enable <= '1' when ((valid_i = '1') or (qempty = '0' and valid_int = '1')) else '0';
 
   p_queue : process(clk_i)
   begin
@@ -137,15 +142,19 @@ begin  -- behavioral
         valid_mask <= dreq_i;
 
         if sreg_enable = '1' then
-          q_valid(0)                         <= valid_i;
-          q_valid(q_valid'length-1 downto 1) <= q_valid(q_valid'length-2 downto 0);
+          q_valid(0)                           <= valid_i;
+          if(oob_in = '1' ) then -- flashing CRC
+            q_valid(q_valid'length-1 downto 1) <=(others => '0');
+          else
+            q_valid(q_valid'length-1 downto 1) <= q_valid(q_valid'length-2 downto 0);
+          end if;
         end if;
       end if;
     end if;
   end process;
 
-  dreq_o    <= dreq_i and not (flush_i or flushing);
-  valid_int <= (qfull and valid_i) or (not qempty and flushing and valid_mask);
+  dreq_o    <= (dreq_i or not qfull ) and not ((flush_i or flushing) and not qempty);
+  valid_int <= (qfull and valid_i) or (not qempty and (oob_in or flushing) and valid_mask);
   valid_o   <= valid_int;
   
 end behavioral;
@@ -179,7 +188,5 @@ begin  -- rtl
       end if;
     end if;
   end process;
-
-  q_o <= sreg(g_size-1);
 
 end rtl;
