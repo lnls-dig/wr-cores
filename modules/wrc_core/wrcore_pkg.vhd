@@ -11,25 +11,8 @@ use work.softpll_pkg.all;
 
 package wrcore_pkg is
 
-  function f_pcs_data_width(pcs_16 : boolean)
-    return integer is
-  begin
-    if (pcs_16) then
-      return 16;
-    else
-      return 8;
-    end if;
-  end function;
-
-  function f_pcs_bts_width(pcs_16 : boolean)
-    return integer is
-  begin
-    if (pcs_16) then
-      return 5;
-    else
-      return 4;
-    end if;
-  end function;
+  function f_pcs_data_width(pcs_16 : boolean) return integer;
+  function f_pcs_bts_width(pcs_16 : boolean) return integer;
 
   ----------------------------------------------------------------------------- 
   --PPS generator
@@ -627,5 +610,29 @@ package wrcore_pkg is
       dac_sclk_o  : out std_logic;
       dac_din_o   : out std_logic);
   end component;
+
+end wrcore_pkg;
+
+package body wrcore_pkg is
+
+  function f_pcs_data_width(pcs_16 : boolean)
+    return integer is
+  begin
+    if (pcs_16) then
+      return 16;
+    else
+      return 8;
+    end if;
+  end function;
+
+  function f_pcs_bts_width(pcs_16 : boolean)
+    return integer is
+  begin
+    if (pcs_16) then
+      return 5;
+    else
+      return 4;
+    end if;
+  end function;
 
 end wrcore_pkg;
