@@ -59,18 +59,21 @@ architecture behavioral of ep_rx_wb_master is
   signal tmp_sel : std_logic;
   signal tmp_dat : std_logic_vector(15 downto 0);
   signal tmp_adr : std_logic_vector(1 downto 0);
- signal enter_idle: std_logic;
+  signal enter_idle: std_logic;
+  signal sof_reg  : std_logic;
 
 begin  -- behavioral
   
   gen_cyc_on_stall: if g_cyc_on_stall = true generate
-    snk_dreq_o <= '1' when ((src_wb_i.stall = '0' and state /= FINISH_CYCLE and snk_fab_i.eof = '0' and snk_fab_i.error = '0' and snk_fab_i.sof = '0' and enter_idle = '0') or state = IDLE) else '0';
+    snk_dreq_o <= '1' when ((src_wb_i.stall = '0' and state /= FINISH_CYCLE and
+                  state /= THROW_ERROR and snk_fab_i.eof = '0' and snk_fab_i.error = '0' and snk_fab_i.sof = '0' and enter_idle = '0') or state = IDLE) else '0';
   end generate;
 
   gen_nocyc_on_stall: if g_cyc_on_stall = false generate
 --     snk_dreq_o <= '1' when (src_wb_i.stall = '0' and state /= FINISH_CYCLE and snk_fab_i.eof = '0' and snk_fab_i.error = '0' and snk_fab_i.sof = '0' and enter_idle = '0') else '0';
 --     snk_dreq_o <= '1' when (src_wb_i.stall = '0' and state /= FINISH_CYCLE and snk_fab_i.eof = '0' and snk_fab_i.error = '0' and enter_idle = '0') else '0';
-    snk_dreq_o <= '1' when (src_wb_i.stall = '0' and state /= FINISH_CYCLE and snk_fab_i.eof = '0' and snk_fab_i.error = '0') else '0';
+    snk_dreq_o <= '1' when (src_wb_i.stall = '0' and state /= FINISH_CYCLE and
+                  state /= THROW_ERROR and snk_fab_i.eof = '0' and snk_fab_i.error = '0') else '0';
   end generate;
 
   p_count_acks : process(clk_sys_i)
@@ -100,6 +103,7 @@ begin  -- behavioral
         src_out_int.adr <= c_WRF_DATA;
         src_out_int.cyc <= '0';
         enter_idle <= '1';
+        sof_reg    <= '0';
       else
         case state is
           when IDLE =>
@@ -107,12 +111,13 @@ begin  -- behavioral
             src_out_int.adr <= snk_fab_i.addr;
             src_out_int.dat <= snk_fab_i.data;
 
-            if(snk_fab_i.sof = '1' and src_wb_i.err = '0') then
+            if((snk_fab_i.sof='1' or sof_reg='1') and src_wb_i.err = '0') then
               src_out_int.cyc <= '1';
               state           <= DATA;
             end if;
             
           when DATA =>
+            sof_reg <= '0';
             if(src_wb_i.stall = '0') then
               src_out_int.adr <= snk_fab_i.addr;
               src_out_int.dat    <= snk_fab_i.data;
@@ -159,9 +164,12 @@ enter_idle <= '1';
             end if;
 
           when THROW_ERROR =>
+            if(snk_fab_i.sof='1') then
+              sof_reg <= '1';
+            end if;
             if(src_wb_i.err = '1') then
-	      enter_idle <= '1';
- state <= IDLE;
+              enter_idle <= '1';
+              state <= IDLE;
               src_out_int.cyc <= '0';
               src_out_int.stb <= '0';
             elsif(src_wb_i.stall = '0') then
@@ -174,6 +182,9 @@ enter_idle <= '1';
               
             
           when FINISH_CYCLE =>
+            if(snk_fab_i.sof='1') then
+              sof_reg <= '1';
+            end if;
             if(src_wb_i.stall = '0') then
               src_out_int.stb <= '0';
             end if;
