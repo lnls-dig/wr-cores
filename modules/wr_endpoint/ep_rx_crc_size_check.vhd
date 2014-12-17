@@ -263,7 +263,7 @@ begin  -- behavioral
             end if;
 
             if(snk_fab_i.error = '1' or    -- an error from the source?
-               (q_bytesel = '1' and oob_in = '0')) then -- we expect bytesel at the last byte of data
+               (q_bytesel = '1' and oob_in = '0' and snk_fab_i.dvalid = '1')) then -- we expect bytesel at the last byte of data
 
               src_fab_o.error <= '1';
               rmon_pcs_err_o  <= '1';
