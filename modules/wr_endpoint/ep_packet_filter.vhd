@@ -331,7 +331,8 @@ begin  -- behavioral
           done_int <= '0';
           drop_o   <= '0';
           pclass_o <= (others => '0');
-        elsif((stage2 = '1' and insn.fin = '1') or snk_fab_i.error = '1' or snk_fab_i.eof = '1') then
+        elsif( (stage2 = '1' and insn.fin = '1') or
+               ((snk_fab_i.error = '1' or snk_fab_i.eof = '1') and done_int = '0') ) then
           done_int <= '1';
           pclass_o <= regs(31 downto 24);
           drop_o   <= regs(23);
