@@ -453,6 +453,8 @@ begin  -- behavioral
                   when x"6" =>
                     src_fab_o.data <= f_pick(g_with_packet_injection, "XXXXXXXXXXXXXXXX", x"8808");
                   when x"7" =>
+                    src_fab_o.data <= f_pick(g_with_packet_injection, "XXXXXXXXXXXXXXXX", x"0001"); -- peterj: IEEE 802.3 Table 31A-1 MAC control codes PAUSE (Annex 31B)
+                  when x"8" =>
                     src_fab_o.data <= f_pick(g_with_packet_injection, "XXXXXXXXXXXXXXXX", fc_pause_delay_i); -- ML: bug ??? (forget optcode: 0x0001)
                     state          <= TXF_PAD;
                   when others =>
