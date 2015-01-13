@@ -68,7 +68,7 @@ end ep_rx_buffer;
 
 architecture behavioral of ep_rx_buffer is
 
-  constant c_drop_threshold    : integer := g_size - 2;
+  constant c_drop_threshold    : integer := g_size - 3;
   constant c_release_threshold : integer := g_size * 7 / 8;
 
   type t_write_state is(WAIT_FRAME, DATA);
