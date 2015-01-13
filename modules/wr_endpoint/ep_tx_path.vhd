@@ -52,6 +52,7 @@ entity ep_tx_path is
     g_with_packet_injection : boolean;
     g_with_inj_ctrl         : boolean := true;
     g_force_gap_length      : integer;
+    g_runt_padding          : boolean;
     g_use_new_crc           :	boolean
     );
 
@@ -174,7 +175,8 @@ begin  -- rtl
     generic map (
       g_with_packet_injection => g_with_packet_injection,
       g_with_timestamper      => g_with_timestamper,
-      g_force_gap_length      => g_force_gap_length)
+      g_force_gap_length      => g_force_gap_length,
+      g_runt_padding          => g_runt_padding)
     port map (
       clk_sys_i              => clk_sys_i,
       rst_n_i                => rst_n_i,

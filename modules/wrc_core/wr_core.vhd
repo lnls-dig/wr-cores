@@ -88,6 +88,7 @@ entity wr_core is
     g_virtual_uart              : boolean                        := false;
     g_aux_clks                  : integer                        := 1;
     g_rx_buffer_size            : integer                        := 1024;
+    g_tx_runt_padding           : boolean                        := false;
     g_dpram_initf               : string                         := "default";
     g_dpram_size                : integer                        := 90112/4;  --in 32-bit words
     g_interface_mode            : t_wishbone_interface_mode      := PIPELINED;
@@ -597,6 +598,7 @@ begin
       g_interface_mode      => PIPELINED,
       g_address_granularity => BYTE,
       g_simulation          => f_int_to_bool(g_simulation),
+      g_tx_runt_padding     => g_tx_runt_padding,
       g_pcs_16bit           => false,
       g_rx_buffer_size      => g_rx_buffer_size,
       g_with_rx_buffer      => true,

@@ -300,6 +300,7 @@ package wrcore_pkg is
       g_with_external_clock_input : boolean                        := false;
       g_aux_clks                  : integer                        := 1;
       g_ep_rxbuf_size             : integer                        := 1024;
+      g_tx_runt_padding           : boolean                        := false;
       g_dpram_initf               : string                         := "default";
       g_dpram_size                : integer                        := 90112/4;  --in 32-bit words
       g_interface_mode            : t_wishbone_interface_mode      := PIPELINED;
@@ -404,6 +405,7 @@ package wrcore_pkg is
       g_virtual_uart              : boolean                        := false;
       g_aux_clks                  : integer                        := 1;
       g_rx_buffer_size            : integer                        := 1024;
+      g_tx_runt_padding           : boolean                        := false;
       g_dpram_initf               : string                         := "default";
       g_dpram_size                : integer                        := 90112/4;  --in 32-bit words
       g_interface_mode            : t_wishbone_interface_mode      := PIPELINED;

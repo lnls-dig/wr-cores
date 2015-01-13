@@ -59,6 +59,7 @@ entity wr_endpoint is
     g_interface_mode        : t_wishbone_interface_mode      := CLASSIC;
     g_address_granularity   : t_wishbone_address_granularity := WORD;
     g_tx_force_gap_length   : integer                        := 0;
+    g_tx_runt_padding       : boolean                        := true;
     g_simulation            : boolean                        := false;
     g_pcs_16bit             : boolean                        := true;
     g_rx_buffer_size        : integer                        := 1024;
@@ -333,6 +334,7 @@ architecture syn of wr_endpoint is
       g_with_timestamper      : boolean;
       g_with_packet_injection : boolean;
       g_force_gap_length      : integer;
+      g_runt_padding          : boolean;
       g_use_new_crc           :	boolean := false);
     port (
       clk_sys_i              : in  std_logic;
@@ -719,6 +721,7 @@ begin
       g_with_vlans            => g_with_vlans,
       g_with_timestamper      => g_with_timestamper,
       g_force_gap_length      => g_tx_force_gap_length,
+      g_runt_padding          => g_tx_runt_padding,
       g_use_new_crc           => g_use_new_txcrc)
     port map (
       clk_sys_i        => clk_sys_i,

@@ -52,7 +52,8 @@ entity ep_tx_header_processor is
   generic(
     g_with_packet_injection : boolean;
     g_with_timestamper      : boolean;
-    g_force_gap_length      : integer
+    g_force_gap_length      : integer;
+    g_runt_padding          : boolean
     );
 
   port (
@@ -139,7 +140,7 @@ architecture behavioral of ep_tx_header_processor is
 
 -- general signals
   signal state   : t_tx_framer_state;
-  signal counter : unsigned(7 downto 0);
+  signal counter : unsigned(13 downto 0);
 
 -- Flow Control-related signals
   signal tx_pause_mode  : std_logic;
@@ -165,6 +166,8 @@ architecture behavioral of ep_tx_header_processor is
   signal tx_en        : std_logic;
   signal ep_ctrl     : std_logic;
   signal bitsel_d    : std_logic;
+  signal needs_padding  :  std_logic;
+  signal sof_reg     : std_logic;
 
   function b2s (x : boolean)
     return std_logic is
@@ -241,6 +244,27 @@ begin  -- behavioral
  abort_now <= '1' when (state /= TXF_IDLE and state /= TXF_GAP) and (tx_en = '0' or error_p1 = '1') else
               '1' when (state = TXF_ABORT and wb_snk_i.cyc = '1' ) else 
               '0'; -- ML
+
+  GEN_PADDING: if(g_runt_padding) generate
+    needs_padding <= '1' when(counter < x"1e") else -- 0x1e, but we count here also ethertype
+                     '0';
+  end generate;
+  GEN_NOPADDING: if( not g_runt_padding) generate
+    needs_padding <= '0';
+  end generate;
+
+  process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if(rst_n_i='0') then
+        sof_reg <= '0';
+      elsif(sof_p1='1') then
+        sof_reg <= '1';
+      elsif(state = TXF_ADDR) then
+        sof_reg <= '0';
+      end if;
+    end if;
+  end process;
 
   p_store_status : process(clk_sys_i)
   begin
@@ -354,6 +378,7 @@ begin  -- behavioral
               wb_out.rty <= '0';
 
               txtsu_stb_o <= '0';
+              bitsel_d    <= '0';
 
               src_fab_o.error  <= '0';
               src_fab_o.eof    <= '0';
@@ -368,7 +393,7 @@ begin  -- behavioral
 --            it means that if we wait for dreq to be high.... we can miss SOF and thus entire frame. 
 --            New state added to include a case where SOF (start of cycle) starts when dreq is LOW.
 --            (we cannot just go to TXF_ADDR... it is because the PCS needs the minimal gap to add CRC)
-              if((sof_p1 = '1' or fc_pause_req_i = '1') and tx_en = '1') then --ML
+              if((sof_p1 = '1' or sof_reg='1' or fc_pause_req_i = '1') and tx_en = '1') then --ML
 
                 fc_pause_ready_o <= '0';
                 tx_pause_mode    <= fc_pause_req_i;
@@ -379,9 +404,6 @@ begin  -- behavioral
                 if(src_dreq_i = '1') then
                   state         <= TXF_ADDR;
                   src_fab_o.sof <= '1';
-                else
-                  state         <= TXF_DELAYED_SOF;
-                  src_fab_o.sof <= '0';                  
                 end if;
                 
               else
@@ -458,8 +480,9 @@ begin  -- behavioral
                 src_fab_o.dvalid <= '1';
                 src_fab_o.addr   <= (others => '0');
 
-                if(counter = x"1e") then
+                if(counter = x"1d") then
                   state <= TXF_GAP;
+                  src_fab_o.eof    <= '1';
                 end if;
                 
               else
@@ -480,7 +503,9 @@ begin  -- behavioral
               -- caused EOF to be longer than one cycle
               src_fab_o.eof   <= '0'; 
               
-              if(eof_p1 = '1') then
+              if((wb_snk_i.adr = c_WRF_OOB or eof_p1='1') and needs_padding='1') then
+                state <= TXF_PAD;
+              elsif(eof_p1 = '1' and needs_padding='0') then
                 src_fab_o.eof <= '1';
                 counter       <= (others => '0');
     
@@ -511,7 +536,8 @@ begin  -- behavioral
               if(snk_valid = '1' and wb_snk_i.adr = c_WRF_DATA) then
                 src_fab_o.data    <= wb_snk_i.dat;
                 src_fab_o.dvalid  <= '1';
-                src_fab_o.bytesel <= not wb_snk_i.sel(0);
+                src_fab_o.bytesel <= (not wb_snk_i.sel(0)) and (not needs_padding);
+                counter <= counter + 1;
               else
                 src_fab_o.dvalid  <= '0';
                 src_fab_o.data    <= (others => 'X');
@@ -522,7 +548,11 @@ begin  -- behavioral
                 bitsel_d <='1';
               end if;  
 
-              src_fab_o.addr    <= wb_snk_i.adr;
+              if(needs_padding='1') then
+                src_fab_o.addr  <= (others=>'0');
+              else
+                src_fab_o.addr    <= wb_snk_i.adr;
+              end if;
 
 -------------------------------------------------------------------------------
 -- TX FSM states: WAIT_CRC, EMBED_CRC: dealing with frame checksum field
@@ -615,7 +645,7 @@ begin  -- behavioral
 ---------------------------------------------------------------------------------------------
 --     elsif(src_dreq_i = '1' and state /= TXF_GAP and state /= TXF_ABORT and state /= TXF_DELAYED_SOF and state /= TXF_STORE_TSTAMP) then
 ---------------------------------------------------------------------------------------------
-    elsif(src_dreq_i = '1' and state /= TXF_GAP  and state /= TXF_DELAYED_SOF and state /= TXF_STORE_TSTAMP) then
+    elsif(src_dreq_i = '1' and state /= TXF_PAD and state /= TXF_GAP  and state /= TXF_DELAYED_SOF and state /= TXF_STORE_TSTAMP) then
       wb_out.stall <= '0';              -- during data/header phase - whenever
                                         -- the sink is ready to accept data
     

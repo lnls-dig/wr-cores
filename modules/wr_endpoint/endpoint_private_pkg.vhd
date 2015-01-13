@@ -186,7 +186,8 @@ package endpoint_private_pkg is
     generic (
       g_with_packet_injection : boolean;
       g_with_timestamper      : boolean;
-      g_force_gap_length      : integer);
+      g_force_gap_length      : integer;
+      g_runt_padding          : boolean);
     port (
       clk_sys_i              : in  std_logic;
       rst_n_i                : in  std_logic;

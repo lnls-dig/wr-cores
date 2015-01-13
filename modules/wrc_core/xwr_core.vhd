@@ -73,6 +73,7 @@ entity xwr_core is
     g_virtual_uart              : boolean                        := false;
     g_aux_clks                  : integer                        := 1;
     g_ep_rxbuf_size             : integer                        := 1024;
+    g_tx_runt_padding           : boolean                        := false;
     g_dpram_initf               : string                         := "";
     g_dpram_size                : integer                        := 90112/4;  --in 32-bit words
     g_interface_mode            : t_wishbone_interface_mode      := PIPELINED;
@@ -227,6 +228,7 @@ begin
       g_phys_uart                 => g_phys_uart,
       g_virtual_uart              => g_virtual_uart,
       g_rx_buffer_size            => g_ep_rxbuf_size,
+      g_tx_runt_padding           => g_tx_runt_padding,
       g_with_external_clock_input => g_with_external_clock_input,
       g_aux_clks                  => g_aux_clks,
       g_dpram_initf               => g_dpram_initf,
