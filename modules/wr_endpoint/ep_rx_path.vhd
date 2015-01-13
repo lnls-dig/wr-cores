@@ -325,6 +325,7 @@ architecture behavioral of ep_rx_path is
   signal mbuf_is_pause, mbuf_full, mbuf_we_d0, mbuf_we_d1       : std_logic;
   signal mbuf_pf_class                                          : std_logic_vector(7 downto 0);
   signal rtu_rq_valid                                           : std_logic;
+  signal stat_reg_mbuf_valid  : std_logic;
 
 begin  -- behavioral
 
@@ -351,7 +352,7 @@ begin  -- behavioral
 
   gen_without_early_match : if(not g_with_early_match) generate
     fab_pipe(1)          <= fab_pipe(0);
-    ematch_done          <= '1';
+    ematch_done          <= '0';
     ematch_is_hp         <= '0';
     ematch_is_pause      <= '0';
     fc_pause_quanta_o    <= (others =>'0');
@@ -382,31 +383,48 @@ begin  -- behavioral
     pfilter_pclass <= (others => '0');
   end generate gen_without_packet_filter;
 
-  mbuf_we <= ematch_done when
-             (regs_i.pfcr0_enable_o = '0' or not g_with_dpi_classifier) else
-             pfilter_done;
+  mbuf_we <= '1' when ((ematch_done='1' and g_with_early_match) or
+                       (pfilter_done='1' and g_with_dpi_classifier)) else
+             '0';
 
-  U_match_buffer : generic_shiftreg_fifo
-    generic map (
-      g_data_width => 8 + 1 + 1 + 1,
-      g_size       => 16)
-    port map (
-      rst_n_i           => rst_n_sys_i,
-      clk_i             => clk_sys_i,
-      d_i (0)           => ematch_is_hp,
-      d_i (1)           => ematch_is_pause,
-      d_i (2)           => pfilter_drop,
-      d_i (10 downto 3) => pfilter_pclass,
+  gen_with_match_buff: if( g_with_early_match or g_with_dpi_classifier) generate
+    U_match_buffer : generic_shiftreg_fifo
+      generic map (
+        g_data_width => 8 + 1 + 1 + 1,
+        g_size       => 16)
+      port map (
+        rst_n_i           => rst_n_sys_i,
+        clk_i             => clk_sys_i,
+        d_i (0)           => ematch_is_hp,
+        d_i (1)           => ematch_is_pause,
+        d_i (2)           => pfilter_drop,
+        d_i (10 downto 3) => pfilter_pclass,
 
-      we_i              => mbuf_we,
-      q_o (0)           => mbuf_is_hp,
-      q_o (1)           => mbuf_is_pause,
-      q_o (2)           => mbuf_pf_drop,
-      q_o (10 downto 3) => mbuf_pf_class,
+        we_i              => mbuf_we,
+        q_o (0)           => mbuf_is_hp,
+        q_o (1)           => mbuf_is_pause,
+        q_o (2)           => mbuf_pf_drop,
+        q_o (10 downto 3) => mbuf_pf_class,
 
-      rd_i      => mbuf_rd,
-      full_o    => mbuf_full,
-      q_valid_o => mbuf_valid);
+        rd_i      => mbuf_rd,
+        full_o    => mbuf_full,
+        q_valid_o => mbuf_valid);
+  end generate;
+
+  gen_without_match_buf: if(not (g_with_early_match or g_with_dpi_classifier)) generate
+    mbuf_is_hp    <= '0';
+    mbuf_is_pause <= '0';
+    mbuf_pf_drop  <= '0';
+    mbuf_pf_class <= (others=>'0');
+    mbuf_full     <= '0';
+    mbuf_valid    <= '1';
+  end generate;
+
+  -- don't block ep_rx_status_reg_insert when pfilter is disabled and early
+  -- match is not used
+  stat_reg_mbuf_valid <= '1' when (not g_with_early_match and g_with_dpi_classifier
+                                   and regs_i.pfcr0_enable_o='0') else
+                         mbuf_valid;
 
   U_Rx_Clock_Align_FIFO : ep_clock_alignment_fifo
     generic map (
@@ -561,7 +579,7 @@ begin  -- behavioral
       snk_dreq_o          => dreq_pipe(8),
       src_fab_o           => fab_pipe(9),
       src_dreq_i          => dreq_pipe(9),
-      mbuf_valid_i        => mbuf_valid,
+      mbuf_valid_i        => stat_reg_mbuf_valid,
       mbuf_ack_o          => mbuf_rd,
       mbuf_drop_i         => mbuf_pf_drop,
       mbuf_pclass_i       => mbuf_pf_class,
