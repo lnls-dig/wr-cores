@@ -114,7 +114,8 @@ class WBPacketSink extends EthPacketSink;
              endcase // case (xf.a)
         end
       pkt.deserialize(tmp);
-      decode_oob(oob, oob_size, pkt);
+      if(pkt.error == 1'b0)
+        decode_oob(oob, oob_size, pkt);
       
       
 
