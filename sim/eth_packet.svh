@@ -359,6 +359,7 @@ class EthPacketGenerator;
 		   pkt.oob_type                           = TX_FID;
 		 end
 
+		 pkt.size = len + 14; //payload + header
 		 return pkt;
 
 	 endfunction

@@ -82,7 +82,7 @@ class WBPacketSink extends EthPacketSink;
 
 //      $display("CDS %d size: %d\n", cyc.data.size(), size);
       
-      
+      pkt.size = size;
       for(i=0;i<cyc.data.size(); i++)
         begin
            wb_xfer_t xf  = cyc.data[i];
