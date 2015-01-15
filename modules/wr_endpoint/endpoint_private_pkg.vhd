@@ -136,7 +136,11 @@ package endpoint_private_pkg is
       link_ctr_i                    : in  std_logic := '1';
       serdes_rst_o                  : out std_logic;
       serdes_syncen_o               : out std_logic;
-      serdes_loopen_o               : out std_logic;
+      serdes_loopen_o               : out std_logic_vector(2 downto 0);
+      serdes_tx_prbs_sel_o          : out std_logic_vector(2 downto 0);
+      serdes_sfp_tx_fault_i         : in  std_logic;
+      serdes_sfp_los_i              : in  std_logic;
+      serdes_sfp_tx_disable_o       : out std_logic;
       serdes_enable_o               : out std_logic;
       serdes_rdy_i                  : in  std_logic;
       serdes_tx_clk_i               : in  std_logic;
@@ -317,8 +321,12 @@ package endpoint_private_pkg is
       mdio_mcr_anrestart_o       : out std_logic;
       mdio_mcr_pdown_o           : out std_logic;
       mdio_mcr_anenable_o        : out std_logic;
-      mdio_mcr_loopback_o        : out std_logic;
       mdio_mcr_reset_o           : out std_logic;
+      mdio_mcr_loopback_o        : out std_logic_vector(2 downto 0);
+      mdio_mcr_sfp_tx_fault_i    : in  std_logic;
+      mdio_mcr_sfp_loss_i        : in  std_logic;
+      mdio_mcr_sfp_tx_disable_o  : out std_logic;
+      mdio_mcr_tx_prbs_sel_o     : out std_logic_vector(2 downto 0);
       mdio_msr_lstatus_i         : in  std_logic;
       lstat_read_notify_o        : out std_logic;
       mdio_msr_rfault_i          : in  std_logic;

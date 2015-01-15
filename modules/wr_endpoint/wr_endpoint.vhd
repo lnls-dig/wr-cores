@@ -106,7 +106,11 @@ entity wr_endpoint is
 -------------------------------------------------------------------------------    
 
     phy_rst_o    : out std_logic;
-    phy_loopen_o : out std_logic;
+    phy_loopen_o         : out std_logic_vector(2 downto 0);
+    phy_tx_prbs_sel_o    : out std_logic_vector(2 downto 0);
+    phy_sfp_tx_fault_i   : in  std_logic;
+    phy_sfp_los_i        : in  std_logic;
+    phy_sfp_tx_disable_o : out std_logic;
     phy_enable_o : out std_logic;
     phy_syncen_o : out std_logic;
     phy_rdy_i    : in  std_logic;
@@ -515,6 +519,10 @@ begin
 
       serdes_rst_o    => phy_rst_o,
       serdes_loopen_o => phy_loopen_o,
+      serdes_tx_prbs_sel_o     => phy_tx_prbs_sel_o,
+      serdes_sfp_tx_fault_i    => phy_sfp_tx_fault_i,
+      serdes_sfp_los_i         => phy_sfp_los_i,
+      serdes_sfp_tx_disable_o  => phy_sfp_tx_disable_o,
       serdes_enable_o => phy_enable_o,
       serdes_syncen_o => phy_syncen_o,
       serdes_rdy_i    => phy_rdy_i,

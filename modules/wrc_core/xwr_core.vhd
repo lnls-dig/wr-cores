@@ -122,23 +122,27 @@ entity xwr_core is
     -- PHY I/f
     phy_ref_clk_i : in std_logic;
 
-    phy_tx_data_o      : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
-    phy_tx_k_o         : out std_logic;
-    phy_tx_k16_o       : out std_logic;
-    phy_tx_disparity_i : in  std_logic;
-    phy_tx_enc_err_i   : in  std_logic;
+    phy_tx_data_o        : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
+    phy_tx_k_o           : out std_logic;
+    phy_tx_k16_o         : out std_logic;
+    phy_tx_disparity_i   : in  std_logic;
+    phy_tx_enc_err_i     : in  std_logic;
 
-    phy_rx_data_i     : in std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
-    phy_rx_rbclk_i    : in std_logic;
-    phy_rx_k_i        : in std_logic;
-    phy_rx_k16_i      : in std_logic;
-    phy_rx_enc_err_i  : in std_logic;
-    phy_rx_bitslide_i : in std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0);
+    phy_rx_data_i        : in std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
+    phy_rx_rbclk_i       : in std_logic;
+    phy_rx_k_i           : in std_logic;
+    phy_rx_k16_i         : in std_logic;
+    phy_rx_enc_err_i     : in std_logic;
+    phy_rx_bitslide_i    : in std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0);
 
-    phy_rst_o    : out std_logic;
-    phy_loopen_o : out std_logic;
-    phy_rdy_i    : in  std_logic := '1';
-
+    phy_rst_o            : out std_logic;
+    phy_rdy_i            : in  std_logic := '1';
+    phy_loopen_o         : out std_logic_vector(2 downto 0);
+    phy_tx_prbs_sel_o    : out std_logic_vector(2 downto 0);
+    phy_sfp_tx_fault_i   : in std_logic := '0';
+    phy_sfp_los_i        : in std_logic := '0';
+    phy_sfp_tx_disable_o : out std_logic;
+   
     -----------------------------------------
     --GPIO
     -----------------------------------------
@@ -254,24 +258,30 @@ begin
       pps_ext_i     => pps_ext_i,
       rst_n_i       => rst_n_i,
 
-      dac_hpll_load_p1_o => dac_hpll_load_p1_o,
-      dac_hpll_data_o    => dac_hpll_data_o,
-      dac_dpll_load_p1_o => dac_dpll_load_p1_o,
-      dac_dpll_data_o    => dac_dpll_data_o,
+      dac_hpll_load_p1_o   => dac_hpll_load_p1_o,
+      dac_hpll_data_o      => dac_hpll_data_o,
+      dac_dpll_load_p1_o   => dac_dpll_load_p1_o,
+      dac_dpll_data_o      => dac_dpll_data_o,
 
-      phy_ref_clk_i      => phy_ref_clk_i,
-      phy_tx_data_o      => phy_tx_data_o,
-      phy_tx_k_o         => phy_tx_k_o,
-      phy_tx_disparity_i => phy_tx_disparity_i,
-      phy_tx_enc_err_i   => phy_tx_enc_err_i,
-      phy_rx_data_i      => phy_rx_data_i,
-      phy_rx_rbclk_i     => phy_rx_rbclk_i,
-      phy_rx_k_i         => phy_rx_k_i,
-      phy_rx_enc_err_i   => phy_rx_enc_err_i,
-      phy_rx_bitslide_i  => phy_rx_bitslide_i,
-      phy_rst_o          => phy_rst_o,
-      phy_loopen_o       => phy_loopen_o,
-      phy_rdy_i          => phy_rdy_i,
+      phy_ref_clk_i        => phy_ref_clk_i,
+      phy_tx_data_o        => phy_tx_data_o,
+      phy_tx_k_o           => phy_tx_k_o,
+      phy_tx_k16_o         => phy_tx_k16_o,
+      phy_tx_disparity_i   => phy_tx_disparity_i,
+      phy_tx_enc_err_i     => phy_tx_enc_err_i,
+      phy_rx_data_i        => phy_rx_data_i,
+      phy_rx_rbclk_i       => phy_rx_rbclk_i,
+      phy_rx_k_i           => phy_rx_k_i,
+      phy_rx_k16_i         => phy_rx_k16_i,
+      phy_rx_enc_err_i     => phy_rx_enc_err_i,
+      phy_rx_bitslide_i    => phy_rx_bitslide_i,
+      phy_rst_o            => phy_rst_o,
+      phy_rdy_i            => phy_rdy_i,
+      phy_loopen_o         => phy_loopen_o,
+      phy_tx_prbs_sel_o    => phy_tx_prbs_sel_o,
+      phy_sfp_tx_fault_i   => phy_sfp_tx_fault_i,
+      phy_sfp_los_i        => phy_sfp_los_i,
+      phy_sfp_tx_disable_o => phy_sfp_tx_disable_o,
 
       led_act_o  => led_act_o,
       led_link_o => led_link_o,

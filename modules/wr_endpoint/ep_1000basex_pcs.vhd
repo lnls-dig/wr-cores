@@ -125,8 +125,20 @@ entity ep_1000basex_pcs is
     -- 1: serdes comma alignent is enabled.
     serdes_syncen_o : out std_logic;
 
-    -- 1: serdes near-end PMA loopback is enabled.
-    serdes_loopen_o : out std_logic;
+    -- 000: loopback "normal operation" (see Serdes User Guide)
+    serdes_loopen_o         : out std_logic_vector(2 downto 0);
+
+    -- 000: "normal operation" (see Serdes User Guide)
+    serdes_tx_prbs_sel_o    : out   std_logic_vector(2 downto 0);
+    
+    -- 1: indicates laser fault
+    serdes_sfp_tx_fault_i   : in  std_logic;
+
+    -- 1: indicates Loss Of Signal
+    serdes_sfp_los_i        : in  std_logic;
+    
+    -- 1: Disables the transmitter
+    serdes_sfp_tx_disable_o : out std_logic;
 
     -- 1: serdes TX/RX is enabled.
     serdes_enable_o : out std_logic;
@@ -196,7 +208,6 @@ architecture rtl of ep_1000basex_pcs is
   signal mdio_mcr_pdown           : std_logic;
   signal mdio_mcr_pdown_cpu       : std_logic;
   signal mdio_mcr_anenable        : std_logic;
-  signal mdio_mcr_loopback        : std_logic;
   signal mdio_mcr_reset           : std_logic;
   signal mdio_msr_lstatus         : std_logic;
   signal mdio_msr_rfault          : std_logic;
@@ -423,8 +434,12 @@ begin  -- rtl
       mdio_mcr_anrestart_o       => mdio_mcr_anrestart,
       mdio_mcr_pdown_o           => mdio_mcr_pdown_cpu,
       mdio_mcr_anenable_o        => mdio_mcr_anenable,
-      mdio_mcr_loopback_o        => mdio_mcr_loopback,
       mdio_mcr_reset_o           => mdio_mcr_reset,
+      mdio_mcr_loopback_o        => serdes_loopen_o,
+      mdio_mcr_sfp_tx_fault_i    => serdes_sfp_tx_fault_i,
+      mdio_mcr_sfp_loss_i        => serdes_sfp_los_i,
+      mdio_mcr_sfp_tx_disable_o  => serdes_sfp_tx_disable_o,
+      mdio_mcr_tx_prbs_sel_o     => serdes_tx_prbs_sel_o,
       mdio_msr_lstatus_i         => mdio_msr_lstatus,
       mdio_msr_rfault_i          => mdio_msr_rfault,
       mdio_msr_anegcomplete_i    => mdio_msr_anegcomplete,
@@ -518,8 +533,6 @@ begin  -- rtl
   end process;
 
   link_ok_o <= link_ok and synced;
-
-  serdes_loopen_o <= mdio_mcr_loopback;
 
   --RMON events
   U_sync_tx_underrun: gc_sync_ffs

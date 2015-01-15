@@ -151,9 +151,13 @@ entity wr_core is
     phy_rx_enc_err_i  : in std_logic;
     phy_rx_bitslide_i : in std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0);
 
-    phy_rst_o    : out std_logic;
-    phy_loopen_o : out std_logic;
-    phy_rdy_i    : in  std_logic := '1';
+    phy_rst_o            : out std_logic;
+    phy_rdy_i            : in  std_logic := '1';
+    phy_loopen_o         : out std_logic_vector(2 downto 0);
+    phy_tx_prbs_sel_o    : out std_logic_vector(2 downto 0);
+    phy_sfp_tx_fault_i   : in std_logic := '0';
+    phy_sfp_los_i        : in std_logic := '0';
+    phy_sfp_tx_disable_o : out std_logic;
 
     -----------------------------------------
     --GPIO
@@ -649,19 +653,23 @@ begin
       pps_csync_p1_i => s_pps_csync,
       pps_valid_i    => pps_valid,
 
-      phy_rst_o          => phy_rst_o,
-      phy_loopen_o       => phy_loopen_o,
-      phy_rdy_i          => phy_rdy_i,
-      phy_ref_clk_i      => phy_ref_clk_i,
-      phy_tx_data_o      => phy_tx_data_int,
-      phy_tx_k_o         => phy_tx_k_int,
-      phy_tx_disparity_i => phy_tx_disparity_i,
-      phy_tx_enc_err_i   => phy_tx_enc_err_i,
-      phy_rx_data_i      => phy_rx_data_int,
-      phy_rx_clk_i       => phy_rx_rbclk_i,
-      phy_rx_k_i         => phy_rx_k_int,
-      phy_rx_enc_err_i   => phy_rx_enc_err_i,
-      phy_rx_bitslide_i  => phy_rx_bitslide_int,
+      phy_rst_o            => phy_rst_o,
+      phy_rdy_i            => phy_rdy_i,
+      phy_loopen_o         => phy_loopen_o,
+      phy_tx_prbs_sel_o    => phy_tx_prbs_sel_o,
+      phy_sfp_tx_fault_i   => phy_sfp_tx_fault_i,
+      phy_sfp_los_i        => phy_sfp_los_i,
+      phy_sfp_tx_disable_o => phy_sfp_tx_disable_o,
+      phy_ref_clk_i        => phy_ref_clk_i,
+      phy_tx_data_o        => phy_tx_data_int,
+      phy_tx_k_o           => phy_tx_k_int,
+      phy_tx_disparity_i   => phy_tx_disparity_i,
+      phy_tx_enc_err_i     => phy_tx_enc_err_i,
+      phy_rx_data_i        => phy_rx_data_int,
+      phy_rx_clk_i         => phy_rx_rbclk_i,
+      phy_rx_k_i           => phy_rx_k_int,
+      phy_rx_enc_err_i     => phy_rx_enc_err_i,
+      phy_rx_bitslide_i    => phy_rx_bitslide_int,
 
       src_o => ep_src_out,
       src_i => ep_src_in,

@@ -152,16 +152,12 @@ peripheral {
 			};
 
 			field {
-				 name = "Loopback";
-				 description = "1 = enable loopback mode \
-				 0 = disable loopback mode \
-				 With the TBI version, loopback bit is connected to PHY loopback enable pin. When set to 1, indicates to the external PHY to enter loopback mode";
-
-				 prefix = "loopback";
-				 align = 14;
-				 type = BIT;
-				 access_bus = READ_WRITE;
-				 access_dev = READ_ONLY;
+				 name = "Reserved";
+				 description = "Always return 0s, writes ignored.";
+				 prefix = "RESV";
+				 type = CONSTANT;
+				 size = 1;
+				 value = 0;
 			};
 
 			field {
@@ -174,6 +170,68 @@ peripheral {
 				 prefix = "reset";
 				 type = MONOSTABLE;
 			};
+
+			field {
+				 name = "Loopback";
+				 description = "100 = far end loopback mode \
+				 000 = normal mode \
+				 See also Transceiver documentation (for example Xilinx UG476 Table 2-37 and Figure 2-23";
+
+				 prefix = "loopback";
+				 align = 16;
+ 				 size = 3;
+         value = 0;
+				 type = SLV;
+				 access_bus = READ_WRITE;
+ 				 access_dev = READ_ONLY;
+			};
+
+			field {
+				 name = "SFP TX Fault Status";
+				 description = "1 = Some kind of laser failure\
+				 0 = SFP Laser okay";
+				 prefix = "sfp_tx_fault";
+				 type = BIT;
+				 access_bus=READ_ONLY;
+				 access_dev=WRITE_ONLY;
+			};
+
+			field {
+				 name = "SFP LOS";
+				 description = "1 = Loss of signal\
+				 0 = SFP Receiver signal strength okay";
+				 prefix = "sfp_loss";
+				 type = BIT;
+				 access_bus=READ_ONLY;
+				 access_dev=WRITE_ONLY;
+			};
+
+			field {
+				 name = "SFP TX Disable";
+				 description = "Disables the SFP Transmitter \
+				                1 = SFP TX Disabled\
+				                0 = SFP TX Enabled";
+				 prefix = "sfp_tx_disable";
+				 type = BIT;
+         value = 0;
+				 access_bus = READ_WRITE;
+				 access_dev = READ_ONLY;
+			};
+
+			field {
+				 name = "tx_prbs_sel";
+				 description = "PRBS selection \
+				                000 = Normal mode\
+				                0010 = PRBS-7";
+				 prefix = "tx_prbs_sel";
+				 align = 22;
+ 				 size = 3;
+         value = 0;
+				 type = SLV;
+				 access_bus = READ_WRITE;
+ 				 access_dev = READ_ONLY;
+			};
+
 	 };
 
 

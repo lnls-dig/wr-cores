@@ -155,8 +155,9 @@ port
     --------------------- Transmit Ports - TX Gearbox Ports --------------------
     TXCHARISK_IN                            : in   std_logic_vector(1 downto 0);
     ------------- Transmit Ports - TX Initialization and Reset Ports -----------
-    TXRESETDONE_OUT                         : out  std_logic
-
+    TXRESETDONE_OUT                         : out  std_logic;
+    ------------------ Transmit Ports - pattern Generator Ports ----------------
+    TXPRBSSEL_IN                            : in   std_logic_vector(2 downto 0)
 
 );
 
@@ -789,7 +790,7 @@ begin
         ------------------ Transmit Ports - TX8b/10b Encoder Ports -----------------
         TX8B10BBYPASS                   =>      tied_to_ground_vec_i(7 downto 0),
         ------------------ Transmit Ports - pattern Generator Ports ----------------
-        TXPRBSSEL                       =>      tied_to_ground_vec_i(2 downto 0),
+        TXPRBSSEL                       =>      TXPRBSSEL_IN,
         ----------------------- Tx Configurable Driver  Ports ----------------------
         TXQPISENN                       =>      open,
         TXQPISENP                       =>      open
