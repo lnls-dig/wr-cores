@@ -355,6 +355,7 @@ architecture struct of wr_core is
   signal mnic_mem_data_i : std_logic_vector(31 downto 0);
   signal mnic_mem_wr_o   : std_logic;
   signal mnic_txtsu_ack  : std_logic;
+  signal mnic_txtsu_stb  : std_logic;
 
   -----------------------------------------------------------------------------
   --Dual-port RAM
@@ -675,7 +676,6 @@ begin
       led_link_o           => ep_led_link,
       led_act_o            => led_act_o);
 
-  ep_txtsu_ack <= txtsu_ack_i or mnic_txtsu_ack;
   led_link_o   <= ep_led_link;
   link_ok_o    <= ep_led_link;
 
@@ -708,7 +708,7 @@ begin
       txtsu_frame_id_i    => ep_txtsu_frame_id,
       txtsu_tsval_i       => ep_txtsu_ts_value,
       txtsu_tsincorrect_i => ep_txtsu_ts_incorrect,
-      txtsu_stb_i         => ep_txtsu_stb,
+      txtsu_stb_i         => mnic_txtsu_stb,
       txtsu_ack_o         => mnic_txtsu_ack,
 
       wb_i => minic_wb_in,
@@ -1023,7 +1023,14 @@ begin
   txtsu_frame_id_o     <= ep_txtsu_frame_id;
   txtsu_ts_value_o     <= ep_txtsu_ts_value;
   txtsu_ts_incorrect_o <= ep_txtsu_ts_incorrect;
+
+  -- ts goes to external I/F
   txtsu_stb_o          <= '1' when (ep_txtsu_stb = '1' and (ep_txtsu_frame_id /= x"0000")) else
                           '0';
+  -- ts goes to minic
+  mnic_txtsu_stb      <=  '1' when (ep_txtsu_stb = '1' and (ep_txtsu_frame_id  = x"0000")) else
+                          '0';
+  
+  ep_txtsu_ack <= txtsu_ack_i or mnic_txtsu_ack;
 
 end struct;
