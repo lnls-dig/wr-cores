@@ -466,7 +466,7 @@ begin  -- rtl
 
         deglitch_threshold_i => deglitch_thr_slv,
         dbg_dmtdout_o        => open,
-				dbg_clk_d3_o         => debug_o(4));
+				dbg_clk_d3_o         => open); --debug_o(4));
 
 
   end generate gen_feedback_dmtds;
