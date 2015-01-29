@@ -184,7 +184,7 @@ entity wr_core is
     -----------------------------------------
     --UART
     -----------------------------------------
-    uart_rxd_i : in  std_logic := '0';
+    uart_rxd_i : in  std_logic := '1';
     uart_txd_o : out std_logic;
 
     -----------------------------------------
