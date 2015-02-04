@@ -292,7 +292,7 @@ begin  -- behavioral
     p_oob_fsm : process(clk_sys_i)
     begin
       if rising_edge(clk_sys_i) then
-        if (rst_n_i = '0' or sof_p1 = '1') then
+        if (rst_n_i = '0' or state = TXF_ADDR) then
           oob_state    <= OOB_1;
           oob.valid    <= '0';
           oob.oob_type <= (others => '0');
