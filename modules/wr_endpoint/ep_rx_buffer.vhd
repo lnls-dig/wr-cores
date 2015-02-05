@@ -60,6 +60,7 @@ entity ep_rx_buffer is
     src_dreq_i : in  std_logic;
 
     level_o : out std_logic_vector(7 downto 0);
+    full_o  : out std_logic;
     regs_i  : in  t_ep_out_registers;
     rmon_o  : out t_rmon_triggers
     );
@@ -177,6 +178,8 @@ architecture behavioral of ep_rx_buffer is
   signal out_cur_addr : std_logic_vector(1 downto 0);
   
 begin
+
+  full_o <= q_drop;
  
   p_fifo_write : process(clk_sys_i)
   begin
