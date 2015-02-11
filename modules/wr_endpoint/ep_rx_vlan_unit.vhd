@@ -353,7 +353,7 @@ begin  -- behavioral
                   stored_fab.bytesel <= snk_fab_i.bytesel;
                   stored_fab.data    <= snk_fab_i.data;
                   stored_fab.addr    <= snk_fab_i.addr;
-                  stored_fab.dvalid  <= '1';
+                  stored_fab.dvalid  <= snk_fab_i.dvalid;
 
                 end if;
 
