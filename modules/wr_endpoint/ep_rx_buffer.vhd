@@ -59,10 +59,12 @@ entity ep_rx_buffer is
     src_fab_o  : out t_ep_internal_fabric;
     src_dreq_i : in  std_logic;
 
-    level_o : out std_logic_vector(7 downto 0);
-    full_o  : out std_logic;
-    regs_i  : in  t_ep_out_registers;
-    rmon_o  : out t_rmon_triggers
+    level_o    : out std_logic_vector(7 downto 0);
+    full_o     : out std_logic;
+    drop_req_i : in  std_logic;
+    dropped_o  : out std_logic;
+    regs_i     : in  t_ep_out_registers;
+    rmon_o     : out t_rmon_triggers
     );
 
 end ep_rx_buffer;
@@ -188,6 +190,7 @@ begin
         q_drop       <= '0';
         state        <= WAIT_FRAME;
         in_prev_addr <= (others => '0');
+        dropped_o    <= '0';
       else
 
         if(snk_fab_i.dvalid = '1') then
@@ -204,8 +207,11 @@ begin
           when WAIT_FRAME =>
             in_prev_addr <= c_WRF_STATUS;
 
-            if(snk_fab_i.sof = '1' and q_drop = '0') then
+            if(snk_fab_i.sof = '1' and q_drop = '0' and drop_req_i = '0') then
               state <= DATA;
+              dropped_o <= '0';
+            elsif(snk_fab_i.sof = '1' and (q_drop = '1' or drop_req_i = '1')) then
+              dropped_o <= '1';
             end if;
 
           when DATA =>
@@ -231,7 +237,7 @@ begin
   begin
     fab_pre_encode := snk_fab_i;
 
-    if(fab_pre_encode.sof = '1' and q_drop = '1') then
+    if(fab_pre_encode.sof = '1' and (q_drop = '1' or drop_req_i = '1')) then
       fab_pre_encode.sof := '0';
     end if;
 

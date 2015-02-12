@@ -269,6 +269,8 @@ architecture behavioral of ep_rx_path is
       src_dreq_i : in  std_logic;
       level_o    : out std_logic_vector(7 downto 0);
       full_o     : out std_logic;
+      drop_req_i : in std_logic;
+      dropped_o  : out std_logic;
       regs_i     : in  t_ep_out_registers;
       rmon_o     : out t_rmon_triggers);
   end component;
@@ -323,14 +325,14 @@ architecture behavioral of ep_rx_path is
 
   signal pcs_fifo_almostfull                                    : std_logic;
   signal mbuf_rd, mbuf_valid, mbuf_we, mbuf_pf_drop, mbuf_is_hp : std_logic;
-  signal mbuf_is_pause, mbuf_full, mbuf_we_d0, mbuf_we_d1       : std_logic;
-  signal mbuf_pf_class                                          : std_logic_vector(7 downto 0);
-  signal rtu_rq_valid                                           : std_logic;
+  signal mbuf_is_pause, mbuf_full : std_logic;
+  signal mbuf_pf_class            : std_logic_vector(7 downto 0);
+  signal rtu_rq_valid         : std_logic;
   signal stat_reg_mbuf_valid  : std_logic;
 
   signal rxbuf_full       : std_logic;
-  signal rxbuf_drop_frame : std_logic;
-  signal rxbuf_got_sof    : std_logic;
+  signal rxbuf_dropped    : std_logic;
+
 
 begin  -- behavioral
 
@@ -388,10 +390,22 @@ begin  -- behavioral
     pfilter_pclass <= (others => '0');
   end generate gen_without_packet_filter;
 
-  mbuf_we <= '1' when (((ematch_done='1' and g_with_early_match) or
-                       (pfilter_done='1' and g_with_dpi_classifier)) and
-                       rxbuf_drop_frame='0') else
-             '0';
+  process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if (rst_n_sys_i = '0') then
+        mbuf_we <= '0';
+      -- if rx_buffer has dropped a frame (e.g. because it was full) we
+      -- shouldn't store pfilter decision in the mbuf as well
+      elsif( ((ematch_done='1' and g_with_early_match) or
+              (pfilter_done='1' and g_with_dpi_classifier)) and
+              rxbuf_dropped='0') then
+        mbuf_we <= '1';
+      elsif(mbuf_rd = '1' or mbuf_full = '0') then
+        mbuf_we <= '0';
+      end if;
+    end if;
+  end process;
 
   gen_with_match_buff: if( g_with_early_match or g_with_dpi_classifier) generate
     U_match_buffer : generic_shiftreg_fifo
@@ -543,6 +557,10 @@ begin  -- behavioral
         src_dreq_i => dreq_pipe(8),
         level_o    => fc_buffer_occupation_o,
         full_o     => rxbuf_full,
+        drop_req_i => mbuf_we,  -- if mbuf_we is high that means it waits to be
+                                -- stored in mbuf => mbuf is probably full so we
+                                -- should drop this frame
+        dropped_o  => rxbuf_dropped,
         regs_i     => regs_i,
         rmon_o     => open);
   end generate gen_with_rx_buffer;
@@ -552,24 +570,6 @@ begin  -- behavioral
     dreq_pipe(7) <= dreq_pipe(8);
     rxbuf_full  <= '0';
   end generate gen_without_rx_buffer;
-
-  -- If rx_buffer was full at the beginning of the frame, that means this frame
-  -- won't be stored there at all. In this process I detect if rxbuf_full is
-  -- high when first data word of each frame is valid.
-  process(clk_sys_i)
-  begin
-    if rising_edge(clk_sys_i) then
-      if (rst_n_sys_i='0') then
-        rxbuf_drop_frame <= '0';
-        rxbuf_got_sof    <= '0';
-      elsif (fab_pipe(7).sof='1') then
-        rxbuf_got_sof <= '1';
-      elsif (rxbuf_got_sof='1' and fab_pipe(7).dvalid='1') then
-        rxbuf_drop_frame <= rxbuf_full;
-        rxbuf_got_sof    <= '0';
-      end if;
-    end if;
-  end process;
 
 --   U_RTU_Header_Extract : ep_rtu_header_extract
 --     generic map (
