@@ -48,6 +48,7 @@ use ieee.numeric_std.all;
 library work;
 use work.gencores_pkg.all;
 use work.endpoint_private_pkg.all;
+use work.endpoint_pkg.all;
 
 entity ep_rx_pcs_16bit is
   generic (
@@ -102,7 +103,9 @@ entity ep_rx_pcs_16bit is
     -- RMON events
     rmon_rx_overrun   : out std_logic;
     rmon_rx_inv_code  : out std_logic;
-    rmon_rx_sync_lost : out std_logic
+    rmon_rx_sync_lost : out std_logic;
+     
+    nice_dbg_o  : out t_dbg_ep_rxpcs
     );
 
 end ep_rx_pcs_16bit;
@@ -742,6 +745,12 @@ begin
   rmon_rx_sync_lost <= rx_sync_lost_p and (not mdio_mcr_pdown_i);
 
   pcs_fab_o.rx_timestamp_valid <= timestamp_valid_i;
+
+  nice_dbg_o.fsm <= "000" when (rx_state = RX_NOFRAME) else
+                    "001" when (rx_state = RX_CR) else
+                    "010" when (rx_state = RX_SPD_PREAMBLE) else
+                    "011" when (rx_state = RX_PAYLOAD) else
+                    "100" when (rx_state = RX_EXTEND);
 
 end behavioral;
 

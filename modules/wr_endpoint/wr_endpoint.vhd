@@ -286,9 +286,10 @@ entity wr_endpoint is
 -- HI indicates that link is up (so cable connected), LOW indicates that link is faulty 
 -- (e.g.: cable disconnected)
     link_up_o : out std_logic;
-    dbg_o     : out std_logic_vector(63 downto 0);
+
     dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
-    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0)
+    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
+    nice_dbg_o  : out t_dbg_ep
     );
 
 end wr_endpoint;
@@ -399,7 +400,7 @@ architecture syn of wr_endpoint is
       rtu_full_i             : in  std_logic;
       rtu_rq_valid_o         : out std_logic;
       rtu_rq_abort_o         : out std_logic;
-      dbg_o                  : out std_logic_vector(29 downto 0));
+      nice_dbg_o             : out t_dbg_ep_rxpath);
   end component;
 
   component ep_1000basex_pcs
@@ -444,8 +445,9 @@ architecture syn of wr_endpoint is
       mdio_stb_i                    : in  std_logic;
       mdio_rw_i                     : in  std_logic;
       mdio_ready_o                  : out std_logic;
-    dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
-    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0));
+      dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
+      dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
+      nice_dbg_o  : out t_dbg_ep_pcs);
   end component;
 
   component ep_timestamping_unit
@@ -704,7 +706,8 @@ begin
       mdio_rw_i    => regs_fromwb.mdio_cr_rw_o,
       mdio_ready_o => regs_towb_ep.mdio_asr_ready_i,
       dbg_tx_pcs_wr_count_o => dbg_tx_pcs_wr_count_o,
-      dbg_tx_pcs_rd_count_o => dbg_tx_pcs_rd_count_o );
+      dbg_tx_pcs_rd_count_o => dbg_tx_pcs_rd_count_o,
+      nice_dbg_o   => nice_dbg_o.pcs);
 
 
 -------------------------------------------------------------------------------
@@ -753,10 +756,7 @@ begin
       inject_req_i        => inject_req_i,
       inject_user_value_i => inject_user_value_i,
       inject_packet_sel_i => inject_packet_sel_i,
-      inject_ready_o      => inject_ready_o,
-      dbg_o               => dbg_o(63 downto 30)
---       dbg_o               => dbg_o(43 downto 32)
-      );
+      inject_ready_o      => inject_ready_o);
 
 
   txfra_flow_enable <= '1';
@@ -816,8 +816,7 @@ begin
       rtu_rq_abort_o => rtu_rq_abort_o,
       src_wb_o       => src_out,
       src_wb_i       => src_in,
-      dbg_o          => dbg_o(29 downto 0) 
-      );
+      nice_dbg_o     => nice_dbg_o.rxpath);
 
 
   rtu_rq_smac_o     <= rtu_rq.smac;

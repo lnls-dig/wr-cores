@@ -52,6 +52,7 @@ use ieee.numeric_std.all;
 
 library work;
 use work.endpoint_private_pkg.all;
+use work.endpoint_pkg.all;
 use work.gencores_pkg.all;
 
 entity ep_1000basex_pcs is
@@ -180,8 +181,8 @@ entity ep_1000basex_pcs is
     mdio_ready_o : out std_logic;
     
     dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
-    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0)
-    );
+    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
+    nice_dbg_o : out t_dbg_ep_pcs);
 
 end ep_1000basex_pcs;
 
@@ -291,7 +292,8 @@ architecture rtl of ep_1000basex_pcs is
       an_idle_match_o            : out std_logic;
       rmon_rx_overrun            : out std_logic;
       rmon_rx_inv_code           : out std_logic;
-      rmon_rx_sync_lost          : out std_logic);
+      rmon_rx_sync_lost          : out std_logic;
+      nice_dbg_o                 : out t_dbg_ep_rxpcs);
   end component;
 
 
@@ -484,7 +486,9 @@ begin  -- rtl
         phy_rx_clk_i     => serdes_rx_clk_i,
         phy_rx_data_i    => serdes_rx_data_i,
         phy_rx_k_i       => serdes_rx_k_i,
-        phy_rx_enc_err_i => serdes_rx_enc_err_i
+        phy_rx_enc_err_i => serdes_rx_enc_err_i,
+
+        nice_dbg_o => nice_dbg_o.rx
         );
 
     

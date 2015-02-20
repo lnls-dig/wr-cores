@@ -55,6 +55,7 @@ use work.gencores_pkg.all;
 use work.genram_pkg.all;
 use work.wr_fabric_pkg.all;
 use work.endpoint_private_pkg.all;
+use work.endpoint_pkg.all;
 use work.ep_wbgen2_pkg.all;
 
 entity ep_tx_vlan_unit is

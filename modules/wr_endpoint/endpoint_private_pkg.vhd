@@ -112,20 +112,6 @@ package endpoint_private_pkg is
     rx_drop_at_rtu_full    : std_logic;
   end record;
 
-  -- Endpoint's internal fabric used to connect the submodules with each other.
-  -- Easier to handle than pipelined Wishbone.
-  type t_ep_internal_fabric is record
-    sof                : std_logic;
-    eof                : std_logic;
-    error              : std_logic;
-    dvalid             : std_logic;
-    bytesel            : std_logic;
-    has_rx_timestamp   : std_logic;
-    rx_timestamp_valid : std_logic;
-    data               : std_logic_vector(15 downto 0);
-    addr               : std_logic_vector(1 downto 0);
-  end record;
-
   component ep_1000basex_pcs
     generic (
       g_simulation : boolean);

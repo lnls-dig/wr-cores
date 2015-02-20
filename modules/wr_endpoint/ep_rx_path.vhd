@@ -55,6 +55,7 @@ use ieee.numeric_std.all;
 library work;
 use work.genram_pkg.all;
 use work.endpoint_private_pkg.all;
+use work.endpoint_pkg.all;
 use work.ep_wbgen2_pkg.all;
 use work.wr_fabric_pkg.all;
 
@@ -106,7 +107,8 @@ entity ep_rx_path is
     rtu_full_i     : in  std_logic;
     rtu_rq_valid_o : out std_logic;
     rtu_rq_abort_o : out std_logic;
-    dbg_o          : out std_logic_vector(29 downto 0)
+
+    nice_dbg_o     : out t_dbg_ep_rxpath
     );
 end ep_rx_path;
 
@@ -304,8 +306,6 @@ architecture behavioral of ep_rx_path is
   signal tmp_dat : std_logic_vector(15 downto 0);
 
 
-  type t_fab_pipe is array(integer range <>) of t_ep_internal_fabric;
-
   signal fab_pipe  : t_fab_pipe(0 to 9);
   signal dreq_pipe : std_logic_vector(9 downto 0);
 
@@ -457,11 +457,12 @@ begin  -- behavioral
       dreq_i           => dreq_pipe(3),
       fab_i            => fab_pipe(2),
       fab_o            => fab_pipe(3),
-      full_o           => open,
-      empty_o          => open,
-      almostfull_o     => pcs_fifo_almostfull_o,
+      full_o           => nice_dbg_o.pcs_fifo_full,
+      empty_o          => nice_dbg_o.pcs_fifo_empty,
+      almostfull_o     => pcs_fifo_almostfull,
       pass_threshold_i => std_logic_vector(to_unsigned(32, 7)));  -- fixme: add
                                                                   -- register
+  pcs_fifo_almostfull_o <= pcs_fifo_almostfull;
 
   U_Insert_OOB : ep_rx_oob_insert
     port map (
@@ -649,11 +650,12 @@ begin  -- behavioral
   rmon_o.rx_tclass(7) <= rtu_rq_valid when (vlan_tclass = "111" and vlan_is_tagged = '1') else '0';
 
   GEN_DBG: for i in 0 to 9 generate
-    dbg_o(i)    <= fab_pipe(i).sof;
-    dbg_o(i+10) <= fab_pipe(i).eof;
-    dbg_o(i+20) <= dreq_pipe(i);
+    nice_dbg_o.fab_pipe(i) <= fab_pipe(i);
+    nice_dbg_o.dreq_pipe(i)<= dreq_pipe(i);
   end generate GEN_DBG;
-    
+
+  nice_dbg_o.pcs_fifo_afull <= pcs_fifo_almostfull;
+  nice_dbg_o.rxbuf_full <= rxbuf_full;
 
 end behavioral;
 

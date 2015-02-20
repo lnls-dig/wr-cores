@@ -3,6 +3,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 use work.endpoint_private_pkg.all;
+use work.endpoint_pkg.all;
 use work.wr_fabric_pkg.all;
 
 entity ep_rx_status_reg_insert is

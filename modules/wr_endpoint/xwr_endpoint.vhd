@@ -248,10 +248,9 @@ entity xwr_endpoint is
 
     link_kill_i : in  std_logic := '0';
     link_up_o   : out std_logic;
-    dbg_o       : out std_logic_vector(63 downto 0);
     dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
-    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0)
-    );
+    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
+    nice_dbg_o  : out t_dbg_ep);
 
 end xwr_endpoint;
 
@@ -371,9 +370,9 @@ begin
       inject_user_value_i  => inject_user_value_i,
       inject_packet_sel_i  => inject_packet_sel_i,
       inject_ready_o       => inject_ready_o,
-      dbg_o                => dbg_o,
       dbg_tx_pcs_wr_count_o=>dbg_tx_pcs_wr_count_o,
-      dbg_tx_pcs_rd_count_o=>dbg_tx_pcs_rd_count_o);
+      dbg_tx_pcs_rd_count_o=>dbg_tx_pcs_rd_count_o,
+      nice_dbg_o           => nice_dbg_o);
 
   wb_o.err <= '0';
   wb_o.rty <= '0';

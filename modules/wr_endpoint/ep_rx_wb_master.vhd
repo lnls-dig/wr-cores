@@ -27,6 +27,7 @@ use ieee.numeric_std.all;
 
 library work;
 use work.endpoint_private_pkg.all;
+use work.endpoint_pkg.all;
 use work.wr_fabric_pkg.all;
 
 entity ep_rx_wb_master is

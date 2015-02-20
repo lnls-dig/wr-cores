@@ -1,6 +1,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use work.endpoint_private_pkg.all;
+use work.endpoint_pkg.all;
 
 
 entity ep_rtu_header_extract is

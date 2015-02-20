@@ -5,6 +5,7 @@ use ieee.numeric_std.all;
 library work;
 use work.gencores_pkg.all;              -- for gc_crc_gen
 use work.endpoint_private_pkg.all;
+use work.endpoint_pkg.all;
 use work.ep_wbgen2_pkg.all;
 use work.wr_fabric_pkg.all;
 

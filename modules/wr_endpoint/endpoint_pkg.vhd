@@ -53,6 +53,45 @@ package endpoint_pkg is
 
   type t_txtsu_timestamp_array is array(integer range <>) of t_txtsu_timestamp;
 
+  -- Endpoint's internal fabric used to connect the submodules with each other.
+  -- Easier to handle than pipelined Wishbone.
+  type t_ep_internal_fabric is record
+    sof                : std_logic;
+    eof                : std_logic;
+    error              : std_logic;
+    dvalid             : std_logic;
+    bytesel            : std_logic;
+    has_rx_timestamp   : std_logic;
+    rx_timestamp_valid : std_logic;
+    data               : std_logic_vector(15 downto 0);
+    addr               : std_logic_vector(1 downto 0);
+  end record;
+  type t_fab_pipe is array(integer range <>) of t_ep_internal_fabric;
+
+  -- debug CS types
+  type t_dbg_ep_rxpcs is record
+    fsm : std_logic_vector(2 downto 0);
+  end record;
+
+  type t_dbg_ep_pcs is record
+    rx : t_dbg_ep_rxpcs;
+  end record;
+
+  type t_dbg_ep_rxpath is record
+    fab_pipe  : t_fab_pipe(9 downto 0);
+    dreq_pipe : std_logic_vector(9 downto 0);
+    pcs_fifo_afull : std_logic;
+    pcs_fifo_empty : std_logic;
+    pcs_fifo_full  : std_logic;
+    rxbuf_full     : std_logic;
+  end record;
+
+  type t_dbg_ep is record
+    pcs    : t_dbg_ep_pcs;
+    rxpath : t_dbg_ep_rxpath;
+  end record;
+  ------------------------------------
+
   constant c_epevents_sz  : integer := 29;  --how many events the endpoint generates
 
   component xwr_endpoint
@@ -145,9 +184,9 @@ package endpoint_pkg is
       led_act_o            : out std_logic;
       link_kill_i          : in  std_logic                     := '0';
       link_up_o            : out std_logic;
-      dbg_o     : out std_logic_vector(63 downto 0);
-    dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
-    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0));
+      dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
+      dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
+      nice_dbg_o  : out t_dbg_ep);
   end component;
 
   component wr_endpoint
@@ -262,9 +301,9 @@ package endpoint_pkg is
       led_act_o            : out std_logic;
       link_kill_i          : in  std_logic                     := '0';
       link_up_o            : out std_logic;
-      dbg_o     : out std_logic_vector(63 downto 0);
-    dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
-    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0));
+      dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
+      dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
+      nice_dbg_o  : out t_dbg_ep);
   end component;
   
   constant c_xwr_endpoint_sdb : t_sdb_device := (

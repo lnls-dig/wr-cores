@@ -42,6 +42,7 @@ use ieee.std_logic_1164.all;
 library work;
 use work.wr_fabric_pkg.all;
 use work.endpoint_private_pkg.all;
+use work.endpoint_pkg.all;
 use work.ep_wbgen2_pkg.all;
 
 entity ep_tx_path is
@@ -136,7 +137,6 @@ entity ep_tx_path is
     ep_ctrl_i           : in std_logic :='1';
     regs_i : in t_ep_out_registers;
     regs_o : out t_ep_in_registers;
---     dbg_o          : out std_logic_vector(11 downto 0)
     dbg_o          : out std_logic_vector(33 downto 0)
     );
 

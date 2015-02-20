@@ -41,6 +41,7 @@ use ieee.numeric_std.all;
 
 use work.genram_pkg.all;
 use work.endpoint_private_pkg.all;
+use work.endpoint_pkg.all;
 
 entity ep_clock_alignment_fifo is
 
