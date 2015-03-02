@@ -303,6 +303,9 @@ architecture rtl of wr_gtp_phy_spartan6 is
   signal ch0_rx_cdr_rst         : std_logic := '0';
   signal ch0_rx_rec_clk_pad     : std_logic;
   signal ch0_rx_rec_clk         : std_logic;
+  signal ch0_rx_data            : std_logic_vector(7 downto 0);
+  signal ch0_rx_k               : std_logic;
+  signal ch0_rx_enc_err         : std_logic;
   signal ch0_rx_divclk          : std_logic;
   signal ch0_rx_slide           : std_logic := '0';
 
@@ -333,6 +336,10 @@ architecture rtl of wr_gtp_phy_spartan6 is
   signal ch1_rx_cdr_rst         : std_logic := '0';
   signal ch1_rx_rec_clk_pad     : std_logic;
   signal ch1_rx_rec_clk         : std_logic;
+  signal ch1_rx_data            : std_logic_vector(7 downto 0);
+  signal ch1_rx_k               : std_logic;
+  signal ch1_rx_enc_err         : std_logic;
+  
   signal ch1_rx_divclk          : std_logic;
   signal ch1_rx_slide           : std_logic := '0';
 
@@ -546,7 +553,13 @@ begin  -- rtl
     ch0_rx_rbclk_o <= ch0_rx_rec_clk;
     -- drive ch0 ready indicator as well
     ch0_rdy_o <= ch0_rx_enable_output_synced;
-
+    -- Note that the above clock assignment takes one delta delay in a simulator.
+    -- In order to keep clock and data signals aligned, re-assign rx_data, rx_k
+    -- and rx_enc_err (also adding one delta delay). This is purely necessary for
+    -- proper simulation only.
+    ch0_rx_data_o    <= ch0_rx_data;
+    ch0_rx_k_o       <= ch0_rx_k;
+    ch0_rx_enc_err_o <= ch0_rx_enc_err;
   end generate gen_with_channel0;
 
   -------------------------------------------------------------------------------
@@ -682,29 +695,35 @@ begin  -- rtl
     p_gen_output_ch1 : process(ch1_rx_rec_clk, ch1_rst_i)
     begin
       if(ch1_rst_i = '1') then
-        ch1_rx_data_o    <= (others => '0');
-        ch1_rx_k_o       <= '0';
-        ch1_rx_enc_err_o <= '0';
+        ch1_rx_data    <= (others => '0');
+        ch1_rx_k       <= '0';
+        ch1_rx_enc_err <= '0';
         
       elsif rising_edge(ch1_rx_rec_clk) then
         if(ch1_rx_enable_output_synced = '0') then
 -- make sure the output data is invalid when the link is down and that it will
 -- trigger the sync loss detection
-          ch1_rx_data_o    <= (others => '0');
-          ch1_rx_k_o       <= '1';
-          ch1_rx_enc_err_o <= '1';
+          ch1_rx_data    <= (others => '0');
+          ch1_rx_k       <= '1';
+          ch1_rx_enc_err <= '1';
         else
-          ch1_rx_data_o    <= ch1_rx_data_int;
-          ch1_rx_k_o       <= ch1_rx_k_int;
-          ch1_rx_enc_err_o <= ch1_rx_disperr or ch1_rx_invcode;
+          ch1_rx_data    <= ch1_rx_data_int;
+          ch1_rx_k       <= ch1_rx_k_int;
+          ch1_rx_enc_err <= ch1_rx_disperr or ch1_rx_invcode;
         end if;
       end if;
     end process;
 
     ch1_rx_rbclk_o <= ch1_rx_rec_clk;
     ch1_rdy_o <= ch1_rx_enable_output_synced;
+    -- Note that the above clock assignment takes one delta delay in a simulator.
+    -- In order to keep clock and data signals aligned, re-assign rx_data, rx_k
+    -- and rx_enc_err (also adding one delta delay). This is purely necessary for
+    -- proper simulation only.
+    ch1_rx_data_o    <= ch1_rx_data;
+    ch1_rx_k_o       <= ch1_rx_k;
+    ch1_rx_enc_err_o <= ch1_rx_enc_err;
   end generate gen_with_channel1;
-
 
   U_GTP_TILE_INST : WHITERABBITGTP_WRAPPER_TILE_SPARTAN6
     generic map
