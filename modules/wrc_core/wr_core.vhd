@@ -152,6 +152,7 @@ entity wr_core is
 
     phy_rst_o    : out std_logic;
     phy_loopen_o : out std_logic;
+    phy_rdy_i    : in  std_logic := '1';
 
     -----------------------------------------
     --GPIO
@@ -648,6 +649,7 @@ begin
 
       phy_rst_o          => phy_rst_o,
       phy_loopen_o       => phy_loopen_o,
+      phy_rdy_i          => phy_rdy_i,
       phy_ref_clk_i      => phy_ref_clk_i,
       phy_tx_data_o      => phy_tx_data_int,
       phy_tx_k_o         => phy_tx_k_int,

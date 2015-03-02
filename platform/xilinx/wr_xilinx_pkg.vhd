@@ -28,6 +28,7 @@ package wr_xilinx_pkg is
       ch0_rx_bitslide_o  : out std_logic_vector(3 downto 0);
       ch0_rst_i          : in  std_logic := '0';
       ch0_loopen_i       : in  std_logic := '0';
+      ch0_rdy_o          : out std_logic;
       ch1_ref_clk_i      : in  std_logic;
       ch1_tx_data_i      : in  std_logic_vector(7 downto 0) := "00000000";
       ch1_tx_k_i         : in  std_logic                    := '0';
@@ -40,6 +41,7 @@ package wr_xilinx_pkg is
       ch1_rx_bitslide_o  : out std_logic_vector(3 downto 0);
       ch1_rst_i          : in  std_logic                    := '0';
       ch1_loopen_i       : in  std_logic                    := '0';
+      ch1_rdy_o          : out std_logic;
       pad_txn0_o         : out std_logic;
       pad_txp0_o         : out std_logic;
       pad_rxn0_i         : in  std_logic                    := '0';

@@ -340,6 +340,7 @@ package wrcore_pkg is
       phy_rx_bitslide_i  : in std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
       phy_rst_o          : out std_logic;
       phy_loopen_o       : out std_logic;
+      phy_rdy_i          : in  std_logic := '1';
 
       led_act_o  : out std_logic;
       led_link_o : out std_logic;
@@ -472,6 +473,7 @@ package wrcore_pkg is
 
       phy_rst_o    : out std_logic;
       phy_loopen_o : out std_logic;
+      phy_rdy_i    : in  std_logic := '1';
 
       -----------------------------------------
       --GPIO

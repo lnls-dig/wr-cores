@@ -136,6 +136,7 @@ entity xwr_core is
 
     phy_rst_o    : out std_logic;
     phy_loopen_o : out std_logic;
+    phy_rdy_i    : in  std_logic := '1';
 
     -----------------------------------------
     --GPIO
@@ -268,6 +269,7 @@ begin
       phy_rx_bitslide_i  => phy_rx_bitslide_i,
       phy_rst_o          => phy_rst_o,
       phy_loopen_o       => phy_loopen_o,
+      phy_rdy_i          => phy_rdy_i,
 
       led_act_o  => led_act_o,
       led_link_o => led_link_o,
