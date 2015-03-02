@@ -308,9 +308,6 @@ architecture syn of wr_endpoint is
     end if;
   end f_pick_rate;
 
-
-
-
 -------------------------------------------------------------------------------
   component dmtd_phase_meas
     generic (
@@ -326,154 +323,6 @@ architecture syn of wr_endpoint is
       navg_i         : in  std_logic_vector(11 downto 0);
       phase_meas_o   : out std_logic_vector(31 downto 0);
       phase_meas_p_o : out std_logic);
-  end component;
-
-
-  component ep_tx_path
-    generic (
-      g_with_vlans            : boolean;
-      g_with_timestamper      : boolean;
-      g_with_packet_injection : boolean;
-      g_force_gap_length      : integer;
-      g_runt_padding          : boolean;
-      g_use_new_crc           :	boolean := false);
-    port (
-      clk_sys_i              : in  std_logic;
-      rst_n_i                : in  std_logic;
-      pcs_fab_o              : out t_ep_internal_fabric;
-      pcs_error_i            : in  std_logic;
-      pcs_busy_i             : in  std_logic;
-      pcs_dreq_i             : in  std_logic;
-      snk_i                  : in  t_wrf_sink_in;
-      snk_o                  : out t_wrf_sink_out;
-      fc_pause_req_i         : in  std_logic;
-      fc_pause_delay_i       : in  std_logic_vector(15 downto 0);
-      fc_pause_ready_o       : out std_logic;
-      fc_flow_enable_i       : in  std_logic;
-      txtsu_port_id_o        : out std_logic_vector(4 downto 0);
-      txtsu_fid_o            : out std_logic_vector(16 -1 downto 0);
-      txtsu_ts_value_o       : out std_logic_vector(28 + 4 - 1 downto 0);
-      txtsu_ts_incorrect_o   : out std_logic;
-      txtsu_stb_o            : out std_logic;
-      txtsu_ack_i            : in  std_logic;
-      txts_timestamp_i       : in  std_logic_vector(31 downto 0);
-      txts_timestamp_valid_i : in  std_logic;
-      inject_req_i           : in  std_logic                     := '0';
-      inject_ready_o         : out std_logic;
-      inject_packet_sel_i    : in  std_logic_vector(2 downto 0)  := "000";
-      inject_user_value_i    : in  std_logic_vector(15 downto 0) := x"0000";
-      ep_ctrl_i              : in  std_logic                     := '1';
-      regs_i                 : in  t_ep_out_registers;
-      regs_o                 : out t_ep_in_registers;
-      dbg_o                  : out std_logic_vector(33 downto 0));
-  end component;
-
-  component ep_rx_path
-    generic (
-      g_with_vlans          : boolean;
-      g_with_dpi_classifier : boolean;
-      g_with_rtu            : boolean;
-      g_with_rx_buffer      : boolean;
-      g_rx_buffer_size      : integer;
-      g_use_new_crc         :	boolean);
-    port (
-      clk_sys_i              : in  std_logic;
-      clk_rx_i               : in  std_logic;
-      rst_n_sys_i            : in  std_logic;
-      rst_n_rx_i             : in  std_logic;
-      pcs_fab_i              : in  t_ep_internal_fabric;
-      pcs_fifo_almostfull_o  : out std_logic;
-      pcs_busy_i             : in  std_logic;
-      src_wb_o               : out t_wrf_source_out;
-      src_wb_i               : in  t_wrf_source_in;
-      fc_pause_p_o           : out std_logic;
-      fc_pause_quanta_o      : out std_logic_vector(15 downto 0);
-      fc_pause_prio_mask_o   : out std_logic_vector(7 downto 0);
-      fc_buffer_occupation_o : out std_logic_vector(7 downto 0);
-      rmon_o                 : out t_rmon_triggers;
-      regs_i                 : in  t_ep_out_registers;
-      regs_o                 : out t_ep_in_registers;
-      pfilter_pclass_o       : out std_logic_vector(7 downto 0);
-      pfilter_drop_o         : out std_logic;
-      pfilter_done_o         : out std_logic;
-      rtu_rq_o               : out t_ep_internal_rtu_request;
-      rtu_full_i             : in  std_logic;
-      rtu_rq_valid_o         : out std_logic;
-      rtu_rq_abort_o         : out std_logic;
-      nice_dbg_o             : out t_dbg_ep_rxpath);
-  end component;
-
-  component ep_1000basex_pcs
-    generic (
-      g_simulation : boolean;
-      g_16bit      : boolean);
-    port (
-      rst_n_i                       : in  std_logic;
-      clk_sys_i                     : in  std_logic;
-      rxpcs_fab_o                   : out t_ep_internal_fabric;
-      rxpcs_fifo_almostfull_i       : in  std_logic;
-      rxpcs_busy_o                  : out std_logic;
-      rxpcs_timestamp_trigger_p_a_o : out std_logic;
-      rxpcs_timestamp_i             : in  std_logic_vector(31 downto 0);
-      rxpcs_timestamp_stb_i         : in  std_logic;
-      rxpcs_timestamp_valid_i       : in  std_logic;
-      txpcs_fab_i                   : in  t_ep_internal_fabric;
-      txpcs_error_o                 : out std_logic;
-      txpcs_busy_o                  : out std_logic;
-      txpcs_dreq_o                  : out std_logic;
-      txpcs_timestamp_trigger_p_a_o : out std_logic;
-      link_ok_o                     : out std_logic;
-      link_ctr_i                    : in  std_logic := '1';
-      serdes_rst_o                  : out std_logic;
-      serdes_syncen_o               : out std_logic;
-      serdes_loopen_o               : out std_logic;
-      serdes_enable_o               : out std_logic;
-      serdes_tx_clk_i               : in  std_logic;
-      serdes_tx_data_o              : out std_logic_vector(15 downto 0);
-      serdes_tx_k_o                 : out std_logic_vector(1 downto 0);
-      serdes_tx_disparity_i         : in  std_logic;
-      serdes_tx_enc_err_i           : in  std_logic;
-      serdes_rx_clk_i               : in  std_logic;
-      serdes_rx_data_i              : in  std_logic_vector(15 downto 0);
-      serdes_rx_k_i                 : in  std_logic_vector(1 downto 0);
-      serdes_rx_enc_err_i           : in  std_logic;
-      serdes_rx_bitslide_i          : in  std_logic_vector(4 downto 0);
-      rmon_o                        : out t_rmon_triggers;
-      mdio_addr_i                   : in  std_logic_vector(15 downto 0);
-      mdio_data_i                   : in  std_logic_vector(15 downto 0);
-      mdio_data_o                   : out std_logic_vector(15 downto 0);
-      mdio_stb_i                    : in  std_logic;
-      mdio_rw_i                     : in  std_logic;
-      mdio_ready_o                  : out std_logic;
-      dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
-      dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
-      nice_dbg_o  : out t_dbg_ep_pcs);
-  end component;
-
-  component ep_timestamping_unit
-    generic (
-      g_timestamp_bits_r : natural;
-      g_timestamp_bits_f : natural;
-      g_ref_clock_rate   : integer);
-    port (
-      clk_ref_i                  : in  std_logic;
-      clk_sys_i                  : in  std_logic;
-      clk_rx_i                   : in  std_logic;
-      rst_n_rx_i                 : in  std_logic;
-      rst_n_ref_i                : in  std_logic;
-      rst_n_sys_i                : in  std_logic;
-      pps_csync_p1_i             : in  std_logic;
-      pps_valid_i                : in  std_logic;
-      tx_timestamp_trigger_p_a_i : in  std_logic;
-      rx_timestamp_trigger_p_a_i : in  std_logic;
-      rxts_timestamp_o           : out std_logic_vector(31 downto 0);
-      rxts_timestamp_stb_o       : out std_logic;
-      rxts_timestamp_valid_o     : out std_logic;
-      txts_timestamp_o           : out std_logic_vector(31 downto 0);
-      txts_timestamp_stb_o       : out std_logic;
-      txts_timestamp_valid_o     : out std_logic;
-      regs_i                     : in  t_ep_out_registers;
-      regs_o                     : out t_ep_in_registers);
   end component;
 
 -------------------------------------------------------------------------------
@@ -514,22 +363,6 @@ architecture syn of wr_endpoint is
   signal rxpcs_fifo_almostfull : std_logic;
 
 -------------------------------------------------------------------------------
--- RX deframer -> RX buffer signals
--------------------------------------------------------------------------------
-
-  --signal rbuf_data    : std_logic_vector(15 downto 0);
-  --signal rbuf_ctrl    : std_logic_vector(4-1 downto 0);
-  --signal rbuf_sof_p   : std_logic;
-  --signal rbuf_eof_p   : std_logic;
-  --signal rbuf_error_p : std_logic;
-  --signal rbuf_valid   : std_logic;
-  --signal rbuf_drop    : std_logic;
-  --signal rbuf_bytesel : std_logic;
-
-  --signal rx_buffer_used : std_logic_vector(7 downto 0);
-
-
--------------------------------------------------------------------------------
 -- WB slave signals
 -------------------------------------------------------------------------------
 
@@ -548,17 +381,10 @@ architecture syn of wr_endpoint is
   signal txfra_flow_enable : std_logic;
   signal rxfra_pause_p     : std_logic;
   signal rxfra_pause_delay : std_logic_vector(15 downto 0);
-  --signal rxbuf_threshold_hit : std_logic;
 
   signal txfra_pause_req   : std_logic;
   signal txfra_pause_ready : std_logic;
   signal txfra_pause_delay : std_logic_vector(15 downto 0);
-
-  --signal rofifo_write, rofifo_full, oob_valid_d0 : std_logic;
-
-  --signal phase_meas    : std_logic_vector(31 downto 0);
-  --signal phase_meas_p  : std_logic;
-  --signal validity_cntr : unsigned(1 downto 0);
 
   signal link_ok : std_logic;
 
