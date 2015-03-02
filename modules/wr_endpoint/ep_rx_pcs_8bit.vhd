@@ -83,6 +83,7 @@ entity ep_rx_pcs_8bit is
 -- PHY interface
 -------------------------------------------------------------------------------    
 
+    phy_rdy_i        : in std_logic;
     phy_rx_clk_i     : in std_logic;
     phy_rx_data_i    : in std_logic_vector(7 downto 0);
     phy_rx_k_i       : in std_logic;
@@ -152,6 +153,7 @@ architecture behavioral of ep_rx_pcs_8bit is
   end component;
 
   signal reset_synced_rxclk : std_logic;
+  signal rst_n_rx : std_logic;
 
   signal rx_state             : t_tbif_rx_state;
   signal preamble_cntr        : unsigned(2 downto 0);
@@ -241,7 +243,7 @@ begin
       g_sync_edge => "positive")
     port map (
       clk_i    => phy_rx_clk_i,
-      rst_n_i  => reset_synced_rxclk,
+      rst_n_i  => rst_n_rx,
       data_i   => an_rx_en_i,
       synced_o => an_rx_en_synced,
       npulse_o => open,
@@ -259,6 +261,7 @@ begin
       ppulse_o => open);
 
   rx_sync_enable <= not mdio_mcr_pdown_synced;
+  rst_n_rx  <= reset_synced_rxclk and phy_rdy_i;
 
 -------------------------------------------------------------------------------
 -- 802.3z Link Synchronization State Machine
@@ -266,7 +269,7 @@ begin
 
   U_SYNC_DET : ep_sync_detect
     port map (
-      rst_n_i  => reset_synced_rxclk,
+      rst_n_i  => rst_n_rx,
       rbclk_i  => phy_rx_clk_i,
       en_i     => rx_sync_enable,
       data_i   => phy_rx_data_i,
@@ -301,10 +304,10 @@ begin
   -- reads: phy_rx_data_i, mdio_wr_spec_cal_crst_i
   -- writes: mdio_wr_spec_rx_cal_stat_o
   --
-  p_detect_cal : process(phy_rx_clk_i, reset_synced_rxclk)
+  p_detect_cal : process(phy_rx_clk_i, rst_n_rx)
   begin
     if rising_edge(phy_rx_clk_i) then
-      if reset_synced_rxclk = '0' then
+      if rst_n_rx = '0' then
         cal_pattern_cntr <= (others => '0');
         d_is_cal         <= '0';
       else
@@ -355,11 +358,11 @@ begin
 
   -- process postprocesses the raw 8b10b decoder output (phy_rx_data_i, phy_rx_k_i, phy_rx_enc_err_ior)
   -- providing 1-bit signals indicating various 8b10b control patterns
-  p_8b10b_postprocess : process(phy_rx_clk_i, reset_synced_rxclk)
+  p_8b10b_postprocess : process(phy_rx_clk_i, rst_n_rx)
   begin
     if rising_edge(phy_rx_clk_i) then
       
-      if(reset_synced_rxclk = '0') then
+      if(rst_n_rx = '0') then
         d_data             <= (others => '0');
         d_is_comma         <= '0';
         d_is_spd           <= '0';
@@ -454,11 +457,11 @@ begin
 -- reads: almost everything
 -- writes: almost everything
 
-  rx_fsm : process (phy_rx_clk_i, reset_synced_rxclk)
+  rx_fsm : process (phy_rx_clk_i, rst_n_rx)
   begin
     if rising_edge(phy_rx_clk_i) then
       -- reset or PCS disabled
-      if(reset_synced_rxclk = '0' or mdio_mcr_pdown_synced = '1') then
+      if(rst_n_rx = '0' or mdio_mcr_pdown_synced = '1') then
         rx_state <= RX_NOFRAME;
         rx_busy  <= '0';
 
@@ -829,7 +832,7 @@ begin
       g_width => 3)
     port map (
       clk_i      => phy_rx_clk_i,
-      rst_n_i    => reset_synced_rxclk,
+      rst_n_i    => rst_n_rx,
       pulse_i    => rmon_invalid_code_p_int,
       extended_o => rmon_rx_inv_code);
 
@@ -838,7 +841,7 @@ begin
       g_width => 3)
     port map (
       clk_i      => phy_rx_clk_i,
-      rst_n_i    => reset_synced_rxclk,
+      rst_n_i    => rst_n_rx,
       pulse_i    => rmon_rx_overrun_p_int,
       extended_o => rmon_rx_overrun);
 

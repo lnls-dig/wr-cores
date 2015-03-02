@@ -138,6 +138,7 @@ package endpoint_private_pkg is
       serdes_syncen_o               : out std_logic;
       serdes_loopen_o               : out std_logic;
       serdes_enable_o               : out std_logic;
+      serdes_rdy_i                  : in  std_logic;
       serdes_tx_clk_i               : in  std_logic;
       serdes_tx_data_o              : out std_logic_vector(15 downto 0);
       serdes_tx_k_o                 : out std_logic_vector(1 downto 0);
@@ -521,6 +522,7 @@ package endpoint_private_pkg is
       g_almostfull_threshold : integer);
     port (
       rst_n_rd_i       : in  std_logic;
+      rst_n_wr_i       : in std_logic;
       clk_wr_i         : in  std_logic;
       clk_rd_i         : in  std_logic;
       dreq_i           : in  std_logic;

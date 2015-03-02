@@ -289,6 +289,7 @@ begin  -- behavioral
       g_almostfull_threshold => 112)
     port map (
       rst_n_rd_i       => rst_n_sys_i,
+      rst_n_wr_i       => rst_n_rx_i,
       clk_wr_i         => clk_rx_i,
       clk_rd_i         => clk_sys_i,
       dreq_i           => dreq_pipe(3),

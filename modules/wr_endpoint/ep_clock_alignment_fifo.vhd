@@ -51,6 +51,7 @@ entity ep_clock_alignment_fifo is
 
   port(
     rst_n_rd_i : in std_logic;
+    rst_n_wr_i : in std_logic;
     clk_wr_i   : in std_logic;
     clk_rd_i   : in std_logic;
 
@@ -91,7 +92,7 @@ begin
       g_almost_full_threshold  => g_almostfull_threshold
       )
     port map (
-      rst_n_i           => rst_n_rd_i,
+      rst_n_i           => rst_n_wr_i,
       clk_wr_i          => clk_wr_i,
       d_i               => fifo_in,
       we_i              => fifo_we,

@@ -130,6 +130,9 @@ entity ep_1000basex_pcs is
 
     -- 1: serdes TX/RX is enabled.
     serdes_enable_o : out std_logic;
+    
+    -- 1: serdes is locked and aligned
+    serdes_rdy_i    : in  std_logic;
 
 
     ---------------------------------------------------------------------------
@@ -307,6 +310,7 @@ begin  -- rtl
         rmon_rx_inv_code => rmon_rx_inv_code,
         rmon_rx_sync_lost=> rmon_rx_sync_lost,
 
+        phy_rdy_i        => serdes_rdy_i,
         phy_rx_clk_i     => serdes_rx_clk_i,
         phy_rx_data_i    => serdes_rx_data_i,
         phy_rx_k_i       => serdes_rx_k_i,
@@ -379,6 +383,7 @@ begin  -- rtl
         rmon_rx_inv_code => rmon_rx_inv_code,
         rmon_rx_sync_lost=> rmon_rx_sync_lost,
 
+        phy_rdy_i        => serdes_rdy_i,
         phy_rx_clk_i     => serdes_rx_clk_i,
         phy_rx_data_i    => serdes_rx_data_i(7 downto 0),
         phy_rx_k_i       => serdes_rx_k_i(0),

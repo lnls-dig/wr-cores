@@ -108,6 +108,7 @@ entity wr_endpoint is
     phy_loopen_o : out std_logic;
     phy_enable_o : out std_logic;
     phy_syncen_o : out std_logic;
+    phy_rdy_i    : in  std_logic;
 
     phy_ref_clk_i      : in  std_logic;
     phy_tx_data_o      : out std_logic_vector(15 downto 0);
@@ -397,7 +398,8 @@ architecture syn of wr_endpoint is
   signal src_in  : t_wrf_source_in;
   signal src_out : t_wrf_source_out;
 
-  signal rst_n_rx, rst_n_sys, rst_n_ref : std_logic;
+  signal rst_n_rxsync, rst_n_sys, rst_n_ref : std_logic;
+  signal rst_n_rx : std_logic;
 
   signal wb_in  : t_wishbone_slave_in;
   signal wb_out : t_wishbone_slave_out;
@@ -462,7 +464,7 @@ begin
       clk_i    => phy_rx_clk_i,
       rst_n_i  => '1',
       data_i   => rst_n_i,
-      synced_o => rst_n_rx);
+      synced_o => rst_n_rxsync);
 
   U_Sync_Rst_REF : gc_sync_ffs
     port map (
@@ -472,7 +474,7 @@ begin
       synced_o => rst_n_ref);
 
   rst_n_sys <= rst_n_i;
-
+  rst_n_rx  <= rst_n_rxsync and phy_rdy_i;
 
 -------------------------------------------------------------------------------
 -- 1000Base-X PCS
@@ -511,6 +513,7 @@ begin
       serdes_loopen_o => phy_loopen_o,
       serdes_enable_o => phy_enable_o,
       serdes_syncen_o => phy_syncen_o,
+      serdes_rdy_i    => phy_rdy_i,
 
       serdes_tx_clk_i       => phy_ref_clk_i,
       serdes_tx_data_o      => phy_tx_data_o,
@@ -703,7 +706,7 @@ begin
       clk_ref_i      => clk_ref_i,
       clk_rx_i       => phy_rx_clk_i,
       clk_sys_i      => clk_sys_i,
-      rst_n_rx_i     => rst_n_rx,
+      rst_n_rx_i     => rst_n_rxsync,
       rst_n_sys_i    => rst_n_sys,
       rst_n_ref_i    => rst_n_ref,
       pps_csync_p1_i => pps_csync_p1_i,

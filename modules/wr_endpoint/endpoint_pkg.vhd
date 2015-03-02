@@ -125,6 +125,7 @@ package endpoint_pkg is
       phy_loopen_o         : out std_logic;
       phy_enable_o         : out std_logic;
       phy_syncen_o         : out std_logic;
+      phy_rdy_i            : in  std_logic;
       phy_ref_clk_i        : in  std_logic                     := '0';
       phy_tx_data_o        : out std_logic_vector(15 downto 0);
       phy_tx_k_o           : out std_logic_vector(1 downto 0);
@@ -220,6 +221,7 @@ package endpoint_pkg is
       phy_loopen_o         : out std_logic;
       phy_enable_o         : out std_logic;
       phy_syncen_o         : out std_logic;
+      phy_rdy_i            : in  std_logic;
       phy_ref_clk_i        : in  std_logic;
       phy_tx_data_o        : out std_logic_vector(15 downto 0);
       phy_tx_k_o           : out std_logic_vector(1 downto 0);
