@@ -109,11 +109,9 @@ entity wr_gtx_phy_kintex7 is
     pad_txp_o : out std_logic;
 
     pad_rxn_i : in std_logic := '0';
-    pad_rxp_i : in std_logic := '0'
+    pad_rxp_i : in std_logic := '0';
 
-    );
-
-
+    rdy_o     : out std_logic);
 end wr_gtx_phy_kintex7;
 
 architecture rtl of wr_gtx_phy_kintex7 is
@@ -440,6 +438,7 @@ U_GTX_INST : WHITERABBIT_GTXE2_CHANNEL_WRAPPER_GT
   rst_done_n       <= not rst_done;
   pll_lockdet      <= txpll_lockdet and rxpll_lockdet;
   everything_ready <= rst_done and pll_lockdet;
+  rdy_o            <= everything_ready;
 
   trig2(3) <= rx_rst_done;
   trig2(4) <= tx_rst_done;

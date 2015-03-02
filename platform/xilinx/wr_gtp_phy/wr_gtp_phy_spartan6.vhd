@@ -110,6 +110,9 @@ entity wr_gtp_phy_spartan6 is
     -- local loopback enable (Tx->Rx), active hi
     ch0_loopen_i : in std_logic;
 
+    -- gtp0 ready: locked & aligned
+    ch0_rdy_o : out std_logic;
+
 -- Port 1
     ch1_ref_clk_i : in std_logic;
 
@@ -126,6 +129,7 @@ entity wr_gtp_phy_spartan6 is
 
     ch1_rst_i    : in std_logic := '0';
     ch1_loopen_i : in std_logic := '0';
+    ch1_rdy_o    : out std_logic;
 
 -- Serial I/O
 
@@ -529,6 +533,8 @@ begin  -- rtl
 
 -- drive the recovered clock output
     ch0_rx_rbclk_o <= ch0_rx_rec_clk;
+    -- drive ch0 ready indicator as well
+    ch0_rdy_o <= ch0_rx_enable_output_synced;
 
   end generate gen_with_channel0;
 
@@ -682,6 +688,7 @@ begin  -- rtl
     end process;
 
     ch1_rx_rbclk_o <= ch1_rx_rec_clk;
+    ch1_rdy_o <= ch1_rx_enable_output_synced;
   end generate gen_with_channel1;
 
 
