@@ -29,7 +29,8 @@ entity ep_rtu_header_extract is
     rtu_rq_o       : out t_ep_internal_rtu_request;
     rtu_full_i     : in  std_logic;
     rtu_rq_abort_o : out std_logic;
-    rtu_rq_valid_o : out std_logic
+    rtu_rq_valid_o : out std_logic;
+    rxbuf_full_i   : in  std_logic
     );
 
 end ep_rtu_header_extract;
@@ -84,7 +85,7 @@ begin  -- rtl
         else
           rmon_drp_at_rtu_full_o <='0';
 
-          if(snk_fab_i.sof = '1' and rtu_full_i = '0') then
+          if(snk_fab_i.sof = '1' and rtu_full_i = '0' and rxbuf_full_i = '0') then
             in_packet <= '1';
             in_header <= '1';
           elsif(snk_fab_i.sof = '1' and rtu_full_i = '1') then

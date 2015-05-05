@@ -380,7 +380,8 @@ begin  -- behavioral
       rtu_rq_o         => rtu_rq_o,
       rtu_full_i       => rtu_full_i,
       rtu_rq_abort_o   => rtu_rq_abort_o,
-      rtu_rq_valid_o   => rtu_rq_valid);
+      rtu_rq_valid_o   => rtu_rq_valid,
+      rxbuf_full_i     => rxbuf_full);
 
   gen_with_rx_buffer : if g_with_rx_buffer generate
     U_Rx_Buffer : ep_rx_buffer

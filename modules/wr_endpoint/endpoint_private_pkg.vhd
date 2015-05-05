@@ -496,7 +496,8 @@ package endpoint_private_pkg is
       rtu_rq_o         : out t_ep_internal_rtu_request;
       rtu_full_i       : in  std_logic;
       rtu_rq_abort_o   : out std_logic;
-      rtu_rq_valid_o   : out std_logic);
+      rtu_rq_valid_o   : out std_logic;
+      rxbuf_full_i     : in  std_logic);
   end component;
 
   component ep_rx_early_address_match
