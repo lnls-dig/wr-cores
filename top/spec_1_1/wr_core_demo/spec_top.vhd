@@ -86,6 +86,11 @@ entity spec_top is
 
       button1_i : in std_logic := 'H';
       button2_i : in std_logic := 'H';
+      
+      spi_sclk_o : out std_logic;
+      spi_ncs_o  : out std_logic;
+      spi_mosi_o : out std_logic;
+      spi_miso_i : in  std_logic := 'L';
 
       thermo_id : inout std_logic;      -- 1-Wire interface to DS18B20
 
@@ -653,8 +658,11 @@ begin
       g_virtual_uart              => true,
       g_aux_clks                  => 0,
       g_ep_rxbuf_size             => 1024,
+      g_tx_runt_padding           => true,
+      g_pcs_16bit                 => false,
       g_dpram_initf               => "wrc.ram",
-      g_dpram_size                => 90112/4,  --16384,
+      g_aux_sdb                   => c_etherbone_sdb,
+      g_dpram_size                => 131072/4,
       g_interface_mode            => PIPELINED,
       g_address_granularity       => BYTE)
     port map (
@@ -698,6 +706,10 @@ begin
       sfp_det_i  => sfp_mod_def0_b,
       btn1_i     => button1_i,
       btn2_i     => button2_i,
+      spi_sclk_o  => spi_sclk_o,
+      spi_ncs_o   => spi_ncs_o,
+      spi_mosi_o  => spi_mosi_o,
+      spi_miso_i  => spi_miso_i,
 
       uart_rxd_i => uart_rxd_i,
       uart_txd_o => uart_txd_o,

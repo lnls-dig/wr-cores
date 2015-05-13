@@ -118,7 +118,8 @@ entity dmtd_with_deglitcher is
     tag_o : out std_logic_vector(g_counter_bits-1 downto 0);
 
     -- [clk_sys_i] pulse indicates new phase tag on tag_o
-    tag_stb_p1_o : out std_logic
+    tag_stb_p1_o : out std_logic;
+    dbg_clk_d3_o : out std_logic
     );
 
 end dmtd_with_deglitcher;
@@ -347,6 +348,6 @@ begin  -- rtl
       pulse_i    => new_edge_p,
       extended_o => dbg_dmtdout_o);
 
-
+	dbg_clk_d3_o <= clk_i_d3;
 
 end rtl;

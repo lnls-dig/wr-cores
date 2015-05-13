@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT section
 -- Created    : 2009-06-16
--- Last update: 2012-07-12
+-- Last update: 2013-03-12
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -96,8 +96,8 @@ entity ep_tx_pcs_16bit is
 -- Timestamp strobe
     timestamp_trigger_p_a_o : out std_logic;
 
--- RMON counters
-    rmon_o : inout t_rmon_triggers;
+-- RMON events
+    rmon_tx_underrun : out std_logic;
 
 -------------------------------------------------------------------------------
 -- PHY Interface
@@ -107,7 +107,10 @@ entity ep_tx_pcs_16bit is
     phy_tx_data_o      : out std_logic_vector(15 downto 0);
     phy_tx_k_o         : out std_logic_vector(1 downto 0);
     phy_tx_disparity_i : in  std_logic;
-    phy_tx_enc_err_i   : in  std_logic
+    phy_tx_enc_err_i   : in  std_logic;
+    
+    dbg_wr_count_o     : out std_logic_vector(5+4 downto 0);
+    dbg_rd_count_o     : out std_logic_vector(5+4 downto 0)
     );
 
 end ep_tx_pcs_16bit;
@@ -136,7 +139,7 @@ architecture behavioral of ep_tx_pcs_16bit is
   signal fifo_wr                         : std_logic;
   signal fifo_rd                         : std_logic := '0';
   signal fifo_ready                      : std_logic;
-  signal fifo_clear_n                    : std_logic;
+  signal fifo_clear_n, fifo_clear_n_d0, fifo_clear_n_d1, fifo_clear_n_d2, fifo_clear_n_d3, fifo_clear_n_d4 : std_logic;
   signal fifo_read_int                   : std_logic;
   signal fifo_fab                        : t_ep_internal_fabric;
 
@@ -148,6 +151,20 @@ architecture behavioral of ep_tx_pcs_16bit is
   signal s_one                 : std_logic := '1';
 
   signal an_tx_en_synced : std_logic;
+  signal wr_count       :  std_logic_vector(6 downto 0);
+  signal rd_count       :  std_logic_vector(6 downto 0);
+  
+  constant tx_interframe_gap: unsigned(3 downto 0) := x"2"; --ML changed from "1000" to 0010
+  -- effectively it is 6 cycles for IFG:
+  -- last data (CRC) of the previous frame
+  -- -----------------------------------------
+  -- 3 cycles for count down (2 downto 0)
+  -- 1 cycle fifo_rd
+  -- 1 read SOF from FIFO
+  -- 1 cycle in TX_SPD_PREAMBLE
+  -- -----------------------------------------
+  -- just now we send Preamble
+  -- 
 begin
 
   U_sync_an_tx_en : gc_sync_ffs
@@ -202,39 +219,80 @@ begin
 -- Clock alignment FIFO
 -------------------------------------------------------------------------------  
 
-  fifo_clear_n <= '0' when (rst_n_i = '0') or (mdio_mcr_pdown_synced = '1') else '1';
 
+ -------------------------------------------------------------------------------------------
+ -- some hacks to make pdown (in particular killing the link) work with Xilix native FIFOs
+ -- (the rst signal can be set (LOW) only after 4 cycles after rd_i is "unset" (LOW)
+ -------------------------------------------------------------------------------------------
+ fifo_clear_n_d0 <= '0' when (rst_n_i = '0') or (mdio_mcr_pdown_synced = '1') else '1';
+ p_fifo_clean : process(phy_tx_clk_i)
+  begin
+    if rising_edge(phy_tx_clk_i) then
+      fifo_clear_n_d1 <= fifo_clear_n_d0;
+      fifo_clear_n_d2 <= fifo_clear_n_d1;
+      fifo_clear_n_d3 <= fifo_clear_n_d2;
+      fifo_clear_n_d4 <= fifo_clear_n_d3;
+     end if;
+  end process;
+
+  fifo_clear_n <= fifo_clear_n_d4 when (fifo_clear_n_d0 = '0') else
+                  fifo_clear_n_d0;
+  fifo_read_int <= fifo_rd and not (fifo_fab.eof or fifo_fab.error or fifo_fab.sof) and
+                   fifo_clear_n_d0;
+  -------------------------------------------------------------------------------------------
   f_pack_fifo_contents(pcs_fab_i, fifo_packed_in, fifo_wr, true);
 
-  fifo_read_int <= fifo_rd and not (fifo_fab.eof or fifo_fab.error or fifo_fab.sof);
+
 
   U_TX_FIFO : generic_async_fifo
     generic map (
       g_data_width             => 18,
-      g_size                   => 64,
+      g_size                   => 128,--64,
       g_with_rd_empty          => true,
       g_with_rd_almost_empty   => true,
       g_with_wr_almost_full    => true,
-      g_almost_empty_threshold => 20,
-      g_almost_full_threshold  => 58)  -- fixme: make this a generic (or WB register)
+      g_almost_empty_threshold => 20, -- must be not more/equal then mini-frame size (so 64/2), 
+                                      -- therwise frames get stuck in PCS 40,
+
+      -- ML this is a hack: we have a problem, the native FIFO that was used here
+      --    is not working ocrrectly (probably something with full/empty/etc signals
+      --    If this flags here are defined, another fifo (v6_hwfifo) is used, it is
+      --    not the best for resources... but works. We tried increaseing the size
+      --    of the FIFO, changing thresholds... not works very well. 
+      --    The native FIFO works somehow better with the following parameters
+      --        g_size = 1000
+      --        g_almost_full_threshold = 900
+      --     but it is still not good enough to use it
+      --     
+      g_with_rd_count          => true, -- ML debug
+      g_with_wr_count          => true, -- ML debug
+      
+      g_almost_full_threshold  => 100) -- fixme: make this a generic (or WB register)
     port map (
       rst_n_i           => fifo_clear_n,
       clk_wr_i          => clk_sys_i,
       d_i               => fifo_packed_in,
       we_i              => fifo_wr,
-      wr_empty_o        => open,
-      wr_full_o         => open,
-      wr_almost_empty_o => open,
+      wr_empty_o        => dbg_wr_count_o(0), --open,
+      wr_full_o         => dbg_wr_count_o(1), --open,
+      wr_almost_empty_o => dbg_wr_count_o(2), --open,
       wr_almost_full_o  => fifo_almost_full,
-      wr_count_o        => open,
+      wr_count_o        => wr_count,
       clk_rd_i          => phy_tx_clk_i,
       q_o               => fifo_packed_out,
       rd_i              => fifo_read_int,
       rd_empty_o        => fifo_empty,
-      rd_full_o         => open,
+      rd_full_o         => dbg_rd_count_o(1) ,--open,
       rd_almost_empty_o => fifo_almost_empty,
-      rd_almost_full_o  => open,
-      rd_count_o        => open);
+      rd_almost_full_o  => dbg_rd_count_o(3),
+      rd_count_o        => rd_count); --rd_count);--dbg_rd_count_o); --open);
+
+      dbg_wr_count_o(3) <= fifo_almost_full;
+      dbg_rd_count_o(0) <= fifo_empty;
+      dbg_rd_count_o(2) <= fifo_almost_empty;
+      
+      dbg_wr_count_o(9 downto 4) <= wr_count(5 downto 0);
+      dbg_rd_count_o(9 downto 4) <= rd_count(5 downto 0);
 
   fifo_enough_data <= not fifo_almost_empty;
 
@@ -257,16 +315,16 @@ begin
 
 -- The PCS is reset or disabled
       if(reset_synced_txclk = '0' or mdio_mcr_pdown_synced = '1') then
-        tx_state           <= TX_COMMA_IDLE;
-        timestamp_trigger_p_a_o  <= '0';
-        fifo_rd            <= '0';
-        tx_error           <= '0';
-        tx_odata_reg       <= (others => '0');
-        tx_is_k            <= "00";
-        tx_cr_alternate    <= '0';
-        tx_catch_disparity <= '0';
-        tx_cntr            <= (others => '0');
-        rmon_o.tx_underrun <= '0';
+        tx_state                <= TX_COMMA_IDLE;
+        timestamp_trigger_p_a_o <= '0';
+        fifo_rd                 <= '0';
+        tx_error                <= '0';
+        tx_odata_reg            <= (others => '0');
+        tx_is_k                 <= "00";
+        tx_cr_alternate         <= '0';
+        tx_catch_disparity      <= '0';
+        tx_cntr                 <= (others => '0');
+        rmon_tx_underrun        <= '0';
       else
         case tx_state is
 -------------------------------------------------------------------------------
@@ -276,8 +334,8 @@ begin
 
             -- clear the RMON/error pulse after 2 cycles (DATA->COMMA->IDLE) to
             -- make sure is't long enough to trigger the event counter
-            rmon_o.tx_underrun <= '0';
-            tx_error           <= '0';
+            rmon_tx_underrun <= '0';
+            tx_error         <= '0';
 
             tx_is_k                   <= "10";
             tx_odata_reg(15 downto 8) <= c_K28_5;
@@ -384,8 +442,8 @@ begin
             tx_odata_reg <= c_preamble_char & c_preamble_char;
 
             if (tx_cntr = "0000") then
-              tx_state          <= TX_SFD;
-              fifo_rd           <= '1';
+              tx_state <= TX_SFD;
+              fifo_rd  <= '1';
             end if;
 
             tx_cntr <= tx_cntr - 1;
@@ -394,20 +452,20 @@ begin
 -- State SFD: outputs the start-of-frame delimeter (last byte of the preamble)
 -------------------------------------------------------------------------------            
           when TX_SFD =>
-            tx_is_k      <= "00";
-            tx_odata_reg <= c_preamble_char & c_preamble_sfd;
+            tx_is_k                 <= "00";
+            tx_odata_reg            <= c_preamble_char & c_preamble_sfd;
             timestamp_trigger_p_a_o <= '1';
-            tx_state     <= TX_DATA;
+            tx_state                <= TX_DATA;
 
           when TX_DATA =>
 
             if((fifo_empty = '1' or fifo_fab.error = '1') and fifo_fab.eof = '0') then  -- FIFO underrun?
-              tx_odata_reg       <= c_k30_7 & c_k23_7;  -- emit error propagation code
-              tx_is_k            <= "11";
-              tx_state           <= TX_GEN_ERROR;
-              tx_error           <= not fifo_fab.error;
-              rmon_o.tx_underrun <= '1';
-              fifo_rd            <= '0';
+              tx_odata_reg     <= c_k30_7 & c_k23_7;  -- emit error propagation code
+              tx_is_k          <= "11";
+              tx_state         <= TX_GEN_ERROR;
+              tx_error         <= not fifo_fab.error;
+              rmon_tx_underrun <= '1';
+              fifo_rd          <= '0';
             else
 
               if(fifo_fab.bytesel = '1') then
@@ -433,22 +491,22 @@ begin
 -------------------------------------------------------------------------------
           when TX_EPD =>
             timestamp_trigger_p_a_o <= '0';
-            tx_is_k            <= "11";
-            tx_odata_reg       <= c_k29_7 & c_k23_7;
-            tx_catch_disparity <= '1';
-            tx_cntr            <= "1000";
-            tx_state           <= TX_COMMA_IDLE;
+            tx_is_k                 <= "11";
+            tx_odata_reg            <= c_k29_7 & c_k23_7;
+            tx_catch_disparity      <= '1';
+            tx_cntr                 <= tx_interframe_gap;
+            tx_state                <= TX_COMMA_IDLE;
 
 --------------------------------------------------------------------------------
 -- State EXTEND: send the carrier extension
 -------------------------------------------------------------------------------
           when TX_EXTEND =>
             timestamp_trigger_p_a_o <= '0';
-            tx_is_k            <= "11";
-            tx_odata_reg       <= c_k23_7 & c_k23_7;
-            tx_catch_disparity <= '1';
-            tx_cntr            <= "0100";
-            tx_state           <= TX_COMMA_IDLE;
+            tx_is_k                 <= "11";
+            tx_odata_reg            <= c_k23_7 & c_k23_7;
+            tx_catch_disparity      <= '1';
+            tx_cntr                 <= tx_interframe_gap-1;--"0100";
+            tx_state                <= TX_COMMA_IDLE;
 
 -------------------------------------------------------------------------------
 -- State GEN_ERROR: entered when an error occured. Just terminates the frame.

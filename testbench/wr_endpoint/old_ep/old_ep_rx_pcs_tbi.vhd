@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2009-06-16
--- Last update: 2011-05-11
+-- Last update: 2012-11-14
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -472,7 +472,7 @@ begin
   rx_rdreq <= (not fifo_empty) and pcs_dreq_i;
 
   -- the FIFO is cleared during the reset or when the PCS is disabled
-  fifo_clear_n <= '1' when (reset_synced_rxclk = '0') or (mdio_mcr_pdown_synced = '1');
+  fifo_clear_n <= '0' when (reset_synced_rxclk = '0') or (mdio_mcr_pdown_synced = '1') else '1';
 
 
   -- process postprocesses the raw 8b10b decoder output (dec_out, dec_is_k, dec_error)

@@ -105,8 +105,10 @@ entity ep_rx_pcs_8bit is
     an_rx_valid_o   : out std_logic;
     an_idle_match_o : out std_logic;
 
-    -- RMON statistic counters
-    rmon_o : inout t_rmon_triggers
+    -- RMON events
+    rmon_rx_overrun   : out std_logic;
+    rmon_rx_inv_code  : out std_logic;
+    rmon_rx_sync_lost : out std_logic
     );
 
 end ep_rx_pcs_8bit;
@@ -196,7 +198,6 @@ architecture behavioral of ep_rx_pcs_8bit is
 
 -- RMON counter pulses
   signal rmon_rx_overrun_p_int   : std_logic;
-  signal rmon_syncloss_p_int     : std_logic;
   signal rmon_invalid_code_p_int : std_logic;
 
 -- Misc. signals
@@ -829,7 +830,7 @@ begin
       clk_i      => phy_rx_clk_i,
       rst_n_i    => reset_synced_rxclk,
       pulse_i    => rmon_invalid_code_p_int,
-      extended_o => rmon_o.rx_invalid_code);
+      extended_o => rmon_rx_inv_code);
 
   U_ext_rmon_2 : gc_extend_pulse
     generic map (
@@ -838,10 +839,10 @@ begin
       clk_i      => phy_rx_clk_i,
       rst_n_i    => reset_synced_rxclk,
       pulse_i    => rmon_rx_overrun_p_int,
-      extended_o => rmon_o.rx_overrun);
+      extended_o => rmon_rx_overrun);
 
 -- drive the "RX PCS Sync Lost" event counter
-  rmon_o.rx_sync_lost <= rx_sync_lost_p and (not mdio_mcr_pdown_i);
+  rmon_rx_sync_lost <= rx_sync_lost_p and (not mdio_mcr_pdown_i);
 
 end behavioral;
 

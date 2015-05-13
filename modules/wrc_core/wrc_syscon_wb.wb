@@ -127,6 +127,53 @@ peripheral {
          load = LOAD_EXT;
          align = 9;
       };
+  
+      field {
+        name = "SPI bitbanged SCLK";
+        prefix = "spi_sclk";
+        description = "write 1: drive SPI CLK to 1\
+                       read: always 0";
+        type = BIT;
+        access_bus = READ_WRITE;
+        access_dev = READ_WRITE;
+        load = LOAD_EXT;
+        align = 10;
+      };
+
+      field {
+        name = "SPI bitbanged NCS";
+        prefix = "spi_ncs";
+        description = "write 1: drive SPI NCS to 1\
+                       read: always 0";
+        type = BIT;
+        access_bus = READ_WRITE;
+        access_dev = READ_WRITE;
+        load = LOAD_EXT;
+        align = 11;
+      };
+
+      field {
+        name = "SPI bitbanged MOSI";
+        prefix = "spi_mosi";
+        description = "write 1: drive SPI MOSI line to 1\
+                       read: always 0";
+        type = BIT;
+        access_bus = READ_WRITE;
+        access_dev = READ_WRITE;
+        load = LOAD_EXT;
+        align = 12;
+      };
+
+      field {
+        name = "SPI bitbanged MISO";
+        prefix = "spi_miso";
+        description = "read: current state of SPI MISO line";
+        type = BIT;
+        access_bus = READ_ONLY;
+        access_dev = WRITE_ONLY;
+        load = LOAD_EXT;
+        align = 13;
+      };
 
    };
 
@@ -178,6 +225,30 @@ peripheral {
          description = "write 1: Set SFP SDA line to 0.";
          type = MONOSTABLE;
          align = 9;
+      };
+
+      field {
+        name = "SPI bitbanged SCLK";
+        prefix = "spi_sclk";
+        description = "write 1: Set SPI CLK line to 0.";
+        type = MONOSTABLE;
+        align = 10;
+      };
+
+      field {
+        name = "SPI bitbanged CS";
+        prefix = "spi_cs";
+        description = "write 1: Set SPI CS line to 0";
+        type = MONOSTABLE;
+        align = 11;
+      };
+
+      field {
+        name = "SPI bitbanged MOSI";
+        prefix = "spi_mosi";
+        description = "write 1: Set SPI MOSI line to 0.";
+        type = MONOSTABLE;
+        align = 12;
       };
 
    };

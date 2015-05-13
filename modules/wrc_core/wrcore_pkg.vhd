@@ -11,6 +11,8 @@ use work.softpll_pkg.all;
 
 package wrcore_pkg is
 
+  function f_pcs_data_width(pcs_16 : boolean) return integer;
+  function f_pcs_bts_width(pcs_16 : boolean) return integer;
 
   ----------------------------------------------------------------------------- 
   --PPS generator
@@ -215,6 +217,10 @@ package wrcore_pkg is
       memsize_i   : in  std_logic_vector(3 downto 0);
       btn1_i      : in  std_logic;
       btn2_i      : in  std_logic;
+      spi_sclk_o  : out std_logic;
+      spi_ncs_o   : out std_logic;
+      spi_mosi_o  : out std_logic;
+      spi_miso_i  : in  std_logic;
       slave_i     : in  t_wishbone_slave_in_array(0 to 2);
       slave_o     : out t_wishbone_slave_out_array(0 to 2);
       uart_rxd_i  : in  std_logic;
@@ -277,7 +283,7 @@ package wrcore_pkg is
       out_status_o    : out std_logic_vector(4*g_num_outputs-1 downto 0);
       slave_i         : in  t_wishbone_slave_in;
       slave_o         : out t_wishbone_slave_out;
-      debug_o         : out std_logic_vector(3 downto 0);
+      debug_o         : out std_logic_vector(5 downto 0);
       dbg_fifo_irq_o  : out std_logic);
   end component;
   
@@ -296,14 +302,15 @@ package wrcore_pkg is
       g_with_external_clock_input : boolean                        := false;
       g_aux_clks                  : integer                        := 1;
       g_ep_rxbuf_size             : integer                        := 1024;
+      g_tx_runt_padding           : boolean                        := false;
       g_dpram_initf               : string                         := "default";
       g_dpram_size                : integer                        := 90112/4;  --in 32-bit words
       g_interface_mode            : t_wishbone_interface_mode      := PIPELINED;
       g_address_granularity       : t_wishbone_address_granularity := BYTE;
       g_aux_sdb                   : t_sdb_device                   := c_wrc_periph3_sdb;
       g_softpll_enable_debugger   : boolean                        := false;
-      g_vuart_fifo_size           : integer                        := 1024
-      );
+      g_vuart_fifo_size           : integer                        := 1024;
+      g_pcs_16bit                 : boolean                        := false);
     port(
       clk_sys_i  : in std_logic;
       clk_dmtd_i : in std_logic                               := '0';
@@ -320,15 +327,17 @@ package wrcore_pkg is
       dac_dpll_data_o    : out std_logic_vector(15 downto 0);
 
       phy_ref_clk_i      : in  std_logic                    := '0';
-      phy_tx_data_o      : out std_logic_vector(7 downto 0);
+      phy_tx_data_o      : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
       phy_tx_k_o         : out std_logic;
+      phy_tx_k16_o       : out std_logic;
       phy_tx_disparity_i : in  std_logic                    := '0';
       phy_tx_enc_err_i   : in  std_logic                    := '0';
-      phy_rx_data_i      : in  std_logic_vector(7 downto 0) := x"00";
+      phy_rx_data_i      : in std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
       phy_rx_rbclk_i     : in  std_logic                    := '0';
       phy_rx_k_i         : in  std_logic                    := '0';
+      phy_rx_k16_i       : in std_logic                     := '0';
       phy_rx_enc_err_i   : in  std_logic                    := '0';
-      phy_rx_bitslide_i  : in  std_logic_vector(3 downto 0) := x"0";
+      phy_rx_bitslide_i  : in std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
       phy_rst_o          : out std_logic;
       phy_loopen_o       : out std_logic;
 
@@ -345,6 +354,10 @@ package wrcore_pkg is
       sfp_det_i  : in  std_logic := '1';
       btn1_i     : in  std_logic := 'H';
       btn2_i     : in  std_logic := 'H';
+      spi_sclk_o : out std_logic;
+      spi_ncs_o  : out std_logic;
+      spi_mosi_o : out std_logic;
+      spi_miso_i : in  std_logic := '0';
 
       uart_rxd_i : in  std_logic := 'H';
       uart_txd_o : out std_logic;
@@ -396,14 +409,15 @@ package wrcore_pkg is
       g_virtual_uart              : boolean                        := false;
       g_aux_clks                  : integer                        := 1;
       g_rx_buffer_size            : integer                        := 1024;
+      g_tx_runt_padding           : boolean                        := false;
       g_dpram_initf               : string                         := "default";
       g_dpram_size                : integer                        := 90112/4;  --in 32-bit words
       g_interface_mode            : t_wishbone_interface_mode      := PIPELINED;
       g_address_granularity       : t_wishbone_address_granularity := WORD;
       g_aux_sdb                   : t_sdb_device                   := c_wrc_periph3_sdb;
       g_softpll_enable_debugger   : boolean                        := false;
-      g_vuart_fifo_size           : integer                        := 1024
-      );
+      g_vuart_fifo_size           : integer                        := 1024;
+      g_pcs_16bit                 : boolean                        := false);
     port(
       ---------------------------------------------------------------------------
       -- Clocks/resets
@@ -443,16 +457,18 @@ package wrcore_pkg is
       -- PHY I/f
       phy_ref_clk_i : in std_logic;
 
-      phy_tx_data_o      : out std_logic_vector(7 downto 0);
+      phy_tx_data_o      : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
       phy_tx_k_o         : out std_logic;
+      phy_tx_k16_o       : out std_logic;
       phy_tx_disparity_i : in  std_logic := '0';
       phy_tx_enc_err_i   : in  std_logic := '0';
 
-      phy_rx_data_i     : in std_logic_vector(7 downto 0);
+      phy_rx_data_i     : in std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
       phy_rx_rbclk_i    : in std_logic                    := '0';
       phy_rx_k_i        : in std_logic                    := '0';
+      phy_rx_k16_i      : in std_logic                    := '0';
       phy_rx_enc_err_i  : in std_logic                    := '0';
-      phy_rx_bitslide_i : in std_logic_vector(3 downto 0) := x"0";
+      phy_rx_bitslide_i : in std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
 
       phy_rst_o    : out std_logic;
       phy_loopen_o : out std_logic;
@@ -473,6 +489,10 @@ package wrcore_pkg is
       sfp_det_i  : in  std_logic := '1';
       btn1_i     : in  std_logic := '1';
       btn2_i     : in  std_logic := '1';
+      spi_sclk_o : out std_logic;
+      spi_ncs_o  : out std_logic;
+      spi_mosi_o : out std_logic;
+      spi_miso_i : in  std_logic := '0';
 
       -----------------------------------------
       --UART
@@ -590,5 +610,29 @@ package wrcore_pkg is
       dac_sclk_o  : out std_logic;
       dac_din_o   : out std_logic);
   end component;
+
+end wrcore_pkg;
+
+package body wrcore_pkg is
+
+  function f_pcs_data_width(pcs_16 : boolean)
+    return integer is
+  begin
+    if (pcs_16) then
+      return 16;
+    else
+      return 8;
+    end if;
+  end function;
+
+  function f_pcs_bts_width(pcs_16 : boolean)
+    return integer is
+  begin
+    if (pcs_16) then
+      return 5;
+    else
+      return 4;
+    end if;
+  end function;
 
 end wrcore_pkg;

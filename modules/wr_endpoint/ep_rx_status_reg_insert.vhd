@@ -24,7 +24,7 @@ entity ep_rx_status_reg_insert is
     mbuf_is_hp_i    : in  std_logic;
     mbuf_is_pause_i : in  std_logic;
 
-    rmon_o : out t_rmon_triggers
+    rmon_pfilter_drop_o : out std_logic
     );
 
 end ep_rx_status_reg_insert;
@@ -58,16 +58,24 @@ begin  -- rtl
   mbuf_ack_o      <= '1' when (mbuf_valid_i = '1' and state = WAIT_MBUF)                                                 else '0';
 
   snk_dreq_o <= src_dreq_i and dreq_mask and not snk_fab_i.sof;
+--   snk_dreq_o <= src_dreq_i and not snk_fab_i.sof;
 
   p_gen_status : process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
       if rst_n_i = '0' then
+        rmon_pfilter_drop_o <= '0';
         state     <= WAIT_FRAME;
         dreq_mask <= '1';
+        sreg.match_class <= (others =>'0');
+        sreg.is_hp       <= '0';
+        sreg.has_crc     <= '0';
+        sreg.has_smac    <= '0';
+        sreg.error       <= '0';        
       else
         case state is
           when WAIT_FRAME =>
+            rmon_pfilter_drop_o <= '0';
             if(snk_fab_i.sof = '1') then
               state     <= WAIT_MBUF;
               dreq_mask <= '0';
@@ -75,11 +83,11 @@ begin  -- rtl
             
           when WAIT_MBUF =>
             if(mbuf_valid_i = '1') then
-                rmon_o.rx_pause        <= mbuf_is_pause_i;
-                rmon_o.rx_pfilter_drop <= mbuf_drop_i;
+                rmon_pfilter_drop_o <= mbuf_drop_i;
 
                 if(mbuf_drop_i = '0' and mbuf_is_pause_i = '0') then
                   state <= GEN_STATUS;
+                  dreq_mask <= '1';
                 else
                   state <= WAIT_FRAME;
                   dreq_mask <= '1';
@@ -91,12 +99,12 @@ begin  -- rtl
                 sreg.has_smac    <= '1';
                 sreg.error       <= '0';
             else
-              rmon_o.rx_pfilter_drop        <= '0';
-              rmon_o.rx_pause               <= '0';
-              rmon_o.rx_path_timing_failure <= '0';
+              rmon_pfilter_drop_o <= '0';
+              --rmon_o.rx_path_timing_failure <= '0';
             end if;
             
           when GEN_STATUS =>
+            rmon_pfilter_drop_o <= '0';
             if(src_dreq_i = '1') then
               state     <= WAIT_FRAME;
               dreq_mask <= '1';

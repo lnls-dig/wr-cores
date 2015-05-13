@@ -27,8 +27,15 @@ use ieee.numeric_std.all;
 
 library work;
 use work.wishbone_pkg.all;
+use work.eca_ac_wbm_auto_pkg.c_eca_ac_wbm_slave_sdb;
 
 package eca_pkg is
+
+
+  
+
+ constant c_eca_ac_wbm_slave_sdb : t_sdb_device := work.eca_ac_wbm_auto_pkg.c_eca_ac_wbm_slave_sdb;
+
 
  constant c_eca_sdb : t_sdb_device := (
     abi_class     => x"0000", -- undocumented device
@@ -233,6 +240,36 @@ package eca_pkg is
       rst_n_i   : in  std_logic;
       channel_i : in  t_channel;
       gpio_o    : out std_logic_vector(15 downto 0));
+  end component;
+  
+  -- sends channel_i.tag to the scu bus
+  component eca_scubus_channel is
+  port(
+    clk_i     : in  std_logic;
+    rst_n_i   : in  std_logic;
+    channel_i : in  t_channel;
+    tag_valid : out std_logic;
+    tag       : out std_logic_vector(31 downto 0));  
+  end component eca_scubus_channel;
+  
+  -- uses channel tag to replay specified bus ops macro on wishbone master 
+  component eca_ac_wbm
+  generic(
+     g_entries  : natural := 32;
+     g_ram_size : natural := 256   
+  );
+  Port(
+   clk_ref_i   : in  std_logic;                                            
+   rst_ref_n_i : in  std_logic;
+   channel_i   : in  t_channel;
+   
+   clk_sys_i   : in  std_logic;
+   rst_sys_n_i : in  std_logic;
+   slave_i     : in  t_wishbone_slave_in  := ('0', '0', x"00000000", x"F", '0', x"00000000"); 
+   slave_o     : out t_wishbone_slave_out;
+   master_o    : out t_wishbone_master_out;
+   master_i    : in  t_wishbone_master_in                                             
+  );
   end component;
   
   ---------------------- Internals ------------------------

@@ -23,8 +23,8 @@ entity ep_rx_vlan_unit is
        tclass_o   : out std_logic_vector(2 downto 0);
        vid_o      : out std_logic_vector(11 downto 0);
        tag_done_o : out std_logic;
+       is_tagged_o: out std_logic;
 
-       rmon_o : inout t_rmon_triggers;
        regs_i : in    t_ep_out_registers;
        regs_o : out   t_ep_in_registers
        );
@@ -56,6 +56,7 @@ architecture behavioral of ep_rx_vlan_unit is
   signal force_dvalid : std_logic;
 
   signal r_tcar_pcp_map : std_logic_vector(23 downto 0);
+  signal is_tag_inserted: std_logic;
 
   procedure f_vlan_decision
     (tag_type       :     t_tag_type;
@@ -137,15 +138,13 @@ architecture behavioral of ep_rx_vlan_unit is
   end procedure;
 
   
-  
-  
 begin  -- behavioral
 
   at_ethertype <= hdr_offset(6) and snk_fab_i.dvalid;
-  at_tpid      <= hdr_offset(7) and snk_fab_i.dvalid and is_tagged;
-  at_vid       <= hdr_offset(8) and snk_fab_i.dvalid and is_tagged;
+  at_tpid      <= hdr_offset(6) and snk_fab_i.dvalid and is_tagged;--unused 
+  at_vid       <= hdr_offset(7) and snk_fab_i.dvalid and is_tagged;
 
-  snk_dreq_o <= src_dreq_i and dreq_mask and not at_ethertype;
+  snk_dreq_o <= src_dreq_i and dreq_mask;-- and not at_ethertype;
 
   p_decode_tag_type : process(snk_fab_i, is_tagged)
   begin
@@ -170,16 +169,17 @@ begin  -- behavioral
     if rising_edge(clk_sys_i) then
       if rst_n_i = '0' or regs_i.ecr_rx_en_o = '0' then
         hdr_offset(hdr_offset'left downto 1) <= (others => '0');
-        hdr_offset(0)                        <= '1';
-        state                                <= WAIT_FRAME;
-        dreq_mask                            <= '0';
-
+        hdr_offset(0)    <= '1';
+        state            <= WAIT_FRAME;
+        dreq_mask        <= '0';
+        vid_o            <= (others =>'0');
+        is_tag_inserted  <= '0';
+        is_tagged        <= '0';
         src_fab_o.eof    <= '0';
         src_fab_o.error  <= '0';
         src_fab_o.dvalid <= '0';
         
       else
-
         if(snk_fab_i.error = '1') then
           state <= DISCARD_FRAME;
         else
@@ -190,7 +190,9 @@ begin  -- behavioral
               src_fab_o.eof   <= '0';
               src_fab_o.error <= '0';
               is_tagged       <= '0';
+              is_tag_inserted <= '0';
               prio_int        <= regs_i.vcr0_prio_val_o;
+              vid_o           <= (others =>'0');
 
               if(snk_fab_i.sof = '1') then
                 hdr_offset(hdr_offset'left downto 1) <= (others => '0');
@@ -224,9 +226,9 @@ begin  -- behavioral
                 if(snk_fab_i.data = x"8100") then  -- got a 802.1q tagged frame
                   is_tagged <= '1';
                 else
-                  if (regs_i.vcr0_qmode_o = c_QMODE_PORT_ACCESS or regs_i.vcr0_qmode_o = c_QMODE_PORT_UNQUALIFIED) then
+                  if (regs_i.vcr0_qmode_o = c_QMODE_PORT_ACCESS) then
                     prio_int <= regs_i.vcr0_prio_val_o;
-
+                    is_tag_inserted  <= '1';
                     v_src_fab.dvalid := '0';
                     v_next_state     := INSERT_TAG;
                     v_dreq_mask      := '0';
@@ -254,7 +256,6 @@ begin  -- behavioral
                 -- or not.
                 f_vlan_decision(comb_tag_type, regs_i.vcr0_qmode_o, admit, use_pvid, use_fixed_prio);
 
-
                 -- assign the VID
                 if(admit = '0') then    -- oops...
                   v_next_state := DISCARD_FRAME;
@@ -264,7 +265,7 @@ begin  -- behavioral
                   v_stored_fab.data(11 downto 0) := regs_i.vcr0_pvid_o;
                   v_src_fab.data(11 downto 0)    := regs_i.vcr0_pvid_o;
                 end if;
-
+                vid_o   <= v_src_fab.data(11 downto 0);
                 -- assign the priority 
                 if(regs_i.vcr0_fix_prio_o = '1' or use_fixed_prio = '1') then
                   -- Forced priority (or a non-priority tagged frame)? Take the priority
@@ -280,12 +281,30 @@ begin  -- behavioral
                 hdr_offset <= hdr_offset(hdr_offset'left-1 downto 0) & '0';
               end if;
 
-              src_fab_o.eof     <= v_src_fab.eof;
-              src_fab_o.dvalid  <= v_src_fab.dvalid;
-              src_fab_o.error   <= v_src_fab.error;
-              src_fab_o.addr    <= v_src_fab.addr;
-              src_fab_o.data    <= v_src_fab.data;
-              src_fab_o.bytesel <= v_src_fab.bytesel;
+-- new stuff
+              if(v_next_state = INSERT_TAG) then
+                src_fab_o.eof     <= '0';              
+                src_fab_o.dvalid  <= '1';
+                src_fab_o.error   <= '0';
+                src_fab_o.addr    <= c_WRF_DATA;
+                src_fab_o.data    <= x"8100";
+                src_fab_o.bytesel <= '0';
+              else
+                src_fab_o.eof     <= v_src_fab.eof;              
+                src_fab_o.dvalid  <= v_src_fab.dvalid;
+                src_fab_o.error   <= v_src_fab.error;
+                src_fab_o.addr    <= v_src_fab.addr;
+                src_fab_o.data    <= v_src_fab.data;
+                src_fab_o.bytesel <= v_src_fab.bytesel;
+              end if;
+
+-- old stuff
+--               src_fab_o.eof     <= v_src_fab.eof;              
+--               src_fab_o.dvalid  <= v_src_fab.dvalid;
+--               src_fab_o.error   <= v_src_fab.error;
+--               src_fab_o.addr    <= v_src_fab.addr;
+--               src_fab_o.data    <= v_src_fab.data;
+--               src_fab_o.bytesel <= v_src_fab.bytesel;
 
               dreq_mask  <= v_dreq_mask;
               stored_fab <= v_stored_fab;
@@ -323,24 +342,59 @@ begin  -- behavioral
               if(src_dreq_i = '1') then
 -- we are at 7th word from the beginning of the frame, but the sink reception
 -- is disabled, so we can insert the original ethertype as the TPID
+
+-- new stuff
                 if(hdr_offset(7) = '1') then
                   src_fab_o.addr   <= c_WRF_DATA;
-                  src_fab_o.data   <= x"8100";
+                  src_fab_o.data   <= regs_i.vcr0_prio_val_o & '0' & regs_i.vcr0_pvid_o;
                   src_fab_o.dvalid <= '1';
+                  vid_o            <= regs_i.vcr0_pvid_o; -- use the inserted PVID
+                  dreq_mask        <= '0';
+                  stored_fab.bytesel <= snk_fab_i.bytesel;
+                  stored_fab.data    <= snk_fab_i.data;
+                  stored_fab.addr    <= snk_fab_i.addr;
+                  stored_fab.dvalid  <= '1';
+
                 end if;
 
                 if(hdr_offset(8) = '1') then
                   src_fab_o.addr   <= c_WRF_DATA;
                   src_fab_o.data   <= stored_ethertype;
                   src_fab_o.dvalid <= '1';
+                  dreq_mask        <= '1';
                 end if;
 
                 if(hdr_offset(9) = '1') then
-                  src_fab_o.addr   <= c_WRF_DATA;
-                  src_fab_o.data   <= regs_i.vcr0_prio_val_o & '0' & regs_i.vcr0_pvid_o;
-                  state            <= DATA;
-                  src_fab_o.dvalid <= '1';
+                  src_fab_o.addr    <= stored_fab.addr;
+                  src_fab_o.data    <= stored_fab.data;
+                  src_fab_o.dvalid  <= stored_fab.dvalid;
+                  src_fab_o.bytesel <= stored_fab.bytesel;
+                  dreq_mask        <= '1';
+                  state            <= DATA;                  
                 end if;
+
+-- old stuff
+--                 if(hdr_offset(7) = '1') then
+--                   src_fab_o.addr   <= c_WRF_DATA;
+--                   src_fab_o.data   <= x"8100";
+--                   src_fab_o.dvalid <= '1';
+--                 end if;
+-- 
+--                 if(hdr_offset(8) = '1') then
+--                   src_fab_o.addr   <= c_WRF_DATA;
+--                   src_fab_o.data   <= regs_i.vcr0_prio_val_o & '0' & regs_i.vcr0_pvid_o;
+--                   src_fab_o.dvalid <= '1';
+--                   vid_o            <= regs_i.vcr0_pvid_o; -- use the inserted PVID
+--                   dreq_mask        <= '1';
+--                 end if;
+-- 
+--                 if(hdr_offset(9) = '1') then
+--                   src_fab_o.addr   <= c_WRF_DATA;
+--                   src_fab_o.data   <= stored_ethertype;
+--                   src_fab_o.dvalid <= '1';
+--                   dreq_mask        <= '1';
+--                   state            <= DATA;                  
+--                 end if;
 
                 hdr_offset <= hdr_offset(hdr_offset'left-1 downto 0) & '0';
               else
@@ -369,6 +423,7 @@ begin  -- behavioral
 
       if(rst_n_i = '0' or regs_i.ecr_rx_en_o = '0' or snk_fab_i.sof = '1')then
         tag_done_o <= '0';
+        tclass_o   <= "000";
       elsif(hdr_offset(9) = '1') then
         -- we're already after the headers, so prio_int is
         -- certainly valid
@@ -382,14 +437,15 @@ begin  -- behavioral
           when "101"  => tclass_o <= r_tcar_pcp_map(17 downto 15);
           when "110"  => tclass_o <= r_tcar_pcp_map(20 downto 18);
           when "111"  => tclass_o <= r_tcar_pcp_map(23 downto 21);
-          when others => tclass_o <= "XXX";  -- packet probably contains porn
+          when others => tclass_o <= "000";--"XXX";  -- packet probably contains porn
         end case;
       end if;
     end if;
   end process;
 
   src_fab_o.sof <= regs_i.ecr_rx_en_o and snk_fab_i.sof;
-
+  is_tagged_o   <= is_tagged or is_tag_inserted;
+  
 end behavioral;
 
 

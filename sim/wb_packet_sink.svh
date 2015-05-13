@@ -50,7 +50,7 @@ class WBPacketSink extends EthPacketSink;
         end 
       else if (size == 3 && (oob >> 46) == WRF_OOB_RX_TIMESTAMP)
         begin
-           $display("GotRXOOB");
+//            $display("GotRXOOB");
            
         end else begin
            $error("Invalid OOB!");
@@ -82,7 +82,7 @@ class WBPacketSink extends EthPacketSink;
 
 //      $display("CDS %d size: %d\n", cyc.data.size(), size);
       
-      
+      pkt.size = size;
       for(i=0;i<cyc.data.size(); i++)
         begin
            wb_xfer_t xf  = cyc.data[i];
@@ -114,7 +114,8 @@ class WBPacketSink extends EthPacketSink;
              endcase // case (xf.a)
         end
       pkt.deserialize(tmp);
-      decode_oob(oob, oob_size, pkt);
+      if(pkt.error == 1'b0)
+        decode_oob(oob, oob_size, pkt);
       
       
 
