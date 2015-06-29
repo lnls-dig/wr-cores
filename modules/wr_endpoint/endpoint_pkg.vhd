@@ -113,7 +113,8 @@ package endpoint_pkg is
       g_with_dmtd             : boolean                        := false;
       g_with_packet_injection : boolean                        := false;
       g_use_new_rxcrc         :	boolean                        := false;
-      g_use_new_txcrc         :	boolean                        := false);
+      g_use_new_txcrc         :	boolean                        := false;
+      g_with_stop_traffic     : boolean                        := false);
     port (
       clk_ref_i            : in  std_logic;
       clk_sys_i            : in  std_logic;
@@ -185,6 +186,7 @@ package endpoint_pkg is
       led_act_o            : out std_logic;
       link_kill_i          : in  std_logic                     := '0';
       link_up_o            : out std_logic;
+      stop_traffic_i       : in std_logic := '0';
       dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
       dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
       nice_dbg_o  : out t_dbg_ep);
@@ -209,7 +211,8 @@ package endpoint_pkg is
       g_with_dmtd             : boolean                        := false;
       g_with_packet_injection : boolean                        := false;
       g_use_new_rxcrc         : boolean                        := false;
-      g_use_new_txcrc         : boolean                        := false);
+      g_use_new_txcrc         : boolean                        := false;
+      g_with_stop_traffic     : boolean                        := false);
     port (
       clk_ref_i            : in  std_logic;
       clk_sys_i            : in  std_logic;
@@ -303,6 +306,7 @@ package endpoint_pkg is
       led_act_o            : out std_logic;
       link_kill_i          : in  std_logic                     := '0';
       link_up_o            : out std_logic;
+      stop_traffic_i       : in std_logic := '0';
       dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
       dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
       nice_dbg_o  : out t_dbg_ep);

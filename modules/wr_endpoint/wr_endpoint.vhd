@@ -73,7 +73,8 @@ entity wr_endpoint is
     g_with_dmtd             : boolean                        := false;
     g_with_packet_injection : boolean                        := false;
     g_use_new_rxcrc         : boolean                        := false;
-    g_use_new_txcrc         : boolean                        := false
+    g_use_new_txcrc         : boolean                        := false;
+    g_with_stop_traffic     : boolean                        := false
     );
   port (
 
@@ -288,6 +289,8 @@ entity wr_endpoint is
 -- (e.g.: cable disconnected)
     link_up_o : out std_logic;
 
+    stop_traffic_i : in std_logic := '0';
+
     dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
     dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
     nice_dbg_o  : out t_dbg_ep
@@ -360,6 +363,7 @@ architecture syn of wr_endpoint is
 -------------------------------------------------------------------------------
 
   signal rxpcs_fab             : t_ep_internal_fabric;
+  signal rxpath_fab            : t_ep_internal_fabric;
   signal rxpcs_busy            : std_logic;
   signal rxpcs_fifo_almostfull : std_logic;
 
@@ -622,7 +626,7 @@ begin
       rst_n_sys_i => rst_n_sys,
       rst_n_rx_i  => rst_n_rx,
 
-      pcs_fab_i             => rxpcs_fab,
+      pcs_fab_i             => rxpath_fab,
       pcs_fifo_almostfull_o => rxpcs_fifo_almostfull,
       pcs_busy_i            => rxpcs_busy,
 
@@ -793,7 +797,7 @@ begin
       else
         if(regs_fromwb.dsr_lact_o = '1' and regs_fromwb.dsr_lact_load_o = '1') then
           regs_towb_ep.dsr_lact_i <= '0';  -- clear-on-write
-        elsif(txpcs_fab.dvalid = '1' or rxpcs_fab.dvalid = '1') then
+        elsif(txpcs_fab.dvalid = '1' or rxpath_fab.dvalid = '1') then
           regs_towb_ep.dsr_lact_i <= '1';
         end if;
       end if;
@@ -907,6 +911,21 @@ begin
     end if;
   end process;
 
+  GEN_STOP: if(g_with_stop_traffic) generate
+    rxpath_fab.sof    <= rxpcs_fab.sof    when(stop_traffic_i='0') else '0';
+    rxpath_fab.dvalid <= rxpcs_fab.dvalid when(stop_traffic_i='0') else '0';
+    rxpath_fab.eof   <= rxpcs_fab.eof;
+    rxpath_fab.error <= rxpcs_fab.error;
+    rxpath_fab.bytesel <= rxpcs_fab.bytesel;
+    rxpath_fab.has_rx_timestamp <= rxpcs_fab.has_rx_timestamp;
+    rxpath_fab.rx_timestamp_valid <= rxpcs_fab.rx_timestamp_valid;
+    rxpath_fab.data <= rxpcs_fab.data;
+    rxpath_fab.addr <= rxpcs_fab.addr;
+  end generate;
+
+  GEN_NO_STOP: if(not g_with_stop_traffic) generate
+    rxpath_fab <= rxpcs_fab;
+  end generate;
 
   -------------------------- RMON events -----------------------------------
   rmon.rx_pcs_err      <= rx_path_rmon.rx_pcs_err;  --from ep_rx_path

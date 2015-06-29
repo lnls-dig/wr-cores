@@ -63,7 +63,8 @@ entity xwr_endpoint is
     g_with_dmtd             : boolean                        := true;
     g_with_packet_injection : boolean                        := false;
     g_use_new_rxcrc         : boolean                        := false;
-    g_use_new_txcrc         : boolean                        := false
+    g_use_new_txcrc         : boolean                        := false;
+    g_with_stop_traffic     : boolean                        := false
     );
   port (
 
@@ -249,6 +250,7 @@ entity xwr_endpoint is
 
     link_kill_i : in  std_logic := '0';
     link_up_o   : out std_logic;
+    stop_traffic_i : in std_logic := '0';
     dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
     dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
     nice_dbg_o  : out t_dbg_ep);
@@ -278,7 +280,8 @@ begin
       g_with_dmtd             => g_with_dmtd,
       g_with_packet_injection => g_with_packet_injection,
       g_use_new_rxcrc         => g_use_new_rxcrc,
-      g_use_new_txcrc         => g_use_new_txcrc)
+      g_use_new_txcrc         => g_use_new_txcrc,
+      g_with_stop_traffic     => g_with_stop_traffic)
     port map (
       clk_ref_i            => clk_ref_i,
       clk_sys_i            => clk_sys_i,
@@ -372,6 +375,7 @@ begin
       inject_user_value_i  => inject_user_value_i,
       inject_packet_sel_i  => inject_packet_sel_i,
       inject_ready_o       => inject_ready_o,
+      stop_traffic_i       => stop_traffic_i,
       dbg_tx_pcs_wr_count_o=>dbg_tx_pcs_wr_count_o,
       dbg_tx_pcs_rd_count_o=>dbg_tx_pcs_rd_count_o,
       nice_dbg_o           => nice_dbg_o);
