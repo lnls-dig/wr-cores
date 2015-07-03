@@ -170,6 +170,8 @@ architecture behavioral of ep_rx_path is
   signal rxbuf_full       : std_logic;
   signal rxbuf_dropped    : std_logic;
 
+  signal src_wb_out : t_wrf_source_out;
+  signal src_wb_cyc_d0 : std_logic;
 
 begin  -- behavioral
 
@@ -436,8 +438,10 @@ begin  -- behavioral
       snk_fab_i  => fab_pipe(9),
       snk_dreq_o => dreq_pipe(9),
       src_wb_i   => src_wb_i,
-      src_wb_o   => src_wb_o
+      src_wb_o   => src_wb_out
       );
+
+  src_wb_o <= src_wb_out;
 
   -- direct output of packet filter data (for TRU)
   pfilter_pclass_o <= pfilter_pclass;
@@ -469,6 +473,20 @@ begin  -- behavioral
 
   nice_dbg_o.pcs_fifo_afull <= pcs_fifo_almostfull;
   nice_dbg_o.rxbuf_full <= rxbuf_full;
+
+  process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if (rst_n_sys_i = '0') then
+        src_wb_cyc_d0 <= '0';
+      else
+        src_wb_cyc_d0 <= src_wb_out.cyc;
+      end if;
+    end if;
+  end process;
+
+  rmon_o.rx_frame <= '1' when (src_wb_out.cyc = '1' and src_wb_cyc_d0 = '0') else
+                     '0';
 
 end behavioral;
 
