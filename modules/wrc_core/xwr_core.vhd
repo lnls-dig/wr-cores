@@ -103,6 +103,7 @@ entity xwr_core is
     clk_ext_i : in std_logic := '0';
 
     clk_ext_mul_i : in std_logic := '0';
+    clk_ext_mul_locked_i : in std_logic := '1';
 
     -- External PPS input (cesium, GPSDO, etc.), used in Grandmaster mode
     pps_ext_i : in std_logic := '0';
@@ -249,6 +250,7 @@ begin
       clk_aux_i     => clk_aux_i,
       clk_ext_i     => clk_ext_i,
       clk_ext_mul_i => clk_ext_mul_i,
+      clk_ext_mul_locked_i  => clk_ext_mul_locked_i,
       pps_ext_i     => pps_ext_i,
       rst_n_i       => rst_n_i,
 

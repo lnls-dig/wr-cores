@@ -249,7 +249,8 @@ architecture rtl of spec_top is
     port (
       clk_ext_i     : in  std_logic;
       clk_ext_mul_o : out std_logic;
-      rst_a_i       : in  std_logic);
+      rst_a_i       : in  std_logic;
+      locked_o      : out std_logic);
   end component;
 
   --component chipscope_ila
@@ -392,6 +393,7 @@ architecture rtl of spec_top is
 
   signal local_reset, ext_pll_reset : std_logic;
   signal clk_ext, clk_ext_mul       : std_logic;
+  signal clk_ext_mul_locked         : std_logic;
   signal clk_ref_div2               : std_logic;
   
 begin
@@ -402,7 +404,8 @@ begin
     port map (
       clk_ext_i     => clk_ext,
       clk_ext_mul_o => clk_ext_mul,
-      rst_a_i       => ext_pll_reset);
+      rst_a_i       => ext_pll_reset,
+      locked_o      => clk_ext_mul_locked);
 
   U_Extend_EXT_Reset : gc_extend_pulse
     generic map (
@@ -673,6 +676,7 @@ begin
       clk_aux_i     => (others => '0'),
       clk_ext_i     => clk_ext,
       clk_ext_mul_i => clk_ext_mul,
+      clk_ext_mul_locked_i => clk_ext_mul_locked,
       pps_ext_i     => dio_in(3),
       rst_n_i       => local_reset_n,
 

@@ -78,13 +78,14 @@ port
   -- Clock out ports
   clk_ext_mul_o          : out    std_logic;
   -- Status and control signals
-  rst_a_i             : in     std_logic
+  rst_a_i             : in     std_logic;
+  locked_o            : out    std_logic
  );
 end ext_pll_10_to_125m;
 
 architecture xilinx of ext_pll_10_to_125m is
   attribute CORE_GENERATION_INFO : string;
-  attribute CORE_GENERATION_INFO of xilinx : architecture is "ext_pll_10_to_125m,clk_wiz_v3_6,{component_name=ext_pll_10_to_125m,use_phase_alignment=false,use_min_o_jitter=false,use_max_i_jitter=false,use_dyn_phase_shift=false,use_inclk_switchover=false,use_dyn_reconfig=false,feedback_source=FDBK_AUTO,primtype_sel=DCM_SP,num_out_clk=1,clkin1_period=100.0,clkin2_period=100.0,use_power_down=false,use_reset=true,use_locked=false,use_inclk_stopped=false,use_status=false,use_freeze=false,use_clk_valid=false,feedback_type=SINGLE,clock_mgr_type=AUTO,manual_override=false}";
+  attribute CORE_GENERATION_INFO of xilinx : architecture is "ext_pll_10_to_125m,clk_wiz_v3_6,{component_name=ext_pll_10_to_125m,use_phase_alignment=false,use_min_o_jitter=false,use_max_i_jitter=false,use_dyn_phase_shift=false,use_inclk_switchover=false,use_dyn_reconfig=false,feedback_source=FDBK_AUTO,primtype_sel=DCM_SP,num_out_clk=1,clkin1_period=100.0,clkin2_period=100.0,use_power_down=false,use_reset=true,use_locked=true,use_inclk_stopped=false,use_status=false,use_freeze=false,use_clk_valid=false,feedback_type=SINGLE,clock_mgr_type=AUTO,manual_override=false}";
 	  -- Input clock buffering / unused connectors
   signal clkin1            : std_logic;
   -- Output clock buffering
@@ -97,6 +98,9 @@ architecture xilinx of ext_pll_10_to_125m is
 begin
 
 
+  -- Input buffering
+  --------------------------------------
+  clkin1 <= clk_ext_i;
 
 
   -- Clocking primitive
@@ -119,7 +123,7 @@ begin
     STARTUP_WAIT          => FALSE)
   port map
    -- Input clock
-   (CLKIN                 => clk_ext_i,
+   (CLKIN                 => clkin1,
     CLKFB                 => clkfb,
     -- Output clocks
     CLK0                  => clk0,
@@ -143,6 +147,7 @@ begin
    -- Unused pin, tie low
     DSSEN                 => '0');
 
+  locked_o                <= locked_internal;
 
 
 
