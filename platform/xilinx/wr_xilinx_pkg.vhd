@@ -29,6 +29,7 @@ package wr_xilinx_pkg is
       ch0_rst_i          : in  std_logic := '0';
       ch0_loopen_i       : in  std_logic := '0';
       ch0_loopen_vec_i   : in  std_logic_vector(2 downto 0) := (others=>'0');
+      ch0_tx_prbs_sel_i  : in  std_logic_vector(2 downto 0) := (others=>'0');
       ch0_rdy_o          : out std_logic;
       ch1_ref_clk_i      : in  std_logic;
       ch1_tx_data_i      : in  std_logic_vector(7 downto 0) := "00000000";
@@ -43,6 +44,7 @@ package wr_xilinx_pkg is
       ch1_rst_i          : in  std_logic                    := '0';
       ch1_loopen_i       : in  std_logic                    := '0';
       ch1_loopen_vec_i   : in  std_logic_vector(2 downto 0) := (others=>'0');
+      ch1_tx_prbs_sel_i  : in  std_logic_vector(2 downto 0) := (others=>'0');
       ch1_rdy_o          : out std_logic;
       pad_txn0_o         : out std_logic;
       pad_txp0_o         : out std_logic;

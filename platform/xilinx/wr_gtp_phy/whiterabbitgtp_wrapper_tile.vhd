@@ -99,8 +99,10 @@ entity WHITERABBITGTP_WRAPPER_TILE_SPARTAN6 is
       TXN0_OUT              : out std_logic;
       TXN1_OUT              : out std_logic;
       TXP0_OUT              : out std_logic;
-      TXP1_OUT              : out std_logic
-
+      TXP1_OUT              : out std_logic;
+      --------------- Transmit Ports - PRBS Generator ----------------------------
+      TXENPRBSTST0_IN       : in  std_logic_vector(2 downto 0);
+      TXENPRBSTST1_IN       : in  std_logic_vector(2 downto 0)
 
       );
 
@@ -683,8 +685,8 @@ begin
       TXPREEMPHASIS0            => "000",
       TXPREEMPHASIS1            => "000",
       --------------------- Transmit Ports - TX PRBS Generator -------------------
-      TXENPRBSTST0              => tied_to_ground_vec_i(2 downto 0),
-      TXENPRBSTST1              => tied_to_ground_vec_i(2 downto 0),
+      TXENPRBSTST0              => TXENPRBSTST0_IN,
+      TXENPRBSTST1              => TXENPRBSTST1_IN,
       TXPRBSFORCEERR0           => tied_to_ground_i,
       TXPRBSFORCEERR1           => tied_to_ground_i,
       -------------------- Transmit Ports - TX Polarity Control ------------------

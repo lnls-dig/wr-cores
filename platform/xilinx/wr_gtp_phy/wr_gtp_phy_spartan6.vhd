@@ -111,6 +111,9 @@ entity wr_gtp_phy_spartan6 is
     ch0_loopen_i : in std_logic;
     ch0_loopen_vec_i : in std_logic_vector(2 downto 0) := (others=>'0');
 
+    -- PRBS select (see Xilinx UG386 Table 3-15; "000" = Standard operation, pattern generator off)
+    ch0_tx_prbs_sel_i  : in std_logic_vector(2 downto 0) := (others=>'0');
+
     -- gtp0 ready: locked & aligned
     ch0_rdy_o : out std_logic;
 
@@ -131,6 +134,7 @@ entity wr_gtp_phy_spartan6 is
     ch1_rst_i    : in std_logic := '0';
     ch1_loopen_i : in std_logic := '0';
     ch1_loopen_vec_i : in std_logic_vector(2 downto 0) := (others=>'0');
+    ch1_tx_prbs_sel_i: in std_logic_vector(2 downto 0) := (others=>'0');
     ch1_rdy_o    : out std_logic;
 
 -- Serial I/O
@@ -228,7 +232,9 @@ architecture rtl of wr_gtp_phy_spartan6 is
       TXN0_OUT              : out std_logic;
       TXN1_OUT              : out std_logic;
       TXP0_OUT              : out std_logic;
-      TXP1_OUT              : out std_logic);
+      TXP1_OUT              : out std_logic;
+      TXENPRBSTST0_IN       : in  std_logic_vector(2 downto 0);
+      TXENPRBSTST1_IN       : in  std_logic_vector(2 downto 0));
   end component;
 
   component BUFG
@@ -799,7 +805,10 @@ begin  -- rtl
       TXN0_OUT              => pad_txn0_o,
       TXN1_OUT              => pad_txn1_o,
       TXP0_OUT              => pad_txp0_o,
-      TXP1_OUT              => pad_txp1_o
+      TXP1_OUT              => pad_txp1_o,
+      --------------- Transmit Ports - TX PRBS Generator -------------------------
+      TXENPRBSTST0_IN       => ch0_tx_prbs_sel_i,
+      TXENPRBSTST1_IN       => ch1_tx_prbs_sel_i
 
       );
 

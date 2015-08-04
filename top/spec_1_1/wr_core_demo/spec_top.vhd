@@ -361,6 +361,7 @@ architecture rtl of spec_top is
   signal phy_rst          : std_logic;
   signal phy_loopen       : std_logic;
   signal phy_loopen_vec   : std_logic_vector(2 downto 0);
+  signal phy_prbs_sel     : std_logic_vector(2 downto 0);
   signal phy_rdy          : std_logic;
 
   signal dio_in  : std_logic_vector(4 downto 0);
@@ -703,6 +704,7 @@ begin
       phy_sfp_tx_fault_i => sfp_tx_fault_i,
       phy_sfp_los_i      => sfp_los_i,
       phy_sfp_tx_disable_o => sfp_tx_disable_o,
+      phy_tx_prbs_sel_o  =>  phy_prbs_sel,
 
       led_act_o  => LED_RED,
       led_link_o => LED_GREEN,
@@ -823,6 +825,7 @@ begin
       ch1_rst_i          => phy_rst,
       ch1_loopen_i       => phy_loopen,
       ch1_loopen_vec_i   => phy_loopen_vec,
+      ch1_tx_prbs_sel_i  => phy_prbs_sel,
       ch1_rdy_o          => phy_rdy,
       pad_txn0_o         => open,
       pad_txp0_o         => open,
