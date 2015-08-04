@@ -152,12 +152,16 @@ peripheral {
 			};
 
 			field {
-				 name = "Reserved";
-				 description = "Always return 0s, writes ignored.";
-				 prefix = "RESV";
-				 type = CONSTANT;
-				 size = 1;
-				 value = 0;
+				 name = "Loopback";
+				 description = "1 enable loopback mode \
+         0 = disable loopback mode \
+         With the TBI version, loopback bit is connected to PHY loopback enable pin. When set to 1, indicates to the external PHY to enter loopback mode";
+
+				 prefix = "loopback";
+         align = 14;
+				 type = BIT;
+         access_bus = READ_WRITE;
+         access_dev = READ_ONLY;
 			};
 
 			field {
@@ -172,12 +176,14 @@ peripheral {
 			};
 
 			field {
-				 name = "Loopback";
-				 description = "100 = far end loopback mode \
+				 name = "Loopback - detailed";
+				 description = "Loopback vector for Xilinx PHYs: \
+         100 = far end loopback mode \
 				 000 = normal mode \
-				 See also Transceiver documentation (for example Xilinx UG476 Table 2-37 and Figure 2-23";
+				 See also Transceiver documentation (for example Xilinx UG476 Table 2-37 and Figure 2-23 \
+         LOOPBACK bit set to 1 may overwritte LPBCK_VEC depending on the PHY wrapper implementation";
 
-				 prefix = "loopback";
+				 prefix = "lpbck_vec";
 				 align = 16;
  				 size = 3;
          value = 0;

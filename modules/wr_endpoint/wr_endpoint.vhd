@@ -106,7 +106,8 @@ entity wr_endpoint is
 -------------------------------------------------------------------------------    
 
     phy_rst_o    : out std_logic;
-    phy_loopen_o         : out std_logic_vector(2 downto 0);
+    phy_loopen_o         : out std_logic;
+    phy_loopen_vec_o     : out std_logic_vector(2 downto 0);
     phy_tx_prbs_sel_o    : out std_logic_vector(2 downto 0);
     phy_sfp_tx_fault_i   : in  std_logic;
     phy_sfp_los_i        : in  std_logic;
@@ -517,15 +518,16 @@ begin
       link_ok_o  => link_ok,
       link_ctr_i => ep_ctrl,
 
-      serdes_rst_o    => phy_rst_o,
-      serdes_loopen_o => phy_loopen_o,
+      serdes_rst_o             => phy_rst_o,
+      serdes_loopen_o          => phy_loopen_o,
+      serdes_loopen_vec_o      => phy_loopen_vec_o,
       serdes_tx_prbs_sel_o     => phy_tx_prbs_sel_o,
       serdes_sfp_tx_fault_i    => phy_sfp_tx_fault_i,
       serdes_sfp_los_i         => phy_sfp_los_i,
       serdes_sfp_tx_disable_o  => phy_sfp_tx_disable_o,
-      serdes_enable_o => phy_enable_o,
-      serdes_syncen_o => phy_syncen_o,
-      serdes_rdy_i    => phy_rdy_i,
+      serdes_enable_o          => phy_enable_o,
+      serdes_syncen_o          => phy_syncen_o,
+      serdes_rdy_i             => phy_rdy_i,
 
       serdes_tx_clk_i       => phy_ref_clk_i,
       serdes_tx_data_o      => phy_tx_data_o,

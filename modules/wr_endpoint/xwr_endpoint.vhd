@@ -95,7 +95,8 @@ entity xwr_endpoint is
 -------------------------------------------------------------------------------    
 
     phy_rst_o    : out std_logic;
-    phy_loopen_o         : out std_logic_vector(2 downto 0);
+    phy_loopen_o         : out std_logic;
+    phy_loopen_vec_o     : out std_logic_vector(2 downto 0);
     phy_tx_prbs_sel_o    : out std_logic_vector(2 downto 0);
     phy_sfp_tx_fault_i   : in std_logic;
     phy_sfp_los_i        : in std_logic;
@@ -295,6 +296,7 @@ begin
       pps_valid_i          => pps_valid_i,
       phy_rst_o            => phy_rst_o,
       phy_loopen_o         => phy_loopen_o,
+      phy_loopen_vec_o     => phy_loopen_vec_o,
       phy_tx_prbs_sel_o    => phy_tx_prbs_sel_o,
       phy_sfp_tx_fault_i   => phy_sfp_tx_fault_i,
       phy_sfp_los_i        => phy_sfp_los_i,
