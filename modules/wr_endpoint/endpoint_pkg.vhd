@@ -43,6 +43,10 @@ use work.wr_fabric_pkg.all;
 
 package endpoint_pkg is
 
+  function f_pcs_data_width(pcs_16 : boolean) return integer;
+  function f_pcs_k_width(pcs_16 : boolean) return integer;
+  function f_pcs_bts_width(pcs_16 : boolean) return integer;
+
   type t_txtsu_timestamp is record
     stb       : std_logic;
     tsval     : std_logic_vector(31 downto 0);
@@ -133,15 +137,15 @@ package endpoint_pkg is
       phy_syncen_o         : out std_logic;
       phy_rdy_i            : in  std_logic;
       phy_ref_clk_i        : in  std_logic                     := '0';
-      phy_tx_data_o        : out std_logic_vector(15 downto 0);
-      phy_tx_k_o           : out std_logic_vector(1 downto 0);
+      phy_tx_data_o        : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
+      phy_tx_k_o           : out std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
       phy_tx_disparity_i   : in  std_logic                     := '0';
       phy_tx_enc_err_i     : in  std_logic                     := '0';
-      phy_rx_data_i        : in  std_logic_vector(15 downto 0) := x"0000";
+      phy_rx_data_i        : in  std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
       phy_rx_clk_i         : in  std_logic                     := '0';
-      phy_rx_k_i           : in  std_logic_vector(1 downto 0)  := "00";
+      phy_rx_k_i           : in  std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
       phy_rx_enc_err_i     : in  std_logic                     := '0';
-      phy_rx_bitslide_i    : in  std_logic_vector(4 downto 0)  := "00000";
+      phy_rx_bitslide_i    : in  std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
       gmii_tx_clk_i        : in  std_logic                     := '0';
       gmii_txd_o           : out std_logic_vector(7 downto 0);
       gmii_tx_en_o         : out std_logic;
@@ -236,15 +240,15 @@ package endpoint_pkg is
       phy_syncen_o         : out std_logic;
       phy_rdy_i            : in  std_logic;
       phy_ref_clk_i        : in  std_logic;
-      phy_tx_data_o        : out std_logic_vector(15 downto 0);
-      phy_tx_k_o           : out std_logic_vector(1 downto 0);
+      phy_tx_data_o        : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
+      phy_tx_k_o           : out std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
       phy_tx_disparity_i   : in  std_logic;
       phy_tx_enc_err_i     : in  std_logic;
-      phy_rx_data_i        : in  std_logic_vector(15 downto 0);
+      phy_rx_data_i        : in  std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
       phy_rx_clk_i         : in  std_logic;
-      phy_rx_k_i           : in  std_logic_vector(1 downto 0);
+      phy_rx_k_i           : in  std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
       phy_rx_enc_err_i     : in  std_logic;
-      phy_rx_bitslide_i    : in  std_logic_vector(4 downto 0);
+      phy_rx_bitslide_i    : in  std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
       gmii_tx_clk_i        : in  std_logic	 									 := '0';
       gmii_txd_o           : out std_logic_vector(7 downto 0)  := x"00";
       gmii_tx_en_o         : out std_logic                     := '0';
@@ -340,5 +344,36 @@ package endpoint_pkg is
 
 end endpoint_pkg;
 
+package body endpoint_pkg is
 
+  function f_pcs_data_width(pcs_16 : boolean)
+    return integer is
+  begin
+    if (pcs_16) then
+      return 16;
+    else
+      return 8;
+    end if;
+  end function;
 
+  function f_pcs_k_width(pcs_16 : boolean)
+    return integer is
+  begin
+    if (pcs_16) then
+      return 2;
+    else
+      return 1;
+    end if;
+  end function;
+
+  function f_pcs_bts_width(pcs_16 : boolean)
+    return integer is
+  begin
+    if (pcs_16) then
+      return 5;
+    else
+      return 4;
+    end if;
+  end function;
+
+end package body endpoint_pkg;

@@ -11,9 +11,6 @@ use work.softpll_pkg.all;
 
 package wrcore_pkg is
 
-  function f_pcs_data_width(pcs_16 : boolean) return integer;
-  function f_pcs_bts_width(pcs_16 : boolean) return integer;
-
   ----------------------------------------------------------------------------- 
   --PPS generator
   -----------------------------------------------------------------------------
@@ -313,15 +310,15 @@ package wrcore_pkg is
       g_vuart_fifo_size           : integer                        := 1024;
       g_pcs_16bit                 : boolean                        := false);
     port(
-      clk_sys_i  : in std_logic;
-      clk_dmtd_i : in std_logic                               := '0';
-      clk_ref_i  : in std_logic;
-      clk_aux_i  : in std_logic_vector(g_aux_clks-1 downto 0) := (others => '0');
-      clk_ext_mul_i: in std_logic := '0';
-      clk_ext_mul_locked_i : in  std_logic := '1';
-      clk_ext_i  : in std_logic                               := '0';
-      pps_ext_i  : in std_logic                               := '0';
-      rst_n_i    : in std_logic;
+      clk_sys_i            : in std_logic;
+      clk_dmtd_i           : in std_logic := '0';
+      clk_ref_i            : in std_logic;
+      clk_aux_i            : in std_logic_vector(g_aux_clks-1 downto 0) := (others => '0');
+      clk_ext_mul_i        : in std_logic := '0';
+      clk_ext_mul_locked_i : in std_logic := '1';
+      clk_ext_i            : in std_logic := '0';
+      pps_ext_i            : in std_logic := '0';
+      rst_n_i              : in std_logic;
 
       dac_hpll_load_p1_o   : out std_logic;
       dac_hpll_data_o      : out std_logic_vector(15 downto 0);
@@ -330,16 +327,14 @@ package wrcore_pkg is
 
       phy_ref_clk_i        : in  std_logic                    := '0';
       phy_tx_data_o        : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
-      phy_tx_k_o           : out std_logic;
-      phy_tx_k16_o         : out std_logic;
+      phy_tx_k_o           : out std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
       phy_tx_disparity_i   : in  std_logic                    := '0';
       phy_tx_enc_err_i     : in  std_logic                    := '0';
-      phy_rx_data_i        : in std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
+      phy_rx_data_i        : in  std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
       phy_rx_rbclk_i       : in  std_logic                    := '0';
-      phy_rx_k_i           : in  std_logic                    := '0';
-      phy_rx_k16_i         : in std_logic                     := '0';
+      phy_rx_k_i           : in  std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
       phy_rx_enc_err_i     : in  std_logic                    := '0';
-      phy_rx_bitslide_i    : in std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
+      phy_rx_bitslide_i    : in  std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
       phy_rst_o            : out std_logic;
       phy_rdy_i            : in  std_logic := '1';
       phy_loopen_o         : out std_logic;
@@ -467,15 +462,13 @@ package wrcore_pkg is
       phy_ref_clk_i : in std_logic;
 
       phy_tx_data_o      : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
-      phy_tx_k_o         : out std_logic;
-      phy_tx_k16_o       : out std_logic;
+      phy_tx_k_o         : out std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
       phy_tx_disparity_i : in  std_logic := '0';
       phy_tx_enc_err_i   : in  std_logic := '0';
 
       phy_rx_data_i     : in std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
       phy_rx_rbclk_i    : in std_logic                    := '0';
-      phy_rx_k_i        : in std_logic                    := '0';
-      phy_rx_k16_i      : in std_logic                    := '0';
+      phy_rx_k_i        : in std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0):= (others=>'0');
       phy_rx_enc_err_i  : in std_logic                    := '0';
       phy_rx_bitslide_i : in std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
 
@@ -625,29 +618,5 @@ package wrcore_pkg is
       dac_sclk_o  : out std_logic;
       dac_din_o   : out std_logic);
   end component;
-
-end wrcore_pkg;
-
-package body wrcore_pkg is
-
-  function f_pcs_data_width(pcs_16 : boolean)
-    return integer is
-  begin
-    if (pcs_16) then
-      return 16;
-    else
-      return 8;
-    end if;
-  end function;
-
-  function f_pcs_bts_width(pcs_16 : boolean)
-    return integer is
-  begin
-    if (pcs_16) then
-      return 5;
-    else
-      return 4;
-    end if;
-  end function;
 
 end wrcore_pkg;

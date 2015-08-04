@@ -117,16 +117,16 @@ entity wr_endpoint is
     phy_rdy_i    : in  std_logic;
 
     phy_ref_clk_i      : in  std_logic;
-    phy_tx_data_o      : out std_logic_vector(15 downto 0);
-    phy_tx_k_o         : out std_logic_vector(1 downto 0);
+    phy_tx_data_o      : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
+    phy_tx_k_o         : out std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
     phy_tx_disparity_i : in  std_logic;
     phy_tx_enc_err_i   : in  std_logic;
 
-    phy_rx_data_i     : in std_logic_vector(15 downto 0);
+    phy_rx_data_i     : in std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
     phy_rx_clk_i      : in std_logic;
-    phy_rx_k_i        : in std_logic_vector(1 downto 0);
+    phy_rx_k_i        : in std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
     phy_rx_enc_err_i  : in std_logic;
-    phy_rx_bitslide_i : in std_logic_vector(4 downto 0);
+    phy_rx_bitslide_i : in std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0);
 
 -------------------------------------------------------------------------------
 -- GMII Interface (8-bit)
@@ -538,7 +538,7 @@ begin
       serdes_rx_clk_i       => phy_rx_clk_i,
       serdes_rx_k_i         => phy_rx_k_i,
       serdes_rx_enc_err_i   => phy_rx_enc_err_i,
-      serdes_rx_bitslide_i  => phy_rx_bitslide_i(4 downto 0),
+      serdes_rx_bitslide_i  => phy_rx_bitslide_i,
 
       rmon_o => pcs_rmon,
 

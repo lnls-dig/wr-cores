@@ -350,12 +350,12 @@ architecture rtl of spec_top is
   signal pps_led : std_logic;
 
   signal phy_tx_data      : std_logic_vector(7 downto 0);
-  signal phy_tx_k         : std_logic;
+  signal phy_tx_k         : std_logic_vector(0 downto 0);
   signal phy_tx_disparity : std_logic;
   signal phy_tx_enc_err   : std_logic;
   signal phy_rx_data      : std_logic_vector(7 downto 0);
   signal phy_rx_rbclk     : std_logic;
-  signal phy_rx_k         : std_logic;
+  signal phy_rx_k         : std_logic_vector(0 downto 0);
   signal phy_rx_enc_err   : std_logic;
   signal phy_rx_bitslide  : std_logic_vector(3 downto 0);
   signal phy_rst          : std_logic;
@@ -812,12 +812,12 @@ begin
 
       ch1_ref_clk_i      => clk_125m_pllref,
       ch1_tx_data_i      => phy_tx_data,
-      ch1_tx_k_i         => phy_tx_k,
+      ch1_tx_k_i         => phy_tx_k(0),
       ch1_tx_disparity_o => phy_tx_disparity,
       ch1_tx_enc_err_o   => phy_tx_enc_err,
       ch1_rx_data_o      => phy_rx_data,
       ch1_rx_rbclk_o     => phy_rx_rbclk,
-      ch1_rx_k_o         => phy_rx_k,
+      ch1_rx_k_o         => phy_rx_k(0),
       ch1_rx_enc_err_o   => phy_rx_enc_err,
       ch1_rx_bitslide_o  => phy_rx_bitslide,
       ch1_rst_i          => phy_rst,

@@ -139,14 +139,13 @@ entity wr_core is
     phy_ref_clk_i : in std_logic;
 
     phy_tx_data_o      : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
-    phy_tx_k_o         : out std_logic;
-    phy_tx_k16_o       : out std_logic;
+    phy_tx_k_o         : out std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
     phy_tx_disparity_i : in  std_logic;
     phy_tx_enc_err_i   : in  std_logic;
 
     phy_rx_data_i     : in std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
     phy_rx_rbclk_i    : in std_logic;
-    phy_rx_k_i        : in std_logic;
+    phy_rx_k_i        : in std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
     phy_rx_k16_i      : in std_logic := '0';
     phy_rx_enc_err_i  : in std_logic;
     phy_rx_bitslide_i : in std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0);
@@ -339,12 +338,6 @@ architecture struct of wr_core is
   -----------------------------------------------------------------------------
   --Endpoint
   -----------------------------------------------------------------------------
-  signal phy_tx_data_int            : std_logic_vector(15 downto 0);
-  signal phy_tx_k_int               : std_logic_vector(1 downto 0);
-  signal phy_rx_data_int            : std_logic_vector(15 downto 0);
-  signal phy_rx_k_int               : std_logic_vector(1 downto 0);
-  signal phy_rx_bitslide_int        : std_logic_vector(4 downto 0);
-
   signal ep_txtsu_port_id           : std_logic_vector(4 downto 0);
   signal ep_txtsu_frame_id          : std_logic_vector(15 downto 0);
   signal ep_txtsu_ts_value          : std_logic_vector(31 downto 0);
@@ -609,25 +602,6 @@ begin
   -----------------------------------------------------------------------------
   -- Endpoint
   -----------------------------------------------------------------------------
-
-  phy_tx_data_o   <= phy_tx_data_int(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
-  phy_tx_k_o      <= phy_tx_k_int(0);
-  phy_rx_k_int(0) <= phy_rx_k_i;
-
-  gen_16bit_phy_if: if g_pcs_16bit generate
-    phy_tx_k16_o        <= phy_tx_k_int(1);
-    phy_rx_data_int     <= phy_rx_data_i;
-    phy_rx_k_int(1)     <= phy_rx_k16_i;
-    phy_rx_bitslide_int <= phy_rx_bitslide_i;
-  end generate;
-
-  gen_8bit_phy_if: if not g_pcs_16bit generate
-    phy_tx_k16_o        <= '0';
-    phy_rx_data_int     <= x"00" & phy_rx_data_i;
-    phy_rx_k_int(1)     <= '0';
-    phy_rx_bitslide_int <= '0' & phy_rx_bitslide_i;
-  end generate;
-
   U_Endpoint : xwr_endpoint
     generic map (
       g_interface_mode      => PIPELINED,
@@ -663,15 +637,15 @@ begin
       phy_sfp_los_i        => phy_sfp_los_i,
       phy_sfp_tx_disable_o => phy_sfp_tx_disable_o,
       phy_ref_clk_i        => phy_ref_clk_i,
-      phy_tx_data_o        => phy_tx_data_int,
-      phy_tx_k_o           => phy_tx_k_int,
+      phy_tx_data_o        => phy_tx_data_o,
+      phy_tx_k_o           => phy_tx_k_o,
       phy_tx_disparity_i   => phy_tx_disparity_i,
       phy_tx_enc_err_i     => phy_tx_enc_err_i,
-      phy_rx_data_i        => phy_rx_data_int,
+      phy_rx_data_i        => phy_rx_data_i,
       phy_rx_clk_i         => phy_rx_rbclk_i,
-      phy_rx_k_i           => phy_rx_k_int,
+      phy_rx_k_i           => phy_rx_k_i,
       phy_rx_enc_err_i     => phy_rx_enc_err_i,
-      phy_rx_bitslide_i    => phy_rx_bitslide_int,
+      phy_rx_bitslide_i    => phy_rx_bitslide_i,
 
       src_o => ep_src_out,
       src_i => ep_src_in,

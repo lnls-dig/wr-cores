@@ -160,11 +160,11 @@ entity ep_1000basex_pcs is
 
     -- TX Code group. In 16-bit mode, the MSB is TXed first (tx_data_o[15:8],
     -- then tx_data_o[7:0]). In 8-bit mode only bits [7:0] are used.
-    serdes_tx_data_o : out std_logic_vector(15 downto 0);
+    serdes_tx_data_o : out std_logic_vector(f_pcs_data_width(g_16bit)-1 downto 0);
 
     -- TX Control Code: When 1, a K-character is transmitted. In 16-bit mode,
     -- bit 1 goes first, in 8-bit mode only bit 0 is used.
-    serdes_tx_k_o : out std_logic_vector(1 downto 0);
+    serdes_tx_k_o : out std_logic_vector(f_pcs_k_width(g_16bit)-1 downto 0);
 
     -- TX Disparity input: 1 = last transmitted code group ended with negative
     -- running disparity, 0 = positive RD.
@@ -181,10 +181,10 @@ entity ep_1000basex_pcs is
     -- RX recovered clock. MUST be synchronous to incoming serial data stream
     -- for proper PTP/SyncE operation. 62.5 MHz in 16-bit mode, 125 MHz in 8-bit mode.
     serdes_rx_clk_i      : in std_logic;
-    serdes_rx_data_i     : in std_logic_vector(15 downto 0);
-    serdes_rx_k_i        : in std_logic_vector(1 downto 0);
+    serdes_rx_data_i     : in std_logic_vector(f_pcs_data_width(g_16bit)-1 downto 0);
+    serdes_rx_k_i        : in std_logic_vector(f_pcs_k_width(g_16bit)-1 downto 0);
     serdes_rx_enc_err_i  : in std_logic;
-    serdes_rx_bitslide_i : in std_logic_vector(4 downto 0);
+    serdes_rx_bitslide_i : in std_logic_vector(f_pcs_bts_width(g_16bit)-1 downto 0);
 
     -- RMON events, aligned to clk_sys
     rmon_o : out t_rmon_triggers;
@@ -333,6 +333,7 @@ begin  -- rtl
         nice_dbg_o => nice_dbg_o.rx
         );
 
+    mdio_wr_spec_bslide <= serdes_rx_bitslide_i(4 downto 0);
     
   end generate gen_16bit;
 
@@ -361,10 +362,6 @@ begin  -- rtl
         phy_tx_disparity_i => serdes_tx_disparity_i,
         phy_tx_enc_err_i   => serdes_tx_enc_err_i
         );
-
-    
-    serdes_tx_k_o(1)              <= 'X';
-    serdes_tx_data_o(15 downto 8) <= (others => 'X');
 
     U_RX_PCS : ep_rx_pcs_8bit
       generic map (
@@ -404,6 +401,8 @@ begin  -- rtl
         phy_rx_enc_err_i => serdes_rx_enc_err_i
         );
 
+    mdio_wr_spec_bslide <= '0' & serdes_rx_bitslide_i(3 downto 0);
+
   end generate gen_8bit;
 
   txpcs_busy_o <= txpcs_busy_int;
@@ -412,7 +411,6 @@ begin  -- rtl
   mdio_mcr_pdown      <= mdio_mcr_pdown_cpu or (not link_ctr_i);
  
   serdes_rst_o        <= (not pcs_reset_n) or mdio_mcr_pdown;
-  mdio_wr_spec_bslide <= serdes_rx_bitslide_i(4 downto 0);
 
   U_MDIO_WB : ep_pcs_tbi_mdio_wb
     port map (
