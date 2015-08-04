@@ -360,6 +360,7 @@ architecture rtl of spec_top is
   signal phy_rx_bitslide  : std_logic_vector(3 downto 0);
   signal phy_rst          : std_logic;
   signal phy_loopen       : std_logic;
+  signal phy_loopen_vec   : std_logic_vector(2 downto 0);
   signal phy_rdy          : std_logic;
 
   signal dio_in  : std_logic_vector(4 downto 0);
@@ -697,6 +698,7 @@ begin
       phy_rx_bitslide_i  => phy_rx_bitslide,
       phy_rst_o          => phy_rst,
       phy_loopen_o       => phy_loopen,
+      phy_loopen_vec_o   => phy_loopen_vec,
       phy_rdy_i          => phy_rdy,
 
       led_act_o  => LED_RED,
@@ -817,6 +819,7 @@ begin
       ch1_rx_bitslide_o  => phy_rx_bitslide,
       ch1_rst_i          => phy_rst,
       ch1_loopen_i       => phy_loopen,
+      ch1_loopen_vec_i   => phy_loopen_vec,
       ch1_rdy_o          => phy_rdy,
       pad_txn0_o         => open,
       pad_txp0_o         => open,

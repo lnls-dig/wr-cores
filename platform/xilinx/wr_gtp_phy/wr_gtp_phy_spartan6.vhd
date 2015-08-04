@@ -109,6 +109,7 @@ entity wr_gtp_phy_spartan6 is
 
     -- local loopback enable (Tx->Rx), active hi
     ch0_loopen_i : in std_logic;
+    ch0_loopen_vec_i : in std_logic_vector(2 downto 0) := (others=>'0');
 
     -- gtp0 ready: locked & aligned
     ch0_rdy_o : out std_logic;
@@ -129,6 +130,7 @@ entity wr_gtp_phy_spartan6 is
 
     ch1_rst_i    : in std_logic := '0';
     ch1_loopen_i : in std_logic := '0';
+    ch1_loopen_vec_i : in std_logic_vector(2 downto 0) := (others=>'0');
     ch1_rdy_o    : out std_logic;
 
 -- Serial I/O
@@ -393,6 +395,9 @@ begin  -- rtl
     ch0_rx_rec_clk_pad <= ch0_gtp_clkout_int(1);
     ch0_ref_clk_in(0)  <= gtp_clk_i;
     ch0_ref_clk_in(1)  <= '0';
+    -- Near-end PMA loopback or loopback selected with ch1_loopen_vec_i
+    ch0_gtp_loopback <= "010" when(ch0_loopen_i = '1') else
+                        ch0_loopen_vec_i;
 
     gen_disp_ch0 : process(ch0_ref_clk_i)
     begin
@@ -551,6 +556,9 @@ begin  -- rtl
     ch1_rx_rec_clk_pad <= ch1_gtp_clkout_int(1);
     ch1_ref_clk_in(0)  <= gtp_clk_i;
     ch1_ref_clk_in(1)  <= '0';
+    -- Near-end PMA loopback or loopback selected with ch1_loopen_vec_i
+    ch1_gtp_loopback <= "010" when(ch1_loopen_i = '1') else
+                        ch1_loopen_vec_i;
 
     gen_disp_ch1 : process(ch1_ref_clk_i)
     begin
