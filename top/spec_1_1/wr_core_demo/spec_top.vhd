@@ -700,6 +700,9 @@ begin
       phy_loopen_o       => phy_loopen,
       phy_loopen_vec_o   => phy_loopen_vec,
       phy_rdy_i          => phy_rdy,
+      phy_sfp_tx_fault_i => sfp_tx_fault_i,
+      phy_sfp_los_i      => sfp_los_i,
+      phy_sfp_tx_disable_o => sfp_tx_disable_o,
 
       led_act_o  => LED_RED,
       led_link_o => LED_GREEN,
@@ -916,8 +919,6 @@ begin
 
   dio_sdn_ck_n_o <= '1';
   dio_sdn_n_o    <= '1';
-
-  sfp_tx_disable_o <= '0';
 
 end rtl;
 
