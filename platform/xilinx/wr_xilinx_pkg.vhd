@@ -73,7 +73,8 @@ package wr_xilinx_pkg is
       rx_enc_err_o   : out std_logic;
       rx_bitslide_o  : out std_logic_vector(4 downto 0);
       rst_i          : in  std_logic;
-      loopen_i       : in  std_logic;
+      loopen_i       : in  std_logic_vector(2 downto 0);
+      tx_prbs_sel_i  : in  std_logic_vector(2 downto 0);
       pad_txn_o      : out std_logic;
       pad_txp_o      : out std_logic;
       pad_rxn_i      : in  std_logic := '0';
