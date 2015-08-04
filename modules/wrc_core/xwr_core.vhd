@@ -200,6 +200,13 @@ entity xwr_core is
     timestamps_ack_i : in  std_logic := '1';
 
     -----------------------------------------
+    -- Pause Frame Control
+    -----------------------------------------
+    fc_tx_pause_req_i   : in  std_logic                     := '0';
+    fc_tx_pause_delay_i : in  std_logic_vector(15 downto 0) := x"0000";
+    fc_tx_pause_ready_o : out std_logic;
+
+    -----------------------------------------
     -- Timecode/Servo Control
     -----------------------------------------
 
@@ -353,6 +360,10 @@ begin
       txtsu_ts_incorrect_o => timestamps_o.incorrect,
       txtsu_stb_o          => timestamps_o.stb,
       txtsu_ack_i          => timestamps_ack_i,
+
+      fc_tx_pause_req_i    => fc_tx_pause_req_i,
+      fc_tx_pause_delay_i  => fc_tx_pause_delay_i,
+      fc_tx_pause_ready_o  => fc_tx_pause_ready_o,
 
       tm_link_up_o         => tm_link_up_o,
       tm_dac_value_o       => tm_dac_value_o,

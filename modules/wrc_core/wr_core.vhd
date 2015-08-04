@@ -255,6 +255,13 @@ entity wr_core is
     txtsu_ack_i          : in  std_logic := '1';
 
     -----------------------------------------
+    -- Pause Frame Control
+    -----------------------------------------
+    fc_tx_pause_req_i   : in  std_logic                     := '0';
+    fc_tx_pause_delay_i : in  std_logic_vector(15 downto 0) := x"0000";
+    fc_tx_pause_ready_o : out std_logic;
+
+    -----------------------------------------
     -- Timecode/Servo Control
     -----------------------------------------
 
@@ -661,6 +668,9 @@ begin
       wb_i                 => ep_wb_in,
       wb_o                 => ep_wb_out,
       rmon_events_o        => open,
+      fc_tx_pause_req_i    => fc_tx_pause_req_i,
+      fc_tx_pause_delay_i  => fc_tx_pause_delay_i,
+      fc_tx_pause_ready_o  => fc_tx_pause_ready_o,
       led_link_o           => ep_led_link,
       led_act_o            => led_act_o);
 

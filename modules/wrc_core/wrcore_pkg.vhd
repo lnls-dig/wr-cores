@@ -383,6 +383,10 @@ package wrcore_pkg is
       timestamps_o     : out t_txtsu_timestamp;
       timestamps_ack_i : in  std_logic := '1';
 
+      fc_tx_pause_req_i   : in  std_logic                     := '0';
+      fc_tx_pause_delay_i : in  std_logic_vector(15 downto 0) := x"0000";
+      fc_tx_pause_ready_o : out std_logic;
+
       tm_link_up_o         : out std_logic;
       tm_dac_value_o       : out std_logic_vector(23 downto 0);
       tm_dac_wr_o          : out std_logic_vector(g_aux_clks-1 downto 0);
@@ -575,6 +579,13 @@ package wrcore_pkg is
       txtsu_ts_incorrect_o : out std_logic;
       txtsu_stb_o          : out std_logic;
       txtsu_ack_i          : in  std_logic := '1';
+
+      -----------------------------------------
+      -- Pause Frame Control
+      -----------------------------------------
+      fc_tx_pause_req_i   : in  std_logic                     := '0';
+      fc_tx_pause_delay_i : in  std_logic_vector(15 downto 0) := x"0000";
+      fc_tx_pause_ready_o : out std_logic;
 
       -----------------------------------------
       -- Timecode/Servo Control
