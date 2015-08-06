@@ -324,11 +324,6 @@ package endpoint_private_pkg is
       mdio_mcr_anenable_o        : out std_logic;
       mdio_mcr_reset_o           : out std_logic;
       mdio_mcr_loopback_o        : out std_logic;
-      mdio_mcr_lpbck_vec_o       : out std_logic_vector(2 downto 0);
-      mdio_mcr_sfp_tx_fault_i    : in  std_logic;
-      mdio_mcr_sfp_loss_i        : in  std_logic;
-      mdio_mcr_sfp_tx_disable_o  : out std_logic;
-      mdio_mcr_tx_prbs_sel_o     : out std_logic_vector(2 downto 0);
       mdio_msr_lstatus_i         : in  std_logic;
       lstat_read_notify_o        : out std_logic;
       mdio_msr_rfault_i          : in  std_logic;
@@ -344,7 +339,12 @@ package endpoint_private_pkg is
       mdio_wr_spec_tx_cal_o      : out std_logic;
       mdio_wr_spec_rx_cal_stat_i : in  std_logic;
       mdio_wr_spec_cal_crst_o    : out std_logic;
-      mdio_wr_spec_bslide_i      : in  std_logic_vector(4 downto 0));
+      mdio_wr_spec_bslide_i      : in  std_logic_vector(4 downto 0);
+      mdio_ectrl_lpbck_vec_o       : out std_logic_vector(2 downto 0);
+      mdio_ectrl_sfp_tx_fault_i    : in  std_logic;
+      mdio_ectrl_sfp_loss_i        : in  std_logic;
+      mdio_ectrl_sfp_tx_disable_o  : out std_logic;
+      mdio_ectrl_tx_prbs_sel_o     : out std_logic_vector(2 downto 0));
   end component;
 
   component ep_tx_header_processor

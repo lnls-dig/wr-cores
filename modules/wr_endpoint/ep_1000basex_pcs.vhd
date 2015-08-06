@@ -437,11 +437,6 @@ begin  -- rtl
       mdio_mcr_anenable_o        => mdio_mcr_anenable,
       mdio_mcr_reset_o           => mdio_mcr_reset,
       mdio_mcr_loopback_o        => serdes_loopen_o,
-      mdio_mcr_lpbck_vec_o       => serdes_loopen_vec_o,
-      mdio_mcr_sfp_tx_fault_i    => serdes_sfp_tx_fault_i,
-      mdio_mcr_sfp_loss_i        => serdes_sfp_los_i,
-      mdio_mcr_sfp_tx_disable_o  => serdes_sfp_tx_disable_o,
-      mdio_mcr_tx_prbs_sel_o     => serdes_tx_prbs_sel_o,
       mdio_msr_lstatus_i         => mdio_msr_lstatus,
       mdio_msr_rfault_i          => mdio_msr_rfault,
       mdio_msr_anegcomplete_i    => mdio_msr_anegcomplete,
@@ -457,6 +452,11 @@ begin  -- rtl
       mdio_wr_spec_rx_cal_stat_i => mdio_wr_spec_rx_cal_stat,
       mdio_wr_spec_cal_crst_o    => mdio_wr_spec_cal_crst,
       mdio_wr_spec_bslide_i      => mdio_wr_spec_bslide,
+      mdio_ectrl_lpbck_vec_o       => serdes_loopen_vec_o,
+      mdio_ectrl_sfp_tx_fault_i    => serdes_sfp_tx_fault_i,
+      mdio_ectrl_sfp_loss_i        => serdes_sfp_los_i,
+      mdio_ectrl_sfp_tx_disable_o  => serdes_sfp_tx_disable_o,
+      mdio_ectrl_tx_prbs_sel_o     => serdes_tx_prbs_sel_o,
 
       lstat_read_notify_o => lstat_read_notify
       );
