@@ -53,6 +53,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 library work;
+use work.gencores_pkg.all;
 use work.genram_pkg.all;
 use work.endpoint_private_pkg.all;
 use work.endpoint_pkg.all;
@@ -172,6 +173,8 @@ architecture behavioral of ep_rx_path is
 
   signal src_wb_out : t_wrf_source_out;
   signal src_wb_cyc_d0 : std_logic;
+  
+  signal rst_n_rx_match_buff : std_logic;
 
 begin  -- behavioral
 
@@ -247,12 +250,19 @@ begin  -- behavioral
   end process;
 
   gen_with_match_buff: if( g_with_early_match or g_with_dpi_classifier) generate
+    U_Sync_Rst_match_buff : gc_sync_ffs
+      port map (
+        clk_i    => clk_sys_i,
+        rst_n_i  => '1',
+        data_i   => rst_n_rx_i,
+        synced_o => rst_n_rx_match_buff);
+
     U_match_buffer : generic_shiftreg_fifo
       generic map (
         g_data_width => 8 + 1 + 1 + 1,
         g_size       => 16)
       port map (
-        rst_n_i           => rst_n_sys_i,
+        rst_n_i           => rst_n_rx_match_buff,
         clk_i             => clk_sys_i,
         d_i (0)           => ematch_is_hp,
         d_i (1)           => ematch_is_pause,
