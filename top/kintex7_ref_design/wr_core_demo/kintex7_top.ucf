@@ -1,0 +1,82 @@
+
+#CLOCK & RESET
+NET "clk_20m_vcxo_i" LOC = F22 | IOSTANDARD = LVCMOS33;    #Bank 14 VCCO - 3.3 V
+NET "button1_i" LOC = E11 | IOSTANDARD = LVCMOS33;    #Bank 16 VCCO - 3.3 V
+
+NET "clk_20m_vcxo_i" TNM_NET = clk_20m_vcxo_i;
+TIMESPEC TS_clk_20m_vcxo_i = PERIOD "clk_20m_vcxo_i" 50 ns HIGH 50%;
+
+#TEST & DEBUG
+# Signal USB_TX is an output in the design and must be connected to pin 20/12 (RXD_I) of U34 (CP2105GM)
+# Signal USB_RX is an input in the design and must be connected to pin 21/13 (TXD_O) of U34 (CP2105GM)
+# Rx signals are pulled down so the USB on the CLB and the USB on the G-Board can be OR-ed
+NET "uart_rxd_i" LOC = D19 | IOSTANDARD = LVCMOS25 | PULLDOWN;    #Bank 15 VCCO - 2.5 V
+NET "uart_txd_o" LOC = D20 | IOSTANDARD = LVCMOS25;    #Bank 15 VCCO - 2.5 V
+
+#NET "GPIO_LED[0]" LOC = C16 | IOSTANDARD = LVCMOS25;    #Bank 15 VCCO - 2.5 V
+#NET "GPIO_LED[1]" LOC = B16 | IOSTANDARD = LVCMOS25;    #Bank 15 VCCO - 2.5 V
+#NET "GPIO_LED[2]" LOC = B17 | IOSTANDARD = LVCMOS25;    #Bank 15 VCCO - 2.5 V
+#NET "GPIO_LED[3]" LOC = A17 | IOSTANDARD = LVCMOS25;    #Bank 15 VCCO - 2.5 V
+#NET "GPIO_LED[4]" LOC = A18 | IOSTANDARD = LVCMOS25;    #Bank 15 VCCO - 2.5 V
+#NET "GPIO_LED[5]" LOC = A19 | IOSTANDARD = LVCMOS25;    #Bank 15 VCCO - 2.5 V
+#NET "LED_LINK"    LOC = A19 | IOSTANDARD = LVCMOS25;    #Bank 15 VCCO - 2.5 V
+
+########## To be assigned ###########
+#NET "dio_led_top_o"
+#NET "dio_led_bot_o"
+#NET "LED_ACT"
+
+#NET "DIP_SWITCH[1]"    LOC = J15 | IOSTANDARD = LVCMOS25 | PULLDOWN;    #Bank 15 VCCO - 2.5 V
+#NET "DIP_SWITCH[2]"    LOC = J16 | IOSTANDARD = LVCMOS25 | PULLDOWN;    #Bank 15 VCCO - 2.5 V
+#NET "DIP_SWITCH[3]"    LOC = H16 | IOSTANDARD = LVCMOS25 | PULLDOWN;    #Bank 15 VCCO - 2.5 V
+#NET "DIP_SWITCH[4]"    LOC = G16 | IOSTANDARD = LVCMOS25 | PULLDOWN;    #Bank 15 VCCO - 2.5 V
+
+#SOFT PLL (WHITE RABBIT)
+NET "sfp_mod_def2_b" LOC = D23 | IOSTANDARD = LVCMOS33;    #Bank 14 VCCO - 3.3 V
+NET "sfp_mod_def1_b" LOC = D24 | IOSTANDARD = LVCMOS33;    #Bank 14 VCCO - 3.3 V
+NET "dio_onewire_b" LOC = L23 | IOSTANDARD = LVCMOS33;    #Bank 14 VCCO - 3.3 V
+# Note LVDS_25 and VCCO 3.3V conflict for PPS_P/N!
+# Therefor made a special CLBv2 Proto implementation (generic g_use_clbv2_1 true) with two single
+# ended but complementary signals
+NET "pps_p_o" LOC = C17 | IOSTANDARD = LVDS_25;    #Bank 15 VCCO - 2.5 V
+NET "pps_n_o" LOC = C18 | IOSTANDARD = LVDS_25;    #Bank 15 VCCO - 2.5 V
+NET "PLL_OE_OUT_B" LOC = B11 | IOSTANDARD = LVCMOS33;    #Bank 16 VCCO - 3.3 V
+NET "dac_cs1_n_o" LOC = A14 | IOSTANDARD = LVCMOS33;    #Bank 16 VCCO - 3.3 V
+NET "dac_cs2_n_o" LOC = A15 | IOSTANDARD = LVCMOS33;    #Bank 16 VCCO - 3.3 V
+NET "dac_din_o" LOC = A13 | IOSTANDARD = LVCMOS33;    #Bank 16 VCCO - 3.3 V
+NET "dac_sclk_o" LOC = A12 | IOSTANDARD = LVCMOS33;    #Bank 16 VCCO - 3.3 V
+
+#SFP
+NET "sfp_mod_def0_b" LOC = E26 | IOSTANDARD = LVCMOS33;    #Bank 14 VCCO - 3.3 V  (mod_def_0)
+NET "sfp_los_i" LOC = F25 | IOSTANDARD = LVCMOS33;    #Bank 14 VCCO - 3.3 V
+NET "sfp_tx_fault_i" LOC = C26 | IOSTANDARD = LVCMOS33;    #Bank 14 VCCO - 3.3 V
+NET "sfp_tx_disable_o" LOC = D26 | IOSTANDARD = LVCMOS33;    #Bank 14 VCCO - 3.3 V
+NET "sfp_rate_select_b" LOC = G26 | IOSTANDARD = LVCMOS33;    #Bank 14 VCCO - 3.3 V
+NET "sfp_mod_def2_b" LOC = H26 | IOSTANDARD = LVCMOS33;    #Bank 14 VCCO - 3.3 V (mod_def_2)
+NET "sfp_mod_def1_b" LOC = J26 | IOSTANDARD = LVCMOS33;    #Bank 14 VCCO - 3.3 V (mod_def_1)
+
+#GIGABIT TRANSCEIVER (SFP)
+NET "fpga_pll_ref_clk_101_p_i" LOC = D6 | IOSTANDARD = "LVDS_25";    #Bank 116
+NET "fpga_pll_ref_clk_101_n_i" LOC = D5 | IOSTANDARD = "LVDS_25";    #Bank 116
+NET "fpga_pll_ref_clk_101_p_i" TNM_NET = fpga_pll_ref_clk_101_p_i;
+TIMESPEC TS_fpga_pll_ref_clk_101_p_i = PERIOD "fpga_pll_ref_clk_101_p_i" 8 ns HIGH 50%;
+NET "fpga_pll_ref_clk_101_n_i" TNM_NET = fpga_pll_ref_clk_101_n_i;
+TIMESPEC TS_fpga_pll_ref_clk_101_n_i = PERIOD "fpga_pll_ref_clk_101_n_i" 8 ns HIGH 50%;
+
+NET "sfp_txp_o" LOC = A4;    #Bank 116
+NET "sfp_txn_o" LOC = A3;    #Bank 116
+NET "sfp_rxp_i" LOC = B6;    #Bank 116
+NET "sfp_rxn_i" LOC = B5;    #Bank 116
+
+####################################
+# Note that the phy_rst_o originates from the clk_sys domain. Synchronization is not needed
+# when the clk_sys is phase locked with clk_gtx_i (which is usually the case) but is a safety
+# measure. Add a false path for U_EdgeDet_rst_i_reg_sync0 to remove non-existing timing errors.
+# Comment iether one or the other line since for Precision or XST usage
+NET "clk_sys" TNM_NET = FFS "FFS_pllout_clk_sys";
+#INST "u0_U_GTP/U_EdgeDet_rst_i_reg_sync0" TNM = FFS_U_EdgeDet_rst_i_reg_sync0;                                             # Precision
+#INST "u0/U_GTP/U_EdgeDet_rst_i/sync0" TNM = FFS_U_EdgeDet_rst_i_reg_sync0;                                                  # XST
+TIMESPEC TS_IgnoreAsyncGTP_Rst = FROM "FFS_pllout_clk_sys" TO "FFS_U_EdgeDet_rst_i_reg_sync0" TIG;
+
+#INST "u11/LM32_CORE/gen_profile_medium_icache_debug.U_Wrapped_LM32/jtag_cores/jtag_tap/bscan" JTAG_CHAIN = 1;               # XST; Better add these as generic assignments in the do_input_file_list.cmd
+#INST "u0/U_WR_CORE/WRPC/LM32_CORE/gen_profile_medium_icache_debug.U_Wrapped_LM32/jtag_cores/jtag_tap/bscan" JTAG_CHAIN = 2; # XST; Better add these as generic assignments in the do_input_file_list.cmd
