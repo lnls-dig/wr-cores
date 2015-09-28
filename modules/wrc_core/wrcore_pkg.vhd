@@ -11,6 +11,8 @@ use work.softpll_pkg.all;
 
 package wrcore_pkg is
 
+  function f_refclk_rate(pcs_16 : boolean) return integer;
+
   ----------------------------------------------------------------------------- 
   --PPS generator
   -----------------------------------------------------------------------------
@@ -631,3 +633,17 @@ package wrcore_pkg is
   end component;
 
 end wrcore_pkg;
+
+package body wrcore_pkg is
+
+  function f_refclk_rate(pcs_16 : boolean)
+    return integer is
+  begin
+    if (pcs_16) then
+      return 62500000;
+    else
+      return 125000000;
+    end if;
+  end function;
+
+end package body wrcore_pkg;

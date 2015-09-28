@@ -500,7 +500,7 @@ begin
     generic map(
       g_interface_mode       => PIPELINED,
       g_address_granularity  => BYTE,
-      g_ref_clock_rate       => 125000000,
+      g_ref_clock_rate       => f_refclk_rate(g_pcs_16bit),
       g_ext_clock_rate       => 10000000,
       g_with_ext_clock_input => g_with_external_clock_input)
     port map(
@@ -540,7 +540,7 @@ begin
       g_address_granularity  => BYTE,
       g_num_ref_inputs       => 1,
       g_num_outputs          => 1 + g_aux_clks,
-      g_ref_clock_rate       => 125000000,
+      g_ref_clock_rate       => f_refclk_rate(g_pcs_16bit),
       g_ext_clock_rate       => 10000000)
     port map(
       clk_sys_i => clk_sys_i,
