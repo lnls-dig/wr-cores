@@ -809,8 +809,12 @@ begin  -- behavioral
                   --nrx_error <= '1' when nrx_stat_error='1' or nrx_avail=to_unsigned(0, nrx_avail'length) else '0';
                   nrx_done <= '1';
 
-                  -- flush the remaining packet data into the DMA buffer
-                  nrx_state <= RX_MEM_FLUSH;
+                  -- flush the remaining packet data into the DMA buffer if needed
+                  if(nrx_toggle='1') then
+                    nrx_state <= RX_MEM_FLUSH;
+                  else
+                    nrx_state <= RX_UPDATE_DESC;
+                  end if;
 
                   if(nrx_valid = '1' or nrx_toggle = '1') then
                     if nrx_mem_a + 1 >= nrx_bufstart + nrx_bufsize then
