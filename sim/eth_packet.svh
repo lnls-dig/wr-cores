@@ -110,6 +110,8 @@ class EthPacket;
       for(i=0;i<data.size() - hsize;i++)
         payload[i]  = data[hsize + i];
 
+			size = data.size;
+
 //      error           = 0;
    endtask
   

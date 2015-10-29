@@ -75,10 +75,10 @@ class CSimDrv_Minic;
       minic_writel(`ADDR_MINIC_EIC_IDR, `MINIC_EIC_IDR_RX);
       minic_writel(`ADDR_MINIC_EIC_ISR, `MINIC_EIC_ISR_RX);
 
-      rx_base     = base_pmem;
-      rx_size     = pmem_size / 4;
-      tx_base     = base_pmem + pmem_size / 2;
-      tx_size     = pmem_size / 4;
+      tx_base     = base_pmem;
+      tx_size     = pmem_size / 2;
+      rx_base     = base_pmem + pmem_size / 2;
+      rx_size     = pmem_size / 2;
       tx_oob_val  = 12345;
 
 
@@ -168,7 +168,7 @@ class CSimDrv_Minic;
       size          = payload_size;
       
 
-      rx_head = (rx_head + 4 + num_words * 4) % rx_size;
+      rx_head = (rx_head + 4 + num_words * 4 - rx_base) % rx_size + rx_base;
       minic_writel(`ADDR_MINIC_RX_AVAIL, (num_words + 1));
 
       minic_readl(`ADDR_MINIC_RX_AVAIL, cur_avail);
