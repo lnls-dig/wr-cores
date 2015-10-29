@@ -1,0 +1,96 @@
+peripheral {
+	name = "WRF Loopback";
+	hdl_entity = "lbk_wishbone_controller";
+	prefix = "lbk";
+
+	reg {
+		name = "Main Control Register";
+		prefix = "MCR";
+		field {
+			name = "Enable Loopback";
+			prefix = "ENA";
+			access_bus = READ_WRITE;
+			access_dev = READ_ONLY;
+			type = BIT;
+		};
+
+		field {
+			name = "Clear counters";
+			prefix = "CLR";
+			type = MONOSTABLE;
+		};
+
+		field {
+			name = "Force DMAC";
+			prefix = "FDMAC";
+			access_bus = READ_WRITE;
+			access_dev = READ_ONLY;
+			type = BIT;
+		};
+	};
+
+	reg {
+		name = "Forced Destination MAC [3:0]";
+		prefix = "DMAC_L";
+		field {
+			name = "MAC";
+			access_bus = READ_WRITE;
+			access_dev = READ_WRITE;
+			type = SLV;
+			load = LOAD_EXT;
+			size = 32;
+		};
+	};
+
+	reg {
+		name = "Forced Destination MAC [5:4]";
+		prefix = "DMAC_H";
+		field {
+			name = "MAC";
+			access_bus = READ_WRITE;
+			access_dev = READ_WRITE;
+			type = SLV;
+			load = LOAD_EXT;
+			size = 16;
+		};
+	};
+
+	reg {
+		name = "Received frames counter";
+		prefix = "RCV_CNT";
+		field {
+			name = "Value";
+			access_bus = READ_WRITE;
+			access_dev = READ_WRITE;
+			type = SLV;
+			load = LOAD_EXT;
+			size = 32;
+		};
+	};
+
+	reg {
+		name = "Dropped frames counter";
+		prefix = "DRP_CNT";
+		field {
+			name = "Value";
+			access_bus = READ_WRITE;
+			access_dev = READ_WRITE;
+			type = SLV;
+			load = LOAD_EXT;
+			size = 32;
+		};
+	};
+
+	reg {
+		name = "Forwarded frames counter";
+		prefix = "FWD_CNT";
+		field {
+			name = "Value";
+			access_bus = READ_WRITE;
+			access_dev = READ_WRITE;
+			type = SLV;
+			load = LOAD_EXT;
+			size = 32;
+		};
+	};
+}

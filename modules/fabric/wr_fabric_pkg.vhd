@@ -1,5 +1,6 @@
 library ieee;
 use ieee.std_logic_1164.all;
+use work.wishbone_pkg.all;
 
 
 package wr_fabric_pkg is
@@ -102,6 +103,23 @@ package wr_fabric_pkg is
       snk_o		:	out t_wrf_sink_out;
       src_i		:	in 	t_wrf_source_in;
       src_o		:	out t_wrf_source_out);
+  end component;
+
+  component xwrf_loopback
+    generic(
+      g_interface_mode        : t_wishbone_interface_mode      := CLASSIC;
+      g_address_granularity   : t_wishbone_address_granularity := WORD);
+    port(
+      clk_sys_i : in  std_logic;
+      rst_n_i   : in  std_logic;
+  
+      wrf_snk_i : in  t_wrf_sink_in;
+      wrf_snk_o : out t_wrf_sink_out;
+      wrf_src_o : out t_wrf_source_out;
+      wrf_src_i : in  t_wrf_source_in;
+  
+      wb_i : in  t_wishbone_slave_in;
+      wb_o : out t_wishbone_slave_out);
   end component;
 
 end wr_fabric_pkg;
