@@ -76,18 +76,18 @@ entity kintex7_top is
     dio_clk_p_i              : in     std_logic;
     dio_clk_n_i              : in     std_logic;
 
-    --dio_n_i : in std_logic_vector(4 downto 0);
-    --dio_p_i : in std_logic_vector(4 downto 0);
+    dio_n_i                  : in std_logic_vector(4 downto 0);
+    dio_p_i                  : in std_logic_vector(4 downto 0);
 
-    --dio_n_o : out std_logic_vector(4 downto 0);
-    --dio_p_o : out std_logic_vector(4 downto 0);
+    dio_n_o                  : out std_logic_vector(4 downto 0);
+    dio_p_o                  : out std_logic_vector(4 downto 0);
 
-    --dio_oe_n_o    : out std_logic_vector(4 downto 0);
-    --dio_term_en_o : out std_logic_vector(4 downto 0);
+    dio_oe_n_o               : out std_logic_vector(4 downto 0);
+    dio_term_en_o            : out std_logic_vector(4 downto 0);
 
-    dio_onewire_b  : inout std_logic;
-    --dio_sdn_n_o    : out   std_logic;
-    --dio_sdn_ck_n_o : out   std_logic;
+    dio_onewire_b            : inout std_logic;
+    dio_sdn_n_o              : out   std_logic;
+    dio_sdn_ck_n_o           : out   std_logic;
     
     dio_led_top_o            : out    std_logic;
     dio_led_bot_o            : out    std_logic;
@@ -121,13 +121,13 @@ architecture structure of kintex7_top is
       rst_n_o          : out    std_logic);
   end component spec_reset_gen;
 
-  component ext_pll_10_to_125m
+  component ext_pll_10_to_62_5m
     port (
       clk_ext_i     : in     std_logic;
       clk_ext_mul_o : out    std_logic;
       rst_a_i       : in     std_logic;
       locked_o      : out    std_logic);
-  end component ext_pll_10_to_125m;
+  end component ext_pll_10_to_62_5m;
 
   component wr_gtx_phy_kintex7
     generic(
@@ -218,9 +218,9 @@ architecture structure of kintex7_top is
   signal phy_prbs_sel        : std_logic_vector(2 downto 0);
   signal phy_rdy              : std_logic;
 
-  --signal dio_in  : std_logic_vector(4 downto 0);
-  --signal dio_out : std_logic_vector(4 downto 0);
-  --signal dio_clk : std_logic;
+  signal dio_in  : std_logic_vector(4 downto 0);
+  signal dio_out : std_logic_vector(4 downto 0);
+  signal dio_clk : std_logic;
   
   signal local_reset_n      : std_logic;
 
@@ -249,8 +249,8 @@ architecture structure of kintex7_top is
   signal ext_pll_reset      : std_logic;
   signal clk_ext            : std_ulogic;
   signal clk_ext_mul        : std_logic;
-  signal clk_ext_mul_locked           : std_logic;
-  --signal clk_ref_div2               : std_logic;
+  signal clk_ext_mul_locked : std_logic;
+--  signal clk_ref_div2       : std_logic;
 
   signal dac_cs_n_o         : std_logic_vector(1 downto 0);
   signal button1_n_i        : std_logic;
@@ -260,7 +260,7 @@ begin
   local_reset <= not local_reset_n;
   button1_n_i <= not button1_i;
 
-  U_Ext_PLL: ext_pll_10_to_125m
+  U_Ext_PLL: ext_pll_10_to_62_5m
     port map(
       clk_ext_i     => clk_ext,
       clk_ext_mul_o => clk_ext_mul,
@@ -515,7 +515,7 @@ begin
       clk_ext_mul_i        => clk_ext_mul,
       clk_ext_mul_locked_i => clk_ext_mul_locked,
       clk_ext_i            => clk_ext,
-      pps_ext_i            => pps_ext_i,
+      pps_ext_i            => dio_in(3),
       rst_n_i              => local_reset_n,
       dac_hpll_load_p1_o   => dac_hpll_load_p1_o,
       dac_hpll_data_o      => dac_hpll_data_o,
@@ -638,23 +638,23 @@ begin
       pulse_i    => pps_led,
       extended_o => dio_led_top_o);
 
---  gen_dio_iobufs : for i in 0 to 4 generate
---    U_ibuf : IBUFDS
---      generic map (
---        DIFF_TERM => true)
---      port map (
---        O  => dio_in(i),
---        I  => dio_p_i(i),
---        IB => dio_n_i(i)
---        );
---
---    U_obuf : OBUFDS
---      port map (
---        I  => dio_out(i),
---        O  => dio_p_o(i),
---        OB => dio_n_o(i)
---        );
---  end generate gen_dio_iobufs;
+  gen_dio_iobufs : for i in 0 to 4 generate
+    U_ibuf : IBUFDS
+      generic map (
+        DIFF_TERM => true)
+      port map (
+        O  => dio_in(i),
+        I  => dio_p_i(i),
+        IB => dio_n_i(i)
+        );
+
+    U_obuf : OBUFDS
+      port map (
+        I  => dio_out(i),
+        O  => dio_p_o(i),
+        OB => dio_n_o(i)
+        );
+  end generate gen_dio_iobufs;
 
   U_input_buffer : IBUFGDS
     generic map (
@@ -682,8 +682,21 @@ begin
   thermo_id <= '0' when owr_en(0) = '1' else 'Z';
   owr_i(0)  <= thermo_id;
 
+  dio_out(0) <= pps;
+  dio_out(1) <= '0';
+
+  dio_oe_n_o(0)          <= '0';
+  dio_oe_n_o(2 downto 1) <= (others => '0');
+  dio_oe_n_o(3)          <= '1';        -- for external 1-PPS
+  dio_oe_n_o(4)          <= '1';        -- for external 10MHz clock
+
   dio_onewire_b <= '0' when owr_en(1) = '1' else 'Z';
   owr_i(1)      <= dio_onewire_b;
+
+  dio_term_en_o <= (others => '0');
+
+  dio_sdn_ck_n_o <= '1';
+  dio_sdn_n_o    <= '1';
 
    ------------------------------------------------------------------------------
   -- OE test output (KM3NeT CLB specific)

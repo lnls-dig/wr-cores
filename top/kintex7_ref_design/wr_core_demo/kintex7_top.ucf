@@ -67,6 +67,57 @@ NET "sfp_txp_o" LOC = A4;    #Bank 116
 NET "sfp_txn_o" LOC = A3;    #Bank 116
 NET "sfp_rxp_i" LOC = B6;    #Bank 116
 NET "sfp_rxn_i" LOC = B5;    #Bank 116
+########################################################
+##  Pin definitions for FmcDio5chttl + CLB V2.2.1     ##
+########################################################
+# DIO outputs
+NET "dio_p_o[4]" LOC = N18 | IOSTANDARD=LVDS_25;
+NET "dio_n_o[4]" LOC = M19 | IOSTANDARD=LVDS_25;
+NET "dio_p_o[3]" LOC = U19 | IOSTANDARD=LVDS_25;
+NET "dio_n_o[3]" LOC = U20 | IOSTANDARD=LVDS_25;
+NET "dio_p_o[2]" LOC = W20 | IOSTANDARD=LVDS_25;
+NET "dio_n_o[2]" LOC = Y21 | IOSTANDARD=LVDS_25;
+NET "dio_p_o[1]" LOC = M21 | IOSTANDARD=LVDS_25;
+NET "dio_n_o[1]" LOC = M22 | IOSTANDARD=LVDS_25;
+NET "dio_p_o[0]" LOC = N19 | IOSTANDARD=LVDS_25;
+NET "dio_n_o[0]" LOC = M20 | IOSTANDARD=LVDS_25;
+
+NET "dio_sdn_n_o" LOC = AA25  | IOSTANDARD=LVCMOS25;
+NET "dio_sdn_ck_n_o" LOC = AF24  | IOSTANDARD=LVCMOS25;
+
+# DIO output enable/termination enable
+NET "dio_oe_n_o[4]" LOC = AE22  | IOSTANDARD=LVCMOS25;
+NET "dio_oe_n_o[3]" LOC = U26 | IOSTANDARD=LVCMOS25;
+NET "dio_oe_n_o[2]" LOC = AB25 | IOSTANDARD=LVCMOS25;
+NET "dio_oe_n_o[1]" LOC = N23 | IOSTANDARD=LVCMOS25;
+NET "dio_oe_n_o[0]" LOC = P24 | IOSTANDARD=LVCMOS25;
+
+NET "dio_term_en_o[4]" LOC = P25 | IOSTANDARD=LVCMOS25;
+NET "dio_term_en_o[3]" LOC = R25 | IOSTANDARD=LVCMOS25;
+NET "dio_term_en_o[2]" LOC = AF22 | IOSTANDARD=LVCMOS25;
+NET "dio_term_en_o[1]" LOC = AF25 | IOSTANDARD=LVCMOS25;
+NET "dio_term_en_o[0]" LOC = N24 | IOSTANDARD=LVCMOS25;
+
+NET "dio_onewire_b" LOC = K26 | IOSTANDARD=LVCMOS25;
+
+# DIO inputs
+NET "dio_clk_p_i" LOC = Y22 | IOSTANDARD=LVDS_25;
+NET "dio_clk_n_i" LOC = AA22 | IOSTANDARD=LVDS_25;
+
+NET "dio_p_i[4]" LOC = N21 | IOSTANDARD=LVDS_25;
+NET "dio_n_i[4]" LOC = N22 | IOSTANDARD=LVDS_25;
+NET "dio_p_i[3]" LOC = P16 | IOSTANDARD=LVDS_25;
+NET "dio_n_i[3]" LOC = N17 | IOSTANDARD=LVDS_25;
+NET "dio_p_i[2]" LOC = AB26 | IOSTANDARD=LVDS_25;
+NET "dio_n_i[2]" LOC = AC26 | IOSTANDARD=LVDS_25;
+NET "dio_p_i[1]" LOC = K20 | IOSTANDARD=LVDS_25;
+NET "dio_n_i[1]" LOC = J20 | IOSTANDARD=LVDS_25;
+NET "dio_p_i[0]" LOC = P19 | IOSTANDARD=LVDS_25;
+NET "dio_n_i[0]" LOC = P20 | IOSTANDARD=LVDS_25;
+NET "dio_led_top_o" LOC = R21 | IOSTANDARD=LVCMOS25;
+NET "dio_led_bot_o" LOC = P21 | IOSTANDARD=LVCMOS25;
+
+########################################################
 
 ####################################
 # Note that the phy_rst_o originates from the clk_sys domain. Synchronization is not needed

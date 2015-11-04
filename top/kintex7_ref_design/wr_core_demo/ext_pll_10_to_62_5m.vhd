@@ -1,4 +1,4 @@
--- file: ext_pll_10_to_125m.vhd
+-- -- file: ext_pll_10_to_62_5m.vhd
 -- 
 -- (c) Copyright 2008 - 2011 Xilinx, Inc. All rights reserved.
 -- 
@@ -55,12 +55,12 @@
 -- "Output    Output      Phase     Duty      Pk-to-Pk        Phase"
 -- "Clock    Freq (MHz) (degrees) Cycle (%) Jitter (ps)  Error (ps)"
 ------------------------------------------------------------------------------
--- CLK_OUT1___125.000______0.000______50.0_____1014.602____150.000
+-- CLK_OUT1____62.500______0.000______50.0______659.593____883.386
 --
 ------------------------------------------------------------------------------
 -- "Input Clock   Freq (MHz)    Input Jitter (UI)"
 ------------------------------------------------------------------------------
--- __primary__________10.000____________0.010
+-- __primary__________10.000____________0.005
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -71,7 +71,7 @@ use ieee.numeric_std.all;
 library unisim;
 use unisim.vcomponents.all;
 
-entity ext_pll_10_to_125m is
+entity ext_pll_10_to_62_5m is
 port
  (-- Clock in ports
   clk_ext_i           : in     std_logic;
@@ -81,19 +81,19 @@ port
   rst_a_i             : in     std_logic;
   locked_o            : out    std_logic
  );
-end ext_pll_10_to_125m;
+end ext_pll_10_to_62_5m;
 
-architecture xilinx of ext_pll_10_to_125m is
+architecture xilinx of ext_pll_10_to_62_5m is
   attribute CORE_GENERATION_INFO : string;
-  attribute CORE_GENERATION_INFO of xilinx : architecture is "ext_pll_10_to_125m,clk_wiz_v3_6,{component_name=ext_pll_10_to_125m,use_phase_alignment=true,use_min_o_jitter=false,use_max_i_jitter=true,use_dyn_phase_shift=false,use_inclk_switchover=false,use_dyn_reconfig=false,feedback_source=FDBK_AUTO,primtype_sel=MMCM_ADV,num_out_clk=1,clkin1_period=100.000,clkin2_period=10.0,use_power_down=false,use_reset=true,use_locked=true,use_inclk_stopped=false,use_status=false,use_freeze=false,use_clk_valid=false,feedback_type=SINGLE,clock_mgr_type=MANUAL,manual_override=false}";
-	  -- Input clock buffering / unused connectors
+  attribute CORE_GENERATION_INFO of xilinx : architecture is "ext_pll_10_to_62_5m,clk_wiz_v3_6,{component_name=ext_pll_10_to_62_5m,use_phase_alignment=false,use_min_o_jitter=false,use_max_i_jitter=false,use_dyn_phase_shift=false,use_inclk_switchover=false,use_dyn_reconfig=false,feedback_source=FDBK_AUTO,primtype_sel=MMCM_ADV,num_out_clk=1,clkin1_period=100.000,clkin2_period=10.0,use_power_down=false,use_reset=true,use_locked=true,use_inclk_stopped=false,use_status=false,use_freeze=false,use_clk_valid=false,feedback_type=SINGLE,clock_mgr_type=MANUAL,manual_override=false}";
+  -- Input clock buffering / unused connectors
   signal clkin1            : std_logic;
   -- Output clock buffering
   signal clkfb             : std_logic;
   signal clk0              : std_logic;
-  signal clkfbout          : std_logic;
-  signal locked_internal   : std_logic;
-  signal status_internal   : std_logic_vector(7 downto 0);
+--  signal clkfbout          : std_logic;
+--  signal locked_internal   : std_logic;
+--  signal status_internal   : std_logic_vector(7 downto 0);
 begin
 
 
@@ -110,7 +110,7 @@ begin
   --    * Unused outputs are labeled unused
   mmcm_adv_inst : MMCME2_ADV
   generic map
-   (BANDWIDTH            => "LOW",
+   (BANDWIDTH            => "OPTIMIZED",
     CLKOUT4_CASCADE      => FALSE,
     COMPENSATION         => "ZHOLD",
     STARTUP_WAIT         => FALSE,
@@ -118,7 +118,7 @@ begin
     CLKFBOUT_MULT_F      => 62.500,
     CLKFBOUT_PHASE       => 0.000,
     CLKFBOUT_USE_FINE_PS => FALSE,
-    CLKOUT0_DIVIDE_F     => 5.000,
+    CLKOUT0_DIVIDE_F     => 10.000,
     CLKOUT0_PHASE        => 0.000,
     CLKOUT0_DUTY_CYCLE   => 0.500,
     CLKOUT0_USE_FINE_PS  => FALSE,
@@ -140,7 +140,7 @@ begin
     CLKOUT5             => open,
     CLKOUT6             => open,
     -- Input clock control
-    CLKFBIN             => clkfbout,
+    CLKFBIN             => clkfb,
     CLKIN1              => clkin1,
     CLKIN2              => '0',
     -- Tied to always select the primary input clock
@@ -159,7 +159,7 @@ begin
     PSINCDEC            => '0',
     PSDONE              => open,
     -- Other control and status signals
-    LOCKED              => locked_internal,
+    LOCKED              => locked_o,
     CLKINSTOPPED        => open,
     CLKFBSTOPPED        => open,
     PWRDWN              => '0',
