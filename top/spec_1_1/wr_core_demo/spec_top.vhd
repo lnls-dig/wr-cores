@@ -163,6 +163,7 @@ architecture rtl of spec_top is
       clk_ext_i     : in  std_logic;
       clk_ext_mul_o : out std_logic;
       rst_a_i       : in  std_logic;
+      clk_in_stopped_o: out  std_logic;
       locked_o      : out std_logic);
   end component;
 
@@ -295,21 +296,23 @@ architecture rtl of spec_top is
   signal etherbone_cfg_in  : t_wishbone_slave_in;
   signal etherbone_cfg_out : t_wishbone_slave_out;
 
-  signal local_reset, ext_pll_reset : std_logic;
+  signal ext_pll_reset : std_logic;
   signal clk_ext, clk_ext_mul       : std_logic;
   signal clk_ext_mul_locked         : std_logic;
+  signal clk_ext_stopped            : std_logic;
+  signal clk_ext_rst                : std_logic;
   signal clk_ref_div2               : std_logic;
   
 begin
 
-  local_reset <= not local_reset_n;
 
   U_Ext_PLL : ext_pll_10_to_125m
     port map (
-      clk_ext_i     => clk_ext,
-      clk_ext_mul_o => clk_ext_mul,
-      rst_a_i       => ext_pll_reset,
-      locked_o      => clk_ext_mul_locked);
+      clk_ext_i        => clk_ext,
+      clk_ext_mul_o    => clk_ext_mul,
+      rst_a_i          => ext_pll_reset,
+      clk_in_stopped_o => clk_ext_stopped,
+      locked_o         => clk_ext_mul_locked);
 
   U_Extend_EXT_Reset : gc_extend_pulse
     generic map (
@@ -317,7 +320,7 @@ begin
     port map (
       clk_i      => clk_sys,
       rst_n_i    => local_reset_n,
-      pulse_i    => local_reset,
+      pulse_i    => clk_ext_rst,
       extended_o => ext_pll_reset);
 
   cmp_sys_clk_pll : PLL_BASE
@@ -585,6 +588,8 @@ begin
       clk_ext_i     => clk_ext,
       clk_ext_mul_i => clk_ext_mul,
       clk_ext_mul_locked_i => clk_ext_mul_locked,
+      clk_ext_stopped_i    => clk_ext_stopped,
+      clk_ext_rst_o        => clk_ext_rst,
       pps_ext_i     => dio_in(3),
       rst_n_i       => local_reset_n,
 

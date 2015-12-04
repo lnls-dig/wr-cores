@@ -112,6 +112,8 @@ entity wr_softpll_ng is
 -- External clock, multiplied to 125 MHz using the FPGA's PLL
     clk_ext_mul_i : in std_logic;
     clk_ext_mul_locked_i : in std_logic := '1';
+    clk_ext_stopped_i : in std_logic := '0';
+    clk_ext_rst_o : out std_logic;
 
 -- External clock sync/alignment singnal. SoftPLL will align clk_ext_i/clk_fb_i(0)
 -- to match the edges immediately following the rising edge in sync_p_i.
@@ -525,7 +527,9 @@ begin  -- rtl
         );
 
     regs_out.eccr_ext_supported_i   <= '1';
-    regs_out.eccr_ext_ref_present_i <= clk_ext_mul_locked_i;
+    regs_out.eccr_ext_ref_locked_i  <= clk_ext_mul_locked_i;
+    regs_out.eccr_ext_ref_stopped_i <= clk_ext_stopped_i;
+    clk_ext_rst_o <= regs_in.eccr_ext_ref_pllrst_o;
   end generate gen_with_ext_clock_input;
 
   aligner_sample_valid(g_num_outputs-1 downto 0) <= (others => '0');
@@ -533,6 +537,9 @@ begin  -- rtl
   gen_without_ext_clock_input : if(not g_with_ext_clock_input) generate
     tags_p(g_num_ref_inputs + g_num_outputs) <= '0';
     regs_out.eccr_ext_supported_i            <= '0';
+    regs_out.eccr_ext_ref_locked_i           <= '0';
+    regs_out.eccr_ext_ref_stopped_i          <= '0';
+    clk_ext_rst_o <= '0';
   end generate gen_without_ext_clock_input;
 
   p_ack_aligner_samples: process(regs_in, aligner_sample_valid)

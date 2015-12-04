@@ -117,6 +117,8 @@ entity wr_core is
 
     clk_ext_mul_i : in std_logic := '0';
     clk_ext_mul_locked_i  : in  std_logic := '1';
+    clk_ext_stopped_i     : in  std_logic := '0';
+    clk_ext_rst_o         : out std_logic;
 
     -- External 10 MHz reference (cesium, GPSDO, etc.), used in Grandmaster mode
     clk_ext_i : in std_logic := '0';
@@ -556,6 +558,8 @@ begin
       clk_ext_i     => clk_ext_i,
       clk_ext_mul_i => clk_ext_mul_i,
       clk_ext_mul_locked_i => clk_ext_mul_locked_i,
+      clk_ext_stopped_i    => clk_ext_stopped_i,
+      clk_ext_rst_o        => clk_ext_rst_o,
 
       pps_csync_p1_i => s_pps_csync,
       pps_ext_a_i => pps_ext_i,

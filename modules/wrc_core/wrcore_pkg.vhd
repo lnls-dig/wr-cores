@@ -271,6 +271,8 @@ package wrcore_pkg is
       clk_ext_i       : in  std_logic;
       clk_ext_mul_i   : in  std_logic;
       clk_ext_mul_locked_i : in std_logic;
+      clk_ext_stopped_i    : in std_logic;
+      clk_ext_rst_o        : out std_logic;
       pps_csync_p1_i  : in  std_logic;
       pps_ext_a_i     : in  std_logic;
       dac_dmtd_data_o : out std_logic_vector(15 downto 0);
@@ -318,6 +320,8 @@ package wrcore_pkg is
       clk_aux_i            : in std_logic_vector(g_aux_clks-1 downto 0) := (others => '0');
       clk_ext_mul_i        : in std_logic := '0';
       clk_ext_mul_locked_i : in std_logic := '1';
+      clk_ext_stopped_i    : in std_logic := '0';
+      clk_ext_rst_o        : out std_logic;
       clk_ext_i            : in std_logic := '0';
       pps_ext_i            : in std_logic := '0';
       rst_n_i              : in std_logic;
@@ -448,7 +452,9 @@ package wrcore_pkg is
       clk_ext_i : in std_logic := '0';
 
       clk_ext_mul_i : in std_logic := '0';
-      clk_ext_mul_locked_i  : in std_logic := '1';
+      clk_ext_mul_locked_i : in std_logic := '1';
+      clk_ext_stopped_i    : in std_logic := '0';
+      clk_ext_rst_o        : out std_logic;
 
       -- External PPS input (cesium, GPSDO, etc.), used in Grandmaster mode
       pps_ext_i : in std_logic := '0';
