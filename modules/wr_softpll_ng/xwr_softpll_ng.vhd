@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2011-01-29
--- Last update: 2013-07-25
+-- Last update: 2014-07-15
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -74,10 +74,9 @@ entity xwr_softpll_ng is
 -- Divides the DDMTD clock inputs by 2, removing the "CLOCK_DEDICATED_ROUTE"
 -- errors under ISE tools, at the cost of bandwidth reduction. Use with care.
     g_divide_input_by_2 : boolean := false;
-    
--- Configuration of all output channels (phase detector type & dividers). See
--- softpll_pkg.vhd for details.
-    g_channels_config : t_softpll_channel_config_array := c_softpll_default_channel_config;
+
+    g_ref_clock_rate : integer := 125000000;
+    g_ext_clock_rate : integer := 10000000;
 
     g_interface_mode      : t_wishbone_interface_mode      := PIPELINED;
     g_address_granularity : t_wishbone_address_granularity := BYTE
@@ -99,9 +98,14 @@ entity xwr_softpll_ng is
 -- g_with_ext_clock_input == true
     clk_ext_i : in std_logic;
 
+-- External clock, multiplied to 125 MHz using the FPGA's PLL
+    clk_ext_mul_i : in std_logic;
+
 -- External clock sync/alignment singnal. SoftPLL will clk_ext_i/clk_fb_i(0)
 -- to match the edges immediately following the rising edge in sync_p_i.
-    sync_p_i : in std_logic;
+    pps_csync_p1_i : in std_logic;
+
+    pps_ext_a_i : in std_logic;
 
 -- DMTD oscillator drive
     dac_dmtd_data_o : out std_logic_vector(15 downto 0);
@@ -115,18 +119,18 @@ entity xwr_softpll_ng is
 
     out_enable_i : in  std_logic_vector(g_num_outputs-1 downto 0);
     out_locked_o : out std_logic_vector(g_num_outputs-1 downto 0);
+    out_status_o : out std_logic_vector(4*g_num_outputs-1 downto 0);
 
     slave_i : in  t_wishbone_slave_in;
     slave_o : out t_wishbone_slave_out;
 
-    debug_o        : out std_logic_vector(3 downto 0);
+    debug_o        : out std_logic_vector(5 downto 0);
     dbg_fifo_irq_o : out std_logic
     );
 
 end xwr_softpll_ng;
 
 architecture wrapper of xwr_softpll_ng is
-
   component wr_softpll_ng
     generic (
       g_tag_bits             : integer;
@@ -136,7 +140,8 @@ architecture wrapper of xwr_softpll_ng is
       g_with_ext_clock_input : boolean;
       g_reverse_dmtds        : boolean;
       g_divide_input_by_2    : boolean;
-      g_channels_config      : t_softpll_channel_config_array;
+      g_ref_clock_rate       : integer;
+      g_ext_clock_rate       : integer;
       g_interface_mode       : t_wishbone_interface_mode;
       g_address_granularity  : t_wishbone_address_granularity);
     port (
@@ -146,7 +151,9 @@ architecture wrapper of xwr_softpll_ng is
       clk_fb_i        : in  std_logic_vector(g_num_outputs-1 downto 0);
       clk_dmtd_i      : in  std_logic;
       clk_ext_i       : in  std_logic;
-      sync_p_i        : in  std_logic;
+      clk_ext_mul_i   : in  std_logic;
+      pps_csync_p1_i  : in  std_logic;
+      pps_ext_a_i     : in  std_logic;
       dac_dmtd_data_o : out std_logic_vector(15 downto 0);
       dac_dmtd_load_o : out std_logic;
       dac_out_data_o  : out std_logic_vector(15 downto 0);
@@ -154,17 +161,19 @@ architecture wrapper of xwr_softpll_ng is
       dac_out_load_o  : out std_logic;
       out_enable_i    : in  std_logic_vector(g_num_outputs-1 downto 0);
       out_locked_o    : out std_logic_vector(g_num_outputs-1 downto 0);
-      wb_adr_i        : in  std_logic_vector(6 downto 0);
-      wb_dat_i        : in  std_logic_vector(31 downto 0);
-      wb_dat_o        : out std_logic_vector(31 downto 0);
-      wb_cyc_i        : in  std_logic;
-      wb_sel_i        : in  std_logic_vector(3 downto 0);
+      out_status_o    : out std_logic_vector(4*g_num_outputs-1 downto 0);
+
+      wb_adr_i   : in  std_logic_vector(c_wishbone_address_width-1 downto 0);
+      wb_dat_i   : in  std_logic_vector(c_wishbone_data_width-1 downto 0);
+      wb_dat_o   : out std_logic_vector(c_wishbone_data_width-1 downto 0);
+      wb_cyc_i   : in  std_logic;
+      wb_sel_i   : in  std_logic_vector(c_wishbone_data_width/8-1 downto 0);
       wb_stb_i        : in  std_logic;
       wb_we_i         : in  std_logic;
       wb_ack_o        : out std_logic;
       wb_stall_o      : out std_logic;
       wb_irq_o        : out std_logic;
-      debug_o         : out std_logic_vector(3 downto 0);
+      debug_o         : out std_logic_vector(5 downto 0);
       dbg_fifo_irq_o  : out std_logic);
   end component;
   
@@ -181,7 +190,8 @@ begin  -- behavioral
       g_with_ext_clock_input => g_with_ext_clock_input,
       g_reverse_dmtds        => g_reverse_dmtds,
       g_divide_input_by_2    => g_divide_input_by_2,
-      g_channels_config      => g_channels_config
+      g_ref_clock_rate  => g_ref_clock_rate,
+      g_ext_clock_rate  => g_ext_clock_rate
       )
     port map (
       clk_sys_i       => clk_sys_i,
@@ -190,7 +200,9 @@ begin  -- behavioral
       clk_fb_i        => clk_fb_i,
       clk_dmtd_i      => clk_dmtd_i,
       clk_ext_i       => clk_ext_i,
-      sync_p_i        => sync_p_i,
+      clk_ext_mul_i   => clk_ext_mul_i,
+      pps_csync_p1_i  => pps_csync_p1_i,
+      pps_ext_a_i     => pps_ext_a_i,
       dac_dmtd_data_o => dac_dmtd_data_o,
       dac_dmtd_load_o => dac_dmtd_load_o,
       dac_out_data_o  => dac_out_data_o,
@@ -198,7 +210,7 @@ begin  -- behavioral
       dac_out_load_o  => dac_out_load_o,
       out_enable_i    => out_enable_i,
       out_locked_o    => out_locked_o,
-      wb_adr_i        => slave_i.adr(6 downto 0),
+      wb_adr_i        => slave_i.adr,
       wb_dat_i        => slave_i.dat,
       wb_dat_o        => slave_o.dat,
       wb_cyc_i        => slave_i.cyc,

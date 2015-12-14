@@ -37,7 +37,7 @@ module endpoint_phy_wrapper
 
   initial begin
       $display("Selected PHY Type: %s", g_phy_type);
-      $stop;
+//      $stop;
    end
    
    generate
@@ -137,6 +137,12 @@ module endpoint_phy_wrapper
          
       end // else: !if(g_phy_type == "TBI")
    endgenerate
+
+   reg [15:0] inject_user_value;
+   reg [2:0]  inject_sel;
+   reg        inject_req = 0;
+   wire       inject_ready;
+   
    
    wr_endpoint
      #(
@@ -147,7 +153,8 @@ module endpoint_phy_wrapper
        .g_with_timestamper    (1),
        .g_with_dmtd           (0),
        .g_with_dpi_classifier (1),
-       .g_with_vlans          (0),
+       .g_with_vlans          (1),
+       .g_with_packet_injection(1),
        .g_with_rtu            (0)
        ) DUT (
               .clk_ref_i (clk_ref_i),
@@ -213,7 +220,33 @@ module endpoint_phy_wrapper
               .wb_adr_i(sys.adr[7:0]),
               .wb_dat_i(sys.dat_o),
               .wb_dat_o(sys.dat_i),
-              .wb_ack_o (sys.ack)
+              .wb_ack_o (sys.ack),
+
+              .inject_req_i(inject_req),
+              .inject_ready_o(inject_ready),
+              .inject_packet_sel_i   (inject_sel),
+              .inject_user_value_i   (inject_user_value)
+              
     );
+
+   task do_inject(int template_sel, int user_val);
+      while(!inject_ready) @(posedge clk_sys_i);
+
+      inject_sel <= template_sel;
+      inject_user_value <= user_val;
+      inject_req <= 1;
+
+      @(posedge clk_sys_i);
+
+      inject_req <= 0;
+
+      forever begin
+         @(posedge clk_sys_i);
+         if(inject_ready) break;
+      end
+      
+      
+   endtask // do_inject
+   
 
 endmodule // endpoint_phy_wrapper

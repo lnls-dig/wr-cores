@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2011-01-29
--- Last update: 2013-07-25
+-- Last update: 2014-07-15
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -81,9 +81,9 @@ entity wr_softpll_ng is
 -- use with care.
     g_divide_input_by_2 : boolean := false;
 
--- Configuration of all output channels (phase detector type & dividers). See
--- softpll_pkg.vhd for details.
-    g_channels_config : t_softpll_channel_config_array := c_softpll_default_channel_config;
+    g_ref_clock_rate : integer := 125000000;
+    g_ext_clock_rate : integer := 10000000;
+
 
     g_interface_mode      : t_wishbone_interface_mode      := PIPELINED;
     g_address_granularity : t_wishbone_address_granularity := WORD
@@ -109,9 +109,13 @@ entity wr_softpll_ng is
 -- g_with_ext_clock_input == true
     clk_ext_i : in std_logic;
 
+-- External clock, multiplied to 125 MHz using the FPGA's PLL
+    clk_ext_mul_i : in std_logic;
+
 -- External clock sync/alignment singnal. SoftPLL will align clk_ext_i/clk_fb_i(0)
 -- to match the edges immediately following the rising edge in sync_p_i.
-    sync_p_i : in std_logic;
+    pps_csync_p1_i : in std_logic;
+    pps_ext_a_i    : in std_logic;
 
 -- DMTD oscillator drive
     dac_dmtd_data_o : out std_logic_vector(15 downto 0);
@@ -130,17 +134,19 @@ entity wr_softpll_ng is
 -- When HI, the respective clock output is locked.
     out_locked_o : out std_logic_vector(g_num_outputs-1 downto 0);
 
-    wb_adr_i   : in  std_logic_vector(6 downto 0);
-    wb_dat_i   : in  std_logic_vector(31 downto 0);
-    wb_dat_o   : out std_logic_vector(31 downto 0);
+    out_status_o : out std_logic_vector(4*g_num_outputs-1 downto 0);
+
+    wb_adr_i   : in  std_logic_vector(c_wishbone_address_width-1 downto 0);
+    wb_dat_i   : in  std_logic_vector(c_wishbone_data_width-1 downto 0);
+    wb_dat_o   : out std_logic_vector(c_wishbone_data_width-1 downto 0);
     wb_cyc_i   : in  std_logic;
-    wb_sel_i   : in  std_logic_vector(3 downto 0);
+    wb_sel_i   : in  std_logic_vector(c_wishbone_data_width/8-1 downto 0);
     wb_stb_i   : in  std_logic;
     wb_we_i    : in  std_logic;
     wb_ack_o   : out std_logic;
     wb_stall_o : out std_logic;
     wb_irq_o   : out std_logic;
-    debug_o    : out std_logic_vector(3 downto 0);
+    debug_o    : out std_logic_vector(5 downto 0);
 
 -- Debug FIFO readout interrupt
     dbg_fifo_irq_o : out std_logic
@@ -157,32 +163,11 @@ architecture rtl of wr_softpll_ng is
   constant c_DBG_FIFO_COALESCE  : integer := 100;
   constant c_BB_ERROR_BITS      : integer := 16;
 
-  component spll_bangbang_pd
-    generic (
-      g_error_bits : integer);
-    port (
-      clk_ref_i      : in  std_logic;
-      clk_fb_i       : in  std_logic;
-      clk_sys_i      : in  std_logic;
-      rst_n_refclk_i : in  std_logic;
-      rst_n_fbck_i   : in  std_logic;
-      rst_n_sysclk_i : in  std_logic;
-      cfg_div_ref_i  : in  std_logic_vector(5 downto 0);
-      cfg_div_fb_i   : in  std_logic_vector(5 downto 0);
-      cfg_gating_i   : in  std_logic_vector(3 downto 0);
-      sync_p_i       : in  std_logic;
-      sync_en_i      : in  std_logic;
-      sync_done_o    : out std_logic;
-      err_wrap_o     : out std_logic;
-      err_o          : out std_logic_vector(g_error_bits-1 downto 0);
-      err_stb_o      : out std_logic;
-      ref_present_o  : out std_logic);
-  end component;
-
   component dmtd_with_deglitcher
     generic (
       g_counter_bits      : natural;
-      g_divide_input_by_2 : boolean);
+      g_divide_input_by_2 : boolean;
+			g_reverse           :	boolean);
     port (
       rst_n_dmtdclk_i      : in  std_logic;
       rst_n_sysclk_i       : in  std_logic;
@@ -199,7 +184,8 @@ architecture rtl of wr_softpll_ng is
       deglitch_threshold_i : in  std_logic_vector(15 downto 0);
       dbg_dmtdout_o        : out std_logic;
       tag_o                : out std_logic_vector(g_counter_bits-1 downto 0);
-      tag_stb_p1_o         : out std_logic);
+      tag_stb_p1_o         : out std_logic;
+			dbg_clk_d3_o         : out std_logic);
   end component;
 
   component spll_wb_slave
@@ -208,7 +194,7 @@ architecture rtl of wr_softpll_ng is
     port (
       rst_n_i    : in  std_logic;
       clk_sys_i  : in  std_logic;
-      wb_adr_i   : in  std_logic_vector(4 downto 0);
+      wb_adr_i   : in  std_logic_vector(5 downto 0);
       wb_dat_i   : in  std_logic_vector(31 downto 0);
       wb_dat_o   : out std_logic_vector(31 downto 0);
       wb_cyc_i   : in  std_logic;
@@ -223,48 +209,25 @@ architecture rtl of wr_softpll_ng is
       regs_o     : out t_spll_out_registers);
   end component;
 
-  procedure f_rr_arbitrate (
-    signal req       : in  std_logic_vector;
-    signal pre_grant : in  std_logic_vector;
-    signal grant     : out std_logic_vector)is
-
-    variable reqs  : std_logic_vector(req'length - 1 downto 0);
-    variable gnts  : std_logic_vector(req'length - 1 downto 0);
-    variable gnt   : std_logic_vector(req'length - 1 downto 0);
-    variable gntM  : std_logic_vector(req'length - 1 downto 0);
-    variable zeros : std_logic_vector(req'length - 1 downto 0);
-    
-  begin
-    zeros := (others => '0');
-    reqs  := req;
-    -- bit twiddling magic :
-    gnt   := reqs and std_logic_vector(unsigned(not reqs) + 1);
-    reqs  := reqs and not (std_logic_vector(unsigned(pre_grant) - 1) or pre_grant);
-    gnts  := reqs and std_logic_vector(unsigned(not reqs) + 1);
-
-    if(reqs = zeros) then
-      gntM := gnt;
-    else
-      gntM := gnts;
-    end if;
-
-    if((req and pre_grant) = zeros) then
-      grant <= gntM;
-    end if;
-    
-  end f_rr_arbitrate;
-
-  function f_onehot_decode(x : std_logic_vector) return std_logic_vector is
-  begin
-    for j in 0 to x'left loop
-      if x(j) /= '0' then
-        return std_logic_vector(to_unsigned(j, 6));
-      end if;
-    end loop;  -- i
-    return std_logic_vector(to_unsigned(0, 6));
-  end f_onehot_decode;
-
-
+  component spll_aligner
+    generic (
+      g_counter_width  : integer;
+      g_ref_clock_rate : integer;
+      g_in_clock_rate  : integer;
+      g_sample_rate    : integer);
+    port (
+      clk_sys_i      : in  std_logic;
+      clk_in_i       : in  std_logic;
+      clk_ref_i      : in  std_logic;
+      rst_n_sys_i    : in  std_logic;
+      pps_ext_a_i    : in  std_logic;
+      pps_csync_p1_i : in  std_logic;
+      sample_cref_o  : out std_logic_vector(g_counter_width-1 downto 0);
+      sample_cin_o   : out std_logic_vector(g_counter_width-1 downto 0);
+      sample_pps_o   : out std_logic;
+      sample_valid_o : out std_logic;
+      sample_ack_i   : in  std_logic);
+  end component;
   function f_num_total_channels
     return integer is
   begin
@@ -309,17 +272,9 @@ architecture rtl of wr_softpll_ng is
     return tmp;
   end resize;
 
-  type t_out_channel_bb_config is record
-    div_ref : std_logic_vector(5 downto 0);
-    div_fb  : std_logic_vector(5 downto 0);
-    gating  : std_logic_vector(3 downto 0);
-  end record;
-
   type t_tag_array is array (0 to f_num_total_channels-1) of std_logic_vector(g_tag_bits-1 downto 0);
 
   type t_phase_error_array is array(0 to g_num_outputs-1) of std_logic_vector(c_BB_ERROR_BITS-1 downto 0);
-
-  type t_out_channel_bb_config_array is array (0 to g_num_outputs-1) of t_out_channel_bb_config;
 
   signal tags, tags_masked                          : t_tag_array;
   signal tags_grant_p, tags_p, tags_req, tags_grant : std_logic_vector(f_num_total_channels-1 downto 0);
@@ -327,34 +282,19 @@ architecture rtl of wr_softpll_ng is
   signal tag_src, tag_src_pre                       : std_logic_vector (5 downto 0);
   signal tag_valid, tag_valid_pre                   : std_logic;
 
-  signal rst_n_refclk  : std_logic;
-  signal rst_n_extclk  : std_logic;
-  signal rst_n_rxclk   : std_logic_vector(g_num_ref_inputs-1 downto 0);
-  signal rst_n_fb      : std_logic;
-
   signal deglitch_thr_slv : std_logic_vector(15 downto 0);
 
   signal irq_tag : std_logic;
 
-  signal dmtd_freq_err       : std_logic_vector(11 downto 0);
-  signal dmtd_freq_err_stb_p : std_logic;
-
-  signal bb_phase_err                          : std_logic_vector(15 downto 0);
-  signal bb_phase_err_stb_p, bb_phase_err_wrap : std_logic;
-
   signal rcer_int : std_logic_vector(g_num_ref_inputs-1 downto 0);
   signal ocer_int : std_logic_vector(g_num_outputs-1 downto 0);
 
-  signal clk_ref_buf : std_logic;
-  signal clk_rx_buf  : std_logic;
-
   signal wb_irq_out : std_logic;
 
-  signal resized_addr : std_logic_vector(c_wishbone_address_width-1 downto 0);
-  signal wb_out       : t_wishbone_slave_out;
-  signal wb_in        : t_wishbone_slave_in;
-  signal regs_in      : t_SPLL_out_registers;
-  signal regs_out     : t_SPLL_in_registers;
+  signal wb_out   : t_wishbone_slave_out;
+  signal wb_in    : t_wishbone_slave_in;
+  signal regs_in  : t_SPLL_out_registers;
+  signal regs_out : t_SPLL_in_registers;
 
   -- Debug FIFO signals
   signal dbg_fifo_almostfull   : std_logic;
@@ -363,32 +303,23 @@ architecture rtl of wr_softpll_ng is
 
   -- Temporary vectors for DDMTD clock selection (straight/reversed)
   signal dmtd_ref_clk_in, dmtd_ref_clk_dmtd : std_logic_vector(g_num_ref_inputs-1 downto 0);
-  signal rst_n_dmtd_ref_clk : std_logic_vector(g_num_ref_inputs-1 downto 0);
-  
-  signal dmtd_fb_clk_in, dmtd_fb_clk_dmtd   : std_logic_vector(g_num_outputs-1 downto 0);
-  signal rst_n_dmtd_fb_clk : std_logic_vector(g_num_outputs-1 downto 0);
+  signal rst_n_dmtd_ref_clk                 : std_logic_vector(g_num_ref_inputs-1 downto 0);
 
-  signal bb_sync_en, bb_sync_done : std_logic;
-  signal ext_ref_present          : std_logic;
-  signal fb_resync_out            : std_logic_vector(g_num_outputs-1 downto 0);
+  signal dmtd_fb_clk_in, dmtd_fb_clk_dmtd : std_logic_vector(g_num_outputs-1 downto 0);
+  signal rst_n_dmtd_fb_clk                : std_logic_vector(g_num_outputs-1 downto 0);
+
+  signal ext_ref_present : std_logic;
+  signal fb_resync_out   : std_logic_vector(g_num_outputs-1 downto 0);
 
   signal ref_resync_start_p : std_logic_vector(31 downto 0);
   signal fb_resync_start_p  : std_logic_vector(15 downto 0);
 
-  signal rst_n_bb_ref : std_logic_vector(g_num_outputs-1 downto 0);
-  signal rst_n_bb_fb  : std_logic_vector(g_num_outputs-1 downto 0);
+  type t_aligner_sample_array is array(0 to g_num_outputs) of std_logic_vector(27 downto 0);
 
-
-  signal bb_chx_phase_err                              : t_phase_error_array;
-  signal bb_chx_phase_err_wrap, bb_chx_phase_err_stb_p : std_logic_vector(g_num_outputs-1 downto 0);
-
-  signal bb_config    : t_out_channel_bb_config_array;
-  signal bb_det_reset : std_logic_vector(g_num_outputs-1 downto 0);
+  signal aligner_sample_valid, aligner_sample_ack : std_logic_vector(g_num_outputs downto 0);
+  signal aligner_sample_cref, aligner_sample_cin  : t_aligner_sample_array;
   
 begin  -- rtl
-
-  resized_addr(6 downto 0)                          <= wb_adr_i;
-  resized_addr(c_wishbone_address_width-1 downto 7) <= (others => '0');
 
   U_Adapter : wb_slave_adapter
     generic map(
@@ -403,7 +334,7 @@ begin  -- rtl
       rst_n_i    => rst_n_i,
       master_i   => wb_out,
       master_o   => wb_in,
-      sl_adr_i   => resized_addr,
+      sl_adr_i   => wb_adr_i,
       sl_dat_i   => wb_dat_i,
       sl_sel_i   => wb_sel_i,
       sl_cyc_i   => wb_cyc_i,
@@ -413,16 +344,54 @@ begin  -- rtl
       sl_ack_o   => wb_ack_o,
       sl_stall_o => wb_stall_o);
 
+  U_Meas_DMTD_Freq: gc_frequency_meter
+    generic map (
+      g_with_internal_timebase => false,
+      g_clk_sys_freq           => 1,
+      g_counter_bits           => 28)
+    port map (
+      clk_sys_i    => clk_sys_i,
+      clk_in_i     => clk_dmtd_i,
+      rst_n_i      => rst_n_i,
+      pps_p1_i     => pps_ext_a_i,
+      freq_o       => regs_out.f_dmtd_freq_i,
+      freq_valid_o => open);            -- fixme
+
+  U_Meas_REF_Freq: gc_frequency_meter
+    generic map (
+      g_with_internal_timebase => false,
+      g_clk_sys_freq           => 1,
+      g_counter_bits           => 28)
+    port map (
+      clk_sys_i    => clk_sys_i,
+      clk_in_i     => clk_fb_i(0),
+      rst_n_i      => rst_n_i,
+      pps_p1_i     => pps_ext_a_i,
+      freq_o       => regs_out.f_ref_freq_i,
+      freq_valid_o => open);            -- fixme
+
+  U_Meas_EXT_Freq: gc_frequency_meter
+    generic map (
+      g_with_internal_timebase => false,
+      g_clk_sys_freq           => 1,
+      g_counter_bits           => 28)
+    port map (
+      clk_sys_i    => clk_sys_i,
+      clk_in_i     => clk_ext_i,
+      rst_n_i      => rst_n_i,
+      pps_p1_i     => pps_ext_a_i,
+      freq_o       => regs_out.f_ext_freq_i,
+      freq_valid_o => open);            -- fixme
+  
+
   gen_ref_dmtds : for i in 0 to g_num_ref_inputs-1 generate
 
-    dmtd_ref_clk_in(i)   <= f_pick(g_reverse_dmtds, clk_dmtd_i, clk_ref_i(i));
-    dmtd_ref_clk_dmtd(i) <= f_pick(g_reverse_dmtds, clk_ref_i(i), clk_dmtd_i);
 
     U_sync_rst_dmtd_ref : gc_sync_ffs
       generic map (
         g_sync_edge => "positive")
       port map (
-        clk_i    => dmtd_ref_clk_dmtd(i),
+        clk_i    => clk_dmtd_i,
         rst_n_i  => '1',
         data_i   => rst_n_i,
         synced_o => rst_n_dmtd_ref_clk(i));
@@ -430,19 +399,20 @@ begin  -- rtl
     DMTD_REF : dmtd_with_deglitcher
       generic map (
         g_counter_bits      => g_tag_bits,
-        g_divide_input_by_2 => g_divide_input_by_2)
+        g_divide_input_by_2 => g_divide_input_by_2,
+				g_reverse	=> g_reverse_dmtds)
       port map (
         rst_n_dmtdclk_i => rst_n_dmtd_ref_clk(i),
         rst_n_sysclk_i  => rst_n_i,
 
-        clk_dmtd_i    => dmtd_ref_clk_dmtd(i),
+        clk_dmtd_i    => clk_dmtd_i,
         clk_dmtd_en_i => '1',
 
         clk_sys_i => clk_sys_i,
-        clk_in_i  => dmtd_ref_clk_in(i),
+        clk_in_i  => clk_ref_i(i),
 
-        resync_done_o    => regs_out.crr_in_i(i),
-        resync_start_p_i => ref_resync_start_p(i),
+        resync_done_o    => open,
+        resync_start_p_i => '0',
         resync_p_a_i     => fb_resync_out(0),
         resync_p_o       => open,
 
@@ -457,199 +427,141 @@ begin  -- rtl
   end generate gen_ref_dmtds;
 
   gen_feedback_dmtds : for i in 0 to g_num_outputs-1 generate
+    
 
-    gen_output_pd_ddmtd : if(g_channels_config(i) = CH_DDMTD or i = 0) generate
-      
-      dmtd_fb_clk_in(i)   <= f_pick(g_reverse_dmtds, clk_dmtd_i, clk_fb_i(i));
-      dmtd_fb_clk_dmtd(i) <= f_pick(g_reverse_dmtds, clk_fb_i(i), clk_dmtd_i);
+    U_sync_rst_dmtd_fb : gc_sync_ffs
+      generic map (
+        g_sync_edge => "positive")
+      port map (
+        clk_i    => clk_dmtd_i,
+        rst_n_i  => '1',
+        data_i   => rst_n_i,
+        synced_o => rst_n_dmtd_fb_clk(i));
 
-      U_sync_rst_dmtd_fb : gc_sync_ffs
-        generic map (
-          g_sync_edge => "positive")
-        port map (
-          clk_i    => dmtd_fb_clk_dmtd(i),
-          rst_n_i  => '1',
-          data_i   => rst_n_i,
-          synced_o => rst_n_dmtd_fb_clk(i));
+    DMTD_FB : dmtd_with_deglitcher
+      generic map (
+        g_counter_bits      => g_tag_bits,
+        g_divide_input_by_2 => g_divide_input_by_2,
+				g_reverse => g_reverse_dmtds)
+      port map (
+        rst_n_dmtdclk_i => rst_n_dmtd_fb_clk(i),
+        rst_n_sysclk_i  => rst_n_i,
 
-      DMTD_FB : dmtd_with_deglitcher
-        generic map (
-          g_counter_bits      => g_tag_bits,
-          g_divide_input_by_2 => g_divide_input_by_2)
-        port map (
-          rst_n_dmtdclk_i => rst_n_dmtd_fb_clk(i),
-          rst_n_sysclk_i  => rst_n_i,
-          clk_dmtd_i      => dmtd_fb_clk_dmtd(i),
-          clk_dmtd_en_i   => '1',
+        clk_dmtd_i    => clk_dmtd_i,
+        clk_dmtd_en_i => '1',
 
-          clk_sys_i => clk_sys_i,
-          clk_in_i  => dmtd_fb_clk_in(i),
+        clk_sys_i => clk_sys_i,
+        clk_in_i  => clk_fb_i(i),
 
-          resync_done_o    => regs_out.crr_out_i(i),
-          resync_start_p_i => fb_resync_start_p(i),
-          resync_p_a_i     => fb_resync_out(0),
-          resync_p_o       => fb_resync_out(i),
+        resync_done_o    => open,
+        resync_start_p_i => '0',
+        resync_p_a_i     => fb_resync_out(0),
+        resync_p_o       => fb_resync_out(i),
 
-          tag_o        => tags(i+g_num_ref_inputs),
-          tag_stb_p1_o => tags_p(i+g_num_ref_inputs),
-          shift_en_i   => '0',
-          shift_dir_i  => '0',
+        tag_o        => tags(i+g_num_ref_inputs),
+        tag_stb_p1_o => tags_p(i+g_num_ref_inputs),
+        shift_en_i   => '0',
+        shift_dir_i  => '0',
 
-          deglitch_threshold_i => deglitch_thr_slv,
-          dbg_dmtdout_o        => open);
-
-      regs_out.occr_out_det_type_i(i) <= '0';
-
-    end generate gen_output_pd_ddmtd;
+        deglitch_threshold_i => deglitch_thr_slv,
+        dbg_dmtdout_o        => open,
+				dbg_clk_d3_o         => debug_o(4));
 
 
-    gen_output_pd_bb : if (g_channels_config(i) = CH_BANGBANG and i /= 0) generate
-
-      p_dividers_config : process(clk_sys_i)
-      begin
-        if rising_edge(clk_sys_i) then
-          if(regs_in.aux_cr_aux_sel_o = std_logic_vector(to_unsigned(i, 3)) and regs_in.aux_cr_aux_sel_wr_o = '1') then
-            bb_config(i).div_ref <= regs_in.aux_cr_div_ref_o;
-            bb_config(i).div_fb  <= regs_in.aux_cr_div_fb_o;
-            bb_config(i).gating  <= regs_in.aux_cr_gate_o;
-          end if;
-        end if;
-      end process;
-
-      bb_det_reset(i) <= rst_n_i and ocer_int(i);
-
-      U_sync_rst_ref : gc_sync_ffs
-        generic map (
-          g_sync_edge => "positive")
-        port map (
-          clk_i    => clk_fb_i(0),  --ref_i(g_channels_config(i).ref_input),
-          rst_n_i  => '1',
-          data_i   => bb_det_reset(i),
-          synced_o => rst_n_bb_ref(i));
-
-      U_sync_rst_fb : gc_sync_ffs
-        generic map (
-          g_sync_edge => "positive")
-        port map (
-          clk_i    => clk_fb_i(i),
-          rst_n_i  => '1',
-          data_i   => bb_det_reset(i),
-          synced_o => rst_n_bb_fb(i));
-
-      U_BB_Detect : spll_bangbang_pd
-        generic map (
-          g_error_bits => c_BB_ERROR_BITS)
-        port map (
--- note: bb detectors can be referenced only to the local 125 MHz oscillator
-          clk_ref_i      => clk_fb_i(0),
-          clk_fb_i       => clk_fb_i(i),
-          clk_sys_i      => clk_sys_i,
-          rst_n_refclk_i => rst_n_bb_ref(i),
-          rst_n_fbck_i   => rst_n_bb_fb(i),
-          rst_n_sysclk_i => rst_n_i,
-
-          cfg_div_ref_i => bb_config(i).div_ref,
-          cfg_div_fb_i  => bb_config(i).div_fb,
-          cfg_gating_i  => bb_config(i).gating,
-
-          sync_p_i      => sync_p_i,
-          sync_en_i     => '1',
-          sync_done_o   => open,
-          err_o         => bb_chx_phase_err(i),
-          err_wrap_o    => bb_chx_phase_err_wrap(i),
-          err_stb_o     => bb_chx_phase_err_stb_p(i),
-          ref_present_o => open);
-
-      tags(i+g_num_ref_inputs)(c_BB_ERROR_BITS downto 0) <= bb_chx_phase_err_wrap(i) & bb_chx_phase_err(i);
-      tags_p(i+g_num_ref_inputs)                         <= bb_chx_phase_err_stb_p(i);
-
-      regs_out.occr_out_det_type_i(i) <= '1';
-      
-    end generate gen_output_pd_bb;
   end generate gen_feedback_dmtds;
 
   gen_with_ext_clock_input : if(g_with_ext_clock_input) generate
+
+		debug_o(0) <= fb_resync_out(0);
+		debug_o(1) <= tags_p(g_num_ref_inputs + g_num_outputs);
+		debug_o(2) <= tags_p(g_num_ref_inputs);
     
-    U_sync_rst_ext : gc_sync_ffs
+    U_DMTD_EXT : dmtd_with_deglitcher
       generic map (
-        g_sync_edge => "positive")
+        g_counter_bits      => g_tag_bits,
+        g_divide_input_by_2 => g_divide_input_by_2,
+				g_reverse	=> g_reverse_dmtds)
       port map (
-        clk_i    => clk_ext_i,
-        rst_n_i  => '1',
-        data_i   => rst_n_i,
-        synced_o => rst_n_extclk);
+        rst_n_dmtdclk_i => rst_n_i,     -- FIXME!
+        rst_n_sysclk_i  => rst_n_i,
+        clk_dmtd_i      => clk_dmtd_i,
+        clk_dmtd_en_i   => '1',
 
-    U_sync_rst_fb0 : gc_sync_ffs
-      generic map (
-        g_sync_edge => "positive")
-      port map (
-        clk_i    => clk_fb_i(0),
-        rst_n_i  => '1',
-        data_i   => rst_n_i,
-        synced_o => rst_n_fb);
+        clk_sys_i => clk_sys_i,
+        clk_in_i  => clk_ext_mul_i,
 
-    U_sync_ffs_sync_en : gc_sync_ffs
-      generic map (
-        g_sync_edge => "positive")
-      port map (
-        clk_i    => clk_ext_i,
-        rst_n_i  => rst_n_i,
-        data_i   => regs_in.eccr_align_en_o,
-        synced_o => bb_sync_en);
+        resync_done_o    => open,
+        resync_start_p_i => '0',
+        resync_p_a_i     => fb_resync_out(0),
+        resync_p_o       => open,
 
-    U_sync_ffs_sync_done : gc_sync_ffs
-      generic map (
-        g_sync_edge => "positive")
-      port map (
-        clk_i    => clk_sys_i,
-        rst_n_i  => rst_n_i,
-        data_i   => bb_sync_done,
-        synced_o => regs_out.eccr_align_done_i);
+        tag_o        => tags(g_num_ref_inputs + g_num_outputs),
+        tag_stb_p1_o => tags_p(g_num_ref_inputs + g_num_outputs),
+        shift_en_i   => '0',
+        shift_dir_i  => '0',
 
-    
-    U_Ext_BB_Detect : spll_bangbang_pd
+        deglitch_threshold_i => deglitch_thr_slv,
+        dbg_dmtdout_o        => debug_o(3),
+				dbg_clk_d3_o         => debug_o(5));
+
+    U_Aligner_EXT : spll_aligner
       generic map (
-        g_error_bits => c_BB_ERROR_BITS)
+        g_counter_width  => 28,
+        g_ref_clock_rate => g_ref_clock_rate,
+        g_in_clock_rate  => g_ext_clock_rate,
+        g_sample_rate    => 100)
       port map (
-        clk_ref_i      => clk_ext_i,
-        clk_fb_i       => clk_fb_i(0),
         clk_sys_i      => clk_sys_i,
-        rst_n_refclk_i => rst_n_i,
-        rst_n_fbck_i   => rst_n_fb,
-        rst_n_sysclk_i => rst_n_i,
-        cfg_div_ref_i  => std_logic_vector(to_unsigned(c_softpll_ext_div_ref, 6)),
-        cfg_div_fb_i   => std_logic_vector(to_unsigned(c_softpll_ext_div_fb, 6)),
-        cfg_gating_i   => std_logic_vector(to_unsigned(c_softpll_ext_log2_gating, 4)),
-        sync_p_i       => sync_p_i,
-        sync_en_i      => bb_sync_en,
-        sync_done_o    => bb_sync_done,
-        err_o          => bb_phase_err,
-        err_wrap_o     => bb_phase_err_wrap,
-        err_stb_o      => bb_phase_err_stb_p,
-        ref_present_o  => ext_ref_present);
-
-    tags(g_num_ref_inputs + g_num_outputs)(c_BB_ERROR_BITS-1 downto 0) <= bb_phase_err(c_BB_ERROR_BITS-1 downto 0);
-    tags(g_num_ref_inputs + g_num_outputs)(c_BB_ERROR_BITS)            <= bb_phase_err_wrap;
+        clk_in_i       => clk_ext_i,
+        clk_ref_i      => clk_fb_i(0),
+        rst_n_sys_i    => rst_n_i,
+        pps_ext_a_i    => pps_ext_a_i,
+        pps_csync_p1_i => pps_csync_p1_i,
+        sample_cref_o  => aligner_sample_cref(g_num_outputs),
+        sample_cin_o   => aligner_sample_cin(g_num_outputs),
+        sample_valid_o => aligner_sample_valid(g_num_outputs),
+        sample_ack_i   => aligner_sample_ack(g_num_outputs)
+        );
 
     regs_out.eccr_ext_supported_i   <= '1';
-    regs_out.eccr_ext_ref_present_i <= ext_ref_present;
+    regs_out.eccr_ext_ref_present_i <= '1';
   end generate gen_with_ext_clock_input;
 
-
-
+  aligner_sample_valid(g_num_outputs-1 downto 0) <= (others => '0');
+  
   gen_without_ext_clock_input : if(not g_with_ext_clock_input) generate
-    regs_out.eccr_ext_supported_i <= '0';
-    bb_phase_err_stb_p            <= '0';
+    tags_p(g_num_ref_inputs + g_num_outputs) <= '0';
+    regs_out.eccr_ext_supported_i            <= '0';
   end generate gen_without_ext_clock_input;
 
+  p_ack_aligner_samples: process(regs_in, aligner_sample_valid)
+  begin
+    for i in 0 to g_num_outputs loop
+      aligner_sample_ack(i)     <= regs_in.al_cr_valid_o(i) and regs_in.al_cr_valid_load_o;
+      regs_out.al_cr_valid_i(i) <= aligner_sample_valid(i);
+    end loop;  -- i in 0 to g_num_outputs
+  end process;
 
+  p_mux_aligner_samples: process(clk_sys_i)
+    begin
+      if rising_edge(clk_sys_i) then
+        for i in 0 to g_num_outputs loop
+          if(aligner_sample_ack(i) = '1') then
+            regs_out.al_cref_i <= resize( aligner_sample_cref(i), 32 );
+            regs_out.al_cin_i <= resize( aligner_sample_cin(i), 32 );
+          end if;
+        end loop;
+      end if;
+    end process;
+
+  
   U_WB_SLAVE : spll_wb_slave
     generic map (
       g_with_debug_fifo => f_pick(g_with_debug_fifo, 1, 0))
     port map (
       clk_sys_i  => clk_sys_i,
       rst_n_i    => rst_n_i,
-      wb_adr_i   => wb_in.adr(4 downto 0),
+      wb_adr_i   => wb_in.adr(5 downto 0),
       wb_dat_i   => wb_in.dat,
       wb_dat_o   => wb_out.dat,
       wb_cyc_i   => wb_in.cyc,
@@ -664,17 +576,6 @@ begin  -- rtl
       regs_i => regs_out,
 
       irq_tag_i => irq_tag);
-
-  -- Counter resync logic
-  process(regs_in)
-  begin
-    for i in 0 to g_num_outputs-1 loop
-      fb_resync_start_p(i) <= regs_in.crr_out_load_o and regs_in.crr_out_o(i);
-    end loop;
-    for i in 0 to g_num_ref_inputs-1 loop
-      ref_resync_start_p(i) <= regs_in.crr_in_load_o and regs_in.crr_in_o(i);
-    end loop;  -- i
-  end process;
 
   p_ocer_rcer_regs : process(clk_sys_i)
   begin
@@ -723,7 +624,7 @@ begin  -- rtl
           end if;
         end loop;  -- i
 
-        if(bb_phase_err_stb_p = '1') then
+        if(tags_p(f_num_total_channels-1) = '1') then
           tags_req(f_num_total_channels-1) <= regs_in.eccr_ext_en_o;
         elsif(tags_grant(f_num_total_channels-1) = '1') then
           tags_req(f_num_total_channels-1) <= '0';
@@ -764,7 +665,7 @@ begin  -- rtl
 
         tag_valid <= tag_valid_pre;
 
-        tag_src_pre <= f_onehot_decode(tags_grant_p);
+        tag_src_pre <= f_onehot_decode(tags_grant_p, tag_src_pre'length);
         tag_src     <= tag_src_pre;
 
         muxed := (others => '0');

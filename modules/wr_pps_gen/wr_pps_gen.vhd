@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-Co-HT
 -- Created    : 2010-09-02
--- Last update: 2013-08-05
+-- Last update: 2014-07-15
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -174,53 +174,18 @@ architecture behavioral of wr_pps_gen is
   signal wb_out       : t_wishbone_slave_out;
   signal wb_in        : t_wishbone_slave_in;
 
-  signal ns_overflow_2nd                        : std_logic;
-  signal pps_in_d0, pps_ext_d0, pps_ext_retimed : std_logic;
+  signal ns_overflow_2nd       : std_logic;
+  signal pps_in_d0, pps_ext_d0 : std_logic;
 
   signal retime_counter : unsigned(4 downto 0);
   signal pps_valid_int  : std_logic;
 
-  signal pps_out_int : std_logic;
+  signal pps_out_int   : std_logic;
+  signal pps_in_refclk : std_logic;
 
 
-  component chipscope_icon
-    port (
-      CONTROL0 : inout std_logic_vector(35 downto 0));
-  end component;
 
-  component chipscope_ila
-    port (
-      CONTROL : inout std_logic_vector(35 downto 0);
-      CLK     : in    std_logic;
-      TRIG0   : in    std_logic_vector(31 downto 0);
-      TRIG1   : in    std_logic_vector(31 downto 0);
-      TRIG2   : in    std_logic_vector(31 downto 0);
-      TRIG3   : in    std_logic_vector(31 downto 0));
-  end component;
-
-  signal control0                   : std_logic_vector(35 downto 0);
-  signal trig0, trig1, trig2, trig3 : std_logic_vector(31 downto 0);
-  
 begin  -- behavioral
-
-
-  --CS_ICON : chipscope_icon
-  --  port map (
-  --    CONTROL0 => CONTROL0);
-  --CS_ILA : chipscope_ila
-  --  port map (
-  --    CONTROL => CONTROL0,
-  --    CLK     => clk_sys_i,
-  --    TRIG0   => TRIG0,
-  --    TRIG1   => TRIG1,
-  --    TRIG2   => TRIG2,
-  --    TRIG3   => TRIG3);
-
-  TRIG0(cntr_pps_ext'length-1 downto 0) <= std_logic_vector(cntr_pps_ext);
-  TRIG1(0)                              <= pps_ext_retimed;
-  TRIG1(1)                              <= pps_in_i;
-  TRIG1(6 downto 2)                     <= std_logic_vector(retime_counter);
-  TRIG1(7)                              <= pps_ext_d0;
 
 
   resized_addr(4 downto 0)                          <= wb_adr_i;
@@ -250,7 +215,7 @@ begin  -- behavioral
       sl_stall_o => wb_stall_o);
 
   
-  sync_reset_refclk : gc_sync_ffs
+  U_Sync_reset_refclk : gc_sync_ffs
     generic map (
       g_sync_edge => "positive")
     port map (
@@ -260,6 +225,15 @@ begin  -- behavioral
       synced_o => rst_synced_refclk,
       npulse_o => open,
       ppulse_o => open);
+
+  U_Sync_pps_refclk : gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => clk_ref_i,
+      rst_n_i  => '1',
+      data_i   => pps_in_i,
+      ppulse_o => pps_in_refclk);
 
 
   ppsg_cntr_nsec  <= std_logic_vector(cntr_nsec);
@@ -290,79 +264,35 @@ begin  -- behavioral
     end if;
   end process;
 
+  gen_without_external_clock_input : if(not g_with_ext_clock_input) generate
+    ext_sync_p <= '0';
+  end generate gen_without_external_clock_input;
+
   gen_with_external_clock_input : if(g_with_ext_clock_input) generate
 
-    -- retime the external PPS pulse. The output (pps_ext_retimed) is:
-    -- single clk_ext_i cycle-wide
-    -- produced one cycle in advance with respect to the original PPS
-    p_retime_external_pps : process(clk_ext_i)
-    begin
-      if rising_edge(clk_ext_i) then
-        if rst_n_i = '0' then
-          cntr_pps_ext    <= (others => '0');
-          pps_ext_d0      <= '0';
-          pps_ext_retimed <= '0';
-        else
-          pps_ext_d0 <= pps_in_i;
-
-          if(cntr_pps_ext = g_ext_clock_rate-1) then
-            pps_ext_retimed <= '1';
-          else
-            pps_ext_retimed <= '0';
-          end if;
-
-          if(pps_in_i = '1' and pps_ext_d0 = '0') then
-            cntr_pps_ext <= to_unsigned(1, cntr_pps_ext'length);
-          elsif(cntr_pps_ext /= g_ext_clock_rate) then
-            cntr_pps_ext <= cntr_pps_ext + 1;
-          end if;
-        end if;
-      end if;
-    end process;
-
-    p_retime_counter : process(clk_ref_i)
-    begin
-      if falling_edge(clk_ref_i) then
-        if rst_synced_refclk = '0' or sync_in_progress = '0' or pps_ext_retimed = '0' then
-          retime_counter <= (others => '0');
-        else
-          retime_counter <= retime_counter + 1;
-        end if;
-      end if;
-    end process;
-
-
-    -- Warning! this state machine inputs pps_ext_retimed signal,
-    -- which is produced in different clock domain than clk_ref_i.
-    -- Run only when EXT channel of the SoftPLL is LOCKED! 
     p_external_sync : process(clk_ref_i)
     begin
       if falling_edge(clk_ref_i) then
         if(rst_synced_refclk = '0') then
-          ext_sync_p        <= '0';
           sync_in_progress  <= '0';
           ppsg_escr_sync_in <= '0';
         else
           if(ppsg_escr_sync_load = '1') then
             sync_in_progress  <= ppsg_escr_sync_out;
             ppsg_escr_sync_in <= '0';
-          end if;
-
-          -- retime counter == last faster clock edge inside the retimed PPS
-          -- pulse -> we should sync ourselves
-          if(sync_in_progress = '1' and pps_ext_retimed = '1' and retime_counter = (g_ref_clock_rate / g_ext_clock_rate - 1)) then
-            ext_sync_p        <= '1';
-            sync_in_progress  <= '0';
-            ppsg_escr_sync_in <= '1';
           else
-            ext_sync_p <= '0';
+            if(sync_in_progress = '1' and pps_in_refclk = '1')
+            then
+              ext_sync_p        <= '1';
+              sync_in_progress  <= '0';
+              ppsg_escr_sync_in <= '1';
+            else
+              ext_sync_p <= '0';
+            end if;
           end if;
         end if;
       end if;
     end process;
-
-
-
 
   end generate gen_with_external_clock_input;
 -- Nanosecond counter. Counts from 0 to c_PERIOD-1 every clk_ref_i cycle.
@@ -431,8 +361,8 @@ begin  -- behavioral
   p_drive_pps_valid : process(clk_ref_i)
   begin
     if rising_edge(clk_ref_i) then
-      if rst_synced_refclk = '0' then
-        pps_valid_int   <= '1';
+      if rst_synced_refclk = '0' or ppsg_cr_cnt_rst = '1' then
+        pps_valid_int   <= '0';
         ns_overflow_2nd <= '0';
       else
         if(sync_in_progress = '1' or adjust_in_progress_nsec = '1' or adjust_in_progress_utc = '1') then
@@ -523,8 +453,6 @@ begin  -- behavioral
       end if;
     end if;
   end process;
-
---  pps_out_o <=pps_ext_retimed;
 
   Uwb_slave : pps_gen_wb
     port map (

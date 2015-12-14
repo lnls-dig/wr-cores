@@ -57,7 +57,7 @@ class EthPacket;
    endtask
    
    function new(int size = _zero);
-      size      = 0;
+//       size      = 0;
       src       = dummy_mac;
       dst       = dummy_mac;
       is_q      = 0;
@@ -88,9 +88,9 @@ class EthPacket;
         begin
            is_q       = 1;
            hsize      = 18;
-           ethertype  = {data[14], data[15]};
-           vid        = ((int'(data[16]) << 8) | data[17]) & 12'hfff;
-           pcp        = data[16] >> 5;
+           ethertype  = {data[16], data[17]};
+           vid        = ((int'(data[14]) << 8) | data[15]) & 12'hfff;
+           pcp        = data[14] >> 5;
         end else begin
            is_q       = 0;
            hsize      = 14;
@@ -130,10 +130,10 @@ class EthPacket;
         begin
            data [12]     = 8'h81;
            data [13]     = 8'h00;
-           data [14]     = ethertype[15:8];
-           data [15]     = ethertype[7:0];
-           data [16]     = {pcp, 1'b0, vid[11:8]};
-           data [17]     = vid[7:0];
+           data [14]     = {pcp, 1'b0, vid[11:8]};
+           data [15]     = vid[7:0];
+           data [16]     = ethertype[15:8];
+           data [17]     = ethertype[7:0];
         end else begin
            data[12]      = ethertype [15:8];
            data[13]      = ethertype [7:0];
@@ -319,55 +319,50 @@ class EthPacketGenerator;
    endfunction // random_bvec
    
    
-   function automatic EthPacket gen();
-      EthPacket pkt;
-      int len;
-      
+	 function automatic EthPacket gen(int set_len = 0);
+		 EthPacket pkt;
+		 int len;
 
-      pkt                                         = new;
-      
-      
-      if (r_flags & SMAC) pkt.src                 = random_bvec(6); else pkt.src = template.src;
-      if (r_flags & DMAC) pkt.dst                 = random_bvec(6); else pkt.dst =  template.dst;
+		 pkt = new;
 
-      pkt.ethertype                               = (r_flags & ETHERTYPE ? $dist_uniform(seed, 0, 1<<16) : template.ethertype);
-      pkt.is_q                                    = template.is_q;
-      pkt.vid                                     = template.vid;
-      pkt.pcp                                     = template.pcp;
-      pkt.has_smac                                = template.has_smac;
-      
+		 if (r_flags & SMAC) pkt.src = random_bvec(6); else pkt.src = template.src;
+		 if (r_flags & DMAC) pkt.dst = random_bvec(6); else pkt.dst =  template.dst;
 
-//      $display("Size min %d max %d", min_size, max_size);
+		 pkt.ethertype = (r_flags & ETHERTYPE ? $dist_uniform(seed, 0, 1<<16) : template.ethertype);
+		 pkt.is_q      = template.is_q;
+		 pkt.vid       = template.vid;
+		 pkt.pcp       = template.pcp;
+		 pkt.has_smac  = template.has_smac;
 
-      len                                         = $dist_uniform(seed, min_size, max_size);
+		 if(set_len > 0) len = set_len;
+		 else len = $dist_uniform(seed, min_size, max_size);
 
-      if((len & 1) && (r_flags & EVEN_LENGTH))
-        len++;
-      
-      
-      if(r_flags & PAYLOAD) pkt.payload           = random_bvec(len);
-      else if(r_flags & SEQ_PAYLOAD) pkt.payload  = seq_payload(len);
-      else pkt.payload                            = template.payload;
+		 if((len & 1) && (r_flags & EVEN_LENGTH))
+			 len++;
 
-      if(r_flags & SEQ_ID)
-        begin
-           pkt.payload[0] = cur_seq_id & 'hff;
-           pkt.payload[1] = (cur_seq_id>>8) & 'hff;
-           pkt.payload[2] = (cur_seq_id>>16) & 'hff;
-           pkt.payload[3] = (cur_seq_id>>24) & 'hff;
-           cur_seq_id++;
-        end
-      
-      if(r_flags & TX_OOB)
-        begin
-           pkt.ts.frame_id                        = m_current_frame_id++;
-           pkt.oob_type                           = TX_FID;
-        end
-      
-      return pkt;
-      
-      
-   endfunction
+		 if(r_flags & PAYLOAD) pkt.payload           = random_bvec(len);
+		 else if(r_flags & SEQ_PAYLOAD) pkt.payload  = seq_payload(len);
+		 else pkt.payload                            = template.payload;
+
+		 if(r_flags & SEQ_ID)
+		 begin
+		   pkt.payload[0] = cur_seq_id & 'hff;
+		   pkt.payload[1] = (cur_seq_id>>8) & 'hff;
+		   pkt.payload[2] = (cur_seq_id>>16) & 'hff;
+		   pkt.payload[3] = (cur_seq_id>>24) & 'hff;
+		   cur_seq_id++;
+		 end
+
+		 if(r_flags & TX_OOB)
+		 begin
+		   pkt.ts.frame_id                        = m_current_frame_id++;
+		   pkt.oob_type                           = TX_FID;
+		 end
+
+		 pkt.size = len + 14; //payload + header
+		 return pkt;
+
+	 endfunction
    
    task set_template(EthPacket pkt);
       template  = pkt;

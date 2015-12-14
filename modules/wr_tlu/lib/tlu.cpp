@@ -407,6 +407,7 @@ status_t TLU::pop_all(int channel, std::vector<uint64_t>& queue) {
   std::vector<Element> elements;
   data_t fill;
   uint64_t time;
+  uint16_t chunks;
   
   if (channel < 0 || channel >= (int)channels.size())
     return EB_FAIL;
@@ -425,20 +426,26 @@ status_t TLU::pop_all(int channel, std::vector<uint64_t>& queue) {
   elements.resize(fill);
   if (fill == 0) return EB_OK;
   
-  if ((status = cycle.open(device)) != EB_OK)
-    return status;
+  chunks = fill / UDP_MAX_POPS + unsigned(bool(fill % UDP_MAX_POPS));
   
-  cycle.write(address + TLU_CH_SELECT, EB_DATA32, channel);
-  for (unsigned i = 0; i < elements.size(); ++i) {
-    Element& e = elements[i];
-    cycle.read (address + TLU_CH_TIME1, EB_DATA32, &e.time1);
-    cycle.read (address + TLU_CH_TIME0, EB_DATA32, &e.time0);
-    cycle.read (address + TLU_CH_SUB,   EB_DATA32, &e.sub);
-    cycle.write(address + TLU_CH_POP,   EB_DATA32, 1);
-  }
+  for (unsigned j = 0; j < chunks; j++)
+  { 
+      if ((status = cycle.open(device)) != EB_OK)
+      return status;
+      
+      cycle.write(address + TLU_CH_SELECT, EB_DATA32, channel);
+      for (unsigned i = j*UDP_MAX_POPS; i < std::min(unsigned(fill), (j+1)*UDP_MAX_POPS); i++)
+      {
+       Element& e = elements[i];
+       cycle.read (address + TLU_CH_TIME1, EB_DATA32, &e.time1);
+       cycle.read (address + TLU_CH_TIME0, EB_DATA32, &e.time0);
+       cycle.read (address + TLU_CH_SUB,   EB_DATA32, &e.sub);
+       cycle.write(address + TLU_CH_POP,   EB_DATA32, 1);
+      }
 
-  if ((status = cycle.close()) != EB_OK)
-    return status;
+     if ((status = cycle.close()) != EB_OK)
+       return status;
+   }  
   
   for (unsigned i = 0; i < elements.size(); ++i) {
     Element& e = elements[i];
@@ -462,6 +469,7 @@ status_t TLU::pop_all(std::vector<std::vector<uint64_t> >& queues) {
   std::vector<std::vector<Element> > elements;
   std::vector<data_t> fill;
   uint64_t time;
+  uint16_t chunks;
   
   queues.resize(channels.size());
   fill.resize(channels.size());
@@ -476,27 +484,33 @@ status_t TLU::pop_all(std::vector<std::vector<uint64_t> >& queues) {
   
   if ((status = cycle.close()) != EB_OK)
     return status;
-  
-  if ((status = cycle.open(device)) != EB_OK)
-    return status;
-  
-  elements.resize(channels.size());
-  for (unsigned c = 0; c < channels.size(); ++c) {
-    std::vector<Element>& esv = elements[c];
-    esv.resize(fill[c]);
-    cycle.write(address + TLU_CH_SELECT, EB_DATA32, c);
-    for (unsigned e = 0; e < esv.size(); ++e) {
-      Element& es = esv[e];
-      cycle.read (address + TLU_CH_TIME1, EB_DATA32, &es.time1);
-      cycle.read (address + TLU_CH_TIME0, EB_DATA32, &es.time0);
-      cycle.read (address + TLU_CH_SUB,   EB_DATA32, &es.sub);
-      cycle.write(address + TLU_CH_POP,   EB_DATA32, 1);
-    }
-  }
-  
-  if ((status = cycle.close()) != EB_OK)
-    return status;
-  
+    
+   elements.resize(channels.size());
+   for (unsigned c = 0; c < channels.size(); ++c) {
+      std::vector<Element>& esv = elements[c];
+      esv.resize(fill[c]);
+       
+      chunks = fill[c] / UDP_MAX_POPS + unsigned(bool(fill[c] % UDP_MAX_POPS));
+
+      for (unsigned j = 0; j < chunks; j++)
+      { 
+         if ((status = cycle.open(device)) != EB_OK)
+         return status;
+
+
+         cycle.write(address + TLU_CH_SELECT, EB_DATA32, c);
+         for (unsigned e = j*UDP_MAX_POPS; e < std::min(unsigned(fill[c]), (j+1)*UDP_MAX_POPS); e++) {
+            Element& es = esv[e];
+            cycle.read (address + TLU_CH_TIME1, EB_DATA32, &es.time1);
+            cycle.read (address + TLU_CH_TIME0, EB_DATA32, &es.time0);
+            cycle.read (address + TLU_CH_SUB,   EB_DATA32, &es.sub);
+            cycle.write(address + TLU_CH_POP,   EB_DATA32, 1);
+         }
+         if ((status = cycle.close()) != EB_OK)
+         return status;
+      }
+   }
+
   for (unsigned c = 0; c < channels.size(); ++c) {
     std::vector<uint64_t>& o = queues[c];
     std::vector<Element>& esv = elements[c];

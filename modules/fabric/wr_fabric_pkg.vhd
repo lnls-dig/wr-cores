@@ -91,6 +91,19 @@ package wr_fabric_pkg is
     );
   end component;
 
+  component xwrf_reg is
+    generic(
+      g_adr_width : integer := 2;
+      g_dat_width : integer :=16);
+    port(
+      rst_n_i	:	in std_logic;
+      clk_i   : in std_logic;
+      snk_i		: in  t_wrf_sink_in;
+      snk_o		:	out t_wrf_sink_out;
+      src_i		:	in 	t_wrf_source_in;
+      src_o		:	out t_wrf_source_out);
+  end component;
+
 end wr_fabric_pkg;
 
 package body wr_fabric_pkg is

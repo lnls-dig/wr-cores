@@ -19,22 +19,73 @@
 
 
 
-
 class CSimDrv_WR_Endpoint;
 
-   protected CBusAccessor m_acc;
+   protected CWishboneAccessor m_acc;
    protected uint64_t m_base;
+   protected bit[15:0] m_vlan_untagged_set[256];
    
-   function new(CBusAccessor acc, uint64_t base);      m_acc   = acc;
+   function new(CWishboneAccessor acc, uint64_t base);      
+      m_acc   = acc;
       m_base  = base;
       
    endfunction // new
 
+   task vcr1_buffer_write(int is_vlan, int addr, uint64_t data);
+      m_acc.write(m_base + `ADDR_EP_VCR1, 
+                 (((is_vlan ? 0 : 'h200) + addr) << `EP_VCR1_OFFSET_OFFSET)
+                  | (data << `EP_VCR1_DATA_OFFSET));
+   endtask // vlan_buffer_write
+   
+   
    task vlan_egress_untag(int vid, int untag);
-      $display("VLAN_Write");
-      m_acc.write(m_base + `ADDR_EP_VCR1, vid | ((untag ? 1: 0) << 12));
+      uint64_t v, regval;
+
+      $display("VLAN_Untagged_Set_Write: vid %d untag %d", vid, untag);
+
+      v = m_vlan_untagged_set[vid / 16];
+      
+      if(untag)
+        v = v | (1<<(vid & 'hf));
+      else
+        v = v & ~(1<<(vid & 'hf));
+
+      m_vlan_untagged_set[vid / 16] = v;
+
+      vcr1_buffer_write(1, vid / 16, v);
+      
+      m_acc.write(m_base + `ADDR_EP_VCR1, regval);
+
+      $display("Rv %x", regval);
+      
    endtask // vlan_egress_untag
 
+   task write_template(int slot, byte data[], int user_offset=-1);
+      int i;
+
+      if(data.size() & 1)
+        $fatal("CSimDrv_WR_Endpoint::write_template(): data size must be even");
+
+      $display("write_template: size %d", data.size());
+      
+      for(i=0;i<data.size();i+=2)
+        begin
+           uint64_t v; 
+
+           v = (data[i] << 8) | data[i+1];
+           if(i == data.size() - 2)
+             v |= (1<<16);
+
+           if(i == user_offset)
+             v |= (1<<17);
+
+           vcr1_buffer_write(0, slot * 64 + i/2, v);
+        end
+      
+        
+   endtask // write_template
+   
+     
 
    task pfilter_load_microcode(uint64_t mcode[]);
       int i;
@@ -54,13 +105,14 @@ class CSimDrv_WR_Endpoint;
       m_acc.write(m_base + `ADDR_EP_PFCR0, enable ? `EP_PFCR0_ENABLE: 0);
    endtask // pfilter_enable
 
+   
    task automatic mdio_read(int base, int addr, output int val);
-      reg[31:0] rval;
+      uint64_t rval;
 
       m_acc.write(base+`ADDR_EP_MDIO_CR, (addr>>2) << 16);
       while(1)begin
-	 m_acc.read(base+`ADDR_EP_MDIO_SR, rval);
-	 if(rval[31]) begin
+	 m_acc.read(base+`ADDR_EP_MDIO_ASR, rval);
+	 if(rval & 'h80000000) begin
 	    val  = rval[15:0];
 	    return;
 	 end
@@ -68,12 +120,12 @@ class CSimDrv_WR_Endpoint;
    endtask // mdio_read
 
    task automatic mdio_write(int base, int addr,int val);
-      reg[31:0] rval;
+      uint64_t rval;
 
       m_acc.write(base+`ADDR_EP_MDIO_CR, (addr>>2) << 16 | `EP_MDIO_CR_RW);
       while(1)begin
-	 m_acc.read(base+`ADDR_EP_MDIO_SR, rval);
-	 if(rval[31])
+	 m_acc.read(base+`ADDR_EP_MDIO_ASR, rval);
+	 if(rval & 'h80000000)
 	   return;
       end
    endtask // automatic
@@ -179,7 +231,6 @@ module main;
       .clk_ref_i(clk_ref_new),    
       .clk_rx_i(clk_ref_new),
       .rst_n_i(rst_n),
-
       .snk (U_wrf_sink.slave),
       .src(U_wrf_source.master),
       .sys(U_sys_bus_master.master),
@@ -251,13 +302,14 @@ module main;
       tmpl.vid       = 100;
       tmpl.ethertype = 'h88f7;
   // 
-      gen.set_randomization(EthPacketGenerator::SEQ_PAYLOAD /* | EthPacketGenerator::TX_OOB*/) ;
+      gen.set_randomization(EthPacketGenerator::SEQ_PAYLOAD  | EthPacketGenerator::TX_OOB) ;
       gen.set_template(tmpl);
-      gen.set_size(64,1500);
+      gen.set_size(64,400);
 
       for(i=0;i<n_tries;i++)
            begin
               pkt  = gen.gen();
+              
               $display("Tx %d", i);
               //   pkt.dump();
               src.send(pkt);
@@ -271,12 +323,37 @@ module main;
               
            if(unvid)
              arr[i].is_q  = 0;
-           
+
+           if(pkt2.ethertype != 'h88f7)
+             begin
+                static int inject_id = 0;
+                int        cur_inject_id;
+                
+                cur_inject_id = (int'(pkt2.payload[0]) <<8) | int'(pkt2.payload[1]);
+
+                pkt2.dump();
+                
+                $display("Injected: %d", cur_inject_id);
+
+                if(inject_id != cur_inject_id)
+                  begin
+                     $error("Lost injected frame %d\n", inject_id);
+                     $stop;
+                     
+                  end
+                inject_id ++ ;
+                
+                continue;
+                
+             end
+              
+              
            if(!arr[i].equal(pkt2))
              begin
                 $display("Fault at %d", i);
-                
+                $display("Should be:");
                 arr[i].dump();
+                $display("Is:");
                 pkt2.dump();
                 $stop;
              end
@@ -308,7 +385,20 @@ module main;
       ep_drv.pfilter_load_microcode(mc.assemble());
       ep_drv.pfilter_enable(1);
    endtask // init_pfilter
+
+
+   task init_injection(CSimDrv_WR_Endpoint drv);
+      byte template[];
+      int  i;
+      template = new[90];
+      
+      for(i=0;i<90;i++) template[i] = i;
+
+      drv.write_template(1, template, 14);
+
+   endtask // init_injection
    
+     
 
    
    initial begin
@@ -318,7 +408,7 @@ module main;
       EthPacketSink o_sink;
       EthPacketSource o_src;      
       CSimDrv_WR_Endpoint ep_drv;
-      
+      int inj_index = 0;
       int i;
       
 
@@ -326,29 +416,26 @@ module main;
       @(posedge clk_sys);
       wait(!U_oldep_wrap.ready);
 
-      #200us;
-      
+      #20us;
       
 
       U_wrf_sink.settings.gen_random_stalls   = 1;
       U_wrf_sink.settings.stall_prob          = 0.01;
       U_wrf_sink.settings.stall_min_duration  = 5;
       U_wrf_sink.settings.stall_max_duration  = 30;
-      
-        
+     
+ 
       sys_bus                                 = U_sys_bus_master.get_accessor();
       
       sys_bus.set_mode(CLASSIC);
       sys_bus.write(`ADDR_EP_ECR, `EP_ECR_TX_EN | `EP_ECR_RX_EN);
       sys_bus.write(`ADDR_EP_RFCR, 1518 << `EP_RFCR_MRU_OFFSET);
       sys_bus.write(`ADDR_EP_VCR0, `EP_QMODE_VLAN_DISABLED << `EP_VCR0_QMODE_OFFSET);
-      sys_bus.write(`ADDR_EP_TSCR, `EP_TSCR_EN_RXTS);
+      sys_bus.write(`ADDR_EP_TSCR, `EP_TSCR_EN_RXTS | `EP_TSCR_EN_TXTS);
       
-
-      ep_drv                                       = new(CBusAccessor'(sys_bus), 0);
+      ep_drv                                       = new(sys_bus, 0);
       
-
-      o_sink                                         = U_oldep_wrap.sink;
+      o_sink                                       = U_oldep_wrap.sink;
       o_src                                        = U_oldep_wrap.src;
       
             //     pkt.dump();
@@ -356,44 +443,33 @@ module main;
       U_wrf_source.settings.throttle_prob          = 0.02;
       
       ep_drv.vlan_egress_untag(100, 1);
-         
-/*      for(i=0;i<10;i++)
-        begin
-           $display("Iter: %d", i);
-           tx_test(100, 0, 0, src, o_sink);
-           tx_test(100, 1, 1, src, o_sink);
-        end // initial begin
 
-      #10000ns;
-
-      $stop;*/
-     
-
-      init_pfilter(ep_drv);
+      init_injection(ep_drv);
       
-      for(i=0;i<10;i++)
-        begin
-           $display("RX Iter %d", i);
-           tx_test(5, 0, 0, o_src, sink);
-/* -----\/----- EXCLUDED -----\/-----
-           $display("TX Iter %d", i);
-           tx_test(5, 0, 0, src, o_sink);
- -----/\----- EXCLUDED -----/\----- */
-        end
       
+      fork
+         begin : tx_fabric
+            for(i=0;i<100;i++)
+              begin
+                 $display("Iter: %d", i);
+                 tx_test(50, 1, 1, src, o_sink);
+              end // initial begin
+         end
+         begin : injection
+            forever begin
+               # 10us;
+               $display("DoInject");
+               U_Wrapped_EP.do_inject(1, inj_index++);
+               end
+         end
+      join
+      
+
+      
+
    end // initial begin
    
- /*  always@(posedge clk_ref_new)
-     begin
-        check_disparity8(U_oldep_wrap.gtx_data, U_oldep_wrap.gtx_k);
-     end*/
 
-/*   always@(posedge U_Wrapped_EP.tx_clock)
-     begin
-        check_disparity16(U_Wrapped_EP.gtx_data, U_Wrapped_EP.gtx_k);
-     end*/ 
-   
-  
    
 endmodule // main
 

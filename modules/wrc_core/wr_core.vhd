@@ -5,7 +5,7 @@
 -- Author     : Grzegorz Daniluk
 -- Company    : Elproma
 -- Created    : 2011-02-02
--- Last update: 2013-03-20
+-- Last update: 2014-07-15
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -88,6 +88,7 @@ entity wr_core is
     g_virtual_uart              : boolean                        := false;
     g_aux_clks                  : integer                        := 1;
     g_rx_buffer_size            : integer                        := 1024;
+    g_tx_runt_padding           : boolean                        := false;
     g_dpram_initf               : string                         := "default";
     g_dpram_size                : integer                        := 90112/4;  --in 32-bit words
     g_interface_mode            : t_wishbone_interface_mode      := PIPELINED;
@@ -95,8 +96,8 @@ entity wr_core is
     g_aux_sdb                   : t_sdb_device                   := c_wrc_periph3_sdb;
     g_softpll_channels_config   : t_softpll_channel_config_array := c_softpll_default_channel_config;
     g_softpll_enable_debugger   : boolean                        := false;
-    g_vuart_fifo_size           : integer                        := 1024
-    );
+    g_vuart_fifo_size           : integer                        := 1024;
+    g_pcs_16bit                 : boolean                        := false);
   port(
     ---------------------------------------------------------------------------
     -- Clocks/resets
@@ -113,6 +114,8 @@ entity wr_core is
 
     -- Aux clocks (i.e. the FMC clock), which can be disciplined by the WR Core
     clk_aux_i : in std_logic_vector(g_aux_clks-1 downto 0) := (others => '0');
+
+    clk_ext_mul_i : in std_logic := '0';
 
     -- External 10 MHz reference (cesium, GPSDO, etc.), used in Grandmaster mode
     clk_ext_i : in std_logic := '0';
@@ -134,16 +137,18 @@ entity wr_core is
     -- PHY I/f
     phy_ref_clk_i : in std_logic;
 
-    phy_tx_data_o      : out std_logic_vector(7 downto 0);
+    phy_tx_data_o      : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
     phy_tx_k_o         : out std_logic;
+    phy_tx_k16_o       : out std_logic;
     phy_tx_disparity_i : in  std_logic;
     phy_tx_enc_err_i   : in  std_logic;
 
-    phy_rx_data_i     : in std_logic_vector(7 downto 0);
+    phy_rx_data_i     : in std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
     phy_rx_rbclk_i    : in std_logic;
     phy_rx_k_i        : in std_logic;
+    phy_rx_k16_i      : in std_logic := '0';
     phy_rx_enc_err_i  : in std_logic;
-    phy_rx_bitslide_i : in std_logic_vector(3 downto 0);
+    phy_rx_bitslide_i : in std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0);
 
     phy_rst_o    : out std_logic;
     phy_loopen_o : out std_logic;
@@ -164,6 +169,10 @@ entity wr_core is
     sfp_det_i  : in  std_logic := '1';
     btn1_i     : in  std_logic := '1';
     btn2_i     : in  std_logic := '1';
+    spi_sclk_o : out std_logic;
+    spi_ncs_o  : out std_logic;
+    spi_mosi_o : out std_logic;
+    spi_miso_i : in  std_logic := '0';
 
     -----------------------------------------
     --UART
@@ -268,6 +277,15 @@ end wr_core;
 
 architecture struct of wr_core is
 
+  function f_int_to_bool(x : integer) return boolean is
+  begin
+    if(x /= 0) then
+      return true;
+    else
+      return false;
+    end if;
+  end f_int_to_bool;
+
   function f_choose_lm32_firmware_file return string is
   begin
     if(g_dpram_initf = "default") then
@@ -314,6 +332,11 @@ architecture struct of wr_core is
   -----------------------------------------------------------------------------
   --Endpoint
   -----------------------------------------------------------------------------
+  signal phy_tx_data_int            : std_logic_vector(15 downto 0);
+  signal phy_tx_k_int               : std_logic_vector(1 downto 0);
+  signal phy_rx_data_int            : std_logic_vector(15 downto 0);
+  signal phy_rx_k_int               : std_logic_vector(1 downto 0);
+  signal phy_rx_bitslide_int        : std_logic_vector(4 downto 0);
 
   signal ep_txtsu_port_id           : std_logic_vector(4 downto 0);
   signal ep_txtsu_frame_id          : std_logic_vector(15 downto 0);
@@ -332,6 +355,7 @@ architecture struct of wr_core is
   signal mnic_mem_data_i : std_logic_vector(31 downto 0);
   signal mnic_mem_wr_o   : std_logic;
   signal mnic_txtsu_ack  : std_logic;
+  signal mnic_txtsu_stb  : std_logic;
 
   -----------------------------------------------------------------------------
   --Dual-port RAM
@@ -502,14 +526,15 @@ begin
     generic map(
       g_with_ext_clock_input => g_with_external_clock_input,
       g_reverse_dmtds        => false,
-      g_divide_input_by_2    => true,
+      g_divide_input_by_2    => not g_pcs_16bit,
       g_with_debug_fifo      => g_softpll_enable_debugger,
       g_tag_bits             => 22,
       g_interface_mode       => PIPELINED,
       g_address_granularity  => BYTE,
       g_num_ref_inputs       => 1,
       g_num_outputs          => 1 + g_aux_clks,
-      g_channels_config      => g_softpll_channels_config)
+      g_ref_clock_rate       => 125000000,
+      g_ext_clock_rate       => 10000000)
     port map(
       clk_sys_i => clk_sys_i,
       rst_n_i   => rst_net_n,
@@ -521,8 +546,11 @@ begin
       -- DMTD Offset clock
       clk_dmtd_i   => clk_dmtd_i,
 
-      clk_ext_i => clk_ext_i,
-      sync_p_i  => pps_ext_i,
+      clk_ext_i     => clk_ext_i,
+      clk_ext_mul_i => clk_ext_mul_i,
+
+      pps_csync_p1_i => s_pps_csync,
+      pps_ext_a_i => pps_ext_i,
 
       -- DMTD oscillator drive
       dac_dmtd_data_o => dac_hpll_data_o,
@@ -541,8 +569,7 @@ begin
       slave_i => spll_wb_in,
       slave_o => spll_wb_out,
 
-      debug_o => dio_o
-      );
+      debug_o => open);
 
   clk_fb(0)                       <= clk_ref_i;
   clk_fb(g_aux_clks downto 1)     <= clk_aux_i;
@@ -574,12 +601,32 @@ begin
   -----------------------------------------------------------------------------
   -- Endpoint
   -----------------------------------------------------------------------------
+
+  phy_tx_data_o   <= phy_tx_data_int(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
+  phy_tx_k_o      <= phy_tx_k_int(0);
+  phy_rx_k_int(0) <= phy_rx_k_i;
+
+  gen_16bit_phy_if: if g_pcs_16bit generate
+    phy_tx_k16_o        <= phy_tx_k_int(1);
+    phy_rx_data_int     <= phy_rx_data_i;
+    phy_rx_k_int(1)     <= phy_rx_k16_i;
+    phy_rx_bitslide_int <= phy_rx_bitslide_i;
+  end generate;
+
+  gen_8bit_phy_if: if not g_pcs_16bit generate
+    phy_tx_k16_o        <= '0';
+    phy_rx_data_int     <= x"00" & phy_rx_data_i;
+    phy_rx_k_int(1)     <= '0';
+    phy_rx_bitslide_int <= '0' & phy_rx_bitslide_i;
+  end generate;
+
   U_Endpoint : xwr_endpoint
     generic map (
       g_interface_mode      => PIPELINED,
       g_address_granularity => BYTE,
-      g_simulation          => false,
-      g_pcs_16bit           => false,
+      g_simulation          => f_int_to_bool(g_simulation),
+      g_tx_runt_padding     => g_tx_runt_padding,
+      g_pcs_16bit           => g_pcs_16bit,
       g_rx_buffer_size      => g_rx_buffer_size,
       g_with_rx_buffer      => true,
       g_with_flow_control   => false,
@@ -587,7 +634,10 @@ begin
       g_with_dpi_classifier => true,
       g_with_vlans          => false,
       g_with_rtu            => false,
-      g_with_leds           => true)
+      g_with_leds           => true,
+      g_with_packet_injection => false,
+      g_use_new_rxcrc       => true,
+      g_use_new_txcrc       => false)
     port map (
       clk_ref_i      => clk_ref_i,
       clk_sys_i      => clk_sys_i,
@@ -596,23 +646,18 @@ begin
       pps_csync_p1_i => s_pps_csync,
       pps_valid_i    => pps_valid,
 
-      phy_rst_o                     => phy_rst_o,
-      phy_loopen_o                  => phy_loopen_o,
-      phy_ref_clk_i                 => phy_ref_clk_i,
-      phy_tx_data_o(7 downto 0)     => phy_tx_data_o,
-      phy_tx_data_o(15 downto 8)    => dummy(7 downto 0),
-      phy_tx_k_o(0)                 => phy_tx_k_o,
-      phy_tx_k_o(1)                 => dummy(8),
-      phy_tx_disparity_i            => phy_tx_disparity_i,
-      phy_tx_enc_err_i              => phy_tx_enc_err_i,
-      phy_rx_data_i(7 downto 0)     => phy_rx_data_i,
-      phy_rx_data_i(15 downto 8)    => x"00",
-      phy_rx_clk_i                  => phy_rx_rbclk_i,
-      phy_rx_k_i(0)                 => phy_rx_k_i,
-      phy_rx_k_i(1)                 => '0',
-      phy_rx_enc_err_i              => phy_rx_enc_err_i,
-      phy_rx_bitslide_i(3 downto 0) => phy_rx_bitslide_i,
-      phy_rx_bitslide_i(4)          => '0',
+      phy_rst_o          => phy_rst_o,
+      phy_loopen_o       => phy_loopen_o,
+      phy_ref_clk_i      => phy_ref_clk_i,
+      phy_tx_data_o      => phy_tx_data_int,
+      phy_tx_k_o         => phy_tx_k_int,
+      phy_tx_disparity_i => phy_tx_disparity_i,
+      phy_tx_enc_err_i   => phy_tx_enc_err_i,
+      phy_rx_data_i      => phy_rx_data_int,
+      phy_rx_clk_i       => phy_rx_rbclk_i,
+      phy_rx_k_i         => phy_rx_k_int,
+      phy_rx_enc_err_i   => phy_rx_enc_err_i,
+      phy_rx_bitslide_i  => phy_rx_bitslide_int,
 
       src_o => ep_src_out,
       src_i => ep_src_in,
@@ -627,10 +672,10 @@ begin
       txtsu_ack_i          => ep_txtsu_ack,
       wb_i                 => ep_wb_in,
       wb_o                 => ep_wb_out,
+      rmon_events_o        => open,
       led_link_o           => ep_led_link,
       led_act_o            => led_act_o);
 
-  ep_txtsu_ack <= txtsu_ack_i or mnic_txtsu_ack;
   led_link_o   <= ep_led_link;
   link_ok_o    <= ep_led_link;
 
@@ -663,7 +708,7 @@ begin
       txtsu_frame_id_i    => ep_txtsu_frame_id,
       txtsu_tsval_i       => ep_txtsu_ts_value,
       txtsu_tsincorrect_i => ep_txtsu_ts_incorrect,
-      txtsu_stb_i         => ep_txtsu_stb,
+      txtsu_stb_i         => mnic_txtsu_stb,
       txtsu_ack_o         => mnic_txtsu_ack,
 
       wb_i => minic_wb_in,
@@ -748,6 +793,10 @@ begin
       memsize_i   => "0000",
       btn1_i      => btn1_i,
       btn2_i      => btn2_i,
+      spi_sclk_o  => spi_sclk_o,
+      spi_ncs_o   => spi_ncs_o,
+      spi_mosi_o  => spi_mosi_o,
+      spi_miso_i  => spi_miso_i,
 
       slave_i => periph_slave_i,
       slave_o => periph_slave_o,
@@ -974,7 +1023,14 @@ begin
   txtsu_frame_id_o     <= ep_txtsu_frame_id;
   txtsu_ts_value_o     <= ep_txtsu_ts_value;
   txtsu_ts_incorrect_o <= ep_txtsu_ts_incorrect;
+
+  -- ts goes to external I/F
   txtsu_stb_o          <= '1' when (ep_txtsu_stb = '1' and (ep_txtsu_frame_id /= x"0000")) else
                           '0';
+  -- ts goes to minic
+  mnic_txtsu_stb      <=  '1' when (ep_txtsu_stb = '1' and (ep_txtsu_frame_id  = x"0000")) else
+                          '0';
+  
+  ep_txtsu_ack <= txtsu_ack_i or mnic_txtsu_ack;
 
 end struct;
