@@ -302,7 +302,7 @@ package wrcore_pkg is
       g_phys_uart                 : boolean                        := true;
       g_virtual_uart              : boolean                        := true;
       g_with_external_clock_input : boolean                        := true;
-      g_aux_clks                  : integer                        := 1;
+      g_aux_clks                  : integer                        := 0;
       g_ep_rxbuf_size             : integer                        := 1024;
       g_tx_runt_padding           : boolean                        := true;
       g_dpram_initf               : string                         := "default";
@@ -420,7 +420,7 @@ package wrcore_pkg is
       --
       g_phys_uart                 : boolean                        := true;
       g_virtual_uart              : boolean                        := true;
-      g_aux_clks                  : integer                        := 1;
+      g_aux_clks                  : integer                        := 0;
       g_rx_buffer_size            : integer                        := 1024;
       g_tx_runt_padding           : boolean                        := true;
       g_dpram_initf               : string                         := "default";
