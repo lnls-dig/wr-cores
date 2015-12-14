@@ -82,17 +82,17 @@ entity wr_core is
     --if set to 1, then blocks in PCS use smaller calibration counter to speed 
     --up simulation
     g_simulation                : integer                        := 0;
-    g_with_external_clock_input : boolean                        := false;
+    g_with_external_clock_input : boolean                        := true;
     --
     g_phys_uart                 : boolean                        := true;
-    g_virtual_uart              : boolean                        := false;
+    g_virtual_uart              : boolean                        := true;
     g_aux_clks                  : integer                        := 1;
     g_rx_buffer_size            : integer                        := 1024;
-    g_tx_runt_padding           : boolean                        := false;
+    g_tx_runt_padding           : boolean                        := true;
     g_dpram_initf               : string                         := "default";
-    g_dpram_size                : integer                        := 90112/4;  --in 32-bit words
+    g_dpram_size                : integer                        := 131072/4;  --in 32-bit words
     g_interface_mode            : t_wishbone_interface_mode      := PIPELINED;
-    g_address_granularity       : t_wishbone_address_granularity := WORD;
+    g_address_granularity       : t_wishbone_address_granularity := BYTE;
     g_aux_sdb                   : t_sdb_device                   := c_wrc_periph3_sdb;
     g_softpll_channels_config   : t_softpll_channel_config_array := c_softpll_default_channel_config;
     g_softpll_enable_debugger   : boolean                        := false;
