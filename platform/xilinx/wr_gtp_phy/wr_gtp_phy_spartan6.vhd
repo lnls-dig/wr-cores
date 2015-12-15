@@ -109,6 +109,13 @@ entity wr_gtp_phy_spartan6 is
 
     -- local loopback enable (Tx->Rx), active hi
     ch0_loopen_i : in std_logic;
+    ch0_loopen_vec_i : in std_logic_vector(2 downto 0) := (others=>'0');
+
+    -- PRBS select (see Xilinx UG386 Table 3-15; "000" = Standard operation, pattern generator off)
+    ch0_tx_prbs_sel_i  : in std_logic_vector(2 downto 0) := (others=>'0');
+
+    -- gtp0 ready: locked & aligned
+    ch0_rdy_o : out std_logic;
 
 -- Port 1
     ch1_ref_clk_i : in std_logic;
@@ -126,6 +133,9 @@ entity wr_gtp_phy_spartan6 is
 
     ch1_rst_i    : in std_logic := '0';
     ch1_loopen_i : in std_logic := '0';
+    ch1_loopen_vec_i : in std_logic_vector(2 downto 0) := (others=>'0');
+    ch1_tx_prbs_sel_i: in std_logic_vector(2 downto 0) := (others=>'0');
+    ch1_rdy_o    : out std_logic;
 
 -- Serial I/O
 
@@ -222,7 +232,9 @@ architecture rtl of wr_gtp_phy_spartan6 is
       TXN0_OUT              : out std_logic;
       TXN1_OUT              : out std_logic;
       TXP0_OUT              : out std_logic;
-      TXP1_OUT              : out std_logic);
+      TXP1_OUT              : out std_logic;
+      TXENPRBSTST0_IN       : in  std_logic_vector(2 downto 0);
+      TXENPRBSTST1_IN       : in  std_logic_vector(2 downto 0));
   end component;
 
   component BUFG
@@ -291,6 +303,9 @@ architecture rtl of wr_gtp_phy_spartan6 is
   signal ch0_rx_cdr_rst         : std_logic := '0';
   signal ch0_rx_rec_clk_pad     : std_logic;
   signal ch0_rx_rec_clk         : std_logic;
+  signal ch0_rx_data            : std_logic_vector(7 downto 0);
+  signal ch0_rx_k               : std_logic;
+  signal ch0_rx_enc_err         : std_logic;
   signal ch0_rx_divclk          : std_logic;
   signal ch0_rx_slide           : std_logic := '0';
 
@@ -321,6 +336,10 @@ architecture rtl of wr_gtp_phy_spartan6 is
   signal ch1_rx_cdr_rst         : std_logic := '0';
   signal ch1_rx_rec_clk_pad     : std_logic;
   signal ch1_rx_rec_clk         : std_logic;
+  signal ch1_rx_data            : std_logic_vector(7 downto 0);
+  signal ch1_rx_k               : std_logic;
+  signal ch1_rx_enc_err         : std_logic;
+  
   signal ch1_rx_divclk          : std_logic;
   signal ch1_rx_slide           : std_logic := '0';
 
@@ -389,6 +408,9 @@ begin  -- rtl
     ch0_rx_rec_clk_pad <= ch0_gtp_clkout_int(1);
     ch0_ref_clk_in(0)  <= gtp_clk_i;
     ch0_ref_clk_in(1)  <= '0';
+    -- Near-end PMA loopback or loopback selected with ch1_loopen_vec_i
+    ch0_gtp_loopback <= "010" when(ch0_loopen_i = '1') else
+                        ch0_loopen_vec_i;
 
     gen_disp_ch0 : process(ch0_ref_clk_i)
     begin
@@ -529,7 +551,15 @@ begin  -- rtl
 
 -- drive the recovered clock output
     ch0_rx_rbclk_o <= ch0_rx_rec_clk;
-
+    -- drive ch0 ready indicator as well
+    ch0_rdy_o <= ch0_rx_enable_output_synced;
+    -- Note that the above clock assignment takes one delta delay in a simulator.
+    -- In order to keep clock and data signals aligned, re-assign rx_data, rx_k
+    -- and rx_enc_err (also adding one delta delay). This is purely necessary for
+    -- proper simulation only.
+    ch0_rx_data_o    <= ch0_rx_data;
+    ch0_rx_k_o       <= ch0_rx_k;
+    ch0_rx_enc_err_o <= ch0_rx_enc_err;
   end generate gen_with_channel0;
 
   -------------------------------------------------------------------------------
@@ -545,6 +575,9 @@ begin  -- rtl
     ch1_rx_rec_clk_pad <= ch1_gtp_clkout_int(1);
     ch1_ref_clk_in(0)  <= gtp_clk_i;
     ch1_ref_clk_in(1)  <= '0';
+    -- Near-end PMA loopback or loopback selected with ch1_loopen_vec_i
+    ch1_gtp_loopback <= "010" when(ch1_loopen_i = '1') else
+                        ch1_loopen_vec_i;
 
     gen_disp_ch1 : process(ch1_ref_clk_i)
     begin
@@ -662,28 +695,35 @@ begin  -- rtl
     p_gen_output_ch1 : process(ch1_rx_rec_clk, ch1_rst_i)
     begin
       if(ch1_rst_i = '1') then
-        ch1_rx_data_o    <= (others => '0');
-        ch1_rx_k_o       <= '0';
-        ch1_rx_enc_err_o <= '0';
+        ch1_rx_data    <= (others => '0');
+        ch1_rx_k       <= '0';
+        ch1_rx_enc_err <= '0';
         
       elsif rising_edge(ch1_rx_rec_clk) then
         if(ch1_rx_enable_output_synced = '0') then
 -- make sure the output data is invalid when the link is down and that it will
 -- trigger the sync loss detection
-          ch1_rx_data_o    <= (others => '0');
-          ch1_rx_k_o       <= '1';
-          ch1_rx_enc_err_o <= '1';
+          ch1_rx_data    <= (others => '0');
+          ch1_rx_k       <= '1';
+          ch1_rx_enc_err <= '1';
         else
-          ch1_rx_data_o    <= ch1_rx_data_int;
-          ch1_rx_k_o       <= ch1_rx_k_int;
-          ch1_rx_enc_err_o <= ch1_rx_disperr or ch1_rx_invcode;
+          ch1_rx_data    <= ch1_rx_data_int;
+          ch1_rx_k       <= ch1_rx_k_int;
+          ch1_rx_enc_err <= ch1_rx_disperr or ch1_rx_invcode;
         end if;
       end if;
     end process;
 
     ch1_rx_rbclk_o <= ch1_rx_rec_clk;
+    ch1_rdy_o <= ch1_rx_enable_output_synced;
+    -- Note that the above clock assignment takes one delta delay in a simulator.
+    -- In order to keep clock and data signals aligned, re-assign rx_data, rx_k
+    -- and rx_enc_err (also adding one delta delay). This is purely necessary for
+    -- proper simulation only.
+    ch1_rx_data_o    <= ch1_rx_data;
+    ch1_rx_k_o       <= ch1_rx_k;
+    ch1_rx_enc_err_o <= ch1_rx_enc_err;
   end generate gen_with_channel1;
-
 
   U_GTP_TILE_INST : WHITERABBITGTP_WRAPPER_TILE_SPARTAN6
     generic map
@@ -784,7 +824,10 @@ begin  -- rtl
       TXN0_OUT              => pad_txn0_o,
       TXN1_OUT              => pad_txn1_o,
       TXP0_OUT              => pad_txp0_o,
-      TXP1_OUT              => pad_txp1_o
+      TXP1_OUT              => pad_txp1_o,
+      --------------- Transmit Ports - TX PRBS Generator -------------------------
+      TXENPRBSTST0_IN       => ch0_tx_prbs_sel_i,
+      TXENPRBSTST1_IN       => ch1_tx_prbs_sel_i
 
       );
 

@@ -94,7 +94,6 @@ peripheral {
 			field {
 				 name = "TX DMA buffer address";
 				 size = 24;
-				 align = 2;
 				 type = SLV;
 				 access_bus = READ_WRITE;
 				 access_dev = READ_WRITE;
@@ -112,7 +111,6 @@ peripheral {
 			field {
 				 name = "RX DMA buffer address";
 				 size = 24;
-				 align = 2;
 				 type = SLV;
 				 access_bus = READ_WRITE;
 				 access_dev = READ_WRITE;
@@ -128,7 +126,6 @@ peripheral {
 			field {
 				 name = "RX available words";
 				 size = 24;
-				 align = 2;
 				 type = SLV;
 				 access_bus = READ_WRITE;
 				 access_dev = READ_WRITE;
@@ -146,7 +143,6 @@ peripheral {
 			field {
 				 name = "RX available words";
 				 size = 24;
-				 align = 2;
 				 type = SLV;
 				 access_bus = READ_WRITE;
 				 access_dev = READ_WRITE;

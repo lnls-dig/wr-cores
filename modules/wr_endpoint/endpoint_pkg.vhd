@@ -43,6 +43,10 @@ use work.wr_fabric_pkg.all;
 
 package endpoint_pkg is
 
+  function f_pcs_data_width(pcs_16 : boolean) return integer;
+  function f_pcs_k_width(pcs_16 : boolean) return integer;
+  function f_pcs_bts_width(pcs_16 : boolean) return integer;
+
   type t_txtsu_timestamp is record
     stb       : std_logic;
     tsval     : std_logic_vector(31 downto 0);
@@ -52,6 +56,45 @@ package endpoint_pkg is
   end record;
 
   type t_txtsu_timestamp_array is array(integer range <>) of t_txtsu_timestamp;
+
+  -- Endpoint's internal fabric used to connect the submodules with each other.
+  -- Easier to handle than pipelined Wishbone.
+  type t_ep_internal_fabric is record
+    sof                : std_logic;
+    eof                : std_logic;
+    error              : std_logic;
+    dvalid             : std_logic;
+    bytesel            : std_logic;
+    has_rx_timestamp   : std_logic;
+    rx_timestamp_valid : std_logic;
+    data               : std_logic_vector(15 downto 0);
+    addr               : std_logic_vector(1 downto 0);
+  end record;
+  type t_fab_pipe is array(integer range <>) of t_ep_internal_fabric;
+
+  -- debug CS types
+  type t_dbg_ep_rxpcs is record
+    fsm : std_logic_vector(2 downto 0);
+  end record;
+
+  type t_dbg_ep_pcs is record
+    rx : t_dbg_ep_rxpcs;
+  end record;
+
+  type t_dbg_ep_rxpath is record
+    fab_pipe  : t_fab_pipe(9 downto 0);
+    dreq_pipe : std_logic_vector(9 downto 0);
+    pcs_fifo_afull : std_logic;
+    pcs_fifo_empty : std_logic;
+    pcs_fifo_full  : std_logic;
+    rxbuf_full     : std_logic;
+  end record;
+
+  type t_dbg_ep is record
+    pcs    : t_dbg_ep_pcs;
+    rxpath : t_dbg_ep_rxpath;
+  end record;
+  ------------------------------------
 
   constant c_epevents_sz  : integer := 29;  --how many events the endpoint generates
 
@@ -74,7 +117,8 @@ package endpoint_pkg is
       g_with_dmtd             : boolean                        := false;
       g_with_packet_injection : boolean                        := false;
       g_use_new_rxcrc         :	boolean                        := false;
-      g_use_new_txcrc         :	boolean                        := false);
+      g_use_new_txcrc         :	boolean                        := false;
+      g_with_stop_traffic     : boolean                        := false);
     port (
       clk_ref_i            : in  std_logic;
       clk_sys_i            : in  std_logic;
@@ -84,18 +128,24 @@ package endpoint_pkg is
       pps_valid_i          : in  std_logic                     := '1';
       phy_rst_o            : out std_logic;
       phy_loopen_o         : out std_logic;
+      phy_loopen_vec_o     : out std_logic_vector(2 downto 0);
+      phy_tx_prbs_sel_o    : out std_logic_vector(2 downto 0);
+      phy_sfp_tx_fault_i   : in  std_logic;
+      phy_sfp_los_i        : in  std_logic;
+      phy_sfp_tx_disable_o : out std_logic;
       phy_enable_o         : out std_logic;
       phy_syncen_o         : out std_logic;
+      phy_rdy_i            : in  std_logic;
       phy_ref_clk_i        : in  std_logic                     := '0';
-      phy_tx_data_o        : out std_logic_vector(15 downto 0);
-      phy_tx_k_o           : out std_logic_vector(1 downto 0);
+      phy_tx_data_o        : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
+      phy_tx_k_o           : out std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
       phy_tx_disparity_i   : in  std_logic                     := '0';
       phy_tx_enc_err_i     : in  std_logic                     := '0';
-      phy_rx_data_i        : in  std_logic_vector(15 downto 0) := x"0000";
+      phy_rx_data_i        : in  std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
       phy_rx_clk_i         : in  std_logic                     := '0';
-      phy_rx_k_i           : in  std_logic_vector(1 downto 0)  := "00";
+      phy_rx_k_i           : in  std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
       phy_rx_enc_err_i     : in  std_logic                     := '0';
-      phy_rx_bitslide_i    : in  std_logic_vector(4 downto 0)  := "00000";
+      phy_rx_bitslide_i    : in  std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
       gmii_tx_clk_i        : in  std_logic                     := '0';
       gmii_txd_o           : out std_logic_vector(7 downto 0);
       gmii_tx_en_o         : out std_logic;
@@ -145,9 +195,10 @@ package endpoint_pkg is
       led_act_o            : out std_logic;
       link_kill_i          : in  std_logic                     := '0';
       link_up_o            : out std_logic;
-      dbg_o     : out std_logic_vector(63 downto 0);
-    dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
-    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0));
+      stop_traffic_i       : in std_logic := '0';
+      dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
+      dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
+      nice_dbg_o  : out t_dbg_ep);
   end component;
 
   component wr_endpoint
@@ -169,7 +220,8 @@ package endpoint_pkg is
       g_with_dmtd             : boolean                        := false;
       g_with_packet_injection : boolean                        := false;
       g_use_new_rxcrc         : boolean                        := false;
-      g_use_new_txcrc         : boolean                        := false);
+      g_use_new_txcrc         : boolean                        := false;
+      g_with_stop_traffic     : boolean                        := false);
     port (
       clk_ref_i            : in  std_logic;
       clk_sys_i            : in  std_logic;
@@ -179,18 +231,24 @@ package endpoint_pkg is
       pps_valid_i          : in  std_logic                     := '1';
       phy_rst_o            : out std_logic;
       phy_loopen_o         : out std_logic;
+      phy_loopen_vec_o     : out std_logic_vector(2 downto 0);
+      phy_tx_prbs_sel_o    : out std_logic_vector(2 downto 0);
+      phy_sfp_tx_fault_i   : in  std_logic;
+      phy_sfp_los_i        : in  std_logic;
+      phy_sfp_tx_disable_o : out std_logic;
       phy_enable_o         : out std_logic;
       phy_syncen_o         : out std_logic;
+      phy_rdy_i            : in  std_logic;
       phy_ref_clk_i        : in  std_logic;
-      phy_tx_data_o        : out std_logic_vector(15 downto 0);
-      phy_tx_k_o           : out std_logic_vector(1 downto 0);
+      phy_tx_data_o        : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
+      phy_tx_k_o           : out std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
       phy_tx_disparity_i   : in  std_logic;
       phy_tx_enc_err_i     : in  std_logic;
-      phy_rx_data_i        : in  std_logic_vector(15 downto 0);
+      phy_rx_data_i        : in  std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
       phy_rx_clk_i         : in  std_logic;
-      phy_rx_k_i           : in  std_logic_vector(1 downto 0);
+      phy_rx_k_i           : in  std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
       phy_rx_enc_err_i     : in  std_logic;
-      phy_rx_bitslide_i    : in  std_logic_vector(4 downto 0);
+      phy_rx_bitslide_i    : in  std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
       gmii_tx_clk_i        : in  std_logic	 									 := '0';
       gmii_txd_o           : out std_logic_vector(7 downto 0)  := x"00";
       gmii_tx_en_o         : out std_logic                     := '0';
@@ -262,9 +320,10 @@ package endpoint_pkg is
       led_act_o            : out std_logic;
       link_kill_i          : in  std_logic                     := '0';
       link_up_o            : out std_logic;
-      dbg_o     : out std_logic_vector(63 downto 0);
-    dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
-    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0));
+      stop_traffic_i       : in std_logic := '0';
+      dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
+      dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
+      nice_dbg_o  : out t_dbg_ep);
   end component;
   
   constant c_xwr_endpoint_sdb : t_sdb_device := (
@@ -285,5 +344,36 @@ package endpoint_pkg is
 
 end endpoint_pkg;
 
+package body endpoint_pkg is
 
+  function f_pcs_data_width(pcs_16 : boolean)
+    return integer is
+  begin
+    if (pcs_16) then
+      return 16;
+    else
+      return 8;
+    end if;
+  end function;
 
+  function f_pcs_k_width(pcs_16 : boolean)
+    return integer is
+  begin
+    if (pcs_16) then
+      return 2;
+    else
+      return 1;
+    end if;
+  end function;
+
+  function f_pcs_bts_width(pcs_16 : boolean)
+    return integer is
+  begin
+    if (pcs_16) then
+      return 5;
+    else
+      return 4;
+    end if;
+  end function;
+
+end package body endpoint_pkg;

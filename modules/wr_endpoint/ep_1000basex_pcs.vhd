@@ -52,6 +52,7 @@ use ieee.numeric_std.all;
 
 library work;
 use work.endpoint_private_pkg.all;
+use work.endpoint_pkg.all;
 use work.gencores_pkg.all;
 
 entity ep_1000basex_pcs is
@@ -125,10 +126,28 @@ entity ep_1000basex_pcs is
     serdes_syncen_o : out std_logic;
 
     -- 1: serdes near-end PMA loopback is enabled.
-    serdes_loopen_o : out std_logic;
+    serdes_loopen_o         : out std_logic;
+
+    -- 000: loopback vector "normal operation" (see Serdes User Guide)
+    serdes_loopen_vec_o     : out std_logic_vector(2 downto 0);
+
+    -- 000: "normal operation" (see Serdes User Guide)
+    serdes_tx_prbs_sel_o    : out   std_logic_vector(2 downto 0);
+    
+    -- 1: indicates laser fault
+    serdes_sfp_tx_fault_i   : in  std_logic;
+
+    -- 1: indicates Loss Of Signal
+    serdes_sfp_los_i        : in  std_logic;
+    
+    -- 1: Disables the transmitter
+    serdes_sfp_tx_disable_o : out std_logic;
 
     -- 1: serdes TX/RX is enabled.
     serdes_enable_o : out std_logic;
+    
+    -- 1: serdes is locked and aligned
+    serdes_rdy_i    : in  std_logic;
 
 
     ---------------------------------------------------------------------------
@@ -141,11 +160,11 @@ entity ep_1000basex_pcs is
 
     -- TX Code group. In 16-bit mode, the MSB is TXed first (tx_data_o[15:8],
     -- then tx_data_o[7:0]). In 8-bit mode only bits [7:0] are used.
-    serdes_tx_data_o : out std_logic_vector(15 downto 0);
+    serdes_tx_data_o : out std_logic_vector(f_pcs_data_width(g_16bit)-1 downto 0);
 
     -- TX Control Code: When 1, a K-character is transmitted. In 16-bit mode,
     -- bit 1 goes first, in 8-bit mode only bit 0 is used.
-    serdes_tx_k_o : out std_logic_vector(1 downto 0);
+    serdes_tx_k_o : out std_logic_vector(f_pcs_k_width(g_16bit)-1 downto 0);
 
     -- TX Disparity input: 1 = last transmitted code group ended with negative
     -- running disparity, 0 = positive RD.
@@ -162,10 +181,10 @@ entity ep_1000basex_pcs is
     -- RX recovered clock. MUST be synchronous to incoming serial data stream
     -- for proper PTP/SyncE operation. 62.5 MHz in 16-bit mode, 125 MHz in 8-bit mode.
     serdes_rx_clk_i      : in std_logic;
-    serdes_rx_data_i     : in std_logic_vector(15 downto 0);
-    serdes_rx_k_i        : in std_logic_vector(1 downto 0);
+    serdes_rx_data_i     : in std_logic_vector(f_pcs_data_width(g_16bit)-1 downto 0);
+    serdes_rx_k_i        : in std_logic_vector(f_pcs_k_width(g_16bit)-1 downto 0);
     serdes_rx_enc_err_i  : in std_logic;
-    serdes_rx_bitslide_i : in std_logic_vector(4 downto 0);
+    serdes_rx_bitslide_i : in std_logic_vector(f_pcs_bts_width(g_16bit)-1 downto 0);
 
     -- RMON events, aligned to clk_sys
     rmon_o : out t_rmon_triggers;
@@ -180,194 +199,18 @@ entity ep_1000basex_pcs is
     mdio_ready_o : out std_logic;
     
     dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
-    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0)
-    );
+    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
+    nice_dbg_o : out t_dbg_ep_pcs);
 
 end ep_1000basex_pcs;
 
 architecture rtl of ep_1000basex_pcs is
-
-  component ep_tx_pcs_8bit
-    port (
-      rst_n_i                 : in  std_logic;
-      clk_sys_i               : in  std_logic;
-      pcs_fab_i               : in  t_ep_internal_fabric;
-      pcs_error_o             : out std_logic;
-      pcs_busy_o              : out std_logic;
-      pcs_dreq_o              : out std_logic;
-      mdio_mcr_pdown_i        : in  std_logic;
-      mdio_wr_spec_tx_cal_i   : in  std_logic;
-      an_tx_en_i              : in  std_logic;
-      an_tx_val_i             : in  std_logic_vector(15 downto 0);
-      timestamp_trigger_p_a_o : out std_logic;
-      rmon_tx_underrun        : out std_logic;
-      phy_tx_clk_i            : in  std_logic;
-      phy_tx_data_o           : out std_logic_vector(7 downto 0);
-      phy_tx_k_o              : out std_logic;
-      phy_tx_disparity_i      : in  std_logic;
-      phy_tx_enc_err_i        : in  std_logic);
-  end component;
-
-  component ep_tx_pcs_16bit
-    port (
-      rst_n_i                 : in  std_logic;
-      clk_sys_i               : in  std_logic;
-      pcs_fab_i               : in  t_ep_internal_fabric;
-      pcs_error_o             : out std_logic;
-      pcs_busy_o              : out std_logic;
-      pcs_dreq_o              : out std_logic;
-      mdio_mcr_pdown_i        : in  std_logic;
-      mdio_wr_spec_tx_cal_i   : in  std_logic;
-      an_tx_en_i              : in  std_logic;
-      an_tx_val_i             : in  std_logic_vector(15 downto 0);
-      timestamp_trigger_p_a_o : out std_logic;
-      rmon_tx_underrun        : out std_logic;
-      phy_tx_clk_i            : in  std_logic;
-      phy_tx_data_o           : out std_logic_vector(15 downto 0);
-      phy_tx_k_o              : out std_logic_vector(1 downto 0);
-      phy_tx_disparity_i      : in  std_logic;
-      phy_tx_enc_err_i        : in  std_logic;
-      dbg_wr_count_o     : out std_logic_vector(5+4 downto 0);
-      dbg_rd_count_o     : out std_logic_vector(5+4 downto 0)
-);
-  end component;
-
-  component ep_rx_pcs_8bit
-    generic (
-      g_simulation : boolean);
-    port (
-      clk_sys_i                  : in  std_logic;
-      rst_n_i                    : in  std_logic;
-      pcs_fifo_almostfull_i      : in  std_logic;
-      pcs_busy_o                 : out std_logic;
-      pcs_fab_o                  : out t_ep_internal_fabric;
-      timestamp_trigger_p_a_o    : out std_logic;  -- strobe for RX timestamping
-      timestamp_i                : in  std_logic_vector(31 downto 0);
-      timestamp_stb_i            : in  std_logic;
-      timestamp_valid_i          : in  std_logic;
-      phy_rx_clk_i               : in  std_logic;
-      phy_rx_data_i              : in  std_logic_vector(7 downto 0);
-      phy_rx_k_i                 : in  std_logic;
-      phy_rx_enc_err_i           : in  std_logic;
-      mdio_mcr_pdown_i           : in  std_logic;
-      mdio_wr_spec_cal_crst_i    : in  std_logic;
-      mdio_wr_spec_rx_cal_stat_o : out std_logic;
-      synced_o                   : out std_logic;
-      sync_lost_o                : out std_logic;
-      an_rx_en_i                 : in  std_logic;
-      an_rx_val_o                : out std_logic_vector(15 downto 0);
-      an_rx_valid_o              : out std_logic;
-      an_idle_match_o            : out std_logic;
-      rmon_rx_overrun            : out std_logic;
-      rmon_rx_inv_code           : out std_logic;
-      rmon_rx_sync_lost          : out std_logic);
-  end component;
-
-  component ep_rx_pcs_16bit
-    generic (
-      g_simulation : boolean);
-    port (
-      clk_sys_i                  : in  std_logic;
-      rst_n_i                    : in  std_logic;
-      pcs_fifo_almostfull_i      : in  std_logic;
-      pcs_busy_o                 : out std_logic;
-      pcs_fab_o                  : out t_ep_internal_fabric;
-      timestamp_trigger_p_a_o    : out std_logic;  -- strobe for RX timestamping
-      timestamp_i                : in  std_logic_vector(31 downto 0);
-      timestamp_stb_i            : in  std_logic;
-      timestamp_valid_i          : in  std_logic;
-      phy_rx_clk_i               : in  std_logic;
-      phy_rx_data_i              : in  std_logic_vector(15 downto 0);
-      phy_rx_k_i                 : in  std_logic_vector(1 downto 0);
-      phy_rx_enc_err_i           : in  std_logic;
-      mdio_mcr_pdown_i           : in  std_logic;
-      mdio_wr_spec_cal_crst_i    : in  std_logic;
-      mdio_wr_spec_rx_cal_stat_o : out std_logic;
-      synced_o                   : out std_logic;
-      sync_lost_o                : out std_logic;
-      an_rx_en_i                 : in  std_logic;
-      an_rx_val_o                : out std_logic_vector(15 downto 0);
-      an_rx_valid_o              : out std_logic;
-      an_idle_match_o            : out std_logic;
-      rmon_rx_overrun            : out std_logic;
-      rmon_rx_inv_code           : out std_logic;
-      rmon_rx_sync_lost          : out std_logic);
-  end component;
-
-
-  component ep_pcs_tbi_mdio_wb
-    port (
-      rst_n_i                    : in  std_logic;
-      clk_sys_i                  : in  std_logic;
-      wb_adr_i                   : in  std_logic_vector(4 downto 0);
-      wb_dat_i                   : in  std_logic_vector(31 downto 0);
-      wb_dat_o                   : out std_logic_vector(31 downto 0);
-      wb_cyc_i                   : in  std_logic;
-      wb_sel_i                   : in  std_logic_vector(3 downto 0);
-      wb_stb_i                   : in  std_logic;
-      wb_we_i                    : in  std_logic;
-      wb_ack_o                   : out std_logic;
-      wb_stall_o                 : out std_logic;
-      tx_clk_i                   : in  std_logic;
-      rx_clk_i                   : in  std_logic;
-      mdio_mcr_uni_en_o          : out std_logic;
-      mdio_mcr_anrestart_o       : out std_logic;
-      mdio_mcr_pdown_o           : out std_logic;
-      mdio_mcr_anenable_o        : out std_logic;
-      mdio_mcr_loopback_o        : out std_logic;
-      mdio_mcr_reset_o           : out std_logic;
-      mdio_msr_lstatus_i         : in  std_logic;
-      lstat_read_notify_o        : out std_logic;
-      mdio_msr_rfault_i          : in  std_logic;
-      mdio_msr_anegcomplete_i    : in  std_logic;
-      mdio_advertise_pause_o     : out std_logic_vector(1 downto 0);
-      mdio_advertise_rfault_o    : out std_logic_vector(1 downto 0);
-      mdio_lpa_full_i            : in  std_logic;
-      mdio_lpa_half_i            : in  std_logic;
-      mdio_lpa_pause_i           : in  std_logic_vector(1 downto 0);
-      mdio_lpa_rfault_i          : in  std_logic_vector(1 downto 0);
-      mdio_lpa_lpack_i           : in  std_logic;
-      mdio_lpa_npage_i           : in  std_logic;
-      mdio_wr_spec_tx_cal_o      : out std_logic;
-      mdio_wr_spec_rx_cal_stat_i : in  std_logic;
-      mdio_wr_spec_cal_crst_o    : out std_logic;
-      mdio_wr_spec_bslide_i      : in  std_logic_vector(4 downto 0));
-  end component;
-
-  component ep_autonegotiation
-    generic (
-      g_simulation : boolean);
-    port (
-      clk_sys_i               : in  std_logic;
-      rst_n_i                 : in  std_logic;
-      pcs_synced_i            : in  std_logic;
-      pcs_los_i               : in  std_logic;
-      pcs_link_ok_o           : out std_logic;
-      an_idle_match_i         : in  std_logic;
-      an_rx_en_o              : out std_logic;
-      an_rx_val_i             : in  std_logic_vector(15 downto 0);
-      an_rx_valid_i           : in  std_logic;
-      an_tx_en_o              : out std_logic;
-      an_tx_val_o             : out std_logic_vector(15 downto 0);
-      mdio_mcr_anrestart_i    : in  std_logic;
-      mdio_mcr_anenable_i     : in  std_logic;
-      mdio_msr_anegcomplete_o : out std_logic;
-      mdio_advertise_pause_i  : in  std_logic_vector(1 downto 0);
-      mdio_advertise_rfault_i : in  std_logic_vector(1 downto 0);
-      mdio_lpa_full_o         : out std_logic;
-      mdio_lpa_half_o         : out std_logic;
-      mdio_lpa_pause_o        : out std_logic_vector(1 downto 0);
-      mdio_lpa_rfault_o       : out std_logic_vector(1 downto 0);
-      mdio_lpa_lpack_o        : out std_logic;
-      mdio_lpa_npage_o        : out std_logic);
-  end component;
 
   signal mdio_mcr_uni_en          : std_logic;
   signal mdio_mcr_anrestart       : std_logic;
   signal mdio_mcr_pdown           : std_logic;
   signal mdio_mcr_pdown_cpu       : std_logic;
   signal mdio_mcr_anenable        : std_logic;
-  signal mdio_mcr_loopback        : std_logic;
   signal mdio_mcr_reset           : std_logic;
   signal mdio_msr_lstatus         : std_logic;
   signal mdio_msr_rfault          : std_logic;
@@ -481,12 +324,16 @@ begin  -- rtl
         rmon_rx_inv_code => rmon_rx_inv_code,
         rmon_rx_sync_lost=> rmon_rx_sync_lost,
 
+        phy_rdy_i        => serdes_rdy_i,
         phy_rx_clk_i     => serdes_rx_clk_i,
         phy_rx_data_i    => serdes_rx_data_i,
         phy_rx_k_i       => serdes_rx_k_i,
-        phy_rx_enc_err_i => serdes_rx_enc_err_i
+        phy_rx_enc_err_i => serdes_rx_enc_err_i,
+
+        nice_dbg_o => nice_dbg_o.rx
         );
 
+    mdio_wr_spec_bslide <= serdes_rx_bitslide_i(4 downto 0);
     
   end generate gen_16bit;
 
@@ -515,10 +362,6 @@ begin  -- rtl
         phy_tx_disparity_i => serdes_tx_disparity_i,
         phy_tx_enc_err_i   => serdes_tx_enc_err_i
         );
-
-    
-    serdes_tx_k_o(1)              <= 'X';
-    serdes_tx_data_o(15 downto 8) <= (others => 'X');
 
     U_RX_PCS : ep_rx_pcs_8bit
       generic map (
@@ -551,11 +394,14 @@ begin  -- rtl
         rmon_rx_inv_code => rmon_rx_inv_code,
         rmon_rx_sync_lost=> rmon_rx_sync_lost,
 
+        phy_rdy_i        => serdes_rdy_i,
         phy_rx_clk_i     => serdes_rx_clk_i,
         phy_rx_data_i    => serdes_rx_data_i(7 downto 0),
         phy_rx_k_i       => serdes_rx_k_i(0),
         phy_rx_enc_err_i => serdes_rx_enc_err_i
         );
+
+    mdio_wr_spec_bslide <= '0' & serdes_rx_bitslide_i(3 downto 0);
 
   end generate gen_8bit;
 
@@ -565,7 +411,6 @@ begin  -- rtl
   mdio_mcr_pdown      <= mdio_mcr_pdown_cpu or (not link_ctr_i);
  
   serdes_rst_o        <= (not pcs_reset_n) or mdio_mcr_pdown;
-  mdio_wr_spec_bslide <= serdes_rx_bitslide_i(4 downto 0);
 
   U_MDIO_WB : ep_pcs_tbi_mdio_wb
     port map (
@@ -590,8 +435,8 @@ begin  -- rtl
       mdio_mcr_anrestart_o       => mdio_mcr_anrestart,
       mdio_mcr_pdown_o           => mdio_mcr_pdown_cpu,
       mdio_mcr_anenable_o        => mdio_mcr_anenable,
-      mdio_mcr_loopback_o        => mdio_mcr_loopback,
       mdio_mcr_reset_o           => mdio_mcr_reset,
+      mdio_mcr_loopback_o        => serdes_loopen_o,
       mdio_msr_lstatus_i         => mdio_msr_lstatus,
       mdio_msr_rfault_i          => mdio_msr_rfault,
       mdio_msr_anegcomplete_i    => mdio_msr_anegcomplete,
@@ -607,6 +452,11 @@ begin  -- rtl
       mdio_wr_spec_rx_cal_stat_i => mdio_wr_spec_rx_cal_stat,
       mdio_wr_spec_cal_crst_o    => mdio_wr_spec_cal_crst,
       mdio_wr_spec_bslide_i      => mdio_wr_spec_bslide,
+      mdio_ectrl_lpbck_vec_o       => serdes_loopen_vec_o,
+      mdio_ectrl_sfp_tx_fault_i    => serdes_sfp_tx_fault_i,
+      mdio_ectrl_sfp_loss_i        => serdes_sfp_los_i,
+      mdio_ectrl_sfp_tx_disable_o  => serdes_sfp_tx_disable_o,
+      mdio_ectrl_tx_prbs_sel_o     => serdes_tx_prbs_sel_o,
 
       lstat_read_notify_o => lstat_read_notify
       );
@@ -685,8 +535,6 @@ begin  -- rtl
   end process;
 
   link_ok_o <= link_ok and synced;
-
-  serdes_loopen_o <= mdio_mcr_loopback;
 
   --RMON events
   U_sync_tx_underrun: gc_sync_ffs

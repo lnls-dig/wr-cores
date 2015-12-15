@@ -46,6 +46,7 @@ use work.gencores_pkg.all;
 use work.genram_pkg.all;
 use work.wr_fabric_pkg.all;
 use work.endpoint_private_pkg.all;
+use work.endpoint_pkg.all;
 use work.ep_wbgen2_pkg.all;
 
 entity ep_tx_header_processor is
@@ -135,6 +136,10 @@ end ep_tx_header_processor;
 architecture behavioral of ep_tx_header_processor is
 
   constant c_IFG_LENGTH : integer := g_force_gap_length ;--0;
+  constant c_MIN_FRAME_THR  : integer := 30;
+  constant c_MIN_QFRAME_THR : integer := 32; -- we need to pad more 802.1q
+                                             -- tagged frame if it's going to be
+                                             -- untagged later in the tx_path
 
   type t_tx_framer_state is (TXF_IDLE, TXF_DELAYED_SOF, TXF_ADDR, TXF_DATA, TXF_GAP, TXF_PAD, TXF_ABORT, TXF_STORE_TSTAMP);
 
@@ -166,7 +171,8 @@ architecture behavioral of ep_tx_header_processor is
   signal tx_en        : std_logic;
   signal ep_ctrl     : std_logic;
   signal bitsel_d    : std_logic;
-  signal needs_padding  :  std_logic;
+  signal needs_padding  : std_logic;
+  signal to_be_untagged : std_logic;
   signal sof_reg     : std_logic;
 
   function b2s (x : boolean)
@@ -198,7 +204,16 @@ architecture behavioral of ep_tx_header_processor is
       return when_0;
     end if;
   end function;
-  
+
+  function f_pick (cond : boolean; when_1 : std_logic ; when_0 : std_logic)
+    return std_logic is
+  begin
+    if(cond) then
+      return when_1;
+    else
+      return when_0;
+    end if;
+  end function;
   
   function f_fabric_2_slv (
     in_i : t_wrf_sink_in;
@@ -246,11 +261,15 @@ begin  -- behavioral
               '0'; -- ML
 
   GEN_PADDING: if(g_runt_padding) generate
-    needs_padding <= '1' when(counter < x"1e") else -- 0x1e, but we count here also ethertype
+    needs_padding <= '1' when( (to_be_untagged = '1' and counter < c_MIN_QFRAME_THR) or
+                                counter < c_MIN_FRAME_THR) else
                      '0';
   end generate;
   GEN_NOPADDING: if( not g_runt_padding) generate
-    needs_padding <= '0';
+    -- even if padding is disabled, we still need to pad short 802.1q frames
+    -- that will be untagged
+    needs_padding <= '1' when (to_be_untagged = '1' and counter < c_MIN_QFRAME_THR) else
+                     '0';
   end generate;
 
   process(clk_sys_i)
@@ -341,7 +360,8 @@ begin  -- behavioral
         fc_pause_ready_o <= '1';
 
         txtsu_stb_o <= '0';
-        bitsel_d  <='0';
+        bitsel_d  <= '0';
+        to_be_untagged <= '0';
 
       else
 
@@ -384,6 +404,7 @@ begin  -- behavioral
               src_fab_o.eof    <= '0';
               src_fab_o.dvalid <= '0';
               src_fab_o.bytesel <= '0';
+              to_be_untagged    <= '0';
 
               -- Check start-of-frame and send-pause signals and eventually
               -- commence frame transmission
@@ -452,6 +473,8 @@ begin  -- behavioral
                     end if;
                   when x"6" =>
                     src_fab_o.data <= f_pick(g_with_packet_injection, "XXXXXXXXXXXXXXXX", x"8808");
+                    to_be_untagged <= f_pick(wb_snk_i.dat = x"8100" and
+                                             regs_i.vcr0_qmode_o = c_QMODE_PORT_ACCESS, '1', '0');
                   when x"7" =>
                     src_fab_o.data <= f_pick(g_with_packet_injection, "XXXXXXXXXXXXXXXX", x"0001"); -- peterj: IEEE 802.3 Table 31A-1 MAC control codes PAUSE (Annex 31B)
                   when x"8" =>
@@ -482,7 +505,8 @@ begin  -- behavioral
                 src_fab_o.dvalid <= '1';
                 src_fab_o.addr   <= (others => '0');
 
-                if(counter = x"1d") then
+                if( (to_be_untagged = '1' and counter = c_MIN_QFRAME_THR-1) or
+                    (to_be_untagged = '0' and counter = c_MIN_FRAME_THR-1) ) then
                   state <= TXF_GAP;
                   src_fab_o.eof    <= '1';
                 end if;
@@ -504,6 +528,11 @@ begin  -- behavioral
               -- src_fab_o.eof to HIGH but actually did not exit the TXF_DATA state... this
               -- caused EOF to be longer than one cycle
               src_fab_o.eof   <= '0'; 
+
+              if (counter = x"6") then
+                to_be_untagged <= f_pick(wb_snk_i.dat = x"8100" and
+                                         regs_i.vcr0_qmode_o = c_QMODE_PORT_ACCESS, '1', '0');
+              end if;
               
               if((wb_snk_i.adr = c_WRF_OOB or eof_p1='1') and needs_padding='1') then
                 state <= TXF_PAD;

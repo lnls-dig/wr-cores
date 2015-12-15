@@ -55,6 +55,7 @@ use work.gencores_pkg.all;
 use work.genram_pkg.all;
 use work.wr_fabric_pkg.all;
 use work.endpoint_private_pkg.all;
+use work.endpoint_pkg.all;
 use work.ep_wbgen2_pkg.all;
 
 entity ep_tx_vlan_unit is
@@ -96,11 +97,12 @@ architecture behavioral of ep_tx_vlan_unit is
 
   signal vut_stored_tag       : std_logic_vector(15 downto 0);
   signal vut_stored_ethertype : std_logic_vector(15 downto 0);
+  signal flush_ethertype : std_logic;
+  signal flushed         : std_logic;
 
   signal mem_addr_muxed : std_logic_vector(9 downto 0);
   signal mem_rdata      : std_logic_vector(17 downto 0);
   signal src_dreq_d0    : std_logic;
-  signal flush_ethtype  : std_logic;
 
 begin  -- behavioral
 
@@ -145,18 +147,18 @@ begin  -- behavioral
     if rising_edge(clk_sys_i) then
       if rst_n_i = '0' then
         state <= IDLE;
-        flush_ethtype <= '0';
       else
         case state is
           when IDLE =>
-            if(src_dreq_i='1') then
-              flush_ethtype <= '0';
-            end if;
+            flushed <= '0';
             if(snk_fab_i.sof = '1') then
               counter <= (others => '0');
             end if;
             if(snk_fab_i.dvalid = '1' and snk_fab_i.addr = c_WRF_DATA and counter /= 6) then
               counter <= counter + 1;
+            end if;
+            if(src_dreq_i='1') then
+              flush_ethertype <= '0';
             end if;
 
             if(snk_fab_i.dvalid = '1' and counter = 5) then
@@ -184,12 +186,22 @@ begin  -- behavioral
             end if;
 
           when POP_ETHERTYPE =>
-            flush_ethtype <= src_dreq_i;
             if(vut_untag = '1') then
               vut_untag_reg <= '1';
             end if;
             if(snk_fab_i.dvalid = '1') then
               vut_stored_ethertype <= snk_fab_i.data; 
+            end if;
+            -- if dreq is '1' in POP_ETHERTYPE, that means we have passed
+            -- ethertype to src_fab_o and we don't need to do it after going to
+            -- IDLE.
+            if(src_dreq_d0 = '1') then
+              flush_ethertype <= '0';
+            elsif(src_dreq_i = '0' and flushed = '0') then
+              flush_ethertype <= '1';
+            end if;
+            if(src_dreq_d0 = '1') then
+              flushed <= '1';
             end if;
             if( (vut_untag = '1' or vut_untag_reg = '1') and src_dreq_i = '1') then
               state <= IDLE; 
@@ -215,7 +227,7 @@ begin  -- behavioral
 
 
 --   p_main_fsm_comb : process(snk_fab_i, src_dreq_d0, state, vut_stored_tag, vut_stored_ethertype, counter,vut_untag)
-  p_main_fsm_comb : process(snk_fab_i,src_dreq_i, src_dreq_d0, state, vut_stored_tag, vut_stored_ethertype, counter,vut_untag)
+  p_main_fsm_comb : process(snk_fab_i,src_dreq_i, src_dreq_d0, state, vut_stored_tag, vut_stored_ethertype, counter,vut_untag, flush_ethertype)
   begin
 
     case state is
@@ -235,9 +247,13 @@ begin  -- behavioral
       when IDLE =>
         snk_dreq_o       <= src_dreq_i;
         -- validate Ethertype from POP_ETHERTYPE state if dreq was high
-        src_fab_o.dvalid <= snk_fab_i.dvalid or (flush_ethtype and src_dreq_d0);
-        src_fab_o.data   <= snk_fab_i.data;
+        src_fab_o.dvalid <= snk_fab_i.dvalid or flush_ethertype;
         src_fab_o.addr   <= snk_fab_i.addr;
+        if(flush_ethertype = '1') then
+          src_fab_o.data   <= vut_stored_ethertype;
+        else
+          src_fab_o.data   <= snk_fab_i.data;
+        end if;
 
       when CHECK_ETHERTYPE =>
         snk_dreq_o <= src_dreq_i;

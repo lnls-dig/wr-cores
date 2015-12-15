@@ -53,6 +53,7 @@ library work;
 use work.gencores_pkg.all;
 use work.genram_pkg.all;
 use work.endpoint_private_pkg.all;
+use work.endpoint_pkg.all;
 
 
 entity ep_tx_pcs_16bit is
@@ -519,22 +520,19 @@ begin
     end if;
   end process;
 
-  gen_tx_busy : process(tx_state)
+  process(phy_tx_clk_i)
   begin
-    case (tx_state) is
-      when TX_CR12 =>
-        tx_busy <= '0';
-      when TX_CR34 =>
-        tx_busy <= '0';
-      when TX_COMMA_IDLE =>
-        tx_busy <= '0';
-      when others =>
+    if rising_edge(phy_tx_clk_i) then
+      if fifo_empty = '0' or (tx_state /= TX_CR12 and tx_state /= TX_CR34 and tx_state /= TX_COMMA_IDLE) then
         tx_busy <= '1';
-    end case;
+      else
+        tx_busy <= '0';
+      end if;
+    end if;
   end process;
 
---  tx_busy    <= '1' when (fifo_empty = '0') or (tx_state /= TX_COMMA_IDLE) else '0';
   pcs_dreq_o <= not fifo_almost_full;
+  
 end behavioral;
 
 

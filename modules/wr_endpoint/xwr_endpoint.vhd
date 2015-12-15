@@ -63,7 +63,8 @@ entity xwr_endpoint is
     g_with_dmtd             : boolean                        := true;
     g_with_packet_injection : boolean                        := false;
     g_use_new_rxcrc         : boolean                        := false;
-    g_use_new_txcrc         : boolean                        := false
+    g_use_new_txcrc         : boolean                        := false;
+    g_with_stop_traffic     : boolean                        := false
     );
   port (
 
@@ -94,21 +95,27 @@ entity xwr_endpoint is
 -------------------------------------------------------------------------------    
 
     phy_rst_o    : out std_logic;
-    phy_loopen_o : out std_logic;
+    phy_loopen_o         : out std_logic;
+    phy_loopen_vec_o     : out std_logic_vector(2 downto 0);
+    phy_tx_prbs_sel_o    : out std_logic_vector(2 downto 0);
+    phy_sfp_tx_fault_i   : in std_logic;
+    phy_sfp_los_i        : in std_logic;
+    phy_sfp_tx_disable_o : out std_logic;
     phy_enable_o : out std_logic;
     phy_syncen_o : out std_logic;
+    phy_rdy_i    : in  std_logic;
 
     phy_ref_clk_i      : in  std_logic := '0';
-    phy_tx_data_o      : out std_logic_vector(15 downto 0);
-    phy_tx_k_o         : out std_logic_vector(1 downto 0);
+    phy_tx_data_o      : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
+    phy_tx_k_o         : out std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
     phy_tx_disparity_i : in  std_logic := '0';
     phy_tx_enc_err_i   : in  std_logic := '0';
 
-    phy_rx_data_i     : in std_logic_vector(15 downto 0) := x"0000";
+    phy_rx_data_i     : in std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
     phy_rx_clk_i      : in std_logic                     := '0';
-    phy_rx_k_i        : in std_logic_vector(1 downto 0)  := "00";
+    phy_rx_k_i        : in std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
     phy_rx_enc_err_i  : in std_logic                     := '0';
-    phy_rx_bitslide_i : in std_logic_vector(4 downto 0)  := "00000";
+    phy_rx_bitslide_i : in std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
 
 -------------------------------------------------------------------------------
 -- GMII Interface (8-bit)
@@ -248,10 +255,10 @@ entity xwr_endpoint is
 
     link_kill_i : in  std_logic := '0';
     link_up_o   : out std_logic;
-    dbg_o       : out std_logic_vector(63 downto 0);
+    stop_traffic_i : in std_logic := '0';
     dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
-    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0)
-    );
+    dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
+    nice_dbg_o  : out t_dbg_ep);
 
 end xwr_endpoint;
 
@@ -278,7 +285,8 @@ begin
       g_with_dmtd             => g_with_dmtd,
       g_with_packet_injection => g_with_packet_injection,
       g_use_new_rxcrc         => g_use_new_rxcrc,
-      g_use_new_txcrc         => g_use_new_txcrc)
+      g_use_new_txcrc         => g_use_new_txcrc,
+      g_with_stop_traffic     => g_with_stop_traffic)
     port map (
       clk_ref_i            => clk_ref_i,
       clk_sys_i            => clk_sys_i,
@@ -288,8 +296,14 @@ begin
       pps_valid_i          => pps_valid_i,
       phy_rst_o            => phy_rst_o,
       phy_loopen_o         => phy_loopen_o,
+      phy_loopen_vec_o     => phy_loopen_vec_o,
+      phy_tx_prbs_sel_o    => phy_tx_prbs_sel_o,
+      phy_sfp_tx_fault_i   => phy_sfp_tx_fault_i,
+      phy_sfp_los_i        => phy_sfp_los_i,
+      phy_sfp_tx_disable_o => phy_sfp_tx_disable_o,
       phy_enable_o         => phy_enable_o,
       phy_syncen_o         => phy_syncen_o,
+      phy_rdy_i            => phy_rdy_i,
       phy_ref_clk_i        => phy_ref_clk_i,
       phy_tx_data_o        => phy_tx_data_o,
       phy_tx_k_o           => phy_tx_k_o,
@@ -371,9 +385,10 @@ begin
       inject_user_value_i  => inject_user_value_i,
       inject_packet_sel_i  => inject_packet_sel_i,
       inject_ready_o       => inject_ready_o,
-      dbg_o                => dbg_o,
+      stop_traffic_i       => stop_traffic_i,
       dbg_tx_pcs_wr_count_o=>dbg_tx_pcs_wr_count_o,
-      dbg_tx_pcs_rd_count_o=>dbg_tx_pcs_rd_count_o);
+      dbg_tx_pcs_rd_count_o=>dbg_tx_pcs_rd_count_o,
+      nice_dbg_o           => nice_dbg_o);
 
   wb_o.err <= '0';
   wb_o.rty <= '0';

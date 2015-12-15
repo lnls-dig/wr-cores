@@ -1,4 +1,5 @@
 files = [
+  "eca_ac_wbm_auto_pkg.vhd",
   "eca.vhd",
   "eca_adder.vhd",
   "eca_channel.vhd",
@@ -15,6 +16,5 @@ files = [
   "eca_wb_event.vhd",
   "eca_wr_time.vhd",
   "wr_eca.vhd",
-  "eca_ac_wbm_auto_pkg.vhd",
   "eca_ac_wbm_auto.vhd",
   "eca_ac_wbm.vhd"]

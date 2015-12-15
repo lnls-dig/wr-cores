@@ -276,7 +276,6 @@ peripheral {
 					               11: unqualified port - passes all traffic regardless of VLAN configuration";
 					type = SLV;
 					size = 2;
-					align = 2;
 					prefix = "Qmode";
 					access_dev = READ_ONLY;
 					access_bus = READ_WRITE;

@@ -38,6 +38,7 @@
 -- Date        Version  Author    Description
 -- 2013-04-08  0.1      PeterJ    Initial release based on "wr_gtx_phy_virtex6.vhd"
 -- 2013-08-19  0.2      PeterJ    Implemented a small delay before a rx_cdr_lock is propgated
+-- 2014-02_19  0.3      Peterj    Added tx_locked_o to indicate that the cpll reached the lock status
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -66,6 +67,7 @@ entity wr_gtx_phy_kintex7 is
 
     -- TX path, synchronous to tx_out_clk_o (62.5 MHz):
     tx_out_clk_o : out std_logic;
+    tx_locked_o  : out std_logic;
 
     -- data input (8 bits, not 8b10b-encoded)
     tx_data_i : in std_logic_vector(15 downto 0);
@@ -102,18 +104,16 @@ entity wr_gtx_phy_kintex7 is
     rx_bitslide_o : out std_logic_vector(4 downto 0);
 
     -- reset input, active hi
-    rst_i    : in std_logic;
-    loopen_i : in std_logic;
-
+    rst_i         : in std_logic;
+    loopen_i      : in std_logic_vector(2 downto 0);
+    tx_prbs_sel_i : in std_logic_vector(2 downto 0);
     pad_txn_o : out std_logic;
     pad_txp_o : out std_logic;
 
     pad_rxn_i : in std_logic := '0';
-    pad_rxp_i : in std_logic := '0'
+    pad_rxp_i : in std_logic := '0';
 
-    );
-
-
+    rdy_o     : out std_logic);
 end wr_gtx_phy_kintex7;
 
 architecture rtl of wr_gtx_phy_kintex7 is
@@ -204,7 +204,9 @@ architecture rtl of wr_gtx_phy_kintex7 is
     --------------------- Transmit Ports - TX Gearbox Ports --------------------
     TXCHARISK_IN                            : in   std_logic_vector(1 downto 0);
     ------------- Transmit Ports - TX Initialization and Reset Ports -----------
-    TXRESETDONE_OUT                         : out  std_logic
+    TXRESETDONE_OUT                         : out  std_logic;
+    ------------------ Transmit Ports - pattern Generator Ports ----------------
+    TXPRBSSEL_IN                            : in   std_logic_vector(2 downto 0)
 	);
   end component WHITERABBIT_GTXE2_CHANNEL_WRAPPER_GT;
 
@@ -235,8 +237,7 @@ architecture rtl of wr_gtx_phy_kintex7 is
   
   signal rst_synced                   : std_logic;
   signal rst_int                      : std_logic;
-  signal trig0, trig1, trig2, trig3   : std_logic_vector(31 downto 0);
-  signal gtx_loopback                 : std_logic_vector(2 downto 0);
+--  signal trig0, trig1, trig2, trig3   : std_logic_vector(31 downto 0);
 
   signal rx_rec_clk_bufin             : std_logic;
   signal rx_rec_clk                   : std_logic;
@@ -275,13 +276,13 @@ begin  -- rtl
 
   -- There is a hen and egg problem with the reset in wr_core. Some reset signals are
   -- synchronized by rx_rbclk_o but this signal is de-asserted by the same reset.
-  -- Therefor the rst_i is made edge sensitive and an internal reset pulse is generated for the PHY.
+  -- Therefore the rst_i is made edge sensitive and an internal reset pulse is generated for the PHY.
   -- After this reset pulse signal rx_rbclk_o starts clocking again and the (still asserted) system
   -- wide reset signal can by synchronized with this clock.
 
   -- Note that the rst_i originates from the clk_sys domain. Synchronisation is not needed
   -- when the clk_sys is phase locked with clk_gtx_i (which is usually the case) but is a safety
-  -- measure. Add a false path for U_EdgeDet_rst_i_reg_sync0 to the timing contraints.
+  -- measure. Add a false path for U_EdgeDet_rst_i_reg_sync0 to the timing constraints.
   U_EdgeDet_rst_i : gc_sync_ffs port map (
     clk_i    => clk_gtx_i,
     rst_n_i  => '1',
@@ -312,6 +313,7 @@ begin  -- rtl
       O => tx_out_clk);
 
    tx_out_clk_o <= tx_out_clk;
+   tx_locked_o  <= cpll_lockdet;
 
       U_BUF_RxRecClk : BUFG
     port map (
@@ -323,11 +325,6 @@ begin  -- rtl
   tx_is_k_swapped <= tx_k_i(0) & tx_k_i(1);
   tx_data_swapped <= tx_data_i(7 downto 0) & tx_data_i(15 downto 8);
   
-  -- loopen_i determines:
-  --   '0' => gtx_loopback = "000" => normal operation
-  --   '1' => gtx_loopback = "010" => Near end PMA Loopback
-  gtx_loopback <= '0' & loopen_i & '0';
-
 U_GTX_INST : WHITERABBIT_GTXE2_CHANNEL_WRAPPER_GT
     generic map
     (
@@ -356,7 +353,7 @@ U_GTX_INST : WHITERABBIT_GTXE2_CHANNEL_WRAPPER_GT
 		QPLLCLK_IN                 => '0',
 		QPLLREFCLK_IN              => '0',
 		------------------------------- Loopback Ports -----------------------------
-		LOOPBACK_IN                => gtx_loopback,
+		LOOPBACK_IN                => loopen_i,
 		--------------------- RX Initialization and Reset Ports --------------------
 --		RXUSERRDY_IN               => rx_cdr_lock,
 		RXUSERRDY_IN               => rx_cdr_lock_filtered,
@@ -414,7 +411,9 @@ U_GTX_INST : WHITERABBIT_GTXE2_CHANNEL_WRAPPER_GT
 		TXCHARISK_IN               => tx_is_k_swapped,
 --       TXCHARISK_IN               => tx_k_i,
 		------------- Transmit Ports - TX Initialization and Reset Ports -----------
-		TXRESETDONE_OUT            => tx_rst_done
+		TXRESETDONE_OUT            => tx_rst_done,
+                ------------------ Transmit Ports - pattern Generator Ports ----------------
+    TXPRBSSEL_IN               => tx_prbs_sel_i
     );
 
   U_Bitslide : gtp_bitslide
@@ -440,12 +439,13 @@ U_GTX_INST : WHITERABBIT_GTXE2_CHANNEL_WRAPPER_GT
   rst_done_n       <= not rst_done;
   pll_lockdet      <= txpll_lockdet and rxpll_lockdet;
   everything_ready <= rst_done and pll_lockdet;
+  rdy_o            <= everything_ready;
 
-  trig2(3) <= rx_rst_done;
-  trig2(4) <= tx_rst_done;
-  trig2(5) <= txpll_lockdet;
-  trig2(6) <= rxpll_lockdet;
-  trig2(7) <= '1';
+--  trig2(3) <= rx_rst_done;
+--  trig2(4) <= tx_rst_done;
+--  trig2(5) <= txpll_lockdet;
+--  trig2(6) <= rxpll_lockdet;
+--  trig2(7) <= '1';
 
   -- 2013 August 19: Peterj
   -- The family 7 GTX seem to have an artifact in rx_cdr_lock. For no reason lock may be lost for a clock cycle
@@ -481,8 +481,6 @@ U_GTX_INST : WHITERABBIT_GTXE2_CHANNEL_WRAPPER_GT
       if(everything_ready = '1' and rx_synced = '1') then
         rx_data_o    <= rx_data_int(7 downto 0) & rx_data_int(15 downto 8);
         rx_k_o       <= rx_k_int(0) & rx_k_int(1);
---        rx_data_o    <= rx_data_int;
---        rx_k_o       <= rx_k_int;
         rx_enc_err_o <= rx_disp_err(0) or rx_disp_err(1) or rx_code_err(0) or rx_code_err(1);
       else
         rx_data_o    <= (others => '1');

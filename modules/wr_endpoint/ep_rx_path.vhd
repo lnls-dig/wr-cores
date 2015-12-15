@@ -53,8 +53,10 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 library work;
+use work.gencores_pkg.all;
 use work.genram_pkg.all;
 use work.endpoint_private_pkg.all;
+use work.endpoint_pkg.all;
 use work.ep_wbgen2_pkg.all;
 use work.wr_fabric_pkg.all;
 
@@ -106,171 +108,12 @@ entity ep_rx_path is
     rtu_full_i     : in  std_logic;
     rtu_rq_valid_o : out std_logic;
     rtu_rq_abort_o : out std_logic;
-    dbg_o          : out std_logic_vector(29 downto 0)
+
+    nice_dbg_o     : out t_dbg_ep_rxpath
     );
 end ep_rx_path;
 
 architecture behavioral of ep_rx_path is
-
-  component ep_rtu_header_extract
-    generic (
-      g_with_rtu : boolean);
-    port (
-      clk_sys_i        : in  std_logic;
-      rst_n_i          : in  std_logic;
-      snk_fab_i        : in  t_ep_internal_fabric;
-      snk_dreq_o       : out std_logic;
-      src_fab_o        : out t_ep_internal_fabric;
-      src_dreq_i       : in  std_logic;
-      mbuf_is_pause_i  : in  std_logic;
-      vlan_class_i     : in  std_logic_vector(2 downto 0);
-      vlan_vid_i       : in  std_logic_vector(11 downto 0);
-      vlan_tag_done_i  : in  std_logic;
-      vlan_is_tagged_i : in  std_logic;
-      rmon_drp_at_rtu_full_o: out std_logic;
-      rtu_rq_o         : out t_ep_internal_rtu_request;
-      rtu_full_i       : in  std_logic;
-      rtu_rq_abort_o   : out std_logic;
-      rtu_rq_valid_o   : out std_logic);
-  end component;
-
-  component ep_rx_early_address_match
-    port (
-      clk_sys_i               : in  std_logic;
-      clk_rx_i                : in  std_logic;
-      rst_n_sys_i             : in  std_logic;
-      rst_n_rx_i              : in  std_logic;
-      snk_fab_i               : in  t_ep_internal_fabric;
-      src_fab_o               : out t_ep_internal_fabric;
-      match_done_o            : out std_logic;
-      match_is_hp_o           : out std_logic;
-      match_is_pause_o        : out std_logic;
-      match_pause_quanta_o    : out std_logic_vector(15 downto 0);
-      match_pause_prio_mask_o : out std_logic_vector(7 downto 0);
-      match_pause_p_o         : out std_logic;
-      regs_i                  : in  t_ep_out_registers);
-  end component;
-
-  component ep_clock_alignment_fifo
-    generic (
-      g_size                 : integer;
-      g_almostfull_threshold : integer);
-    port (
-      rst_n_rd_i       : in  std_logic;
-      clk_wr_i         : in  std_logic;
-      clk_rd_i         : in  std_logic;
-      dreq_i           : in  std_logic;
-      fab_i            : in  t_ep_internal_fabric;
-      fab_o            : out t_ep_internal_fabric;
-      full_o           : out std_logic;
-      empty_o          : out std_logic;
-      almostfull_o     : out std_logic;
-      pass_threshold_i : in  std_logic_vector(f_log2_size(g_size)-1 downto 0));
-  end component;
-
-  component ep_packet_filter
-    port (
-      clk_rx_i    : in  std_logic;
-      clk_sys_i   : in  std_logic;
-      rst_n_rx_i  : in  std_logic;
-      rst_n_sys_i : in  std_logic;
-      snk_fab_i   : in  t_ep_internal_fabric;
-      src_fab_o   : out t_ep_internal_fabric;
-      done_o      : out std_logic;
-      pclass_o    : out std_logic_vector(7 downto 0);
-      drop_o      : out std_logic;
-      regs_i      : in  t_ep_out_registers);
-  end component;
-
-  component ep_rx_vlan_unit
-    port (
-      clk_sys_i   : in    std_logic;
-      rst_n_i     : in    std_logic;
-      snk_fab_i   : in    t_ep_internal_fabric;
-      snk_dreq_o  : out   std_logic;
-      src_fab_o   : out   t_ep_internal_fabric;
-      src_dreq_i  : in    std_logic;
-      tclass_o    : out   std_logic_vector(2 downto 0);
-      vid_o       : out   std_logic_vector(11 downto 0);
-      tag_done_o  : out   std_logic;
-      is_tagged_o : out   std_logic;
-      regs_i      : in    t_ep_out_registers;
-      regs_o      : out   t_ep_in_registers);
-  end component;
-
-  component ep_rx_oob_insert
-    port (
-      clk_sys_i  : in  std_logic;
-      rst_n_i    : in  std_logic;
-      snk_fab_i  : in  t_ep_internal_fabric;
-      snk_dreq_o : out std_logic;
-      src_fab_o  : out t_ep_internal_fabric;
-      src_dreq_i : in  std_logic;
-      regs_i     : in  t_ep_out_registers);
-  end component;
-
-  component ep_rx_crc_size_check
-  	generic (
-      g_use_new_crc : boolean := false);
-    port (
-      clk_sys_i      : in  std_logic;
-      rst_n_i        : in  std_logic;
-      snk_fab_i      : in  t_ep_internal_fabric;
-      snk_dreq_o     : out std_logic;
-      src_fab_o      : out t_ep_internal_fabric;
-      src_dreq_i     : in  std_logic;
-      regs_i         : in  t_ep_out_registers;
-      rmon_pcs_err_o : out std_logic;
-      rmon_giant_o   : out std_logic;
-      rmon_runt_o    : out std_logic;
-      rmon_crc_err_o : out std_logic);
-  end component;
-
-  component ep_rx_wb_master
-    generic (
-      g_ignore_ack   : boolean;
-      g_cyc_on_stall : boolean := false);
-    port (
-      clk_sys_i  : in  std_logic;
-      rst_n_i    : in  std_logic;
-      snk_fab_i  : in  t_ep_internal_fabric;
-      snk_dreq_o : out std_logic;
-      src_wb_i   : in  t_wrf_source_in;
-      src_wb_o   : out t_wrf_source_out);
-  end component;
-
-  component ep_rx_status_reg_insert
-    port (
-      clk_sys_i           : in  std_logic;
-      rst_n_i             : in  std_logic;
-      snk_fab_i           : in  t_ep_internal_fabric;
-      snk_dreq_o          : out std_logic;
-      src_fab_o           : out t_ep_internal_fabric;
-      src_dreq_i          : in  std_logic;
-      mbuf_valid_i        : in  std_logic;
-      mbuf_ack_o          : out std_logic;
-      mbuf_drop_i         : in  std_logic;
-      mbuf_pclass_i       : in  std_logic_vector(7 downto 0);
-      mbuf_is_hp_i        : in  std_logic;
-      mbuf_is_pause_i     : in  std_logic;
-      rmon_pfilter_drop_o : out std_logic);
-  end component;
-
-  component ep_rx_buffer
-    generic (
-      g_size : integer;
-      g_with_fc : boolean := false);
-    port (
-      clk_sys_i  : in  std_logic;
-      rst_n_i    : in  std_logic;
-      snk_fab_i  : in  t_ep_internal_fabric;
-      snk_dreq_o : out std_logic;
-      src_fab_o  : out t_ep_internal_fabric;
-      src_dreq_i : in  std_logic;
-      level_o    : out std_logic_vector(7 downto 0);
-      regs_i     : in  t_ep_out_registers;
-      rmon_o     : out t_rmon_triggers);
-  end component;
 
   type t_rx_deframer_state is (RXF_IDLE, RXF_DATA, RXF_FLUSH_STALL, RXF_FINISH_CYCLE, RXF_THROW_ERROR);
 
@@ -301,8 +144,6 @@ architecture behavioral of ep_rx_path is
   signal tmp_dat : std_logic_vector(15 downto 0);
 
 
-  type t_fab_pipe is array(integer range <>) of t_ep_internal_fabric;
-
   signal fab_pipe  : t_fab_pipe(0 to 9);
   signal dreq_pipe : std_logic_vector(9 downto 0);
 
@@ -322,10 +163,18 @@ architecture behavioral of ep_rx_path is
 
   signal pcs_fifo_almostfull                                    : std_logic;
   signal mbuf_rd, mbuf_valid, mbuf_we, mbuf_pf_drop, mbuf_is_hp : std_logic;
-  signal mbuf_is_pause, mbuf_full, mbuf_we_d0, mbuf_we_d1       : std_logic;
-  signal mbuf_pf_class                                          : std_logic_vector(7 downto 0);
-  signal rtu_rq_valid                                           : std_logic;
+  signal mbuf_is_pause, mbuf_full : std_logic;
+  signal mbuf_pf_class            : std_logic_vector(7 downto 0);
+  signal rtu_rq_valid         : std_logic;
   signal stat_reg_mbuf_valid  : std_logic;
+
+  signal rxbuf_full       : std_logic;
+  signal rxbuf_dropped    : std_logic;
+
+  signal src_wb_out : t_wrf_source_out;
+  signal src_wb_cyc_d0 : std_logic;
+  
+  signal rst_n_rx_match_buff : std_logic;
 
 begin  -- behavioral
 
@@ -383,17 +232,37 @@ begin  -- behavioral
     pfilter_pclass <= (others => '0');
   end generate gen_without_packet_filter;
 
-  mbuf_we <= '1' when ((ematch_done='1' and g_with_early_match) or
-                       (pfilter_done='1' and g_with_dpi_classifier)) else
-             '0';
+  process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if (rst_n_sys_i = '0') then
+        mbuf_we <= '0';
+      -- if rx_buffer has dropped a frame (e.g. because it was full) we
+      -- shouldn't store pfilter decision in the mbuf as well
+      elsif( ((ematch_done='1' and g_with_early_match) or
+              (pfilter_done='1' and g_with_dpi_classifier)) and
+              rxbuf_dropped='0') then
+        mbuf_we <= '1';
+      elsif(mbuf_rd = '1' or mbuf_full = '0') then
+        mbuf_we <= '0';
+      end if;
+    end if;
+  end process;
 
   gen_with_match_buff: if( g_with_early_match or g_with_dpi_classifier) generate
+    U_Sync_Rst_match_buff : gc_sync_ffs
+      port map (
+        clk_i    => clk_sys_i,
+        rst_n_i  => '1',
+        data_i   => rst_n_rx_i,
+        synced_o => rst_n_rx_match_buff);
+
     U_match_buffer : generic_shiftreg_fifo
       generic map (
         g_data_width => 8 + 1 + 1 + 1,
         g_size       => 16)
       port map (
-        rst_n_i           => rst_n_sys_i,
+        rst_n_i           => rst_n_rx_match_buff,
         clk_i             => clk_sys_i,
         d_i (0)           => ematch_is_hp,
         d_i (1)           => ematch_is_pause,
@@ -432,16 +301,18 @@ begin  -- behavioral
       g_almostfull_threshold => 112)
     port map (
       rst_n_rd_i       => rst_n_sys_i,
+      rst_n_wr_i       => rst_n_rx_i,
       clk_wr_i         => clk_rx_i,
       clk_rd_i         => clk_sys_i,
       dreq_i           => dreq_pipe(3),
       fab_i            => fab_pipe(2),
       fab_o            => fab_pipe(3),
-      full_o           => open,
-      empty_o          => open,
-      almostfull_o     => pcs_fifo_almostfull_o,
+      full_o           => nice_dbg_o.pcs_fifo_full,
+      empty_o          => nice_dbg_o.pcs_fifo_empty,
+      almostfull_o     => pcs_fifo_almostfull,
       pass_threshold_i => std_logic_vector(to_unsigned(32, 7)));  -- fixme: add
                                                                   -- register
+  pcs_fifo_almostfull_o <= pcs_fifo_almostfull;
 
   U_Insert_OOB : ep_rx_oob_insert
     port map (
@@ -521,7 +392,8 @@ begin  -- behavioral
       rtu_rq_o         => rtu_rq_o,
       rtu_full_i       => rtu_full_i,
       rtu_rq_abort_o   => rtu_rq_abort_o,
-      rtu_rq_valid_o   => rtu_rq_valid);
+      rtu_rq_valid_o   => rtu_rq_valid,
+      rxbuf_full_i     => rxbuf_full);
 
   gen_with_rx_buffer : if g_with_rx_buffer generate
     U_Rx_Buffer : ep_rx_buffer
@@ -536,6 +408,11 @@ begin  -- behavioral
         src_fab_o  => fab_pipe(8),
         src_dreq_i => dreq_pipe(8),
         level_o    => fc_buffer_occupation_o,
+        full_o     => rxbuf_full,
+        drop_req_i => mbuf_we,  -- if mbuf_we is high that means it waits to be
+                                -- stored in mbuf => mbuf is probably full so we
+                                -- should drop this frame
+        dropped_o  => rxbuf_dropped,
         regs_i     => regs_i,
         rmon_o     => open);
   end generate gen_with_rx_buffer;
@@ -543,33 +420,8 @@ begin  -- behavioral
   gen_without_rx_buffer : if (not g_with_rx_buffer) generate
     fab_pipe(8)  <= fab_pipe(7);
     dreq_pipe(7) <= dreq_pipe(8);
+    rxbuf_full  <= '0';
   end generate gen_without_rx_buffer;
-
---   U_RTU_Header_Extract : ep_rtu_header_extract
---     generic map (
---       g_with_rtu => g_with_rtu)
---     port map (
---       clk_sys_i        => clk_sys_i,
---       rst_n_i          => rst_n_sys_i,
---       snk_fab_i        => fab_pipe(7),
---       snk_dreq_o       => dreq_pipe(7),
---       src_fab_o        => fab_pipe(8),
---       src_dreq_i       => dreq_pipe(8),
---       mbuf_is_pause_i  => mbuf_is_pause,  -- this module is in the pipe before ep_rx_status_reg_insert,
---                                           -- however, we know that mbuf_is_pause is valid when it 
---                                           -- is used by this module -- this is because blocks the pipe
---                                           -- untill mbuf_valid is HIGH, and rtu_rq_valid_o is inserted HIGH
---                                           -- at the end of the header... (clear ??:)
---       vlan_class_i     => vlan_tclass,
---       vlan_vid_i       => vlan_vid,
---       vlan_tag_done_i  => vlan_tag_done,
---       vlan_is_tagged_i => vlan_is_tagged,
---       
---       rmon_drp_at_rtu_full_o => rmon_o.rx_drop_at_rtu_full,
---       
---       rtu_rq_o         => rtu_rq_o,
---       rtu_full_i       => rtu_full_i,
---       rtu_rq_valid_o   => rtu_rq_valid);
 
   U_Gen_Status : ep_rx_status_reg_insert
     port map (
@@ -596,8 +448,10 @@ begin  -- behavioral
       snk_fab_i  => fab_pipe(9),
       snk_dreq_o => dreq_pipe(9),
       src_wb_i   => src_wb_i,
-      src_wb_o   => src_wb_o
+      src_wb_o   => src_wb_out
       );
+
+  src_wb_o <= src_wb_out;
 
   -- direct output of packet filter data (for TRU)
   pfilter_pclass_o <= pfilter_pclass;
@@ -623,11 +477,26 @@ begin  -- behavioral
   rmon_o.rx_tclass(7) <= rtu_rq_valid when (vlan_tclass = "111" and vlan_is_tagged = '1') else '0';
 
   GEN_DBG: for i in 0 to 9 generate
-    dbg_o(i)    <= fab_pipe(i).sof;
-    dbg_o(i+10) <= fab_pipe(i).eof;
-    dbg_o(i+20) <= dreq_pipe(i);
+    nice_dbg_o.fab_pipe(i) <= fab_pipe(i);
+    nice_dbg_o.dreq_pipe(i)<= dreq_pipe(i);
   end generate GEN_DBG;
-    
+
+  nice_dbg_o.pcs_fifo_afull <= pcs_fifo_almostfull;
+  nice_dbg_o.rxbuf_full <= rxbuf_full;
+
+  process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if (rst_n_sys_i = '0') then
+        src_wb_cyc_d0 <= '0';
+      else
+        src_wb_cyc_d0 <= src_wb_out.cyc;
+      end if;
+    end if;
+  end process;
+
+  rmon_o.rx_frame <= '1' when (src_wb_out.cyc = '1' and src_wb_cyc_d0 = '0') else
+                     '0';
 
 end behavioral;
 

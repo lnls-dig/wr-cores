@@ -77,10 +77,28 @@ peripheral {
          name = "External Clock Reference Present";
          description = "1: Reference clock present on the input\
          0: reference input dead";
-         prefix = "EXT_REF_PRESENT";
+         prefix = "EXT_REF_LOCKED";
          type = BIT;
          access_bus = READ_ONLY;
          access_dev = WRITE_ONLY;
+      };
+
+      field {
+        name = "EXT_REF_STOPPED";
+        description = "1: Reference 10MHz clock unplugged";
+        prefix = "EXT_REF_STOPPED";
+        type = BIT;
+        access_bus = READ_ONLY;
+        access_dev = WRITE_ONLY;
+      };
+
+      field {
+        name = "EXT_PLL_RST";
+        prefix = "EXT_REF_PLLRST";
+        align = 31;
+        type = BIT;
+        access_bus = READ_WRITE;
+        access_dev = READ_ONLY;
       };
    };
 
