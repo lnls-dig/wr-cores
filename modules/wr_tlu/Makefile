@@ -6,7 +6,7 @@ ifeq ($(EB),no)
 EB_LIB ?= -letherbone
 EB_INC ?=
 else
-EB_LIB ?= -L$(EB) -letherbone
+EB_LIB ?= -L$(EB)/.libs -letherbone
 EB_INC ?= -I$(EB)
 endif
 
