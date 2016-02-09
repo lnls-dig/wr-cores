@@ -260,6 +260,9 @@ entity xwr_endpoint is
 -------------------------------------------------------------------------------
     rmon_events_o        : out std_logic_vector(c_epevents_sz-1 downto 0);
 
+    txts_o     : out std_logic; 		-- 2013-Nov-28 peterj added for debugging/calibration
+    rxts_o     : out std_logic; 		-- 2013-Nov-28 peterj added for debugging/calibration
+
     led_link_o : out std_logic;
     led_act_o  : out std_logic;
 
@@ -403,6 +406,8 @@ begin
       wb_ack_o             => wb_o.ack,
       wb_stall_o           => wb_o.stall,
       rmon_events_o        => rmon_events_o,
+      txts_o               => txts_o, 		-- 2013-Nov-28 peterj added for debugging/calibration
+      rxts_o               => rxts_o, 		-- 2013-Nov-28 peterj added for debugging/calibration
       led_link_o           => led_link_o,
       led_act_o            => led_act_o,
       link_up_o            => link_up_o,

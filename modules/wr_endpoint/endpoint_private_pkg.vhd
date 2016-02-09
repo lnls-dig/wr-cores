@@ -423,6 +423,8 @@ package endpoint_private_pkg is
       txts_timestamp_o           : out std_logic_vector(31 downto 0);
       txts_timestamp_stb_o       : out std_logic;
       txts_timestamp_valid_o     : out std_logic;
+      txts_o                     : out std_logic; 		-- 2013-Nov-28 peterj added for debugging/calibration
+      rxts_o                     : out std_logic; 		-- 2013-Nov-28 peterj added for debugging/calibration
       regs_i                     : in  t_ep_out_registers;
       regs_o                     : out t_ep_in_registers);
   end component;

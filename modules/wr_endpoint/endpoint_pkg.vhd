@@ -265,6 +265,8 @@ package endpoint_pkg is
       inject_packet_sel_i  : in  std_logic_vector(2 downto 0)  := "000";
       inject_user_value_i  : in  std_logic_vector(15 downto 0) := x"0000";
       rmon_events_o        : out std_logic_vector(c_epevents_sz-1 downto 0);
+      txts_o               : out std_logic; 		-- 2013-Nov-28 peterj added for debugging/calibration
+      rxts_o               : out std_logic; 		-- 2013-Nov-28 peterj added for debugging/calibration
       led_link_o           : out std_logic;
       led_act_o            : out std_logic;
       link_kill_i          : in  std_logic                     := '0';
@@ -392,6 +394,8 @@ package endpoint_pkg is
       inject_packet_sel_i  : in  std_logic_vector(2 downto 0)  := "000";
       inject_user_value_i  : in  std_logic_vector(15 downto 0) := x"0000";
       rmon_events_o        : out std_logic_vector(c_epevents_sz-1 downto 0);
+      txts_o               : out std_logic; 		-- 2013-Nov-28 peterj added for debugging/calibration
+      rxts_o               : out std_logic; 		-- 2013-Nov-28 peterj added for debugging/calibration
       led_link_o           : out std_logic;
       led_act_o            : out std_logic;
       link_kill_i          : in  std_logic                     := '0';
