@@ -28,16 +28,15 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 library work;
-use work.wishbone_pkg.all;
-use work.eca_pkg.all;
-use work.genram_pkg.all;
+use work.eca_internals_pkg.all;
 
 -- Registers its inputs. Async outputs. 
 -- When r_clk_i=w_clk_i, r_data_o is undefined.
 entity eca_sdp is
   generic(
-    g_addr_bits  : natural := 8;
-    g_data_bits  : natural := 8;
+    g_addr_bits  : natural;
+    g_data_bits  : natural;
+    g_bypass     : boolean;
     g_dual_clock : boolean);
   port(
     r_clk_i  : in  std_logic;
@@ -50,22 +49,48 @@ entity eca_sdp is
 end eca_sdp;
 
 architecture rtl of eca_sdp is
-begin
+
+  constant c_depth : natural := 2**g_addr_bits;
   
-  ram : generic_simple_dpram
-    generic map(
-      g_data_width               => g_data_bits,
-      g_size                     => 2**g_addr_bits,
-      g_with_byte_enable         => false,
-      g_addr_conflict_resolution => "dont_care",
-      g_dual_clock               => g_dual_clock)
-    port map(
-      clka_i => w_clk_i,
-      wea_i  => w_en_i,
-      aa_i   => w_addr_i,
-      da_i   => w_data_i,
-      clkb_i => r_clk_i,
-      ab_i   => r_addr_i,
-      qb_o   => r_data_o);
+  type t_memory is array(c_depth-1 downto 0) of std_logic_vector(g_data_bits-1 downto 0);
+  signal r_memory : t_memory := (others => (others => '-'));
+  signal r_bypass : std_logic := '0';
+  signal w_data   : std_logic_vector(g_data_bits-1 downto 0);
+  signal r_data   : std_logic_vector(g_data_bits-1 downto 0);
+
+begin
+
+  bug :
+    assert not g_dual_clock or not g_bypass
+    report "eca_sdp cannot support read-write-bypass when using two distinct clocks"
+    severity failure;
+
+  write : process(w_clk_i) is
+  begin
+    if rising_edge(w_clk_i) then
+      if w_en_i = '1' then
+        assert f_eca_safe(w_addr_i) = '1' report "Attempt to write to a meta-values address" severity failure;
+        r_memory(to_integer(unsigned(w_addr_i))) <= w_data_i;
+      end if;
+      w_data <= w_data_i;
+    end if;
+  end process;
+  
+  read : process(r_clk_i) is
+  begin
+    if rising_edge(r_clk_i) then
+      if f_eca_safe(r_addr_i) = '1' then
+        r_data <= r_memory(to_integer(unsigned(r_addr_i)));
+      else
+        r_data <= (others => 'X');
+      end if;
+      
+      if g_bypass then
+        r_bypass <= w_en_i and f_eca_eq(r_addr_i, w_addr_i);
+      end if;
+    end if;
+  end process;
+  
+  r_data_o <= w_data when r_bypass = '1' else r_data;
 
 end rtl;
