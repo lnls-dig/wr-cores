@@ -48,9 +48,11 @@ architecture rtl of eca_scan_tb is
   signal r_idx      : std_logic_vector(c_log_size-1 downto 0);
   signal r_ext      : std_logic_vector(c_ext_size-1 downto 0);
   signal s_stb      : std_logic;
+  signal r_stb1     : std_logic;
   signal s_late     : std_logic;
   signal s_early    : std_logic;
   signal s_idx      : std_logic_vector(c_log_size   -1 downto 0);
+  signal r_idx1     : std_logic_vector(c_log_size   -1 downto 0);
   signal s_low      : std_logic_vector(c_log_latency-1 downto 0);
   
 begin
@@ -91,6 +93,7 @@ begin
     if rst_n_i = '0' then
       r_wen  <= '0';
       r_time <= (others => '0');
+      r_stb1 <= '0';
       -- r_time(r_time'high) <= '1'; -- test for overflow
     elsif rising_edge(clk_i) then
       p_eca_uniform(s1, s2, offset);
@@ -98,7 +101,7 @@ begin
       p_eca_uniform(s1, s2, index);
       
       -- !!! insert a few that are with less added => s_late
-      deadline := f_eca_add(f_eca_add(r_time, offset), 2**c_log_latency + 5*(2**c_log_multiplier));
+      deadline := f_eca_add(f_eca_add(r_time, offset), 2**c_log_latency + 6*(2**c_log_multiplier));
       wen := f_eca_and(deadlines(to_integer(unsigned(index))));
       if wen = '1' then
         deadlines(to_integer(unsigned(index))) := deadline;
@@ -110,9 +113,13 @@ begin
       r_idx      <= index;
       r_ext      <= ext;
       
-      -- Free the record
-      if s_stb = '1' then
-        idx := to_integer(unsigned(s_idx));
+      -- Delay by one cycle
+      r_stb1 <= s_stb;
+      r_idx1 <= s_idx;
+      
+      -- Free and check the record
+      if r_stb1 = '1' then
+        idx := to_integer(unsigned(r_idx1));
         
         assert deadlines(idx)(s_low'range) = s_low report "Wrong low bits in deadline" severity error;
         assert s_early='0' report "Early should be impossible in this test" severity error;

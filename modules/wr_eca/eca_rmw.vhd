@@ -40,6 +40,7 @@ entity eca_rmw is
     g_data_bits  : natural);
   port(
     clk_i     : in  std_logic;
+    rst_n_i   : in  std_logic;
     a_en_i    : in  std_logic;
     a_ack_o   : out std_logic; -- a has priority, so a_ack_o=a_en_i
     a_addr_i  : in  std_logic_vector(g_addr_bits-1 downto 0);
@@ -72,8 +73,8 @@ architecture rtl of eca_rmw is
   signal s_b_q1    : std_logic;
   signal s_q0_ren  : std_logic;
   signal s_q1_ren  : std_logic;
-  signal r_q0_wen  : std_logic;
-  signal r_q1_wen  : std_logic;
+  signal r_q0_wen  : std_logic := '0';
+  signal r_q1_wen  : std_logic := '0';
   signal s_mux     : std_logic;
   signal r_mux     : std_logic;
   signal q0_data   : std_logic_vector(g_data_bits-1 downto 0);
@@ -127,28 +128,37 @@ begin
   s_q1_ren <= s_a_q1 or s_b_q1;
   
   -- What addresses do the banks receive? (port A has priority)
-  s_q0_addr <= a_addr_i when s_a_q0 = '1' else b_addr_i;
-  s_q1_addr <= a_addr_i when s_a_q1 = '1' else b_addr_i;
+  s_q0_addr <= f_eca_mux(s_a_q0, a_addr_i, b_addr_i);
+  s_q1_addr <= f_eca_mux(s_a_q1, a_addr_i, b_addr_i);
   
   -- Need all 4 of these muxes to depend on exactly ONE registered bit
   -- That way the synthesis tool's optimization can simplify feedback cases
   -- s_mux='0' means A:Q0 & B:Q1
   -- s_mux='1' means A:Q1 & B:Q0
-  s_mux <= a_addr_i(0) when a_en_i='1' else not b_addr_i(0);
+  s_mux <= f_eca_mux(a_en_i, a_addr_i(0), not b_addr_i(0));
   
   -- Pick the bank used for output
-  a_data_o <= q0_data when r_mux = '0' else q1_data;
-  b_data_o <= q0_data when r_mux = '1' else q1_data;
+  a_data_o <= f_eca_mux(r_mux, q1_data, q0_data);
+  b_data_o <= f_eca_mux(r_mux, q0_data, q1_data);
   
   -- What data do the banks receive?
-  s_q0_data <= a_data_i when r_mux = '0' else b_data_i;
-  s_q1_data <= a_data_i when r_mux = '1' else b_data_i;
+  s_q0_data <= f_eca_mux(r_mux, b_data_i, a_data_i);
+  s_q1_data <= f_eca_mux(r_mux, a_data_i, b_data_i);
+  
+  control : process(clk_i, rst_n_i) is
+  begin
+    if rst_n_i = '0' then
+      r_q0_wen <= '0';
+      r_q1_wen <= '0';
+    elsif rising_edge(clk_i) then
+      r_q0_wen <= s_q0_ren;
+      r_q1_wen <= s_q1_ren;
+    end if;
+  end process;
   
   main : process(clk_i) is
   begin
     if rising_edge(clk_i) then
-      r_q0_wen  <= s_q0_ren;
-      r_q1_wen  <= s_q1_ren;
       r_q0_addr <= s_q0_addr;
       r_q1_addr <= s_q1_addr;
       r_mux     <= s_mux;

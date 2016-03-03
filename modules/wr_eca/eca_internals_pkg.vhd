@@ -77,6 +77,7 @@ package eca_internals_pkg is
   function f_eca_or(x : std_logic_vector) return std_logic;
   function f_eca_eq(x, y : std_logic_vector) return std_logic;
   function f_eca_safe(x : std_logic_vector) return std_logic;
+  function f_eca_mux(m : std_logic; x, y : std_logic) return std_logic;
   function f_eca_mux(m : std_logic; x, y : std_logic_vector) return std_logic_vector;
   function f_eca_log2(x : natural) return natural;
   function f_eca_max(a, b : natural) return natural;
@@ -207,6 +208,7 @@ package eca_internals_pkg is
       g_data_bits  : natural := 8);
     port(
       clk_i     : in  std_logic;
+      rst_n_i   : in  std_logic;
       a_en_i    : in  std_logic;
       a_ack_o   : out std_logic; -- a has priority, so a_ack_o=a_en_i
       a_addr_i  : in  std_logic_vector(g_addr_bits-1 downto 0);
@@ -322,39 +324,27 @@ package eca_internals_pkg is
       rst_n_i : in std_logic);
   end component;
   
-  component eca_buffer is
+  component eca_tag_channel is
     generic(
-      g_ext_size       : natural; -- extra bits tracked by scanner
-      g_log_size       : natural; -- 2**g_log_size       = buffer entries
-      g_log_multiplier : natural; -- 2**g_log_multiplier = ticks per cycle
-      g_log_latency    : natural; -- 2**g_log_latency    = ticks of calendar delay
-      g_num_ports      : natural);-- g_num_ports = 2**(g_log_size+g_log_multiplier+1-g_log_latency)
+      g_log_size       : natural :=  8; -- 2**g_log_size = maximum number of pending actions
+      g_log_multiplier : natural :=  3; -- 2**g_log_multiplier = ticks per cycle
+      g_log_latency    : natural := 12);-- 2**g_log_latency    = ticks of calendar delay
     port(
       clk_i      : in  std_logic;
       rst_n_i    : in  std_logic;
-      -- Current time, minus some coefficient
+      -- Timestamps used for pipeline stages
       time_i     : in  t_time;
-      -- Write port
-      full_o     : out std_logic; -- if full_o=1, new actions not accepted (overflow)
-      channel_i  : in  t_channel; -- valid = strobe, expected to be registered
-      ext_i      : in  std_logic_vector(g_ext_size-1 downto 0);
-      -- Read port
-      read_idx_i : in  std_logic_vector(g_log_size-1 downto 0);
+      -- Push a record to the queue
+      channel_i  : in  t_channel;
+      stall_i    : in  std_logic;
       channel_o  : out t_channel;
-      -- Scan reports ready for calendar (each op is held for two cycles)
-      scan_stb_o : out std_logic_vector(g_num_ports-1 downto 0);
-      scan_low_o : out std_logic_vector(g_log_latency*g_num_ports-1 downto 0);
-      scan_idx_o : out std_logic_vector(g_log_size   *g_num_ports-1 downto 0);
-      scan_ext_o : out std_logic_vector(g_ext_size   *g_num_ports-1 downto 0);
-      -- Free a record
-      free_stb_i : in  std_logic;
-      free_idx_i : in  std_logic_vector(g_log_size-1 downto 0));
+      overflow_o : out std_logic);
   end component;
-
-  -- Testbech for eca_buffer
-  component eca_buffer_tb is
+  
+  -- Testbech for eca_tag_channel
+  component eca_tag_channel_tb is
     generic(
-      g_case : natural := 0);
+      g_case  : natural := 0);
     port(
       clk_i   : in std_logic;
       rst_n_i : in std_logic);
@@ -524,6 +514,15 @@ package body eca_internals_pkg is
   begin
     return f_eca_eq(x, x);
   end f_eca_safe;
+  
+  function f_eca_mux(m : std_logic; x, y : std_logic) return std_logic is
+  begin
+    case m is
+      when '1' => return x;
+      when '0' => return y;
+      when others => return 'X';
+    end case;
+  end f_eca_mux;
   
   function f_eca_mux(m : std_logic; x, y : std_logic_vector) return std_logic_vector is
     constant bad : std_logic_vector(x'range) := (others => 'X');

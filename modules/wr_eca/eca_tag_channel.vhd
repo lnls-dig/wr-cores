@@ -42,10 +42,7 @@ entity eca_tag_channel is
     channel_i  : in  t_channel;
     stall_i    : in  std_logic;
     channel_o  : out t_channel;
-    overflow_o : out std_logic;
-    -- Peek into the buffer
-    addr_i     : in  std_logic_vector(g_log_size-1 downto 0);
-    inspect_o  : out t_channel);
+    overflow_o : out std_logic);
 end eca_tag_channel;
 
 architecture rtl of eca_tag_channel is
@@ -83,16 +80,17 @@ architecture rtl of eca_tag_channel is
   signal s_data_index   : std_logic_vector(g_log_size-1 downto 0);
   signal s_data_accept  : std_logic;
   signal s_data_channel : t_channel;
-  signal r_last_time    : std_logic;
+  signal r_last_time    : std_logic := '0';
   signal s_scan_we      : std_logic_vector(c_calendars-1 downto 0);
   signal s_scan_stb     : std_logic_vector(c_calendars-1 downto 0);
   signal s_scan_late    : std_logic_vector(c_calendars-1 downto 0);
   signal s_scan_early   : std_logic_vector(c_calendars-1 downto 0);
   signal s_scan_low     : t_low_array(c_calendars-1 downto 0);
   signal s_scan_idx     : t_scan_array(c_calendars-1 downto 0);
-  signal r_scan_stb     : std_logic_vector(c_calendars-1 downto 0);
+  signal r_scan_stb     : std_logic_vector(c_calendars-1 downto 0) := (others => '0');
   signal r_scan_low     : t_low_array(c_calendars-1 downto 0);
   signal s_cal_a_en     : std_logic;
+  signal r_cal_a_en     : std_logic := '0';
   signal s_cal_a_data   : t_matrix_array(c_calendars-1 downto 0);
   signal s_cal_b_en     : std_logic_vector(c_calendars-1 downto 0);
   signal s_cal_b_addr   : t_cal_array(c_calendars-1 downto 0);
@@ -105,6 +103,7 @@ architecture rtl of eca_tag_channel is
   signal s_com_data_i   : t_eca_matrix(c_slots*c_calendars-1 downto 0, c_record_size-1 downto 0);
   signal s_com_valid_o  : std_logic_vector(c_slots*c_calendars-1 downto 0);
   signal s_com_data_o   : t_eca_matrix(c_slots*c_calendars-1 downto 0, c_record_size-1 downto 0);
+  signal s_fifo_masked  : t_eca_matrix(c_slots*c_calendars-1 downto 0, c_record_size-1 downto 0);
   signal s_fifo_pop     : std_logic;
   signal s_fifo_valid   : std_logic;
   signal s_fifo_fresh   : std_logic;
@@ -117,10 +116,10 @@ architecture rtl of eca_tag_channel is
   signal s_stall        : std_logic;
   signal s_valid        : std_logic;
   signal r_valid        : std_logic := '0';
-  signal r_late         : std_logic;
-  signal r_early        : std_logic;
-  signal r_conflict     : std_logic;
-  signal r_delayed      : std_logic;
+  signal r_late         : std_logic := '0';
+  signal r_early        : std_logic := '0';
+  signal r_conflict     : std_logic := '0';
+  signal r_delayed      : std_logic := '0';
   signal s_slot         : std_logic_vector(g_log_multiplier downto 0) := (others => '0');
   signal r_slot         : std_logic_vector(g_log_multiplier downto 0);
   
@@ -156,9 +155,13 @@ begin
   -- Only read+clear calendar if the clock does not skip
   -- This prevents blocking calendar port B for two cycles in succession
   s_cal_a_en <= time_i(g_log_multiplier) xor r_last_time;
-  safe_time : process(clk_i) is
+  safe_time : process(clk_i, rst_n_i) is
   begin
-    if rising_edge(clk_i) then
+    if rst_n_i = '0' then
+      r_cal_a_en  <= '0';
+      r_last_time <= '0';
+    elsif rising_edge(clk_i) then
+      r_cal_a_en  <= s_cal_a_en;
       r_last_time <= time_i(g_log_multiplier);
     end if;
   end process;
@@ -169,7 +172,7 @@ begin
       s_scan_we(c) <= s_data_accept when to_unsigned(c, c_log_calendars) = unsigned(s_free_alloc(g_log_size-1 downto c_log_scan_size)) else '0';
     end generate;
     
-    eq0 : if c_calendars = 0 generate
+    eq0 : if c_calendars = 1 generate
       s_scan_we(c) <= s_data_accept;
     end generate;
 
@@ -203,10 +206,18 @@ begin
     s_cal_b_en(c)   <= s_scan_stb(c) or r_scan_stb(c);
     s_cal_b_addr(c) <= s_scan_low(c)(g_log_latency-1 downto g_log_multiplier);
     
-    extend : process(clk_i) is
+    control : process(clk_i, rst_n_i) is
+    begin
+      if rst_n_i = '0' then
+        r_scan_stb(c) <= '0';
+      elsif rising_edge(clk_i) then
+        r_scan_stb(c) <= s_scan_stb(c);
+      end if;
+    end process;
+    
+    delay : process(clk_i) is
     begin
       if rising_edge(clk_i) then
-        r_scan_stb(c) <= s_scan_stb(c);
         if s_scan_stb(c) = '1' then
           r_scan_low(c)   <= s_scan_low(c);
           r_cal_record(c) <= s_cal_record(c);
@@ -218,9 +229,13 @@ begin
     slots1 : for s in 0 to c_slots-1 generate
       bits : for b in 0 to c_bits-1 generate
         gt0 : if g_log_multiplier > 0 generate
-          s_cal_b_mux(c)(f_idx_sb(s,b)) <= r_cal_record(c)(b) 
-            when to_unsigned(s, g_log_multiplier) = unsigned(r_scan_low(c)(g_log_multiplier-1 downto 0))
-            else s_cal_b_data(c)(f_idx_sb(s,b));
+          s_cal_b_mux(c)(f_idx_sb(s,b)) <= 
+            f_eca_mux(
+              f_eca_eq(
+                std_logic_vector(to_unsigned(s, g_log_multiplier)),
+                r_scan_low(c)(g_log_multiplier-1 downto 0)),
+              r_cal_record(c)(b),
+              s_cal_b_data(c)(f_idx_sb(s,b)));
         end generate;
         eq0 : if g_log_multiplier = 0 generate
           s_cal_b_mux(c)(f_idx_sb(s,b)) <= r_cal_record(c)(b);
@@ -229,12 +244,14 @@ begin
     end generate;
     
     -- Format: [code index]*c_slots
+    -- !!! wipe the calendar on reset
     calendar : eca_rmw
       generic map(
         g_addr_bits => c_log_cal_size,
         g_data_bits => c_slots*c_bits)
       port map(
         clk_i    => clk_i,
+        rst_n_i  => rst_n_i,
         a_en_i   => s_cal_a_en,
         a_ack_o  => open,
         a_addr_i => time_i(g_log_latency-1 downto g_log_multiplier),
@@ -265,9 +282,10 @@ begin
 
     -- Note: it is important that f_idx_sc(s,c) orders first by slot
     slots2 : for s in 0 to c_slots-1 generate
-      s_com_valid_i(f_idx_sc(s,c)) <= 
-        s_cal_a_data(c)(f_idx_sb(s,c_log_scan_size)) or
-        s_cal_a_data(c)(f_idx_sb(s,c_log_scan_size+1));
+      -- Decode code => valid
+      s_com_valid_i(f_idx_sc(s,c)) <= r_cal_a_en and
+        (s_cal_a_data(c)(f_idx_sb(s,c_log_scan_size+0)) or
+         s_cal_a_data(c)(f_idx_sb(s,c_log_scan_size+1)));
       -- copy code to wider field
       s_com_data_i(f_idx_sc(s,c),g_log_size+g_log_multiplier+1) <= s_cal_a_data(c)(f_idx_sb(s,c_log_scan_size+1));
       s_com_data_i(f_idx_sc(s,c),g_log_size+g_log_multiplier+0) <= s_cal_a_data(c)(f_idx_sb(s,c_log_scan_size+0));
@@ -293,7 +311,7 @@ begin
   compact : eca_compact
     generic map(
       g_size => c_slots*c_calendars,
-      g_wide => c_bits)
+      g_wide => c_record_size)
     port map(
       clk_i   => clk_i,
       rst_n_i => rst_n_i,
@@ -302,16 +320,25 @@ begin
       data_i  => s_com_data_i,
       data_o  => s_com_data_o);
   
+  -- Mask out any invalid records
+  slots : for s in 0 to c_slots*c_calendars-1 generate
+    s_fifo_masked(s,g_log_multiplier+g_log_size+0) <= s_com_valid_o(s) and s_com_data_o(s,g_log_multiplier+g_log_size+0);
+    s_fifo_masked(s,g_log_multiplier+g_log_size+1) <= s_com_valid_o(s) and s_com_data_o(s,g_log_multiplier+g_log_size+1);
+    bits : for b in 0 to g_log_multiplier+g_log_size-1 generate
+      s_fifo_masked(s,b) <= s_com_data_o(s,b);
+    end generate;
+  end generate;
+  
   fifo : eca_fifo
     generic map(
       g_log_size => g_log_size,
       g_rows     => c_slots*c_calendars,
-      g_cols     => c_bits)
+      g_cols     => c_record_size)
     port map(
       clk_i   => clk_i,
       rst_n_i => rst_n_i,
       push_i  => s_com_valid_o(0),
-      data_i  => s_com_data_o,
+      data_i  => s_fifo_masked,
       pop_i   => s_fifo_pop,
       valid_o => s_fifo_valid,
       fresh_o => s_fifo_fresh,
@@ -328,19 +355,27 @@ begin
     s_repeat <= '0';
   end generate;
   gt1 : if c_slots*c_calendars > 1 generate
-    s_repeat <= s_mux_valid and (s_fifo_data(1,g_log_size+g_log_multiplier+0) or 
-                                 s_fifo_data(1,g_log_size+g_log_multiplier+1));
+    s_repeat <= s_mux_valid and (s_mux_data(1,g_log_size+g_log_multiplier+0) or 
+                                 s_mux_data(1,g_log_size+g_log_multiplier+1));
   end generate;
   
   control : process(clk_i, rst_n_i) is
   begin
     if rst_n_i = '0' then
-      r_repeat <= '0';
-      r_valid  <= '0';
+      r_repeat   <= '0';
+      r_valid    <= '0';
+      r_late     <= '0';
+      r_early    <= '0';
+      r_delayed  <= '0';
+      r_conflict <= '0';
     elsif rising_edge(clk_i) then
       if s_stall = '0' then
-        r_repeat <= s_repeat;
-        r_valid  <= s_mux_valid;
+        r_repeat   <= s_repeat;
+        r_valid    <= s_mux_valid;
+        r_late     <= s_mux_valid and not s_mux_data(0,g_log_size+g_log_multiplier+0);
+        r_early    <= s_mux_valid and not s_mux_data(0,g_log_size+g_log_multiplier+1);
+        r_delayed  <= (s_fifo_valid and not s_fifo_fresh) or r_repeat;
+        r_conflict <= r_repeat and f_eca_eq(r_slot, s_slot);
       end if;
     end if;
   end process;
@@ -376,11 +411,7 @@ begin
   begin
     if rising_edge(clk_i) then
       if s_stall = '0' then
-        r_late     <= s_mux_valid and not s_mux_data(0,g_log_size+g_log_multiplier+0);
-        r_early    <= s_mux_valid and not s_mux_data(0,g_log_size+g_log_multiplier+1);
-        r_delayed  <= (s_fifo_valid and not s_fifo_fresh) or r_repeat;
-        r_conflict <= r_repeat and f_eca_eq(r_slot, s_slot);
-        r_slot     <= s_slot;
+        r_slot       <= s_slot;
         r_free_entry <= s_data_index;
       end if;
     end if;

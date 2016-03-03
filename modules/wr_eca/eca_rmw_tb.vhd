@@ -61,6 +61,7 @@ begin
       g_data_bits => c_data_bits)
     port map(
       clk_i    => clk_i,
+      rst_n_i  => rst_n_i,
       a_en_i   => a_en_i,
       a_ack_o  => a_ack_o,
       a_addr_i => a_addr_i,
@@ -77,7 +78,7 @@ begin
     
     variable s1, s2 : positive := 42;
     
-    variable v_memory : t_memory := (others => (others => '-'));
+    variable v_memory : t_memory := (others => (others => '0'));
     variable a_en0   : std_logic;
     variable a_en1   : std_logic;
     variable a_addr0 : std_logic_vector(c_addr_bits-1 downto 0);

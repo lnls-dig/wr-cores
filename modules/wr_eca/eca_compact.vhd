@@ -85,23 +85,25 @@ begin
   notnill : if g_step < g_size generate
     notnillb : block is
     
-      signal r_valid : std_logic_vector(g_size-1 downto 0);
+      signal r_valid : std_logic_vector(g_size-1 downto 0) := (others => '0');
       signal s_valid : std_logic_vector(g_size-1 downto 0);
       signal r_data  : t_eca_matrix(g_size-1 downto 0, g_wide-1 downto 0);
       signal s_data  : t_eca_matrix(g_size-1 downto 0, g_wide-1 downto 0);
       
       signal s_holes      : std_logic_vector(g_size-1 downto 0);
       signal s_xor_holes  : std_logic_vector(g_size-1 downto 0);
-      signal r_xor_holes  : std_logic_vector(g_size-1 downto 0);
+      signal r_xor_holes  : std_logic_vector(g_size-1 downto 0) := (others => '0');
   
     begin
     
       control : process(clk_i, rst_n_i) is
       begin
         if rst_n_i = '0' then
-          r_valid <= (others => '0');
+          r_valid     <= (others => '0');
+          r_xor_holes <= (others => '0');
         elsif rising_edge(clk_i) then
-          r_valid <= valid_i;
+          r_valid     <= valid_i;
+          r_xor_holes <= s_xor_holes;
         end if;
       end process;
       
@@ -111,20 +113,19 @@ begin
       main : process(clk_i) is
       begin
         if rising_edge(clk_i) then
-          r_xor_holes <= s_xor_holes;
-          r_data      <= data_i;
+          r_data <= data_i;
         end if;
       end process;
       
       muxes : for i in 0 to g_size-g_step-1 generate
-        s_valid(i)  <= r_valid(i)  when r_xor_holes(i+g_step-1)='0' else r_valid(i+g_step);
+        s_valid(i) <= f_eca_mux(r_xor_holes(i+g_step-1), r_valid(i+g_step), r_valid(i));
         bits : for b in 0 to g_wide-1 generate
-          s_data(i,b) <= r_data(i,b) when r_xor_holes(i+g_step-1)='0' else r_data(i+g_step,b);
+          s_data(i,b) <= f_eca_mux(r_xor_holes(i+g_step-1), r_data(i+g_step,b), r_data(i,b));
         end generate;
       end generate;
       
       cuts : for i in g_size-g_step to g_size-1 generate
-        s_valid(i)  <= r_valid(i) when r_xor_holes(g_size-1)='0' else '0';
+        s_valid(i)  <= r_valid(i) and not r_xor_holes(g_size-1);
         bits : for b in 0 to g_wide-1 generate
           s_data(i,b) <= r_data(i,b);
         end generate;

@@ -18,12 +18,11 @@ for i in 				\
 	eca_rmw_tb.vhd			\
 	eca_free.vhd			\
 	eca_free_tb.vhd			\
-	eca_buffer.vhd			\
-	eca_buffer_tb.vhd		\
 	eca_data.vhd			\
 	eca_scan.vhd			\
 	eca_scan_tb.vhd			\
 	eca_tag_channel.vhd		\
+	eca_tag_channel_tb.vhd		\
 	eca_tb.vhd;			\
 do echo $i; ghdl -a --std=93 --ieee=standard --syn-binding  $i
 done

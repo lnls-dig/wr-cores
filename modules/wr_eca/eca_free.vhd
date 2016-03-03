@@ -53,7 +53,7 @@ architecture rtl of eca_free is
   signal s_top   : std_logic_vector(g_log_size-1 downto 0);
   signal s_avail : std_logic_vector(g_log_size-1 downto 0);
   signal r_reset : std_logic_vector(g_log_size   downto 0) := (others => '0');
-  signal r_ready : std_logic;
+  signal r_ready : std_logic := '0';
   signal s_full  : std_logic;
   signal s_alloc : std_logic;
   signal s_free  : std_logic;

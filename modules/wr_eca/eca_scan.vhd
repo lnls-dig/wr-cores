@@ -4,10 +4,10 @@
 --!
 --! Copyright (C) 2016 GSI Helmholtz Centre for Heavy Ion Research GmbH 
 --!
---! This entity receives deadlines as input and outputs them later.
+--! This entity receives deadlines as input and outputs them later. 
 --! Assuming time_i increases 2**multiplier ticks/cycle, it outputs stored
---! items when time_i is in (deadline-period, deadline].  If time_i jumps,
---! eca_scan outputs each item exactly once within one second real-time.
+--! items one cycle before time_i is in (deadline-period, deadline].  If
+--! time_i jumps, eca_scan outputs items exactly once within one second.
 --!
 --------------------------------------------------------------------------------
 --! This library is free software; you can redistribute it and/or
@@ -129,6 +129,7 @@ architecture rtl of eca_scan is
   signal r_ai        : std_logic_vector(c_data_len-1 downto 0);
   signal s_bo_raw    : std_logic_vector(c_data_len-1 downto 0);
   
+  signal r_stb       : std_logic := '0';
   signal s_weno      : std_logic;
   signal s_idxo      : std_logic_vector(g_log_size-1 downto 0);
   signal r_idxo      : std_logic_vector(g_log_size-1 downto 0) := (others => '0');
@@ -160,7 +161,7 @@ begin
       r_time2 <= (others => '0');
       r_time1 <= (others => '0');
     elsif rising_edge(clk_i) then
-      r_time3 <= f_eca_add(time_i, 4*2**g_log_multiplier);
+      r_time3 <= f_eca_add(time_i, 5*2**g_log_multiplier);
       r_time2 <= r_time3;
       r_time1 <= r_time2;
     end if;
@@ -267,20 +268,24 @@ begin
   begin
     if rst_n_i = '0' then
       r_idxo <= (others => '0');
+      r_stb  <= '0';
     elsif rising_edge(clk_i) then
       r_idxo <= s_idxo;
+      r_stb  <= not s_not_zero and s_weno;
     end if;
   end process;
   
+  scan_stb_o <= r_stb;
   output : process(clk_i) is
   begin
     if rising_edge(clk_i) then
-      scan_stb_o   <= not s_not_zero and s_weno;
-      scan_late_o  <= s_lateo;
-      scan_early_o <= s_earlyo;
-      scan_low_o   <= s_lowo;
-      scan_idx_o   <= r_idxo;
-      scan_ext_o   <= s_exto;
+      if s_weno = '1' then
+        scan_late_o  <= s_lateo;
+        scan_early_o <= s_earlyo;
+        scan_low_o   <= s_lowo;
+        scan_idx_o   <= r_idxo;
+        scan_ext_o   <= s_exto;
+      end if;
     end if;
   end process;
   

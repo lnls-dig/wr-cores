@@ -83,7 +83,7 @@ begin
         for i in c_fifo_deep-1 downto 1 loop
           assert fifo_stb(i) = '0' or fifo_dat(i) /= s_entry_o
           report "duplicated entry"
-          severity warning;
+          severity failure;
         end loop;
       end if;
       

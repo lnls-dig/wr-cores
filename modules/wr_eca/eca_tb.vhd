@@ -34,7 +34,7 @@ end eca_tb;
 architecture rtl of eca_tb is
   signal run  : boolean   := true;
   signal rstn : std_logic := '0';
-  signal clk  : std_logic := '0';
+  signal clk  : std_logic := '1';
 begin
 
   stop : process is
@@ -81,5 +81,6 @@ begin
   scan1 : eca_scan_tb    generic map(g_case => 1) port map(clk_i => clk, rst_n_i => rstn);
   scan2 : eca_scan_tb    generic map(g_case => 2) port map(clk_i => clk, rst_n_i => rstn);
   scan3 : eca_scan_tb    generic map(g_case => 3) port map(clk_i => clk, rst_n_i => rstn);
+  tag0  : eca_tag_channel_tb generic map(g_case => 2) port map(clk_i => clk, rst_n_i => rstn);
 
 end rtl;
