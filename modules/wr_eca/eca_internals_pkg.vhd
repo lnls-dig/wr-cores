@@ -303,6 +303,7 @@ package eca_internals_pkg is
       time_i       : in  t_time;
       -- Write port
       wen_i        : in  std_logic;
+      stall_o      : out std_logic;
       deadline_i   : in  t_time;
       idx_i        : in  std_logic_vector(g_log_size-1 downto 0);
       ext_i        : in  std_logic_vector(g_ext_size-1 downto 0);

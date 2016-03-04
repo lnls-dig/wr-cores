@@ -54,7 +54,7 @@ architecture rtl of eca_sdp is
   constant c_undef : std_logic_vector(g_data_bits-1 downto 0) := (others => 'X');
   
   type t_memory is array(c_depth-1 downto 0) of std_logic_vector(g_data_bits-1 downto 0);
-  signal r_memory : t_memory := (others => (others => '0')); -- !!!
+  signal r_memory : t_memory := (others => (others => '-'));
   signal r_bypass : std_logic := '0';
   signal w_data   : std_logic_vector(g_data_bits-1 downto 0);
   signal r_data   : std_logic_vector(g_data_bits-1 downto 0);

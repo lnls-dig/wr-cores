@@ -30,8 +30,8 @@ library work;
 use work.eca_internals_pkg.all;
 
 -- Async logic applied inputs. Async outputs. 
--- When x_en_i='1' and x_ack_o='1' the address on x_addr_i will be read with
--- output available on x_data_o the next cycle. Whatever is fed into x_data_i
+-- When x_en_i='1' the address on x_addr_i will be read with output available 
+-- (based on x_ack_o) on x_data_o the next cycle. Whatever is fed into x_data_i
 -- on that cycle will be written back to the same address.
 -- The core guarantees read-new-data ordering between and within both ports.
 entity eca_rmw is
@@ -42,7 +42,7 @@ entity eca_rmw is
     clk_i     : in  std_logic;
     rst_n_i   : in  std_logic;
     a_en_i    : in  std_logic;
-    a_ack_o   : out std_logic; -- a has priority, so a_ack_o=a_en_i
+    a_ack_o   : out std_logic; -- a has priority, so a_ack_o is a_en_i one cycle delayed
     a_addr_i  : in  std_logic_vector(g_addr_bits-1 downto 0);
     a_data_o  : out std_logic_vector(g_data_bits-1 downto 0);
     a_data_i  : in  std_logic_vector(g_data_bits-1 downto 0);
@@ -120,9 +120,6 @@ begin
   s_b_q1 <= b_en_i and     b_addr_i(0);
   
   -- Port A always wins, port B only if A does not use it
-  a_ack_o <= a_en_i;
-  b_ack_o <= b_en_i and (not a_en_i or (a_addr_i(0) xor b_addr_i(0)));
-  
   -- Is the bank used this cycle?
   s_q0_ren <= s_a_q0 or s_b_q0;
   s_q1_ren <= s_a_q1 or s_b_q1;
@@ -148,9 +145,13 @@ begin
   control : process(clk_i, rst_n_i) is
   begin
     if rst_n_i = '0' then
+      a_ack_o  <= '0';
+      b_ack_o  <= '0';
       r_q0_wen <= '0';
       r_q1_wen <= '0';
     elsif rising_edge(clk_i) then
+      a_ack_o  <= a_en_i;
+      b_ack_o  <= b_en_i and (not a_en_i or (a_addr_i(0) xor b_addr_i(0)));
       r_q0_wen <= s_q0_ren;
       r_q1_wen <= s_q1_ren;
     end if;

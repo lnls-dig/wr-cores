@@ -53,7 +53,7 @@ architecture rtl of eca_tdp is
   constant c_depth : natural := 2**g_addr_bits;
   
   type t_memory is array(c_depth-1 downto 0) of std_logic_vector(g_data_bits-1 downto 0);
-  shared variable v_memory : t_memory := (others => (others => '0')); -- !!!
+  shared variable v_memory : t_memory := (others => (others => '-'));
   
 begin
 

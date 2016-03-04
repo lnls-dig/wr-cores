@@ -44,6 +44,7 @@ architecture rtl of eca_scan_tb is
   
   signal r_time     : t_time    := (others => '0');
   signal r_wen      : std_logic := '0';
+  signal s_stall    : std_logic;
   signal r_deadline : t_time;
   signal r_idx      : std_logic_vector(c_log_size-1 downto 0);
   signal r_ext      : std_logic_vector(c_ext_size-1 downto 0);
@@ -68,6 +69,7 @@ begin
       rst_n_i      => rst_n_i,
       time_i       => r_time,
       wen_i        => r_wen,
+      stall_o      => s_stall,
       deadline_i   => r_deadline,
       idx_i        => r_idx,
       ext_i        => r_ext,
@@ -100,13 +102,13 @@ begin
       p_eca_uniform(s1, s2, ext);
       p_eca_uniform(s1, s2, index);
       
-      -- !!! insert a few that are with less added => s_late
-      deadline := f_eca_add(f_eca_add(r_time, offset), 2**c_log_latency + 6*(2**c_log_multiplier));
-      wen := f_eca_and(deadlines(to_integer(unsigned(index))));
-      if wen = '1' then
-        deadlines(to_integer(unsigned(index))) := deadline;
+      -- Record deadline
+      if r_wen = '1' and s_stall = '0' then
+        deadlines(to_integer(unsigned(r_idx))) := r_deadline;
       end if;
       
+      deadline := f_eca_add(f_eca_add(r_time, offset), 2**c_log_latency + 6*(2**c_log_multiplier));
+      wen := f_eca_and(deadlines(to_integer(unsigned(index))));
       r_time     <= f_eca_add(r_time, 2**c_log_multiplier);
       r_wen      <= wen;
       r_deadline <= deadline;

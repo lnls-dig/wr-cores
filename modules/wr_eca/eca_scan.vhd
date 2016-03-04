@@ -44,6 +44,7 @@ entity eca_scan is
     time_i       : in  t_time;
     -- Write port
     wen_i        : in  std_logic;
+    stall_o      : out std_logic;
     deadline_i   : in  t_time;
     idx_i        : in  std_logic_vector(g_log_size-1 downto 0);
     ext_i        : in  std_logic_vector(g_ext_size-1 downto 0);
@@ -109,6 +110,9 @@ architecture rtl of eca_scan is
   signal r_wen2      : std_logic := '0';
   signal r_wen3      : std_logic := '0';
   
+  signal s_ready     : std_logic;
+  signal r_reset     : std_logic_vector(g_log_size downto 0) := (others => '0');
+  
   signal r_deadline1 : std_logic_vector(t_time'length downto 0);
   signal r_output2   : std_logic_vector(t_time'length downto 0);
   signal r_count3    : std_logic_vector(t_time'length downto 0);
@@ -131,6 +135,8 @@ architecture rtl of eca_scan is
   
   signal r_stb       : std_logic := '0';
   signal s_weno      : std_logic;
+  signal s_b_wen     : std_logic;
+  signal s_b_addr    : std_logic_vector(g_log_size-1 downto 0);
   signal s_idxo      : std_logic_vector(g_log_size-1 downto 0);
   signal r_idxo      : std_logic_vector(g_log_size-1 downto 0) := (others => '0');
   signal s_valido    : std_logic;
@@ -153,6 +159,17 @@ begin
     report "g_log_size does not match target latency"
     severity failure;
   
+  -- Reset wipes memory
+  s_ready <= r_reset(r_reset'high);
+  reset : process(rst_n_i, clk_i) is
+  begin
+    if rst_n_i = '0' then
+      r_reset <= (others => '0');
+    elsif rising_edge(clk_i) then
+      r_reset <= f_eca_add(r_reset, not s_ready);
+    end if;
+  end process;
+  
   -- Compensate for pipeline delay with an adjusted clock
   time : process(rst_n_i, clk_i) is
   begin
@@ -167,6 +184,7 @@ begin
     end if;
   end process;
   
+  -- Clear the write-enable registers
   input_wen : process(clk_i, rst_n_i) is
   begin
     if rst_n_i = '0' then
@@ -174,12 +192,13 @@ begin
       r_wen2 <= '0';
       r_wen3 <= '0';
     elsif rising_edge(clk_i) then
-      r_wen1 <= wen_i;
+      r_wen1 <= wen_i and s_ready;
       r_wen2 <= r_wen1;
       r_wen3 <= r_wen2;
     end if;
   end process;
   
+  -- Calculate number of times to count-down until we output the value
   input_deadline : process(clk_i) is
   begin
     if rising_edge(clk_i) then
@@ -222,12 +241,15 @@ begin
       a_addr_i => r_idx3,
       a_data_i => s_ai,
       a_data_o => open,
-      b_wen_i  => s_weno,
-      b_addr_i => s_idxo,
+      b_wen_i  => s_b_wen,
+      b_addr_i => s_b_addr,
       b_data_i => s_bi,
       b_data_o => s_bo_raw);
 
-  -- !!! clear on reset?, using port a (will wipe faster than free)
+  -- Inject writes during reset
+  s_b_wen  <= not s_ready or s_weno;
+  s_b_addr <= f_eca_mux(s_ready, s_idxo, r_reset(g_log_size-1 downto 0));
+  
   s_ai(c_valid)       <= '1';
   s_ai(c_late)        <= s_late3;
   s_ai(c_early)       <= s_early3;
@@ -239,8 +261,13 @@ begin
   bypass : process(clk_i) is
   begin
     if rising_edge(clk_i) then
-      r_bypass <= r_wen3 and f_eca_eq(r_idx3, s_idxo);
-      r_ai     <= s_ai;
+      if s_ready = '1' then
+        r_bypass <= r_wen3 and f_eca_eq(r_idx3, s_idxo);
+        r_ai     <= s_ai;
+      else
+        r_bypass <= '1';
+        r_ai     <= (others => '0');
+      end if;
     end if;
   end process;
   s_bo <= f_eca_mux(r_bypass, r_ai, s_bo_raw);
@@ -288,5 +315,7 @@ begin
       end if;
     end if;
   end process;
+  
+  stall_o <= not s_ready;
   
 end rtl;

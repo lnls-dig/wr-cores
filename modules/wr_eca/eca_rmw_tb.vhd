@@ -53,6 +53,11 @@ architecture rtl of eca_rmw_tb is
   signal b_data_o : std_logic_vector(c_data_bits-1 downto 0);
   signal b_data_i : std_logic_vector(c_data_bits-1 downto 0);
   
+  signal r_a_en   : std_logic;
+  signal r_b_en   : std_logic;
+  signal r_a_addr : std_logic_vector(c_addr_bits-1 downto 0);
+  signal r_b_addr : std_logic_vector(c_addr_bits-1 downto 0);
+  
 begin
 
   rmw : eca_rmw
@@ -74,68 +79,67 @@ begin
       b_data_i => b_data_i);
       
   test : process(clk_i, rst_n_i) is
-    type t_memory is array(c_depth-1 downto 0) of std_logic_vector(c_data_bits-1 downto 0);
-    
     variable s1, s2 : positive := 42;
     
-    variable v_memory : t_memory := (others => (others => '0'));
-    variable a_en0   : std_logic;
-    variable a_en1   : std_logic;
-    variable a_addr0 : std_logic_vector(c_addr_bits-1 downto 0);
-    variable a_addr1 : std_logic_vector(c_addr_bits-1 downto 0);
+    type t_memory is array(c_depth-1 downto 0) of std_logic_vector(c_data_bits-1 downto 0);
+    variable v_memory : t_memory := (others => (others => '-'));
     
-    variable a_data  : std_logic_vector(c_data_bits-1 downto 0);
-    variable b_en0   : std_logic;
-    variable b_en1   : std_logic;
-    variable b_addr0 : std_logic_vector(c_addr_bits-1 downto 0);
-    variable b_addr1 : std_logic_vector(c_addr_bits-1 downto 0);
-    variable b_data  : std_logic_vector(c_data_bits-1 downto 0);
+    variable a_en   : std_logic;
+    variable a_addr : std_logic_vector(c_addr_bits-1 downto 0);
+    variable a_data : std_logic_vector(c_data_bits-1 downto 0);
+    variable b_en   : std_logic;
+    variable b_addr : std_logic_vector(c_addr_bits-1 downto 0);
+    variable b_data : std_logic_vector(c_data_bits-1 downto 0);
+    
   begin
     if rst_n_i = '0' then
-      a_en1 := '0';
-      b_en1 := '0';
       a_en_i <= '0';
       b_en_i <= '0';
-    elsif falling_edge(clk_i) then
+      r_a_en <= '0';
+      r_b_en <= '0';
+    elsif rising_edge(clk_i) then
       -- Check output
-      assert a_ack_o = a_en_i report "Port A did not get priority" severity failure;
-      assert a_addr1 /= b_addr1 or a_en1 = '0' or b_en1 = '0' report "Unblocked A-B data race" severity failure;
+      assert a_ack_o = r_a_en report "Port A did not get priority" severity failure;
+      assert (b_ack_o and not r_b_en) = '0' report "Port B got priority without asking" severity failure;
       
-      -- Correct behaviour is: write-before-read both within and between ports
-      if a_en1 = '1' then
-        v_memory(to_integer(unsigned(a_addr1))) := a_data_i;
-      end if;
-      if b_en1 = '1' then
-        v_memory(to_integer(unsigned(b_addr1))) := b_data_i;
-      end if;
+      assert r_a_addr /= r_b_addr or a_ack_o = '0' or b_ack_o = '0' report "Unblocked A-B data race" severity failure;
       
       -- Check read-outs
       if a_ack_o = '1' then
-        assert a_data_o = v_memory(to_integer(unsigned(a_addr0))) report "unexpected A readout" severity failure;
+        assert a_data_o = v_memory(to_integer(unsigned(r_a_addr))) report "unexpected A readout" severity failure;
       end if;
       if b_ack_o = '1' then
-        assert b_data_o = v_memory(to_integer(unsigned(b_addr0))) report "unexpected B readout" severity failure;
+        assert b_data_o = v_memory(to_integer(unsigned(r_b_addr))) report "unexpected B readout" severity failure;
+      end if;
+      
+      -- Update write-back
+      if a_ack_o = '1' then
+        v_memory(to_integer(unsigned(r_a_addr))) := a_data_i;
+      end if;
+      if b_ack_o = '1' then
+        v_memory(to_integer(unsigned(r_b_addr))) := b_data_i;
       end if;
       
       -- Pick random values
-      a_en1 := a_ack_o;
-      b_en1 := b_ack_o;
-      a_addr1 := a_addr_i;
-      b_addr1 := b_addr_i;
-      p_eca_uniform(s1, s2, a_en0);
-      p_eca_uniform(s1, s2, b_en0);
-      p_eca_uniform(s1, s2, a_addr0);
-      p_eca_uniform(s1, s2, b_addr0);
+      p_eca_uniform(s1, s2, a_en);
+      p_eca_uniform(s1, s2, b_en);
+      p_eca_uniform(s1, s2, a_addr);
+      p_eca_uniform(s1, s2, b_addr);
       p_eca_uniform(s1, s2, a_data);
       p_eca_uniform(s1, s2, b_data);
       
       -- Control the tested unit
-      a_en_i <= a_en0;
-      b_en_i <= b_en0;
-      a_addr_i <= a_addr0;
-      b_addr_i <= b_addr0;
+      a_en_i   <= a_en;
+      b_en_i   <= b_en;
+      a_addr_i <= a_addr;
+      b_addr_i <= b_addr;
       a_data_i <= a_data;
       b_data_i <= b_data;
+      
+      r_a_en   <= a_en_i;
+      r_b_en   <= b_en_i;
+      r_a_addr <= a_addr_i;
+      r_b_addr <= b_addr_i;
     end if;
   end process;
 
