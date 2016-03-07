@@ -37,16 +37,60 @@ end eca_tag_channel_tb;
 
 architecture rtl of eca_tag_channel_tb is
 
-  constant c_log_size       : natural := 1 + g_case; -- smaller => tests edge cases better
-  constant c_log_multiplier : natural := g_case mod 3;
-  constant c_log_latency    : natural := c_log_size + c_log_multiplier; -- !!! test: +1,0,-1
-  constant c_log_max_delay  : natural := c_log_latency+2;
-  constant c_ticks          : natural := 2**c_log_multiplier;
+  -- Test these edge cases:
+  --  size = 1, 2, 4
+  --  mult = 0, 1, 3
+  --  cals = 0, 1, 2
   
-  signal r_time    : t_time    := (others => '0');
-  signal r_stall   : std_logic;
-  signal r_channel : t_channel := c_idle_channel;
-  signal s_channel : t_channel;
+  -- g_case size mult cals
+  --   0     1    1    0
+  --   1     2    0    1
+  --   2     3    1    0
+  --   3     4    3    2
+  
+  function f_mult return natural is
+  begin
+    case g_case is
+      when 0 => return 1;
+      when 1 => return 0;
+      when 2 => return 1;
+      when others => return 3;
+    end case;
+  end f_mult;
+  
+  function f_cals return natural is
+  begin
+    case g_case is
+      when 0 => return 0;
+      when 1 => return 1;
+      when 2 => return 0;
+      when others => return 2;
+    end case;
+  end f_cals;
+  
+  function f_1(x : boolean) return std_logic is
+  begin
+    if x then return '1'; else return '0'; end if;
+  end f_1;
+  
+  constant c_log_size       : natural := 1 + g_case; -- smaller => tests edge cases better
+  constant c_log_multiplier : natural := f_mult;
+  constant c_log_calendars  : natural := f_cals;
+  constant c_log_latency    : natural := c_log_size + c_log_multiplier + 1 - c_log_calendars;
+  constant c_log_max_delay  : natural := c_log_latency+2; -- ensures testing of 'early'
+  constant c_ticks          : natural := 2**c_log_multiplier;
+  constant c_pipeline_depth : natural := 10 + c_log_multiplier + c_log_calendars;
+  
+  signal r_time     : t_time    := (others => '0');
+  signal r_stall    : std_logic;
+  signal r_channel  : t_channel := c_idle_channel;
+  signal s_channel  : t_channel;
+  signal s_overflow : std_logic;
+  
+  function f_nat(x : std_logic) return natural is
+  begin
+    if x = '1' then return 1; else return 0; end if;
+  end f_nat;
   
 begin
 
@@ -63,10 +107,15 @@ begin
       channel_i    => r_channel,
       stall_i      => r_stall,
       channel_o    => s_channel,
-      overflow_o   => open);
+      overflow_o   => s_overflow);
 
   main : process(rst_n_i, clk_i) is
-    type t_times is array(natural range <>) of t_time;
+    type t_nat_array is array(natural range <>) of natural;
+    variable busy     : std_logic_vector(2**(c_log_size+1)-1 downto 0) := (others => '0');
+    variable early    : std_logic_vector(2**(c_log_size+1)-1 downto 0);
+    variable late     : std_logic_vector(2**(c_log_size+1)-1 downto 0);
+    variable count    : t_nat_array(2**(c_log_size+1)-1 downto 0);
+    variable scan     : natural := 0;
     
     variable s1, s2 : positive := 42;
     variable valid  : std_logic;
@@ -78,6 +127,8 @@ begin
     variable tef    : t_tef;
     variable time   : t_time;
     variable seq    : t_time;
+    variable flags  : natural;
+    variable index  : natural;
     
   begin
     if rst_n_i = '0' then
@@ -90,7 +141,6 @@ begin
     elsif rising_edge(clk_i) then
       r_time <= f_eca_add(r_time, 2**c_log_multiplier);
       
-      p_eca_uniform(s1, s2, valid);
       p_eca_uniform(s1, s2, stall);
       p_eca_uniform(s1, s2, event);
       p_eca_uniform(s1, s2, param);
@@ -98,8 +148,25 @@ begin
       p_eca_uniform(s1, s2, tef);
       p_eca_uniform(s1, s2, time);
       
+      -- Only insert an action if the test slot was not taken
+      index := to_integer(unsigned(param(c_log_size downto 0)));
+      valid := not busy(index);
+      
+      -- Precalculate if it's ok to be late/early
       time(time'high downto c_log_latency+3) := (others => '0');
+      if valid = '1' then
+        busy(index)  := '1';
+        early(index) := f_1(unsigned(time) >= 2**c_log_max_delay + c_pipeline_depth*c_ticks);
+        late(index)  := f_1(unsigned(time) <  2**c_log_latency   + c_pipeline_depth*c_ticks);
+        count(index) := 20;
+      end if;
       time := f_eca_add(time, r_time);
+      
+      -- Input rejected due to overflow; reclaim index
+      if s_overflow = '1' and r_channel.valid = '1' then
+        index := to_integer(unsigned(r_channel.param(c_log_size downto 0)));
+        busy(index)  := '0';
+      end if;
       
       r_channel.valid    <= valid;
       r_channel.delayed  <= '0';
@@ -112,6 +179,27 @@ begin
       r_channel.tef      <= tef;
       r_channel.time     <= time;
       r_stall <= stall;
+      
+      -- All control lines must be valid
+      assert (s_channel.valid    xnor s_channel.valid)    = '1' report "Valid meta-value"    severity failure;
+      assert (s_channel.delayed  xnor s_channel.delayed)  = '1' report "Delayed meta-value"  severity failure;
+      assert (s_channel.conflict xnor s_channel.conflict) = '1' report "Conflict meta-value" severity failure;
+      assert (s_channel.late     xnor s_channel.late)     = '1' report "Late meta-value"     severity failure;
+      assert (s_channel.early    xnor s_channel.early)    = '1' report "Early meta-value"    severity failure;
+      
+      -- Only one flag may be set
+      flags := f_nat(s_channel.valid) + f_nat(s_channel.delayed) + f_nat(s_channel.conflict) +
+               f_nat(s_channel.late)  + f_nat(s_channel.early);
+      assert flags <= 1 report "Too many control lines set" severity failure;
+      
+      -- Check that anything being output matches what we put in
+      if (r_stall = '0' or s_channel.valid = '0') and flags > 0 then
+        index := to_integer(unsigned(s_channel.param(c_log_size downto 0)));
+        assert busy(index) = '1' report "An invalid action was output" severity failure;
+        assert s_channel.late  = '0' or late(index)  = '1' report "An action was late that should not be"  severity failure;
+        assert s_channel.early = '0' or early(index) = '1' report "An action was early that should not be" severity failure;
+        busy(index) := '0';
+      end if;
       
       -- On time; timestamp must fall within one clock tick
       if s_channel.valid = '1' and ignore = '0' then
@@ -136,15 +224,25 @@ begin
       end if;
       
       -- If the channel claims this is early, it should be early!
+      -- ... except it is possible that even though it was early, a super-long stall made it late ;)
       if s_channel.early = '1' then
-        assert unsigned(s_channel.time) >= unsigned(r_time)+c_ticks report "Early action was late" severity failure;
+        -- assert unsigned(s_channel.time) >= unsigned(r_time)+c_ticks report "Early action was late (this is possible if a long enough stall happens before)" severity warning;
       end if;
       
       -- Confirm function of stall line
       assert ignore = '0' or s_channel.valid = '1' report "Valid went low while stalled" severity failure;
       ignore := s_channel.valid and r_stall;
       
-      -- !!! include a way to ensure actions come out exactly once
+      -- Check to see that events actually leave
+      index := index + 1;
+      if index = 2**(c_log_size+1) then index := 0; end if;
+      if busy(index) = '1' then
+        if count(index) = 0 then
+          report "Action " & integer'image(index) & " has been unexecuted for a long time ..." severity warning;
+        else
+          count(index) := count(index) - 1;
+        end if;
+      end if;
       
     end if;
   end process;
