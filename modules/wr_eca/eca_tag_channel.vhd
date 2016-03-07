@@ -32,6 +32,7 @@ entity eca_tag_channel is
   generic(
     g_log_size       : natural :=  8; -- 2**g_log_size = maximum number of pending actions
     g_log_multiplier : natural :=  3; -- 2**g_log_multiplier = ticks per cycle
+    g_log_max_delay  : natural := 32; -- 2**g_log_max_delay  = maximum delay before executed as early
     g_log_latency    : natural := 12);-- 2**g_log_latency    = ticks of calendar delay
   port(
     clk_i      : in  std_logic;
@@ -223,6 +224,7 @@ begin
         g_ext_size       => 1,
         g_log_size       => c_log_scan_size,
         g_log_multiplier => g_log_multiplier,
+        g_log_max_delay  => g_log_max_delay,
         g_log_latency    => g_log_latency)
       port map(
         clk_i        => clk_i,
@@ -392,6 +394,7 @@ begin
       clk_i   => clk_i,
       rst_n_i => rst_n_i,
       push_i  => s_com_valid_o(0),
+      full_o  => open,
       data_i  => s_fifo_masked,
       pop_i   => s_fifo_pop,
       valid_o => s_fifo_valid,

@@ -295,6 +295,7 @@ package eca_internals_pkg is
       g_ext_size       : natural; -- extra bits tracked by scanner
       g_log_size       : natural; -- 2**g_log_size       = buffer entries
       g_log_multiplier : natural; -- 2**g_log_multiplier = ticks per cycle
+      g_log_max_delay  : natural; -- 2**g_log_max_delay  = maximum delay before executed as early
       g_log_latency    : natural);-- 2**g_log_latency    = ticks of calendar delay
     port(
       clk_i        : in  std_logic;
@@ -329,6 +330,7 @@ package eca_internals_pkg is
     generic(
       g_log_size       : natural :=  8; -- 2**g_log_size = maximum number of pending actions
       g_log_multiplier : natural :=  3; -- 2**g_log_multiplier = ticks per cycle
+      g_log_max_delay  : natural := 32; -- 2**g_log_max_delay  = maximum delay before executed as early
       g_log_latency    : natural := 12);-- 2**g_log_latency    = ticks of calendar delay
     port(
       clk_i      : in  std_logic;

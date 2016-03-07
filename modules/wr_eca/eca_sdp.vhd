@@ -51,12 +51,11 @@ end eca_sdp;
 architecture rtl of eca_sdp is
 
   constant c_depth : natural := 2**g_addr_bits;
-  constant c_undef : std_logic_vector(g_data_bits-1 downto 0) := (others => 'X');
   
   type t_memory is array(c_depth-1 downto 0) of std_logic_vector(g_data_bits-1 downto 0);
   signal r_memory : t_memory := (others => (others => '-'));
   signal r_bypass : std_logic := '0';
-  signal w_data   : std_logic_vector(g_data_bits-1 downto 0);
+  signal w_data   : std_logic_vector(g_data_bits-1 downto 0) := (others => 'X');
   signal r_data   : std_logic_vector(g_data_bits-1 downto 0);
 
 begin
@@ -74,7 +73,10 @@ begin
         assert f_eca_safe(w_addr_i) = '1' report "Attempt to write to a meta-values address" severity failure;
         r_memory(to_integer(unsigned(w_addr_i))) <= w_data_i;
       end if;
-      w_data <= w_data_i;
+      
+      if g_bypass then
+        w_data <= w_data_i;
+      end if;
     end if;
   end process;
   
@@ -91,11 +93,6 @@ begin
     end if;
   end process;
   
-  bypass : if g_bypass generate
-    r_data_o <= f_eca_mux(r_bypass, w_data, r_data);
-  end generate;
-  undef : if not g_bypass generate
-    r_data_o <= f_eca_mux(r_bypass, c_undef, r_data);
-  end generate;
+  r_data_o <= f_eca_mux(r_bypass, w_data, r_data);
 
 end rtl;

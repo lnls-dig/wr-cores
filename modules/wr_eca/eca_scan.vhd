@@ -36,6 +36,7 @@ entity eca_scan is
     g_ext_size       : natural; -- extra bits tracked by scanner
     g_log_size       : natural; -- 2**g_log_size       = buffer entries
     g_log_multiplier : natural; -- 2**g_log_multiplier = ticks per cycle
+    g_log_max_delay  : natural; -- 2**g_log_max_delay  = maximum delay before executed as early
     g_log_latency    : natural);-- 2**g_log_latency    = ticks of calendar delay
   port(
     clk_i        : in  std_logic;
@@ -59,14 +60,14 @@ end eca_scan;
 
 architecture rtl of eca_scan is
 
-  constant c_log_cap   : natural := 30; -- Maximum ticks an action can be delayed
-  constant c_log_count : natural := c_log_cap - g_log_latency;
+  constant c_log_count : natural := g_log_max_delay - g_log_latency;
   constant c_multiplier1_bits : std_logic_vector(g_log_multiplier downto 0) := (others => '0');
   
   -- Fields in the table
   constant c_valid : natural := 0;
   constant c_late  : natural := 1;
   constant c_early : natural := 2;
+  -- subtype  c_ext is natural range x downto x;
   constant c_ext   : std_logic_vector(g_ext_size   +c_early    downto c_early   +1) := (others => '0');
   constant c_low   : std_logic_vector(g_log_latency+c_ext'high downto c_ext'high+1) := (others => '0');
   constant c_count : std_logic_vector(c_log_count  +c_low'high downto c_low'high+1) := (others => '0');
@@ -221,13 +222,13 @@ begin
   end process;
   
   s_late3  <= r_count3(time_i'length);
-  s_early3 <= f_eca_or(r_count3(time_i'high downto c_log_cap)) and not s_late3;
+  s_early3 <= f_eca_or(r_count3(time_i'high downto g_log_max_delay)) and not s_late3;
   
   -- Saturate the counter calculation
   s_count3 <=
     (others => '0') when s_late3 ='1' else
     (others => '1') when s_early3='1' else
-    r_count3(c_log_cap-1 downto g_log_latency);
+    r_count3(g_log_max_delay-1 downto g_log_latency);
 
   -- Write-write race is prevented by never writing-back something not valid
   -- ... and we know that scan is never asked to write to something already valid

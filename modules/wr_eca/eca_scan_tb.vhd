@@ -41,6 +41,7 @@ architecture rtl of eca_scan_tb is
   constant c_log_size       : natural := 1 + g_case; -- smaller => tests edge cases better
   constant c_log_multiplier : natural := g_case mod 3;
   constant c_log_latency    : natural := c_log_size + c_log_multiplier + 1;
+  constant c_log_max_delay  : natural := 32;
   
   signal r_time     : t_time    := (others => '0');
   signal r_wen      : std_logic := '0';
@@ -63,6 +64,7 @@ begin
       g_ext_size       => c_ext_size,
       g_log_size       => c_log_size,
       g_log_multiplier => c_log_multiplier,
+      g_log_max_delay  => c_log_max_delay,
       g_log_latency    => c_log_latency)
     port map(
       clk_i        => clk_i,
