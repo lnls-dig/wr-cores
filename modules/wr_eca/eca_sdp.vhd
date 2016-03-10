@@ -54,9 +54,16 @@ architecture rtl of eca_sdp is
   
   type t_memory is array(c_depth-1 downto 0) of std_logic_vector(g_data_bits-1 downto 0);
   signal r_memory : t_memory := (others => (others => '-'));
-  signal r_bypass : std_logic := '0';
-  signal w_data   : std_logic_vector(g_data_bits-1 downto 0) := (others => 'X');
   signal r_data   : std_logic_vector(g_data_bits-1 downto 0);
+  signal r_bypass : std_logic;
+  
+  -- Use an MLAB if less than 32 entries
+  function f_style return string is
+  begin
+    if g_addr_bits <= 6 and g_data_bits <= 20 then return "MLAB"; else return "no_rw_check"; end if;
+  end f_style;
+  attribute ramstyle : string;
+  attribute ramstyle of r_memory : signal is f_style;
 
 begin
 
@@ -73,26 +80,42 @@ begin
         assert f_eca_safe(w_addr_i) = '1' report "Attempt to write to a meta-values address" severity failure;
         r_memory(to_integer(unsigned(w_addr_i))) <= w_data_i;
       end if;
-      
-      if g_bypass then
-        w_data <= w_data_i;
-      end if;
     end if;
   end process;
   
   read : process(r_clk_i) is
   begin
     if rising_edge(r_clk_i) then
+      r_bypass <= w_en_i and f_eca_eq(r_addr_i, w_addr_i);
       if f_eca_safe(r_addr_i) = '1' then
         r_data <= r_memory(to_integer(unsigned(r_addr_i)));
       else
         r_data <= (others => 'X');
       end if;
-      
-      r_bypass <= w_en_i and f_eca_eq(r_addr_i, w_addr_i);
     end if;
   end process;
   
-  r_data_o <= f_eca_mux(r_bypass, w_data, r_data);
+  -- These blocks are only needed to avoid stupid 'unused' warnings
+  bypass : if g_bypass generate
+    bl : block is
+      signal w_data : std_logic_vector(g_data_bits-1 downto 0);
+    begin
+      regs : process(w_clk_i) is
+      begin
+        if rising_edge(w_clk_i) then
+          w_data   <= w_data_i;
+        end if;
+      end process;
+      r_data_o <= f_eca_mux(r_bypass, w_data, r_data);
+    end block;
+  end generate;
+  
+  nobypass : if not g_bypass generate
+    bl : block is
+      constant c_undef : std_logic_vector(g_data_bits-1 downto 0) := (others => 'X');
+    begin
+      r_data_o <= f_eca_mux(r_bypass, c_undef, r_data);
+    end block;
+  end generate;
 
 end rtl;
