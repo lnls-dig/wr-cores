@@ -55,7 +55,7 @@ architecture rtl of eca_tag_channel is
   constant c_slots         : natural := 2**g_log_multiplier;
   constant c_bits          : natural := 2 + c_log_scan_size; -- Format: [code low-index]
   constant c_record_size   : natural := 1 + 2 + g_log_size;  -- Format: [next code index]
-  constant c_pipeline_depth: natural := 5 + 1; -- c_log_calendars + g_log_multiplier;
+  constant c_pipeline_depth: natural := 7;
   
   constant c_code_empty    : std_logic_vector(1 downto 0) := "00";
   constant c_code_early    : std_logic_vector(1 downto 0) := "01";
@@ -129,7 +129,9 @@ architecture rtl of eca_tag_channel is
   signal s_con_record   : std_logic_vector(c_bits-1 downto 0);
   signal s_con_code     : std_logic_vector(1 downto 0);
   signal s_fifo_push    : std_logic_vector(c_slots*c_calendars-1 downto 0);
+  signal r_fifo_push    : std_logic_vector(c_slots*c_calendars-1 downto 0) := (others => '0');
   signal s_fifo_data_i  : t_eca_matrix(c_slots*c_calendars-1 downto 0, c_record_size-1 downto 0);
+  signal r_fifo_data_i  : t_eca_matrix(c_slots*c_calendars-1 downto 0, c_record_size-1 downto 0);
   signal s_fifo_pop     : std_logic;
   signal s_fifo_valid   : std_logic;
   signal s_fifo_fresh   : std_logic;
@@ -378,8 +380,8 @@ begin
     port map(
       clk_i   => clk_i,
       rst_n_i => rst_n_i,
-      push_i  => s_fifo_push,
-      data_i  => s_fifo_data_i,
+      push_i  => r_fifo_push,
+      data_i  => r_fifo_data_i,
       pop_i   => s_fifo_pop,
       valid_o => s_fifo_valid,
       fresh_o => s_fifo_fresh,
@@ -438,7 +440,9 @@ begin
       r_delayed   <= '0';
       r_conflict  <= '0';
       r_saw_valid <= '0';
+      r_fifo_push <= (others => '0');
     elsif rising_edge(clk_i) then
+      r_fifo_push <= s_fifo_push;
       if s_stall = '0' then
         r_mux_valid <= s_mux_valid;
         -- late/early/conflict/delayed are mutually exclusive; most severe first
@@ -454,6 +458,7 @@ begin
   bulk : process(clk_i) is
   begin
     if rising_edge(clk_i) then
+      r_fifo_data_i<= s_fifo_data_i;
       if s_stall = '0' then
         r_mux_data   <= s_mux_data;
         r_free_entry <= s_data_index;
