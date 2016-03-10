@@ -85,6 +85,7 @@ begin
   tag1  : eca_tag_channel_tb generic map(g_case => 1) port map(clk_i => clk, rst_n_i => rstn);
   tag2  : eca_tag_channel_tb generic map(g_case => 2) port map(clk_i => clk, rst_n_i => rstn);
   tag3  : eca_tag_channel_tb generic map(g_case => 3) port map(clk_i => clk, rst_n_i => rstn);
+  tag4  : eca_tag_channel_tb generic map(g_case => 4) port map(clk_i => clk, rst_n_i => rstn);
   piso0 : eca_piso_fifo_tb   generic map(g_case => 0) port map(clk_i => clk, rst_n_i => rstn);
   piso1 : eca_piso_fifo_tb   generic map(g_case => 1) port map(clk_i => clk, rst_n_i => rstn);
   piso2 : eca_piso_fifo_tb   generic map(g_case => 2) port map(clk_i => clk, rst_n_i => rstn);

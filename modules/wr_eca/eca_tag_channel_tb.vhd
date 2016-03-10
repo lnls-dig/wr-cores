@@ -38,23 +38,23 @@ end eca_tag_channel_tb;
 architecture rtl of eca_tag_channel_tb is
 
   -- Test these edge cases:
-  --  size = 1, 2, 4
-  --  mult = 0, 1, 3
+  --  size = 1, 2, 3,...
+  --  mult = 0, 1, 2
   --  cals = 0, 1, 2
   
   -- g_case size mult cals
-  --   0     1    1    0
+  --   0     1    0    0
   --   1     2    0    1
   --   2     3    1    0
-  --   3     4    3    2
+  --   3     4    2    2
   
   function f_mult return natural is
   begin
     case g_case is
-      when 0 => return 1;
+      when 0 => return 0;
       when 1 => return 0;
       when 2 => return 1;
-      when others => return 3;
+      when others => return 2;
     end case;
   end f_mult;
   
@@ -79,7 +79,7 @@ architecture rtl of eca_tag_channel_tb is
   constant c_log_latency    : natural := c_log_size + c_log_multiplier + 1 - c_log_calendars;
   constant c_log_max_delay  : natural := c_log_latency+2; -- ensures testing of 'early'
   constant c_ticks          : natural := 2**c_log_multiplier;
-  constant c_pipeline_depth : natural := 10 + c_log_multiplier + c_log_calendars;
+  constant c_pipeline_depth : natural := 10 + 1; -- c_log_multiplier + c_log_calendars;
   
   signal r_time     : t_time    := (others => '0');
   signal r_stall    : std_logic;
