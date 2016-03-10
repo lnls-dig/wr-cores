@@ -255,6 +255,30 @@ package eca_internals_pkg is
       rst_n_i : in std_logic);
   end component;
   
+  component eca_piso_fifo is
+    generic(
+      g_log_size  : natural; -- g_log_size > g_log_ports
+      g_log_ports : natural;
+      g_width     : natural);
+    port(
+      clk_i   : in  std_logic;
+      rst_n_i : in  std_logic;
+      push_i  : in  std_logic_vector(2**g_log_ports-1 downto 0);
+      data_i  : in  t_eca_matrix(2**g_log_ports-1 downto 0, g_width-1 downto 0);
+      pop_i   : in  std_logic;
+      valid_o : out std_logic;
+      fresh_o : out std_logic; -- If the record was not delayed in the FIFO
+      data_o  : out std_logic_vector(g_width-1 downto 0));
+  end component;
+  
+  component eca_piso_fifo_tb is
+    generic(
+      g_case  : natural := 0);
+    port(
+      clk_i   : in std_logic;
+      rst_n_i : in std_logic);
+  end component;
+  
   component eca_free is
     generic(
       g_log_size : natural);

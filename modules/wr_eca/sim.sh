@@ -14,6 +14,8 @@ for i in 				\
 	eca_tdp.vhd			\
 	eca_fifo.vhd			\
 	eca_fifo_tb.vhd			\
+	eca_piso_fifo.vhd		\
+	eca_piso_fifo_tb.vhd		\
 	eca_rmw.vhd			\
 	eca_rmw_tb.vhd			\
 	eca_free.vhd			\
