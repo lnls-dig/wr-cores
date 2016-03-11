@@ -80,6 +80,7 @@ package eca_internals_pkg is
   function f_eca_mux(m : std_logic; x, y : std_logic) return std_logic;
   function f_eca_mux(m : std_logic; x, y : std_logic_vector) return std_logic_vector;
   function f_eca_log2(x : natural) return natural;
+  function f_eca_log2_min1(x : natural) return natural;
   function f_eca_max(a, b : natural) return natural;
   function f_eca_ripple(a, b : std_logic_vector; c : std_logic) return std_logic_vector;
   function f_eca_gray_encode(x : std_logic_vector) return std_logic_vector;
@@ -352,6 +353,7 @@ package eca_internals_pkg is
   
   component eca_tag_channel is
     generic(
+      g_num_channels   : natural :=  1; -- Number of channels emulated by this instance
       g_log_size       : natural :=  8; -- 2**g_log_size = maximum number of pending actions
       g_log_multiplier : natural :=  3; -- 2**g_log_multiplier = ticks per cycle
       g_log_max_delay  : natural := 32; -- 2**g_log_max_delay  = maximum delay before executed as early
@@ -363,9 +365,11 @@ package eca_internals_pkg is
       time_i     : in  t_time;
       -- Push a record to the queue
       channel_i  : in  t_channel;
+      num_i      : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
       stall_i    : in  std_logic;
       snoop_i    : in  std_logic_vector(g_log_size-1 downto 0);
       channel_o  : out t_channel;
+      num_o      : out std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
       overflow_o : out std_logic);
   end component;
   
@@ -582,6 +586,11 @@ package body eca_internals_pkg is
     end loop;
     return result;
   end f_eca_log2;
+  
+  function f_eca_log2_min1(x : natural) return natural is
+  begin
+    if x <= 1 then return 1; else return f_eca_log2(x); end if;
+  end f_eca_log2_min1;
   
   function f_eca_ripple(a, b : std_logic_vector; c : std_logic) return std_logic_vector is
     constant len : natural := a'length;

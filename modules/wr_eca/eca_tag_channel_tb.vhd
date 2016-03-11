@@ -73,6 +73,7 @@ architecture rtl of eca_tag_channel_tb is
     if x then return '1'; else return '0'; end if;
   end f_1;
   
+  constant c_num_channels   : natural := 4;
   constant c_log_size       : natural := 1 + g_case; -- smaller => tests edge cases better
   constant c_log_multiplier : natural := f_mult;
   constant c_log_calendars  : natural := f_cals;
@@ -83,6 +84,7 @@ architecture rtl of eca_tag_channel_tb is
   
   signal r_time     : t_time    := (others => '0');
   signal r_stall    : std_logic;
+  signal r_num      : std_logic_vector(f_eca_log2_min1(c_num_channels)-1 downto 0);
   signal r_channel  : t_channel := c_idle_channel;
   signal s_channel  : t_channel;
   signal s_overflow : std_logic;
@@ -96,6 +98,7 @@ begin
 
   channel : eca_tag_channel
     generic map(
+      g_num_channels   => c_num_channels,
       g_log_size       => c_log_size,
       g_log_multiplier => c_log_multiplier,
       g_log_max_delay  => c_log_max_delay,
@@ -105,9 +108,11 @@ begin
       rst_n_i      => rst_n_i,
       time_i       => r_time,
       channel_i    => r_channel,
+      num_i        => r_num,
       stall_i      => r_stall,
       snoop_i      => (others => '0'),
       channel_o    => s_channel,
+      num_o        => open,
       overflow_o   => s_overflow);
 
   main : process(rst_n_i, clk_i) is
@@ -122,6 +127,7 @@ begin
     variable valid  : std_logic;
     variable stall  : std_logic;
     variable ignore : std_logic;
+    variable num    : std_logic_vector(r_num'range);
     variable event  : t_event;
     variable param  : t_param;
     variable tag    : t_tag;
@@ -143,6 +149,7 @@ begin
       r_time <= f_eca_add(r_time, 2**c_log_multiplier);
       
       p_eca_uniform(s1, s2, stall);
+      p_eca_uniform(s1, s2, num);
       p_eca_uniform(s1, s2, event);
       p_eca_uniform(s1, s2, param);
       p_eca_uniform(s1, s2, tag);
@@ -169,6 +176,7 @@ begin
         busy(index)  := '0';
       end if;
       
+      r_num              <= num;
       r_channel.valid    <= valid;
       r_channel.delayed  <= '0';
       r_channel.conflict <= '0';

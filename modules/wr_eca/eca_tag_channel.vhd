@@ -30,6 +30,7 @@ use work.eca_internals_pkg.all;
 
 entity eca_tag_channel is
   generic(
+    g_num_channels   : natural :=  1; -- Number of channels emulated by this instance
     g_log_size       : natural :=  8; -- 2**g_log_size = maximum number of pending actions
     g_log_multiplier : natural :=  3; -- 2**g_log_multiplier = ticks per cycle
     g_log_max_delay  : natural := 32; -- 2**g_log_max_delay  = maximum delay before executed as early
@@ -41,27 +42,46 @@ entity eca_tag_channel is
     time_i     : in  t_time;
     -- Push a record to the queue
     channel_i  : in  t_channel;
+    num_i      : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
     stall_i    : in  std_logic;
     snoop_i    : in  std_logic_vector(g_log_size-1 downto 0);
     channel_o  : out t_channel;
+    num_o      : out std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
     overflow_o : out std_logic);
 end eca_tag_channel;
 
 architecture rtl of eca_tag_channel is
 
+  constant c_log_channels  : natural := f_eca_log2(g_num_channels);
   constant c_log_cal_size  : natural := g_log_latency - g_log_multiplier;
   constant c_log_scan_size : natural := c_log_cal_size - 1;
   constant c_log_calendars : natural := g_log_size - c_log_scan_size;
   constant c_calendars     : natural := 2**c_log_calendars;
   constant c_slots         : natural := 2**g_log_multiplier;
-  constant c_list_bits     : natural := 2 + c_log_scan_size; -- Format: [code low-index]
-  constant c_fifo_bits   : natural := 1 + 2 + g_log_size;  -- Format: [next code index]
+  constant c_ext_bits      : natural := c_log_channels + 4;                   -- Format: [num early late set clear]
+  constant c_list_bits     : natural := c_log_channels + 2 + c_log_scan_size; -- Format: [num code low-index]
+  constant c_fifo_bits     : natural := c_log_channels + 1 + 2 + g_log_size;  -- Format: [num next code index]
   constant c_pipeline_depth: natural := 7;
   
+  constant c_code_bits     : natural := 2;
   constant c_code_empty    : std_logic_vector(1 downto 0) := "00";
   constant c_code_early    : std_logic_vector(1 downto 0) := "01";
   constant c_code_late     : std_logic_vector(1 downto 0) := "10";
   constant c_code_valid    : std_logic_vector(1 downto 0) := "11";
+  
+  constant c_ext_flip      : natural := 0;
+  constant c_ext_late      : natural := 2;
+  constant c_ext_early     : natural := 3;
+  constant c_ext_channel   : natural := 4;
+  
+  constant c_list_index    : natural := 0;
+  constant c_list_code     : natural := c_list_index + c_log_scan_size;
+  constant c_list_channel  : natural := c_list_code + 2;
+  
+  constant c_fifo_index    : natural := 0;
+  constant c_fifo_code     : natural := c_fifo_index + g_log_size;
+  constant c_fifo_next     : natural := c_fifo_code + 2;
+  constant c_fifo_channel  : natural := c_fifo_next + 1;
   
   type t_record_array is array(natural range <>) of std_logic_vector(c_list_bits-1 downto 0);
   type t_cal_valid    is array(natural range <>) of unsigned(c_calendars-1 downto 0);
@@ -79,6 +99,7 @@ architecture rtl of eca_tag_channel is
   signal r_free_entry   : std_logic_vector(g_log_size-1 downto 0);
   signal s_data_index   : std_logic_vector(g_log_size-1 downto 0);
   signal s_data_accept  : std_logic;
+  signal s_ext          : std_logic_vector(c_ext_bits-1 downto 0);
   signal s_data_channel : t_channel;
   signal r_last_time    : std_logic := '0';
   signal r_cal_reset    : std_logic_vector(c_log_cal_size downto 0) := (others => '0');
@@ -144,6 +165,14 @@ begin
   s_data_accept <= channel_i.valid and not s_free_full and s_cal_ready;
   overflow_o    <= channel_i.valid and (s_free_full or not s_cal_ready);
   
+  -- The extended record for scanner
+  s_ext(c_ext_flip+1 downto c_ext_flip) <= channel_i.tag(31 downto 30);
+  s_ext(c_ext_early) <= channel_i.early;
+  s_ext(c_ext_late)  <= channel_i.late;
+  ext_gt1 : if g_num_channels > 1 generate
+    s_ext(c_ext_channel+c_log_channels-1 downto c_ext_channel) <= num_i;
+  end generate;
+  
   data : eca_data
     generic map(
       g_log_size => g_log_size)
@@ -188,6 +217,7 @@ begin
       signal r_scan_low     : std_logic_vector(g_log_latency-1 downto 0);
       signal s_scan_low     : std_logic_vector(g_log_latency-1 downto 0);
       signal s_scan_idx     : std_logic_vector(c_log_scan_size-1 downto 0);
+      signal s_scan_ext     : std_logic_vector(c_ext_bits-1 downto 0);
       
       signal s_cal_a_data   : std_logic_vector(c_slots*c_list_bits-1 downto 0);
       signal s_cal_b_en     : std_logic;
@@ -195,7 +225,6 @@ begin
       signal s_cal_b_addr   : std_logic_vector(c_log_cal_size-1 downto 0);
       signal s_cal_b_data   : std_logic_vector(c_slots*c_list_bits-1 downto 0);
       signal s_cal_b_mux    : std_logic_vector(c_slots*c_list_bits-1 downto 0);
-      signal s_cal_code     : std_logic_vector(1 downto 0);
       signal s_cal_record   : std_logic_vector(c_list_bits-1 downto 0);
       signal r_cal_record   : std_logic_vector(c_list_bits-1 downto 0);
       
@@ -226,7 +255,7 @@ begin
 
       scan : eca_scan
         generic map(
-          g_ext_size       => 1,
+          g_ext_size       => c_ext_bits,
           g_log_size       => c_log_scan_size,
           g_log_multiplier => g_log_multiplier,
           g_log_max_delay  => g_log_max_delay,
@@ -239,18 +268,21 @@ begin
           stall_o      => open, -- always goes low before s_free_full goes low
           deadline_i   => channel_i.time,
           idx_i        => s_free_alloc(c_log_scan_size-1 downto 0),
-          ext_i        => (others => '0'),
+          ext_i        => s_ext,
           scan_stb_o   => s_scan_stb,
           scan_late_o  => s_scan_late,
           scan_early_o => s_scan_early,
           scan_low_o   => s_scan_low,
           scan_idx_o   => s_scan_idx,
-          scan_ext_o   => open);
+          scan_ext_o   => s_scan_ext);
       
-      -- code: 00 = empty, 01 = early, 10 = late, 11 = valid
-      s_cal_code(1) <= s_scan_stb and not s_scan_early;
-      s_cal_code(0) <= s_scan_stb and not s_scan_late;
-      s_cal_record <= s_cal_code & s_scan_idx;
+      s_cal_record(c_list_code+1) <= not s_scan_early;
+      s_cal_record(c_list_code+0) <= not s_scan_late;
+      s_cal_record(c_log_scan_size+c_list_index-1 downto c_list_index) <= s_scan_idx;
+      cal_chan_gt1 : if g_num_channels > 1 generate
+        s_cal_record(c_log_channels+c_list_channel-1 downto c_list_channel) <=
+          s_scan_ext(c_ext_channel+c_log_channels-1 downto c_ext_channel);
+      end generate;
       
       -- Pulse extend the calendar write to two cycles
       s_cal_b_en   <= s_scan_stb or r_scan_stb;
@@ -304,7 +336,7 @@ begin
         s_list_dat(b) <= f_eca_or(s_slot_mux(b));
       end generate;
       
-      -- Format: [code index]*c_slots
+      -- Format: [num code low-index]*c_slots
       calendar : eca_rmw
         generic map(
           g_addr_bits => c_log_cal_size,
@@ -324,6 +356,7 @@ begin
           b_data_i => s_cal_b_mux);
       
       -- No need to wipe on reset; it is only read if calendar pointed into it
+      -- Format: [num code low-index]
       list : eca_sdp
         generic map(
           g_addr_bits  => c_log_scan_size,
@@ -336,7 +369,7 @@ begin
           r_data_o => s_list_mux(c),
           w_clk_i  => clk_i,
           w_en_i   => s_list_we,
-          w_addr_i => r_cal_record(c_log_scan_size-1 downto 0),
+          w_addr_i => r_cal_record(c_list_index+c_log_scan_size-1 downto c_list_index),
           w_data_i => s_list_dat);
 
       -- Note: it is important that f_idx_sc(s,c) orders first by slot
@@ -347,19 +380,25 @@ begin
           s_cal_a_data(f_idx_sb(s,c_log_scan_size+1));
         -- Decode code => not-empty
         s_fifo_push(f_idx_sc(s,c)) <= r_cal_a_en and s_cal_valid(s)(c);
+        -- Copy num if non-empty
+        gt1 : if g_num_channels > 1 generate
+          bits : for b in 0 to c_log_channels-1 generate
+            s_fifo_data_i(f_idx_sc(s,c),c_fifo_channel+b) <= s_cal_a_data(f_idx_sb(s,c_list_channel+b));
+          end generate;
+        end generate;
         -- FIFO record flags
-        s_fifo_data_i(f_idx_sc(s,c),g_log_size+2) <= s_cal_next(s)(c);
-        s_fifo_data_i(f_idx_sc(s,c),g_log_size+1) <= s_cal_a_data(f_idx_sb(s,c_log_scan_size+1));
-        s_fifo_data_i(f_idx_sc(s,c),g_log_size+0) <= s_cal_a_data(f_idx_sb(s,c_log_scan_size+0));
+        s_fifo_data_i(f_idx_sc(s,c),c_fifo_next)   <= s_cal_next(s)(c);
+        s_fifo_data_i(f_idx_sc(s,c),c_fifo_code+1) <= s_cal_a_data(f_idx_sb(s,c_list_code+1));
+        s_fifo_data_i(f_idx_sc(s,c),c_fifo_code+0) <= s_cal_a_data(f_idx_sb(s,c_list_code+0));
         -- Fill high bits from calendar #
         high : if c_calendars > 1 generate
           bits : for b in 0 to c_log_calendars-1 generate
-            s_fifo_data_i(f_idx_sc(s,c),b+c_log_scan_size) <= to_unsigned(c,c_log_calendars)(b);
+            s_fifo_data_i(f_idx_sc(s,c),c_fifo_index+c_log_scan_size+b) <= to_unsigned(c,c_log_calendars)(b);
           end generate;
         end generate;
         -- copy low bits
         bits : for b in 0 to c_log_scan_size-1 generate
-          s_fifo_data_i(f_idx_sc(s,c),b) <= s_cal_a_data(f_idx_sb(s,b));
+          s_fifo_data_i(f_idx_sc(s,c),c_fifo_index+b) <= s_cal_a_data(f_idx_sb(s,c_list_index+b));
         end generate;
       end generate;
     end block;
@@ -370,6 +409,7 @@ begin
     s_cal_next(s) <= s_cal_valid(s) and (s_cal_valid(s) - 1);
   end generate;
   
+  -- Format: [num next code index]
   fifo : eca_piso_fifo
     generic map(
       g_log_size  => g_log_size,
@@ -389,8 +429,8 @@ begin
   bits : for b in 0 to g_log_size-1 generate
     s_data_index(b) <= 
       f_eca_mux(s_stall,
-        f_eca_mux(r_mux_valid, r_mux_data(b), snoop_i(b)),
-        f_eca_mux(s_mux_valid, s_mux_data(b), snoop_i(b)));
+        f_eca_mux(r_mux_valid, r_mux_data(b+c_fifo_index), snoop_i(b)),
+        f_eca_mux(s_mux_valid, s_mux_data(b+c_fifo_index), snoop_i(b)));
   end generate;
   s_list_addr <= s_data_index(c_log_scan_size-1 downto 0);
   
@@ -402,11 +442,11 @@ begin
     con : block is
       signal s_mux_idx : std_logic_vector(c_log_calendars-1 downto 0);
     begin
-      s_mux_idx <= r_mux_data(c_log_calendars+c_log_scan_size-1 downto c_log_scan_size);
+      s_mux_idx <= r_mux_data(c_fifo_index+g_log_size-1 downto c_fifo_index+c_log_scan_size);
       s_list_record <= s_list_mux(to_integer(unsigned(s_mux_idx))) when f_eca_safe(s_mux_idx) = '1' else (others => 'X');
     end block;
   end generate;
-  s_list_code <= s_list_record(c_log_scan_size+1 downto c_log_scan_size);
+  s_list_code <= s_list_record(c_list_code+1 downto c_list_code);
   
   -- Next record comes from linked list or fifo?
   s_list <= r_mux_valid and not f_eca_eq(s_list_code, c_code_empty);
@@ -416,15 +456,22 @@ begin
   s_fifo_pop <= s_fifo_valid and not (s_list or s_stall);
   
   -- Expand the list record entry to the same format as a fifo entry
-  s_mux_data_l(c_fifo_bits-1 downto c_fifo_bits-3) <= '1' & s_list_code;
-  s_mux_data_l(c_log_scan_size-1 downto 0) <= s_list_record(c_log_scan_size-1 downto 0);
+  s_mux_data_l(c_fifo_next) <= '1';
+  s_mux_data_l(c_fifo_code+1 downto c_fifo_code) <= s_list_code;
+  s_mux_data_l(c_fifo_index+c_log_scan_size-1 downto c_fifo_index) <=
+    s_list_record(c_list_index+c_log_scan_size-1 downto c_list_index);
   cal_gt1 : if c_calendars > 1 generate
-    s_mux_data_l(g_log_size-1 downto c_log_scan_size) <= r_mux_data(g_log_size-1 downto c_log_scan_size);
+    s_mux_data_l(c_fifo_index+g_log_size-1 downto c_fifo_index+c_log_scan_size) <= 
+      r_mux_data(c_fifo_index+g_log_size-1 downto c_fifo_index+c_log_scan_size);
+  end generate;
+  chan_gt1 : if g_num_channels > 1 generate
+    s_mux_data_l(c_fifo_channel+c_log_channels-1 downto c_fifo_channel) <=
+      s_list_record(c_list_channel+c_log_channels-1 downto c_list_channel);
   end generate;
   -- Select linked list in prefernce to FIFO data
   s_mux_data <= f_eca_mux(s_list, s_mux_data_l, s_fifo_data_o);
-  s_mux_next <= s_mux_data(g_log_size+2);
-  s_mux_code <= s_mux_data(g_log_size+1 downto g_log_size);
+  s_mux_next <= s_mux_data(c_fifo_next);
+  s_mux_code <= s_mux_data(c_fifo_code+1 downto c_fifo_code);
   
   -- Determine exceptional conditions
   s_late     <= s_mux_valid and f_eca_eq(s_mux_code, c_code_late);
@@ -489,5 +536,12 @@ begin
   channel_o.tag      <= s_data_channel.tag;
   channel_o.tef      <= s_data_channel.tef;
   channel_o.time     <= s_data_channel.time;
+  
+  num_le1 : if g_num_channels <= 1 generate
+    num_o <= "0";
+  end generate;
+  num_gt1 : if g_num_channels > 1 generate
+    num_o <= r_mux_data(c_fifo_channel+c_log_channels-1 downto c_fifo_channel);
+  end generate;
   
 end rtl;
