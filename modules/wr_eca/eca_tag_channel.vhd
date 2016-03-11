@@ -128,6 +128,7 @@ architecture rtl of eca_tag_channel is
   signal r_mux_data     : std_logic_vector(c_fifo_bits-1 downto 0);
   signal s_mux_next     : std_logic;
   signal s_mux_code     : std_logic_vector(1 downto 0);
+  signal s_mux_num      : std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
   signal s_list         : std_logic;
   signal s_late         : std_logic;
   signal s_early        : std_logic;
@@ -137,7 +138,8 @@ architecture rtl of eca_tag_channel is
   signal r_early        : std_logic := '0';
   signal r_conflict     : std_logic := '0';
   signal r_delayed      : std_logic := '0';
-  signal r_saw_valid    : std_logic := '0';
+  signal r_saw_valid    : std_logic_vector(g_num_channels-1 downto 0) := (others => '0');
+  signal s_saw_valid    : std_logic;
   signal s_valid        : std_logic;
   signal s_stall        : std_logic;
   
@@ -472,11 +474,24 @@ begin
   s_mux_data <= f_eca_mux(s_list, s_mux_data_l, s_fifo_data_o);
   s_mux_next <= s_mux_data(c_fifo_next);
   s_mux_code <= s_mux_data(c_fifo_code+1 downto c_fifo_code);
+
+  -- Which number is this?
+  num_le1 : if g_num_channels <= 1 generate
+    num_o     <= "0";
+    s_mux_num <= "0";
+  end generate;
+  num_gt1 : if g_num_channels > 1 generate
+    num_o     <= r_mux_data(c_fifo_channel+c_log_channels-1 downto c_fifo_channel);
+    s_mux_num <= s_mux_data(c_fifo_channel+c_log_channels-1 downto c_fifo_channel);
+  end generate;
+  
+  -- Was something on this time slot already for that number?
+  s_saw_valid <= r_saw_valid(to_integer(unsigned(s_mux_num))) when f_eca_safe(s_mux_num)='1' else 'X';
   
   -- Determine exceptional conditions
   s_late     <= s_mux_valid and f_eca_eq(s_mux_code, c_code_late);
   s_early    <= s_mux_valid and f_eca_eq(s_mux_code, c_code_early);
-  s_conflict <= s_mux_valid and s_mux_next and r_saw_valid;
+  s_conflict <= s_mux_valid and s_mux_next and s_saw_valid;
   s_delayed  <= s_list or (s_fifo_valid and not s_fifo_fresh);
   
   control : process(clk_i, rst_n_i) is
@@ -487,7 +502,7 @@ begin
       r_early     <= '0';
       r_delayed   <= '0';
       r_conflict  <= '0';
-      r_saw_valid <= '0';
+      r_saw_valid <= (others => '0');
       r_fifo_push <= (others => '0');
     elsif rising_edge(clk_i) then
       r_fifo_push <= s_fifo_push;
@@ -498,7 +513,13 @@ begin
         r_early     <= s_early;
         r_conflict  <= s_conflict and not (s_late or s_early);
         r_delayed   <= s_delayed  and not (s_late or s_early or s_conflict);
-        r_saw_valid <= (s_mux_next and r_saw_valid) or not (s_late or s_early);
+        -- Record which channel numbers have had a valid/delayed action
+        if s_mux_next = '0' then
+          r_saw_valid <= (others => '0');
+        end if;
+        if (s_late or s_early) = '0' and s_mux_valid = '1' then
+          r_saw_valid(to_integer(unsigned(s_mux_num))) <= '1';
+        end if;
       end if;
     end if;
   end process;
@@ -536,12 +557,5 @@ begin
   channel_o.tag      <= s_data_channel.tag;
   channel_o.tef      <= s_data_channel.tef;
   channel_o.time     <= s_data_channel.time;
-  
-  num_le1 : if g_num_channels <= 1 generate
-    num_o <= "0";
-  end generate;
-  num_gt1 : if g_num_channels > 1 generate
-    num_o <= r_mux_data(c_fifo_channel+c_log_channels-1 downto c_fifo_channel);
-  end generate;
   
 end rtl;

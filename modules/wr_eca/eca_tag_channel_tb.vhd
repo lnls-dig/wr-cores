@@ -73,7 +73,7 @@ architecture rtl of eca_tag_channel_tb is
     if x then return '1'; else return '0'; end if;
   end f_1;
   
-  constant c_num_channels   : natural := 4;
+  constant c_num_channels   : natural := 2;
   constant c_log_size       : natural := 1 + g_case; -- smaller => tests edge cases better
   constant c_log_multiplier : natural := f_mult;
   constant c_log_calendars  : natural := f_cals;
@@ -85,6 +85,7 @@ architecture rtl of eca_tag_channel_tb is
   signal r_time     : t_time    := (others => '0');
   signal r_stall    : std_logic;
   signal r_num      : std_logic_vector(f_eca_log2_min1(c_num_channels)-1 downto 0);
+  signal s_num      : std_logic_vector(f_eca_log2_min1(c_num_channels)-1 downto 0);
   signal r_channel  : t_channel := c_idle_channel;
   signal s_channel  : t_channel;
   signal s_overflow : std_logic;
@@ -112,7 +113,7 @@ begin
       stall_i      => r_stall,
       snoop_i      => (others => '0'),
       channel_o    => s_channel,
-      num_o        => open,
+      num_o        => s_num,
       overflow_o   => s_overflow);
 
   main : process(rst_n_i, clk_i) is
@@ -122,6 +123,7 @@ begin
     variable late     : std_logic_vector(2**(c_log_size+1)-1 downto 0);
     variable count    : t_nat_array(2**(c_log_size+1)-1 downto 0);
     variable scan     : natural := 0;
+    variable conflict : std_logic_vector(c_num_channels-1 downto 0) := (others => '0');
     
     variable s1, s2 : positive := 42;
     variable valid  : std_logic;
@@ -218,13 +220,20 @@ begin
       
       -- At worst delayed; times increase strictly monotone
       if (s_channel.valid or s_channel.delayed) = '1' and ignore = '0' then
-        assert unsigned(s_channel.time) > unsigned(seq) report "Action timestamps not monotonic" severity failure;
+        assert unsigned(s_channel.time) >= unsigned(seq) report "Action timestamps not monotonic" severity failure;
+        if unsigned(s_channel.time) > unsigned(seq) then
+          conflict := (others => '0');
+        else
+          assert conflict(to_integer(unsigned(s_num))) = '0' report "No conflict despite prior match" severity failure;
+        end if;
+        conflict(to_integer(unsigned(s_num))) := '1';
         seq := s_channel.time;
       end if;
       
       -- Conflicts must have the same timestamp as the last action
       if s_channel.conflict = '1' then
         assert unsigned(s_channel.time) = unsigned(seq) report "Conflict does not have same timestamp" severity failure;
+        assert conflict(to_integer(unsigned(s_num))) = '1' report "Conflict with nothing?" severity failure;
       end if;
       
       -- If the channel claims this is late, it should be late!
