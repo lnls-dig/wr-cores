@@ -364,13 +364,16 @@ package eca_internals_pkg is
       -- Timestamps used for pipeline stages
       time_i     : in  t_time;
       -- Push a record to the queue
+      overflow_o : out std_logic;
       channel_i  : in  t_channel;
       num_i      : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
-      stall_i    : in  std_logic;
+      -- Pick an action to output while idle
       snoop_i    : in  std_logic_vector(g_log_size-1 downto 0);
+      -- Output of the channel
+      stall_i    : in  std_logic;
       channel_o  : out t_channel;
       num_o      : out std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
-      overflow_o : out std_logic);
+      io_o       : out t_eca_matrix(g_num_channels-1 downto 0, 2**g_log_multiplier-1 downto 0));
   end component;
   
   -- Testbech for eca_tag_channel

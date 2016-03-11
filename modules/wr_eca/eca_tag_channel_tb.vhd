@@ -108,13 +108,14 @@ begin
       clk_i        => clk_i,
       rst_n_i      => rst_n_i,
       time_i       => r_time,
+      overflow_o   => s_overflow,
       channel_i    => r_channel,
       num_i        => r_num,
-      stall_i      => r_stall,
       snoop_i      => (others => '0'),
+      stall_i      => r_stall,
       channel_o    => s_channel,
       num_o        => s_num,
-      overflow_o   => s_overflow);
+      io_o         => open);
 
   main : process(rst_n_i, clk_i) is
     type t_nat_array is array(natural range <>) of natural;
