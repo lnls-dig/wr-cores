@@ -106,6 +106,7 @@ begin
       time_i       => r_time,
       channel_i    => r_channel,
       stall_i      => r_stall,
+      snoop_i      => (others => '0'),
       channel_o    => s_channel,
       overflow_o   => s_overflow);
 

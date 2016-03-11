@@ -42,6 +42,7 @@ entity eca_tag_channel is
     -- Push a record to the queue
     channel_i  : in  t_channel;
     stall_i    : in  std_logic;
+    snoop_i    : in  std_logic_vector(g_log_size-1 downto 0),
     channel_o  : out t_channel;
     overflow_o : out std_logic);
 end eca_tag_channel;
@@ -389,7 +390,10 @@ begin
   
   -- Fetch the record from the data table and conflict list
   bits : for b in 0 to g_log_size-1 generate
-    s_data_index(b) <= s_mux_data(b) when s_stall='0' else r_mux_data(b);
+    s_data_index(b) <= 
+      f_eca_mux(s_stall,
+        f_eca_mux(r_mux_valid, r_mux_data(b), snoop_i(b)),
+        f_eca_mux(s_mux_valid, s_mux_data(b), snoop_i(b)));
   end generate;
   s_con_addr <= s_data_index(c_log_scan_size-1 downto 0);
   
