@@ -54,7 +54,7 @@ architecture rtl of eca_tag_channel is
   constant c_log_calendars : natural := g_log_size - c_log_scan_size;
   constant c_calendars     : natural := 2**c_log_calendars;
   constant c_slots         : natural := 2**g_log_multiplier;
-  constant c_bits          : natural := 2 + c_log_scan_size; -- Format: [code low-index]
+  constant c_list_bits     : natural := 2 + c_log_scan_size; -- Format: [code low-index]
   constant c_record_size   : natural := 1 + 2 + g_log_size;  -- Format: [next code index]
   constant c_pipeline_depth: natural := 7;
   
@@ -63,12 +63,12 @@ architecture rtl of eca_tag_channel is
   constant c_code_late     : std_logic_vector(1 downto 0) := "10";
   constant c_code_valid    : std_logic_vector(1 downto 0) := "11";
   
-  type t_record_array is array(natural range <>) of std_logic_vector(c_bits-1 downto 0);
+  type t_record_array is array(natural range <>) of std_logic_vector(c_list_bits-1 downto 0);
   type t_cal_valid    is array(natural range <>) of unsigned(c_calendars-1 downto 0);
   
   function f_idx_sb(s, b : natural) return natural is
   begin
-    return s * c_bits + b;
+    return s * c_list_bits + b;
   end f_idx_sb;
   
   -- Note: it is important that f_idx_sc(s,c) orders first by slot (all slot 0 before any slot 1)
@@ -93,10 +93,10 @@ architecture rtl of eca_tag_channel is
   signal r_cal_a_en     : std_logic := '0';
   signal s_cal_valid    : t_cal_valid(c_slots-1 downto 0);
   signal s_cal_next     : t_cal_valid(c_slots-1 downto 0);
-  signal s_con_addr     : std_logic_vector(c_log_scan_size-1 downto 0);
-  signal s_con_mux      : t_record_array(c_calendars-1 downto 0);
-  signal s_con_record   : std_logic_vector(c_bits-1 downto 0);
-  signal s_con_code     : std_logic_vector(1 downto 0);
+  signal s_list_addr    : std_logic_vector(c_log_scan_size-1 downto 0);
+  signal s_list_mux     : t_record_array(c_calendars-1 downto 0);
+  signal s_list_record  : std_logic_vector(c_list_bits-1 downto 0);
+  signal s_list_code    : std_logic_vector(1 downto 0);
   signal s_fifo_push    : std_logic_vector(c_slots*c_calendars-1 downto 0);
   signal r_fifo_push    : std_logic_vector(c_slots*c_calendars-1 downto 0) := (others => '0');
   signal s_fifo_data_i  : t_eca_matrix(c_slots*c_calendars-1 downto 0, c_record_size-1 downto 0);
@@ -194,20 +194,20 @@ begin
       signal s_scan_low     : std_logic_vector(g_log_latency-1 downto 0);
       signal s_scan_idx     : std_logic_vector(c_log_scan_size-1 downto 0);
       
-      signal s_cal_a_data   : std_logic_vector(c_slots*c_bits-1 downto 0);
+      signal s_cal_a_data   : std_logic_vector(c_slots*c_list_bits-1 downto 0);
       signal s_cal_b_en     : std_logic;
       signal s_cal_b_ack    : std_logic;
       signal s_cal_b_addr   : std_logic_vector(c_log_cal_size-1 downto 0);
-      signal s_cal_b_data   : std_logic_vector(c_slots*c_bits-1 downto 0);
-      signal s_cal_b_mux    : std_logic_vector(c_slots*c_bits-1 downto 0);
+      signal s_cal_b_data   : std_logic_vector(c_slots*c_list_bits-1 downto 0);
+      signal s_cal_b_mux    : std_logic_vector(c_slots*c_list_bits-1 downto 0);
       signal s_cal_code     : std_logic_vector(1 downto 0);
-      signal s_cal_record   : std_logic_vector(c_bits-1 downto 0);
-      signal r_cal_record   : std_logic_vector(c_bits-1 downto 0);
+      signal s_cal_record   : std_logic_vector(c_list_bits-1 downto 0);
+      signal r_cal_record   : std_logic_vector(c_list_bits-1 downto 0);
       
-      signal s_con_we       : std_logic;
-      signal s_con_dat      : std_logic_vector(c_bits-1 downto 0);
+      signal s_list_we       : std_logic;
+      signal s_list_dat      : std_logic_vector(c_list_bits-1 downto 0);
       
-      type t_slot_array is array(c_bits-1 downto 0) of std_logic_vector(c_slots-1 downto 0);
+      type t_slot_array is array(c_list_bits-1 downto 0) of std_logic_vector(c_slots-1 downto 0);
       signal s_slot_mux     : t_slot_array;
       signal s_slot_select  : std_logic_vector(c_slots-1 downto 0);
       
@@ -288,26 +288,26 @@ begin
       
       -- Insert action into the correct calendar slot
       slots1 : for s in 0 to c_slots-1 generate
-        bits : for b in 0 to c_bits-1 generate
+        bits : for b in 0 to c_list_bits-1 generate
           s_cal_b_mux(f_idx_sb(s,b)) <= 
             f_eca_mux(s_slot_select(s), r_cal_record(b), s_cal_b_data(f_idx_sb(s,b)));
         end generate;
       end generate;
       
-      -- Save the slot being overwritten into the conflict table
-      s_con_we <= s_cal_b_ack;
-      bits : for b in 0 to c_bits-1 generate
+      -- Save the slot being overwritten into the linked list
+      s_list_we <= s_cal_b_ack;
+      bits : for b in 0 to c_list_bits-1 generate
         slots : for s in 0 to c_slots-1 generate
           s_slot_mux(b)(s) <= s_cal_b_data(f_idx_sb(s, b)) and s_slot_select(s);
         end generate;
-        s_con_dat(b) <= f_eca_or(s_slot_mux(b));
+        s_list_dat(b) <= f_eca_or(s_slot_mux(b));
       end generate;
       
       -- Format: [code index]*c_slots
       calendar : eca_rmw
         generic map(
           g_addr_bits => c_log_cal_size,
-          g_data_bits => c_slots*c_bits)
+          g_data_bits => c_slots*c_list_bits)
         port map(
           clk_i    => clk_i,
           rst_n_i  => rst_n_i,
@@ -323,20 +323,20 @@ begin
           b_data_i => s_cal_b_mux);
       
       -- No need to wipe on reset; it is only read if calendar pointed into it
-      conflicts : eca_sdp
+      list : eca_sdp
         generic map(
           g_addr_bits  => c_log_scan_size,
-          g_data_bits  => c_bits,
+          g_data_bits  => c_list_bits,
           g_bypass     => false,
           g_dual_clock => false)
         port map(
           r_clk_i  => clk_i,
-          r_addr_i => s_con_addr(c_log_scan_size-1 downto 0),
-          r_data_o => s_con_mux(c),
+          r_addr_i => s_list_addr(c_log_scan_size-1 downto 0),
+          r_data_o => s_list_mux(c),
           w_clk_i  => clk_i,
-          w_en_i   => s_con_we,
+          w_en_i   => s_list_we,
           w_addr_i => r_cal_record(c_log_scan_size-1 downto 0),
-          w_data_i => s_con_dat);
+          w_data_i => s_list_dat);
 
       -- Note: it is important that f_idx_sc(s,c) orders first by slot
       slots2 : for s in 0 to c_slots-1 generate
@@ -346,7 +346,7 @@ begin
           s_cal_a_data(f_idx_sb(s,c_log_scan_size+1));
         -- Decode code => not-empty
         s_fifo_push(f_idx_sc(s,c)) <= r_cal_a_en and s_cal_valid(s)(c);
-        -- Convert valid code to conflict if needed
+        -- FIFO record flags
         s_fifo_data_i(f_idx_sc(s,c),g_log_size+2) <= s_cal_next(s)(c);
         s_fifo_data_i(f_idx_sc(s,c),g_log_size+1) <= s_cal_a_data(f_idx_sb(s,c_log_scan_size+1));
         s_fifo_data_i(f_idx_sc(s,c),g_log_size+0) <= s_cal_a_data(f_idx_sb(s,c_log_scan_size+0));
@@ -384,43 +384,43 @@ begin
       fresh_o => s_fifo_fresh,
       data_o  => s_fifo_data_o);
   
-  -- Fetch the record from the data table and conflict list
+  -- Fetch the record from the data table
   bits : for b in 0 to g_log_size-1 generate
     s_data_index(b) <= 
       f_eca_mux(s_stall,
         f_eca_mux(r_mux_valid, r_mux_data(b), snoop_i(b)),
         f_eca_mux(s_mux_valid, s_mux_data(b), snoop_i(b)));
   end generate;
-  s_con_addr <= s_data_index(c_log_scan_size-1 downto 0);
+  s_list_addr <= s_data_index(c_log_scan_size-1 downto 0);
   
-  -- Mux out the record from the conflict list
+  -- Mux out the record from the linked lists
   con_eq1 : if c_calendars = 1 generate
-    s_con_record <= s_con_mux(0);
+    s_list_record <= s_list_mux(0);
   end generate;
   con_gt1 : if c_calendars > 1 generate
     con : block is
       signal s_mux_idx : std_logic_vector(c_log_calendars-1 downto 0);
     begin
       s_mux_idx <= r_mux_data(c_log_calendars+c_log_scan_size-1 downto c_log_scan_size);
-      s_con_record <= s_con_mux(to_integer(unsigned(s_mux_idx))) when f_eca_safe(s_mux_idx) = '1' else (others => 'X');
+      s_list_record <= s_list_mux(to_integer(unsigned(s_mux_idx))) when f_eca_safe(s_mux_idx) = '1' else (others => 'X');
     end block;
   end generate;
-  s_con_code <= s_con_record(c_log_scan_size+1 downto c_log_scan_size);
+  s_list_code <= s_list_record(c_log_scan_size+1 downto c_log_scan_size);
   
-  -- Next record comes from conflict list or fifo?
-  s_list <= r_mux_valid and not f_eca_eq(s_con_code, c_code_empty);
+  -- Next record comes from linked list or fifo?
+  s_list <= r_mux_valid and not f_eca_eq(s_list_code, c_code_empty);
   s_mux_valid <= s_list or s_fifo_valid;
 
   -- Pop the record if we're done with it
   s_fifo_pop <= s_fifo_valid and not (s_list or s_stall);
   
-  -- Expand the conflict record entry to the same format as a fifo entry
-  s_mux_data_l(c_record_size-1 downto c_record_size-3) <= '1' & s_con_code;
-  s_mux_data_l(c_log_scan_size-1 downto 0) <= s_con_record(c_log_scan_size-1 downto 0);
+  -- Expand the list record entry to the same format as a fifo entry
+  s_mux_data_l(c_record_size-1 downto c_record_size-3) <= '1' & s_list_code;
+  s_mux_data_l(c_log_scan_size-1 downto 0) <= s_list_record(c_log_scan_size-1 downto 0);
   cal_gt1 : if c_calendars > 1 generate
     s_mux_data_l(g_log_size-1 downto c_log_scan_size) <= r_mux_data(g_log_size-1 downto c_log_scan_size);
   end generate;
-  -- Select conflict list in prefernce to FIFO data
+  -- Select linked list in prefernce to FIFO data
   s_mux_data <= f_eca_mux(s_list, s_mux_data_l, s_fifo_data_o);
   s_mux_next <= s_mux_data(g_log_size+2);
   s_mux_code <= s_mux_data(g_log_size+1 downto g_log_size);
