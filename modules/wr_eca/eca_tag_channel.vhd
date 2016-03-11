@@ -55,7 +55,7 @@ architecture rtl of eca_tag_channel is
   constant c_calendars     : natural := 2**c_log_calendars;
   constant c_slots         : natural := 2**g_log_multiplier;
   constant c_list_bits     : natural := 2 + c_log_scan_size; -- Format: [code low-index]
-  constant c_record_size   : natural := 1 + 2 + g_log_size;  -- Format: [next code index]
+  constant c_fifo_bits   : natural := 1 + 2 + g_log_size;  -- Format: [next code index]
   constant c_pipeline_depth: natural := 7;
   
   constant c_code_empty    : std_logic_vector(1 downto 0) := "00";
@@ -65,11 +65,6 @@ architecture rtl of eca_tag_channel is
   
   type t_record_array is array(natural range <>) of std_logic_vector(c_list_bits-1 downto 0);
   type t_cal_valid    is array(natural range <>) of unsigned(c_calendars-1 downto 0);
-  
-  function f_idx_sb(s, b : natural) return natural is
-  begin
-    return s * c_list_bits + b;
-  end f_idx_sb;
   
   -- Note: it is important that f_idx_sc(s,c) orders first by slot (all slot 0 before any slot 1)
   function f_idx_sc(s, c : natural) return natural is
@@ -99,17 +94,17 @@ architecture rtl of eca_tag_channel is
   signal s_list_code    : std_logic_vector(1 downto 0);
   signal s_fifo_push    : std_logic_vector(c_slots*c_calendars-1 downto 0);
   signal r_fifo_push    : std_logic_vector(c_slots*c_calendars-1 downto 0) := (others => '0');
-  signal s_fifo_data_i  : t_eca_matrix(c_slots*c_calendars-1 downto 0, c_record_size-1 downto 0);
-  signal r_fifo_data_i  : t_eca_matrix(c_slots*c_calendars-1 downto 0, c_record_size-1 downto 0);
+  signal s_fifo_data_i  : t_eca_matrix(c_slots*c_calendars-1 downto 0, c_fifo_bits-1 downto 0);
+  signal r_fifo_data_i  : t_eca_matrix(c_slots*c_calendars-1 downto 0, c_fifo_bits-1 downto 0);
   signal s_fifo_pop     : std_logic;
   signal s_fifo_valid   : std_logic;
   signal s_fifo_fresh   : std_logic;
-  signal s_fifo_data_o  : std_logic_vector(c_record_size-1 downto 0);
+  signal s_fifo_data_o  : std_logic_vector(c_fifo_bits-1 downto 0);
   signal s_mux_valid    : std_logic;
   signal r_mux_valid    : std_logic := '0';
-  signal s_mux_data_l   : std_logic_vector(c_record_size-1 downto 0);
-  signal s_mux_data     : std_logic_vector(c_record_size-1 downto 0);
-  signal r_mux_data     : std_logic_vector(c_record_size-1 downto 0);
+  signal s_mux_data_l   : std_logic_vector(c_fifo_bits-1 downto 0);
+  signal s_mux_data     : std_logic_vector(c_fifo_bits-1 downto 0);
+  signal r_mux_data     : std_logic_vector(c_fifo_bits-1 downto 0);
   signal s_mux_next     : std_logic;
   signal s_mux_code     : std_logic_vector(1 downto 0);
   signal s_list         : std_logic;
@@ -204,12 +199,18 @@ begin
       signal s_cal_record   : std_logic_vector(c_list_bits-1 downto 0);
       signal r_cal_record   : std_logic_vector(c_list_bits-1 downto 0);
       
-      signal s_list_we       : std_logic;
-      signal s_list_dat      : std_logic_vector(c_list_bits-1 downto 0);
+      signal s_list_we      : std_logic;
+      signal s_list_dat     : std_logic_vector(c_list_bits-1 downto 0);
       
       type t_slot_array is array(c_list_bits-1 downto 0) of std_logic_vector(c_slots-1 downto 0);
       signal s_slot_mux     : t_slot_array;
       signal s_slot_select  : std_logic_vector(c_slots-1 downto 0);
+      
+      -- Used to compute indexes into s_cal_[ab]_{data,mux}
+      function f_idx_sb(s, b : natural) return natural is
+      begin
+        return s * c_list_bits + b;
+      end f_idx_sb;
       
     begin
     
@@ -373,7 +374,7 @@ begin
     generic map(
       g_log_size  => g_log_size,
       g_log_ports => g_log_multiplier + c_log_calendars,
-      g_width     => c_record_size)
+      g_width     => c_fifo_bits)
     port map(
       clk_i   => clk_i,
       rst_n_i => rst_n_i,
@@ -415,7 +416,7 @@ begin
   s_fifo_pop <= s_fifo_valid and not (s_list or s_stall);
   
   -- Expand the list record entry to the same format as a fifo entry
-  s_mux_data_l(c_record_size-1 downto c_record_size-3) <= '1' & s_list_code;
+  s_mux_data_l(c_fifo_bits-1 downto c_fifo_bits-3) <= '1' & s_list_code;
   s_mux_data_l(c_log_scan_size-1 downto 0) <= s_list_record(c_log_scan_size-1 downto 0);
   cal_gt1 : if c_calendars > 1 generate
     s_mux_data_l(g_log_size-1 downto c_log_scan_size) <= r_mux_data(g_log_size-1 downto c_log_scan_size);
