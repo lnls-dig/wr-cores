@@ -42,7 +42,7 @@ entity eca_tag_channel is
     -- Push a record to the queue
     channel_i  : in  t_channel;
     stall_i    : in  std_logic;
-    snoop_i    : in  std_logic_vector(g_log_size-1 downto 0),
+    snoop_i    : in  std_logic_vector(g_log_size-1 downto 0);
     channel_o  : out t_channel;
     overflow_o : out std_logic);
 end eca_tag_channel;
@@ -63,24 +63,13 @@ architecture rtl of eca_tag_channel is
   constant c_code_late     : std_logic_vector(1 downto 0) := "10";
   constant c_code_valid    : std_logic_vector(1 downto 0) := "11";
   
-  type t_code_array   is array(natural range <>) of std_logic_vector(1 downto 0);
-  type t_slot_array   is array(natural range <>) of std_logic_vector(c_slots-1 downto 0);
   type t_record_array is array(natural range <>) of std_logic_vector(c_bits-1 downto 0);
-  type t_low_array    is array(natural range <>) of std_logic_vector(g_log_latency-1 downto 0);
-  type t_scan_array   is array(natural range <>) of std_logic_vector(c_log_scan_size-1 downto 0);
-  type t_cal_array    is array(natural range <>) of std_logic_vector(c_log_cal_size-1 downto 0);
-  type t_matrix_array is array(natural range <>) of std_logic_vector(c_slots*c_bits-1 downto 0);
   type t_cal_valid    is array(natural range <>) of unsigned(c_calendars-1 downto 0);
   
   function f_idx_sb(s, b : natural) return natural is
   begin
     return s * c_bits + b;
   end f_idx_sb;
-  
-  function f_idx_cb(c, b : natural) return natural is
-  begin
-    return c * c_bits + b;
-  end f_idx_cb;
   
   -- Note: it is important that f_idx_sc(s,c) orders first by slot (all slot 0 before any slot 1)
   function f_idx_sc(s, c : natural) return natural is
@@ -97,35 +86,14 @@ architecture rtl of eca_tag_channel is
   signal s_data_accept  : std_logic;
   signal s_data_channel : t_channel;
   signal r_last_time    : std_logic := '0';
-  signal s_scan_we      : std_logic_vector(c_calendars-1 downto 0);
-  signal s_scan_stb     : std_logic_vector(c_calendars-1 downto 0);
-  signal s_scan_late    : std_logic_vector(c_calendars-1 downto 0);
-  signal s_scan_early   : std_logic_vector(c_calendars-1 downto 0);
-  signal s_scan_low     : t_low_array(c_calendars-1 downto 0);
-  signal s_scan_idx     : t_scan_array(c_calendars-1 downto 0);
-  signal r_scan_stb     : std_logic_vector(c_calendars-1 downto 0) := (others => '0');
-  signal r_scan_low     : t_low_array(c_calendars-1 downto 0);
   signal r_cal_reset    : std_logic_vector(c_log_cal_size downto 0) := (others => '0');
   signal s_cal_ready    : std_logic;
   signal s_cal_a_en     : std_logic;
   signal s_cal_a_addr   : std_logic_vector(c_log_cal_size-1 downto 0);
   signal r_cal_a_en     : std_logic := '0';
-  signal s_cal_a_data   : t_matrix_array(c_calendars-1 downto 0);
-  signal s_cal_b_en     : std_logic_vector(c_calendars-1 downto 0);
-  signal s_cal_b_ack    : std_logic_vector(c_calendars-1 downto 0);
-  signal s_cal_b_addr   : t_cal_array(c_calendars-1 downto 0);
-  signal s_cal_b_data   : t_matrix_array(c_calendars-1 downto 0);
-  signal s_cal_b_mux    : t_matrix_array(c_calendars-1 downto 0);
-  signal s_cal_code     : t_code_array(c_calendars-1 downto 0);
-  signal s_cal_record   : t_record_array(c_calendars-1 downto 0);
-  signal r_cal_record   : t_record_array(c_calendars-1 downto 0);
   signal s_cal_valid    : t_cal_valid(c_slots-1 downto 0);
   signal s_cal_next     : t_cal_valid(c_slots-1 downto 0);
-  signal s_slot_select  : t_slot_array(c_calendars-1 downto 0);
-  signal s_slot_mux     : t_slot_array(c_calendars*c_bits-1 downto 0);
   signal s_con_addr     : std_logic_vector(c_log_scan_size-1 downto 0);
-  signal s_con_we       : std_logic_vector(c_calendars-1 downto 0);
-  signal s_con_dat      : t_record_array(c_calendars-1 downto 0);
   signal s_con_mux      : t_record_array(c_calendars-1 downto 0);
   signal s_con_record   : std_logic_vector(c_bits-1 downto 0);
   signal s_con_code     : std_logic_vector(1 downto 0);
@@ -215,158 +183,186 @@ begin
   end process;
   
   parallel_scan : for c in 0 to c_calendars-1 generate
-  
-    gt0 : if c_calendars > 1 generate
-      s_scan_we(c) <= s_data_accept and
-        f_eca_eq(std_logic_vector(to_unsigned(c, c_log_calendars)), 
-                 s_free_alloc(g_log_size-1 downto c_log_scan_size));
-    end generate;
+    bl : block is
     
-    eq0 : if c_calendars = 1 generate
-      s_scan_we(c) <= s_data_accept;
-    end generate;
+      signal r_scan_stb     : std_logic := '0';
+      signal s_scan_stb     : std_logic;
+      signal s_scan_we      : std_logic;
+      signal s_scan_late    : std_logic;
+      signal s_scan_early   : std_logic;
+      signal r_scan_low     : std_logic_vector(g_log_latency-1 downto 0);
+      signal s_scan_low     : std_logic_vector(g_log_latency-1 downto 0);
+      signal s_scan_idx     : std_logic_vector(c_log_scan_size-1 downto 0);
+      
+      signal s_cal_a_data   : std_logic_vector(c_slots*c_bits-1 downto 0);
+      signal s_cal_b_en     : std_logic;
+      signal s_cal_b_ack    : std_logic;
+      signal s_cal_b_addr   : std_logic_vector(c_log_cal_size-1 downto 0);
+      signal s_cal_b_data   : std_logic_vector(c_slots*c_bits-1 downto 0);
+      signal s_cal_b_mux    : std_logic_vector(c_slots*c_bits-1 downto 0);
+      signal s_cal_code     : std_logic_vector(1 downto 0);
+      signal s_cal_record   : std_logic_vector(c_bits-1 downto 0);
+      signal r_cal_record   : std_logic_vector(c_bits-1 downto 0);
+      
+      signal s_con_we       : std_logic;
+      signal s_con_dat      : std_logic_vector(c_bits-1 downto 0);
+      
+      type t_slot_array is array(c_bits-1 downto 0) of std_logic_vector(c_slots-1 downto 0);
+      signal s_slot_mux     : t_slot_array;
+      signal s_slot_select  : std_logic_vector(c_slots-1 downto 0);
+      
+    begin
+    
+      gt0 : if c_calendars > 1 generate
+        s_scan_we <= s_data_accept and
+          f_eca_eq(std_logic_vector(to_unsigned(c, c_log_calendars)), 
+                   s_free_alloc(g_log_size-1 downto c_log_scan_size));
+      end generate;
+      
+      eq0 : if c_calendars = 1 generate
+        s_scan_we <= s_data_accept;
+      end generate;
 
-    scan : eca_scan
-      generic map(
-        g_ext_size       => 1,
-        g_log_size       => c_log_scan_size,
-        g_log_multiplier => g_log_multiplier,
-        g_log_max_delay  => g_log_max_delay,
-        g_log_latency    => g_log_latency)
-      port map(
-        clk_i        => clk_i,
-        rst_n_i      => rst_n_i,
-        time_i       => r_time,
-        wen_i        => s_scan_we(c),
-        stall_o      => open, -- always goes low before s_free_full goes low
-        deadline_i   => channel_i.time,
-        idx_i        => s_free_alloc(c_log_scan_size-1 downto 0),
-        ext_i        => (others => '0'),
-        scan_stb_o   => s_scan_stb(c),
-        scan_late_o  => s_scan_late(c),
-        scan_early_o => s_scan_early(c),
-        scan_low_o   => s_scan_low(c),
-        scan_idx_o   => s_scan_idx(c),
-        scan_ext_o   => open);
-    
-    -- code: 00 = empty, 01 = early, 10 = late, 11 = valid
-    s_cal_code(c)(1) <= s_scan_stb(c) and not s_scan_early(c);
-    s_cal_code(c)(0) <= s_scan_stb(c) and not s_scan_late(c);
-    s_cal_record(c)  <= s_cal_code(c) & s_scan_idx(c);
-    
-    -- Pulse extend the calendar write to two cycles
-    s_cal_b_en(c)   <= s_scan_stb(c) or r_scan_stb(c);
-    s_cal_b_addr(c) <= s_scan_low(c)(g_log_latency-1 downto g_log_multiplier);
-    
-    control : process(clk_i, rst_n_i) is
-    begin
-      if rst_n_i = '0' then
-        r_scan_stb(c) <= '0';
-      elsif rising_edge(clk_i) then
-        r_scan_stb(c) <= s_scan_stb(c);
-      end if;
-    end process;
-    
-    delay : process(clk_i) is
-    begin
-      if rising_edge(clk_i) then
-        if s_scan_stb(c) = '1' then
-          r_scan_low(c)   <= s_scan_low(c);
-          r_cal_record(c) <= s_cal_record(c);
+      scan : eca_scan
+        generic map(
+          g_ext_size       => 1,
+          g_log_size       => c_log_scan_size,
+          g_log_multiplier => g_log_multiplier,
+          g_log_max_delay  => g_log_max_delay,
+          g_log_latency    => g_log_latency)
+        port map(
+          clk_i        => clk_i,
+          rst_n_i      => rst_n_i,
+          time_i       => r_time,
+          wen_i        => s_scan_we,
+          stall_o      => open, -- always goes low before s_free_full goes low
+          deadline_i   => channel_i.time,
+          idx_i        => s_free_alloc(c_log_scan_size-1 downto 0),
+          ext_i        => (others => '0'),
+          scan_stb_o   => s_scan_stb,
+          scan_late_o  => s_scan_late,
+          scan_early_o => s_scan_early,
+          scan_low_o   => s_scan_low,
+          scan_idx_o   => s_scan_idx,
+          scan_ext_o   => open);
+      
+      -- code: 00 = empty, 01 = early, 10 = late, 11 = valid
+      s_cal_code(1) <= s_scan_stb and not s_scan_early;
+      s_cal_code(0) <= s_scan_stb and not s_scan_late;
+      s_cal_record <= s_cal_code & s_scan_idx;
+      
+      -- Pulse extend the calendar write to two cycles
+      s_cal_b_en   <= s_scan_stb or r_scan_stb;
+      s_cal_b_addr <= s_scan_low(g_log_latency-1 downto g_log_multiplier);
+      
+      control : process(clk_i, rst_n_i) is
+      begin
+        if rst_n_i = '0' then
+          r_scan_stb <= '0';
+        elsif rising_edge(clk_i) then
+          r_scan_stb <= s_scan_stb;
         end if;
-      end if;
-    end process;
-    
-    -- Calculate which slot to put the action into
-    sel_eq1 : if c_slots = 1 generate
-      s_slot_select(c)(0) <= '1';
-    end generate;
-    sel_gt1 : if c_slots > 1 generate
-      slots : for s in 0 to c_slots-1 generate
-        s_slot_select(c)(s) <= f_eca_eq(
-          std_logic_vector(to_unsigned(s, g_log_multiplier)),
-          r_scan_low(c)(g_log_multiplier-1 downto 0));
+      end process;
+      
+      delay : process(clk_i) is
+      begin
+        if rising_edge(clk_i) then
+          if s_scan_stb = '1' then
+            r_scan_low   <= s_scan_low;
+            r_cal_record <= s_cal_record;
+          end if;
+        end if;
+      end process;
+      
+      -- Calculate which slot to put the action into
+      sel_eq1 : if c_slots = 1 generate
+        s_slot_select(0) <= '1';
       end generate;
-    end generate;
-    
-    -- Insert action into the correct calendar slot
-    slots1 : for s in 0 to c_slots-1 generate
-      bits : for b in 0 to c_bits-1 generate
-        s_cal_b_mux(c)(f_idx_sb(s,b)) <= 
-          f_eca_mux(s_slot_select(c)(s),
-            r_cal_record(c)(b),
-            s_cal_b_data(c)(f_idx_sb(s,b)));
-      end generate;
-    end generate;
-    
-    -- Save the slot being overwritten into the conflict table
-    s_con_we(c) <= s_cal_b_ack(c);
-    bits : for b in 0 to c_bits-1 generate
-      slots : for s in 0 to c_slots-1 generate
-        s_slot_mux(f_idx_cb(c,b))(s) <= s_cal_b_data(c)(f_idx_sb(s, b)) and s_slot_select(c)(s);
-      end generate;
-      s_con_dat(c)(b) <= f_eca_or(s_slot_mux(f_idx_cb(c,b)));
-    end generate;
-    
-    -- Format: [code index]*c_slots
-    calendar : eca_rmw
-      generic map(
-        g_addr_bits => c_log_cal_size,
-        g_data_bits => c_slots*c_bits)
-      port map(
-        clk_i    => clk_i,
-        rst_n_i  => rst_n_i,
-        a_en_i   => s_cal_a_en,
-        a_ack_o  => open,
-        a_addr_i => s_cal_a_addr,
-        a_data_o => s_cal_a_data(c),
-        a_data_i => (others => '0'),
-        b_en_i   => s_cal_b_en(c),
-        b_ack_o  => s_cal_b_ack(c),
-        b_addr_i => s_cal_b_addr(c),
-        b_data_o => s_cal_b_data(c),
-        b_data_i => s_cal_b_mux(c));
-    
-    -- No need to wipe on reset; it is only read if calendar pointed into it
-    conflicts : eca_sdp
-      generic map(
-        g_addr_bits  => c_log_scan_size,
-        g_data_bits  => c_bits,
-        g_bypass     => false,
-        g_dual_clock => false)
-      port map(
-        r_clk_i  => clk_i,
-        r_addr_i => s_con_addr(c_log_scan_size-1 downto 0),
-        r_data_o => s_con_mux(c),
-        w_clk_i  => clk_i,
-        w_en_i   => s_con_we(c),
-        w_addr_i => r_cal_record(c)(c_log_scan_size-1 downto 0),
-        w_data_i => s_con_dat(c));
-
-    -- Note: it is important that f_idx_sc(s,c) orders first by slot
-    slots2 : for s in 0 to c_slots-1 generate
-      -- Is this calendar entry valid?
-      s_cal_valid(s)(c) <= 
-        s_cal_a_data(c)(f_idx_sb(s,c_log_scan_size+0)) or
-        s_cal_a_data(c)(f_idx_sb(s,c_log_scan_size+1));
-      -- Decode code => not-empty
-      s_fifo_push(f_idx_sc(s,c)) <= r_cal_a_en and s_cal_valid(s)(c);
-      -- Convert valid code to conflict if needed
-      s_fifo_data_i(f_idx_sc(s,c),g_log_size+2) <= s_cal_next(s)(c);
-      s_fifo_data_i(f_idx_sc(s,c),g_log_size+1) <= s_cal_a_data(c)(f_idx_sb(s,c_log_scan_size+1));
-      s_fifo_data_i(f_idx_sc(s,c),g_log_size+0) <= s_cal_a_data(c)(f_idx_sb(s,c_log_scan_size+0));
-      -- Fill high bits from calendar #
-      high : if c_calendars > 1 generate
-        bits : for b in 0 to c_log_calendars-1 generate
-          s_fifo_data_i(f_idx_sc(s,c),b+c_log_scan_size) <= to_unsigned(c,c_log_calendars)(b);
+      sel_gt1 : if c_slots > 1 generate
+        slots : for s in 0 to c_slots-1 generate
+          s_slot_select(s) <= f_eca_eq(
+            std_logic_vector(to_unsigned(s, g_log_multiplier)),
+            r_scan_low(g_log_multiplier-1 downto 0));
         end generate;
       end generate;
-      -- copy low bits
-      bits : for b in 0 to c_log_scan_size-1 generate
-        s_fifo_data_i(f_idx_sc(s,c),b) <= s_cal_a_data(c)(f_idx_sb(s,b));
+      
+      -- Insert action into the correct calendar slot
+      slots1 : for s in 0 to c_slots-1 generate
+        bits : for b in 0 to c_bits-1 generate
+          s_cal_b_mux(f_idx_sb(s,b)) <= 
+            f_eca_mux(s_slot_select(s), r_cal_record(b), s_cal_b_data(f_idx_sb(s,b)));
+        end generate;
       end generate;
-    end generate;
-  end generate;
+      
+      -- Save the slot being overwritten into the conflict table
+      s_con_we <= s_cal_b_ack;
+      bits : for b in 0 to c_bits-1 generate
+        slots : for s in 0 to c_slots-1 generate
+          s_slot_mux(b)(s) <= s_cal_b_data(f_idx_sb(s, b)) and s_slot_select(s);
+        end generate;
+        s_con_dat(b) <= f_eca_or(s_slot_mux(b));
+      end generate;
+      
+      -- Format: [code index]*c_slots
+      calendar : eca_rmw
+        generic map(
+          g_addr_bits => c_log_cal_size,
+          g_data_bits => c_slots*c_bits)
+        port map(
+          clk_i    => clk_i,
+          rst_n_i  => rst_n_i,
+          a_en_i   => s_cal_a_en,
+          a_ack_o  => open,
+          a_addr_i => s_cal_a_addr,
+          a_data_o => s_cal_a_data,
+          a_data_i => (others => '0'),
+          b_en_i   => s_cal_b_en,
+          b_ack_o  => s_cal_b_ack,
+          b_addr_i => s_cal_b_addr,
+          b_data_o => s_cal_b_data,
+          b_data_i => s_cal_b_mux);
+      
+      -- No need to wipe on reset; it is only read if calendar pointed into it
+      conflicts : eca_sdp
+        generic map(
+          g_addr_bits  => c_log_scan_size,
+          g_data_bits  => c_bits,
+          g_bypass     => false,
+          g_dual_clock => false)
+        port map(
+          r_clk_i  => clk_i,
+          r_addr_i => s_con_addr(c_log_scan_size-1 downto 0),
+          r_data_o => s_con_mux(c),
+          w_clk_i  => clk_i,
+          w_en_i   => s_con_we,
+          w_addr_i => r_cal_record(c_log_scan_size-1 downto 0),
+          w_data_i => s_con_dat);
+
+      -- Note: it is important that f_idx_sc(s,c) orders first by slot
+      slots2 : for s in 0 to c_slots-1 generate
+        -- Is this calendar entry valid?
+        s_cal_valid(s)(c) <= 
+          s_cal_a_data(f_idx_sb(s,c_log_scan_size+0)) or
+          s_cal_a_data(f_idx_sb(s,c_log_scan_size+1));
+        -- Decode code => not-empty
+        s_fifo_push(f_idx_sc(s,c)) <= r_cal_a_en and s_cal_valid(s)(c);
+        -- Convert valid code to conflict if needed
+        s_fifo_data_i(f_idx_sc(s,c),g_log_size+2) <= s_cal_next(s)(c);
+        s_fifo_data_i(f_idx_sc(s,c),g_log_size+1) <= s_cal_a_data(f_idx_sb(s,c_log_scan_size+1));
+        s_fifo_data_i(f_idx_sc(s,c),g_log_size+0) <= s_cal_a_data(f_idx_sb(s,c_log_scan_size+0));
+        -- Fill high bits from calendar #
+        high : if c_calendars > 1 generate
+          bits : for b in 0 to c_log_calendars-1 generate
+            s_fifo_data_i(f_idx_sc(s,c),b+c_log_scan_size) <= to_unsigned(c,c_log_calendars)(b);
+          end generate;
+        end generate;
+        -- copy low bits
+        bits : for b in 0 to c_log_scan_size-1 generate
+          s_fifo_data_i(f_idx_sc(s,c),b) <= s_cal_a_data(f_idx_sb(s,b));
+        end generate;
+      end generate;
+    end block;
+  end generate; -- parallel_scan (c_calendars)
   
   -- Detect >1 actions in the same slots but from different calendars
   nexts : for s in 0 to c_slots-1 generate
