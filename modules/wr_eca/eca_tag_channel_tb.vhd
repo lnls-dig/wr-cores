@@ -87,8 +87,11 @@ architecture rtl of eca_tag_channel_tb is
   signal r_num      : std_logic_vector(f_eca_log2_min1(c_num_channels)-1 downto 0);
   signal s_num      : std_logic_vector(f_eca_log2_min1(c_num_channels)-1 downto 0);
   signal r_channel  : t_channel := c_idle_channel;
+  signal r_clr      : std_logic;
+  signal r_set      : std_logic;
   signal s_channel  : t_channel;
   signal s_overflow : std_logic;
+  signal s_io       : t_eca_matrix(c_num_channels-1 downto 0, 2**c_log_multiplier-1 downto 0);
   
   function f_nat(x : std_logic) return natural is
   begin
@@ -110,12 +113,14 @@ begin
       time_i       => r_time,
       overflow_o   => s_overflow,
       channel_i    => r_channel,
+      clr_i        => r_clr,
+      set_i        => r_set,
       num_i        => r_num,
       snoop_i      => (others => '0'),
       stall_i      => r_stall,
       channel_o    => s_channel,
       num_o        => s_num,
-      io_o         => open);
+      io_o         => s_io);
 
   main : process(rst_n_i, clk_i) is
     type t_nat_array is array(natural range <>) of natural;
@@ -128,6 +133,8 @@ begin
     
     variable s1, s2 : positive := 42;
     variable valid  : std_logic;
+    variable clr    : std_logic;
+    variable set    : std_logic;
     variable stall  : std_logic;
     variable ignore : std_logic;
     variable num    : std_logic_vector(r_num'range);
@@ -151,6 +158,8 @@ begin
     elsif rising_edge(clk_i) then
       r_time <= f_eca_add(r_time, 2**c_log_multiplier);
       
+      p_eca_uniform(s1, s2, clr);
+      p_eca_uniform(s1, s2, set);
       p_eca_uniform(s1, s2, stall);
       p_eca_uniform(s1, s2, num);
       p_eca_uniform(s1, s2, event);
@@ -190,6 +199,8 @@ begin
       r_channel.tag      <= tag;
       r_channel.tef      <= tef;
       r_channel.time     <= time;
+      r_clr   <= clr;
+      r_set   <= set;
       r_stall <= stall;
       
       -- All control lines must be valid

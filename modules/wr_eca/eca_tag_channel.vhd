@@ -43,6 +43,8 @@ entity eca_tag_channel is
     -- Push a record to the queue
     overflow_o : out std_logic;
     channel_i  : in  t_channel;
+    clr_i      : in  std_logic;
+    set_i      : in  std_logic;
     num_i      : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
     -- Pick an action to output while idle
     snoop_i    : in  std_logic_vector(g_log_size-1 downto 0);
@@ -180,7 +182,7 @@ begin
   overflow_o    <= channel_i.valid and (s_free_full or not s_cal_ready);
   
   -- The extended record for scanner
-  s_ext(c_ext_flip+1 downto c_ext_flip) <= channel_i.tag(31 downto 30);
+  s_ext(c_ext_flip+1 downto c_ext_flip) <= clr_i & set_i;
   s_ext(c_ext_early) <= channel_i.early;
   s_ext(c_ext_late)  <= channel_i.late;
   ext_gt1 : if g_num_channels > 1 generate

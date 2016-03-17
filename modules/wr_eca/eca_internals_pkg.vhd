@@ -366,6 +366,8 @@ package eca_internals_pkg is
       -- Push a record to the queue
       overflow_o : out std_logic;
       channel_i  : in  t_channel;
+      clr_i      : in  std_logic;
+      set_i      : in  std_logic;
       num_i      : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
       -- Pick an action to output while idle
       snoop_i    : in  std_logic_vector(g_log_size-1 downto 0);
