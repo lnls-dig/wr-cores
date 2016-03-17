@@ -371,6 +371,8 @@ package eca_internals_pkg is
       num_i      : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
       -- Pick an action to output while idle
       snoop_i    : in  std_logic_vector(g_log_size-1 downto 0);
+      snoop_o    : out t_channel;
+      snoop_ok_o : out std_logic;
       -- Output of the channel
       stall_i    : in  std_logic;
       channel_o  : out t_channel;

@@ -117,6 +117,8 @@ begin
       set_i        => r_set,
       num_i        => r_num,
       snoop_i      => (others => '0'),
+      snoop_o      => open,
+      snoop_ok_o   => open,
       stall_i      => r_stall,
       channel_o    => s_channel,
       num_o        => s_num,

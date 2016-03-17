@@ -46,8 +46,10 @@ entity eca_tag_channel is
     clr_i      : in  std_logic;
     set_i      : in  std_logic;
     num_i      : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
-    -- Pick an action to output while idle
+    -- Inspect the action while idle
     snoop_i    : in  std_logic_vector(g_log_size-1 downto 0);
+    snoop_o    : out t_channel;
+    snoop_ok_o : out std_logic;
     -- Output of the channel
     stall_i    : in  std_logic;
     channel_o  : out t_channel;
@@ -112,6 +114,7 @@ architecture rtl of eca_tag_channel is
   signal s_data_accept  : std_logic;
   signal s_ext          : std_logic_vector(c_ext_bits-1 downto 0);
   signal s_data_channel : t_channel;
+  signal r_data_channel : t_channel;
   signal r_last_time    : std_logic := '0';
   signal r_cal_reset    : std_logic_vector(c_log_cal_size downto 0) := (others => '0');
   signal s_cal_ready    : std_logic;
@@ -153,6 +156,7 @@ architecture rtl of eca_tag_channel is
   signal s_saw_valid    : std_logic;
   signal s_valid        : std_logic;
   signal s_stall        : std_logic;
+  signal r_stall        : std_logic := '0';
   signal r_gpio_valid   : std_logic := '0';
   signal r_gpio_matrix  : t_gpio_matrix(c_calendars-1 downto 0);
   signal r_gpio         : std_logic_vector(g_num_channels-1 downto 0) := (others => '0');
@@ -492,14 +496,16 @@ begin
       fresh_o => s_fifo_fresh,
       data_o  => s_fifo_data_o);
   
-  -- Fetch the record from the data table
-  bits : for b in 0 to g_log_size-1 generate
-    s_data_index(b) <= 
-      f_eca_mux(s_stall,
-        f_eca_mux(r_mux_valid, r_mux_data(b+c_fifo_index), snoop_i(b)),
-        f_eca_mux(s_mux_valid, s_mux_data(b+c_fifo_index), snoop_i(b)));
-  end generate;
-  s_list_addr <= s_data_index(c_log_scan_size-1 downto 0);
+  -- Fetch the record from the data table, snooping whenever possible
+  s_data_index <= 
+    f_eca_mux(not s_mux_valid or s_stall, snoop_i,
+      s_mux_data(c_fifo_index+g_log_size-1 downto c_fifo_index));
+  
+  -- Grab the follow-up action from the list
+  s_list_addr <= 
+    f_eca_mux(s_stall, 
+      r_mux_data(c_fifo_index+c_log_scan_size-1 downto c_fifo_index),
+      s_mux_data(c_fifo_index+c_log_scan_size-1 downto c_fifo_index));
   
   -- Mux out the record from the linked lists
   con_eq1 : if c_calendars = 1 generate
@@ -563,6 +569,7 @@ begin
   begin
     if rst_n_i = '0' then
       r_mux_valid <= '0';
+      r_stall     <= '0';
       r_late      <= '0';
       r_early     <= '0';
       r_delayed   <= '0';
@@ -570,6 +577,7 @@ begin
       r_saw_valid <= (others => '0');
       r_fifo_push <= (others => '0');
     elsif rising_edge(clk_i) then
+      r_stall <= s_stall;
       r_fifo_push <= s_fifo_push;
       if s_stall = '0' then
         r_mux_valid <= s_mux_valid;
@@ -597,6 +605,9 @@ begin
         r_mux_data   <= s_mux_data;
         r_free_entry <= s_data_index;
       end if;
+      if r_stall = '0' then
+        r_data_channel <= s_data_channel;
+      end if;
     end if;
   end process;
 
@@ -604,11 +615,11 @@ begin
   s_free_stb <= r_mux_valid and not s_stall;
   
   -- Only valid if the errors are accepted by the condition rule
-  s_valid <= r_mux_valid and
+  s_valid <= r_stall or (r_mux_valid and
     (not r_delayed  or s_data_channel.delayed)  and
     (not r_conflict or s_data_channel.conflict) and
     (not r_late     or s_data_channel.late)     and
-    (not r_early    or s_data_channel.early);
+    (not r_early    or s_data_channel.early));
   s_stall <= stall_i and s_valid; -- Stall if we are reporting something not accepted
   
   -- We're done!
@@ -617,11 +628,15 @@ begin
   channel_o.conflict <= r_conflict;
   channel_o.late     <= r_late;
   channel_o.early    <= r_early;
-  channel_o.event    <= s_data_channel.event;
-  channel_o.param    <= s_data_channel.param;
-  channel_o.tag      <= s_data_channel.tag;
-  channel_o.tef      <= s_data_channel.tef;
-  channel_o.time     <= s_data_channel.time;
+  channel_o.event    <= f_eca_mux(r_stall, r_data_channel.event, s_data_channel.event);
+  channel_o.param    <= f_eca_mux(r_stall, r_data_channel.param, s_data_channel.param);
+  channel_o.tag      <= f_eca_mux(r_stall, r_data_channel.tag,   s_data_channel.tag);
+  channel_o.tef      <= f_eca_mux(r_stall, r_data_channel.tef,   s_data_channel.tef);
+  channel_o.time     <= f_eca_mux(r_stall, r_data_channel.time,  s_data_channel.time);
+  
+  -- Report snooped action
+  snoop_o    <= s_data_channel;
+  snoop_ok_o <= r_stall or not r_mux_valid;
   
   -- Combine all the toggles together to form the GPIO output
   gpios : process(clk_i, rst_n_i) is
