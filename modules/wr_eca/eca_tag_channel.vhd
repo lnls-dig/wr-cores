@@ -50,10 +50,14 @@ entity eca_tag_channel is
     snoop_i    : in  std_logic_vector(g_log_size-1 downto 0);
     snoop_o    : out t_channel;
     snoop_ok_o : out std_logic;
+    -- Free record
+    free_i     : in  std_logic;
+    index_i    : in  std_logic_vector(g_log_size-1 downto 0);
     -- Output of the channel
     stall_i    : in  std_logic;
     channel_o  : out t_channel;
     num_o      : out std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
+    index_o    : out std_logic_vector(g_log_size-1 downto 0);
     io_o       : out t_eca_matrix(g_num_channels-1 downto 0, 2**g_log_multiplier-1 downto 0));
 end eca_tag_channel;
 
@@ -108,7 +112,6 @@ architecture rtl of eca_tag_channel is
   signal r_time         : t_time;
   signal s_free_full    : std_logic;
   signal s_free_alloc   : std_logic_vector(g_log_size-1 downto 0);
-  signal s_free_stb     : std_logic;
   signal r_free_entry   : std_logic_vector(g_log_size-1 downto 0);
   signal s_data_index   : std_logic_vector(g_log_size-1 downto 0);
   signal s_data_accept  : std_logic;
@@ -179,8 +182,8 @@ begin
       full_o  => s_free_full,
       alloc_i => channel_i.valid,
       entry_o => s_free_alloc,
-      free_i  => s_free_stb,
-      entry_i => r_free_entry);
+      free_i  => free_i,
+      entry_i => index_i);
   
   s_data_accept <= channel_i.valid and not s_free_full and s_cal_ready;
   overflow_o    <= channel_i.valid and (s_free_full or not s_cal_ready);
@@ -611,9 +614,6 @@ begin
     end if;
   end process;
 
-  -- Don't free it if we're stalled
-  s_free_stb <= r_mux_valid and not s_stall;
-  
   -- Only valid if the errors are accepted by the condition rule
   s_valid <= r_stall or (r_mux_valid and
     (not r_delayed  or s_data_channel.delayed)  and
@@ -633,6 +633,8 @@ begin
   channel_o.tag      <= f_eca_mux(r_stall, r_data_channel.tag,   s_data_channel.tag);
   channel_o.tef      <= f_eca_mux(r_stall, r_data_channel.tef,   s_data_channel.tef);
   channel_o.time     <= f_eca_mux(r_stall, r_data_channel.time,  s_data_channel.time);
+  
+  index_o <= r_free_entry;
   
   -- Report snooped action
   snoop_o    <= s_data_channel;

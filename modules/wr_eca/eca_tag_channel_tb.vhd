@@ -89,8 +89,10 @@ architecture rtl of eca_tag_channel_tb is
   signal r_channel  : t_channel := c_idle_channel;
   signal r_clr      : std_logic;
   signal r_set      : std_logic;
+  signal s_free     : std_logic;
   signal s_channel  : t_channel;
   signal s_overflow : std_logic;
+  signal s_index    : std_logic_vector(c_log_size-1 downto 0);
   signal s_io       : t_eca_matrix(c_num_channels-1 downto 0, 2**c_log_multiplier-1 downto 0);
   
   function f_nat(x : std_logic) return natural is
@@ -119,10 +121,16 @@ begin
       snoop_i      => (others => '0'),
       snoop_o      => open,
       snoop_ok_o   => open,
+      free_i       => s_free,
+      index_i      => s_index,
       stall_i      => r_stall,
       channel_o    => s_channel,
       num_o        => s_num,
+      index_o      => s_index,
       io_o         => s_io);
+
+  s_free <= f_eca_mux(s_channel.valid, not r_stall, 
+                      s_channel.late or s_channel.early or s_channel.delayed or s_channel.conflict);
 
   main : process(rst_n_i, clk_i) is
     type t_nat_array is array(natural range <>) of natural;

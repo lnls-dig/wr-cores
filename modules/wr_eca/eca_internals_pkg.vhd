@@ -373,10 +373,14 @@ package eca_internals_pkg is
       snoop_i    : in  std_logic_vector(g_log_size-1 downto 0);
       snoop_o    : out t_channel;
       snoop_ok_o : out std_logic;
+      -- Free record
+      free_i     : in  std_logic;
+      index_i    : in  std_logic_vector(g_log_size-1 downto 0);
       -- Output of the channel
       stall_i    : in  std_logic;
       channel_o  : out t_channel;
       num_o      : out std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
+      index_o    : out std_logic_vector(g_log_size-1 downto 0);
       io_o       : out t_eca_matrix(g_num_channels-1 downto 0, 2**g_log_multiplier-1 downto 0));
   end component;
   
