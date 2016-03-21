@@ -89,5 +89,6 @@ begin
   piso0 : eca_piso_fifo_tb   generic map(g_case => 0) port map(clk_i => clk, rst_n_i => rstn);
   piso1 : eca_piso_fifo_tb   generic map(g_case => 1) port map(clk_i => clk, rst_n_i => rstn);
   piso2 : eca_piso_fifo_tb   generic map(g_case => 2) port map(clk_i => clk, rst_n_i => rstn);
+  chan2 : eca_channel_tb     generic map(g_case => 3) port map(clk_i => clk, rst_n_i => rstn);
 
 end rtl;

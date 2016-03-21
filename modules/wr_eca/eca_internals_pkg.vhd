@@ -393,6 +393,51 @@ package eca_internals_pkg is
       rst_n_i : in std_logic);
   end component;
   
+  component eca_channel is
+    generic(
+      g_num_channels   : natural :=  1; -- Number of channels emulated by this instance
+      g_log_size       : natural :=  8; -- 2**g_log_size = maximum number of pending actions
+      g_log_multiplier : natural :=  3; -- 2**g_log_multiplier = ticks per cycle
+      g_log_max_delay  : natural := 32; -- 2**g_log_max_delay  = maximum delay before executed as early
+      g_log_latency    : natural := 12);-- 2**g_log_latency    = ticks of calendar delay
+    port(
+      clk_i      : in  std_logic;
+      rst_n_i    : in  std_logic;
+      -- Timestamps used for pipeline stages
+      time_i     : in  t_time;
+      -- Push a record to the queue
+      overflow_o : out std_logic;
+      channel_i  : in  t_channel;
+      clr_i      : in  std_logic;
+      set_i      : in  std_logic;
+      num_i      : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
+      -- Inspect the action while idle
+      --snoop_free_i  : in  std_logic; -- fetches counter, and clears it
+      -- num&type affect index choice
+      snoop_num_i   : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
+      snoop_type_i  : in  std_logic_vector(1 downto 0); -- 0=late, 1=early, 2=conflict, 3=delayed
+      snoop_field_i : in  std_logic_vector(2 downto 0); -- 0+1=event, 2+3=param, 4=tag, 5=tef, 6+7=time
+      snoop_valid_o : out std_logic;
+      snoop_data_o  : out std_logic_vector(31 downto 0);
+      --msi_stb_o  : out std_logic;
+      --msi_ack_i  : in  std_logic;
+      --msi_low_o  : out std_logic_vector(15 downto 0); -- # (type) ... (num)
+      -- Output of the channel
+      stall_i    : in  std_logic;
+      channel_o  : out t_channel;
+      num_o      : out std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
+      io_o       : out t_eca_matrix(g_num_channels-1 downto 0, 2**g_log_multiplier-1 downto 0));
+  end component;
+
+  -- Testbech for eca_channel
+  component eca_channel_tb is
+    generic(
+      g_case  : natural := 0);
+    port(
+      clk_i   : in std_logic;
+      rst_n_i : in std_logic);
+  end component;
+  
   -- Expects registers for inputs. Async outputs.
   -- c1_o is available after 1 cycle (2 once registered)
   -- c2_o, x2_o are available after 2 cycles (3 once registered)
@@ -500,30 +545,6 @@ package eca_internals_pkg is
       tr_time_o    : out t_time;
       tr_tag_o     : out t_tag;
       tr_channel_o : out std_logic_vector(f_eca_log2(g_num_channels)-1 downto 0));
-  end component;
-  
-  component eca_channel is
-    generic(
-      g_channel_idx     : natural;
-      g_log_table_size  : natural := 8;
-      g_log_latency     : natural := 8;  -- Must be <= g_log_table_size
-      g_log_queue_depth : natural := 9); -- Must be >  g_log_latency
-    port(
-      clk_i     : in  std_logic;
-      rst_n_i   : in  std_logic;
-      freeze_i  : in  std_logic; -- stop action outflow and use addr_i=>inspect_o
-      drain_i   : in  std_logic; -- stop action in+outflow and erase tables
-      eca_idx_i : in  std_logic_vector(7 downto 0);
-      addr_i    : in  std_logic_vector(g_log_table_size-1 downto 0);
-      fill_o    : out std_logic_vector(g_log_table_size   downto 0); 
-      full_o    : out std_logic;
-      -- Timestamps used for pipeline stages
-      time_i    : in  t_time;
-      time_Q_i  : in  t_time; -- time_i + 2**g_log_queue_depth
-      -- Push a record to the queue
-      channel_i : in  t_channel;
-      channel_o : out t_channel;
-      inspect_o : out t_channel);
   end component;
   
 end eca_internals_pkg;
