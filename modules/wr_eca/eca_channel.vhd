@@ -113,10 +113,16 @@ architecture rtl of eca_channel is
   
   -- Latched by snoop_clk_i, but held until request is complete
   signal s_req_in    : std_logic;
-  signal r_req_free  : std_logic;
-  signal r_req_num   : std_logic_vector(c_num_bits-1 downto 0);
-  signal r_req_type  : std_logic_vector(1 downto 0);
-  signal r_req_field : std_logic_vector(2 downto 0);
+  signal rs_req_free : std_logic;
+  signal rs_req_num  : std_logic_vector(c_num_bits-1 downto 0);
+  signal rs_req_type : std_logic_vector(1 downto 0);
+  signal rs_req_field: std_logic_vector(2 downto 0);
+  signal s_req_rok   : std_logic;
+  signal r_req_rok   : std_logic := '1';
+  signal rc_req_free : std_logic;
+  signal rc_req_num  : std_logic_vector(c_num_bits-1 downto 0);
+  signal rc_req_type : std_logic_vector(1 downto 0);
+  signal rc_req_field: std_logic_vector(2 downto 0);
   
   -- Request signalling
   signal r_req_old  : std_logic := '0'; -- snoop_clk
@@ -130,13 +136,13 @@ architecture rtl of eca_channel is
   signal r_req_sok : std_logic := '1'; -- snoop ok
   signal s_req_idx : std_logic;
   signal r_req_idx : std_logic_vector(g_log_size-1 downto 0);
-  signal r_req_cnt : std_logic_vector(c_count_bits-1 downto 0);
+  signal rc_req_cnt: std_logic_vector(c_count_bits-1 downto 0);
   
   -- Remember the data requested
   signal s_req_dok : std_logic;
   signal r_req_dok : std_logic := '1';
   signal s_req_dat : std_logic_vector(31 downto 0);
-  signal r_req_dat : std_logic_vector(31 downto 0);
+  signal rc_req_dat: std_logic_vector(31 downto 0);
   
   -- Synchronize the output strobe
   signal s_req_ack  : std_logic;
@@ -146,6 +152,11 @@ architecture rtl of eca_channel is
   signal r_req_xor7 : std_logic := '0'; -- snoop_clk
   signal r_req_xor8 : std_logic := '0'; -- snoop_clk
   signal r_req_out  : std_logic := '0'; -- snoop_clk
+  
+  -- Final output registers
+  signal s_req_ook  : std_logic;
+  signal rs_req_cnt : std_logic_vector(c_count_bits-1 downto 0);
+  signal rs_req_dat : std_logic_vector(31 downto 0);
   
   -- Saturated increment
   function f_increment(x : std_logic_vector) return std_logic_vector is
@@ -207,18 +218,17 @@ begin
   s_steal <= r_busy and s_zero; -- Record this error for software diagnosis
 
   -- If the request was to free the error, do it on final ack
-  s_late_free <= s_req_ack and r_req_free;
+  s_late_free <= s_req_ack and rc_req_free;
   
   -- r_final and s_late_free are mutually exclusive
-  s_free_stb <= (r_final and not s_steal) or (s_late_free and f_eca_or(r_req_cnt));
+  s_free_stb <= (r_final and not s_steal) or (s_late_free and f_eca_or(rc_req_cnt));
   s_free_idx <= f_eca_mux(r_final, r_index, r_req_idx);
   
   -- code: 0=late, 1=early, 2=conflict, 3=delayed
   s_code(0) <= s_channel.early    or s_channel.delayed;
   s_code(1) <= s_channel.conflict or s_channel.delayed;
   
-  -- !!! move r_req through another register stage in clk_i ?
-  s_ridx <= f_eca_mux(s_busy, s_num & s_code, r_req_num & r_req_type);
+  s_ridx <= f_eca_mux(s_busy, s_num & s_code, rc_req_num & rc_req_type);
   s_widx <= r_ridx;
   
   s_count_o <= s_data_o(c_data_bits-1 downto g_log_size);
@@ -227,14 +237,14 @@ begin
   
   -- Atomically read the current counter+index, while atomically wiping them out for new errors
   -- Note: for this to work, we need that the table is bypassed
-  s_atom_free <= s_req_idx and r_req_free;
+  s_atom_free <= s_req_idx and rc_req_free;
 
   s_wen     <= r_busy or s_atom_free; -- r_busy and s_atom_free are mutually exclusive
   s_count_i <= f_eca_mux(r_busy, f_increment(s_count_o), c_zero);
   s_index_i <= f_eca_mux(s_zero, r_index, s_index_o);
   s_data_i  <= s_count_i & s_index_i;
   
-  with r_req_field select
+  with rc_req_field select
   s_req_dat <=
     s_snoop.event(63 downto 32) when "000",
     s_snoop.event(31 downto  0) when "001",
@@ -246,14 +256,18 @@ begin
     s_snoop.time (31 downto  0) when "111",
     (others => 'X') when others;
   
-  -- Clock enable for registers going from snoop_clk => clk
+  -- Clock enable for registers going from snoop_clk => clk (snoop_clk side)
   s_req_in <= not r_req_old and snoop_stb_i;
-  -- Clock enable for count register going from clk => snoop_clk
-  s_req_idx <= not r_req_aok and not r_busy;
-  -- Clock enable for data register going from clk => snoop_clk
+  -- Clock enable for registers going from snoop_clk => clk (clk side)
+  s_req_rok <= r_req_xor4 xor r_req_xor3;
+  -- Clock enable for count register going from clk => snoop_clk (clk side)
+  s_req_idx <= r_req_rok and not r_req_aok and not r_busy;
+  -- Clock enable for data register going from clk => snoop_clk (clk side)
   s_req_dok <= s_snoop_ok and r_req_sok and not r_req_dok;
   -- Only allow the request to complete when there's a slot we could potentially free in
   s_req_ack <= r_req_dok and not r_final and not r_req_ack;
+  -- Clock enable for the registers going from clk => snoop_clk (snoop_clk side)
+  s_req_ook <= r_req_xor8 xor r_req_xor7;
   
   stat_control : process(clk_i, rst_n_i) is
   begin
@@ -298,10 +312,10 @@ begin
   begin
     if rising_edge(snoop_clk_i) then
       if s_req_in = '1' then
-        r_req_free  <= snoop_free_i;
-        r_req_num   <= snoop_num_i;
-        r_req_type  <= snoop_type_i;
-        r_req_field <= snoop_field_i;
+        rs_req_free  <= snoop_free_i;
+        rs_req_num   <= snoop_num_i;
+        rs_req_type  <= snoop_type_i;
+        rs_req_field <= snoop_field_i;
       end if;
     end if;
   end process;
@@ -312,6 +326,7 @@ begin
       r_req_xor2 <= '0';
       r_req_xor3 <= '0';
       r_req_xor4 <= '0';
+      r_req_rok  <= '1';
       r_req_aok  <= '1';
       r_req_sok  <= '1';
       r_req_dok  <= '1';
@@ -321,6 +336,8 @@ begin
       r_req_xor2 <= r_req_xor1;
       r_req_xor3 <= r_req_xor2;
       r_req_xor4 <= r_req_xor3;
+      
+      r_req_rok <= '1';
       
       if s_req_idx = '1' then
         r_req_aok <= '1';
@@ -335,7 +352,8 @@ begin
         r_req_ack <= '1';
       end if;
       
-      if (r_req_xor4 xor r_req_xor3) = '1' then
+      if s_req_rok = '1' then
+        r_req_rok <= '0';
         r_req_aok <= '0';
         r_req_sok <= '0';
         r_req_dok <= '0';
@@ -349,12 +367,18 @@ begin
   main_bulk : process(clk_i) is
   begin
     if rising_edge(clk_i) then
+      if s_req_rok = '1' then
+        rc_req_free  <= rs_req_free;
+        rc_req_num   <= rs_req_num;
+        rc_req_type  <= rs_req_type;
+        rc_req_field <= rs_req_field;
+      end if;
       if s_req_idx = '1' then
-        r_req_idx <= s_index_o;
-        r_req_cnt <= s_count_o;
+        r_req_idx  <= s_index_o;
+        rc_req_cnt <= s_count_o;
       end if;
       if s_req_dok = '1' then
-        r_req_dat <= s_req_dat;
+        rc_req_dat <= s_req_dat;
       end if;
     end if;
   end process;
@@ -370,12 +394,22 @@ begin
       r_req_xor6 <= r_req_xor5;
       r_req_xor7 <= r_req_xor6;
       r_req_xor8 <= r_req_xor7;
-      r_req_out  <= r_req_xor8 xor r_req_xor7;
+      r_req_out  <= s_req_ook;
+    end if;
+  end process;
+  
+  out_bulk : process(snoop_clk_i) is
+  begin
+    if rising_edge(snoop_clk_i) then
+      if s_req_ook = '1' then
+        rs_req_cnt <= rc_req_cnt;
+        rs_req_dat <= rc_req_dat;
+      end if;
     end if;
   end process;
   
   snoop_valid_o <= r_req_out;
-  snoop_data_o  <= r_req_dat;
-  snoop_count_o <= r_req_cnt;
+  snoop_data_o  <= rs_req_dat;
+  snoop_count_o <= rs_req_cnt;
 
 end rtl;
