@@ -81,16 +81,20 @@ architecture rtl of eca_channel_tb is
   constant c_log_max_delay  : natural := c_log_latency+2; -- ensures testing of 'early'
   constant c_ticks          : natural := 2**c_log_multiplier;
   constant c_pipeline_depth : natural := 12;
+  constant c_num_wide       : natural := f_eca_log2_min1(c_num_channels);
   
   signal r_time     : t_time    := (others => '0');
   signal r_stall    : std_logic;
-  signal r_num      : std_logic_vector(f_eca_log2_min1(c_num_channels)-1 downto 0);
-  signal s_num      : std_logic_vector(f_eca_log2_min1(c_num_channels)-1 downto 0);
+  signal r_num      : std_logic_vector(c_num_wide-1 downto 0);
+  signal s_num      : std_logic_vector(c_num_wide-1 downto 0);
   signal r_channel  : t_channel := c_idle_channel;
   signal r_clr      : std_logic;
   signal r_set      : std_logic;
   signal r_stb      : std_logic := '0';
   signal r_free     : std_logic;
+  signal r_snum     : std_logic_vector(c_num_wide-1 downto 0);
+  signal r_type     : std_logic_vector(1 downto 0);
+  signal r_field    : std_logic_vector(2 downto 0);
   signal s_valid    : std_logic;
   signal s_channel  : t_channel;
   signal s_overflow : std_logic;
@@ -124,9 +128,9 @@ begin
       snoop_rst_n_i=> rst_n_i,
       snoop_stb_i  => r_stb,
       snoop_free_i => r_free,
-      snoop_num_i  => (others => '0'),
-      snoop_type_i => (others => '0'),
-      snoop_field_i=> (others => '0'),
+      snoop_num_i  => r_snum,
+      snoop_type_i => r_type,
+      snoop_field_i=> r_field,
       snoop_valid_o=> s_valid,
       snoop_data_o => open,
       snoop_count_o=> open,
@@ -162,6 +166,10 @@ begin
     variable flags  : natural;
     variable index  : natural;
     
+    variable snum   : std_logic_vector(c_num_wide-1 downto 0);
+    variable stype  : std_logic_vector(1 downto 0);
+    variable sfield : std_logic_vector(2 downto 0);
+    
   begin
     if rst_n_i = '0' then
       r_time <= (others => '0');
@@ -177,7 +185,6 @@ begin
       p_eca_uniform(s1, s2, clr);
       p_eca_uniform(s1, s2, set);
       p_eca_uniform(s1, s2, stb);
-      p_eca_uniform(s1, s2, free);
       p_eca_uniform(s1, s2, stall);
       p_eca_uniform(s1, s2, num);
       p_eca_uniform(s1, s2, event);
@@ -185,6 +192,10 @@ begin
       p_eca_uniform(s1, s2, tag);
       p_eca_uniform(s1, s2, tef);
       p_eca_uniform(s1, s2, time);
+      p_eca_uniform(s1, s2, free);
+      p_eca_uniform(s1, s2, snum);
+      p_eca_uniform(s1, s2, stype);
+      p_eca_uniform(s1, s2, sfield);
       
       -- Only insert an action if the test slot was not taken
       index := to_integer(unsigned(param(c_log_size downto 0)));
@@ -222,9 +233,17 @@ begin
       r_stall <= stall;
       
       -- Consider poking/inspecting the channel
-      if r_stb = '0' then
-        r_stb  <= stb;
-        r_free <= free;
+      if r_stb = '0' and stb = '1' then
+        r_stb   <= '1';
+        r_free  <= free;
+        r_snum  <= snum;
+        r_type  <= stype;
+        r_field <= sfield;
+      else
+        r_free  <= 'X';
+        r_snum  <= (others => 'X');
+        r_type  <= (others => 'X');
+        r_field <= (others => 'X');
       end if;
       
       if s_valid = '1' then
