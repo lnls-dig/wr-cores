@@ -30,6 +30,7 @@ use work.eca_internals_pkg.all;
 
 entity eca_tag_channel is
   generic(
+    g_support_io     : boolean := false; -- Should io_o be driven?
     g_num_channels   : natural :=  1; -- Number of channels emulated by this instance
     g_log_size       : natural :=  8; -- 2**g_log_size = maximum number of pending actions
     g_log_multiplier : natural :=  3; -- 2**g_log_multiplier = ticks per cycle
@@ -160,9 +161,7 @@ architecture rtl of eca_tag_channel is
   signal s_valid        : std_logic;
   signal s_stall        : std_logic;
   signal r_stall        : std_logic := '0';
-  signal r_gpio_valid   : std_logic := '0';
   signal r_gpio_matrix  : t_gpio_matrix(c_calendars-1 downto 0);
-  signal r_gpio         : std_logic_vector(g_num_channels-1 downto 0) := (others => '0');
   
 begin
 
@@ -232,6 +231,20 @@ begin
   parallel_scan : for c in 0 to c_calendars-1 generate
     bl : block is
     
+      constant c_list_wide : natural := c_slots*c_list_bits;
+      constant c_gpio_wide : natural := c_slots*2*g_num_channels;
+    
+      function f_mem_wide return natural is
+      begin
+        if g_support_io then
+          return c_list_wide + c_gpio_wide;
+        else
+          return c_list_wide;
+        end if;
+      end f_mem_wide;
+      
+      constant c_data_wide : natural := f_mem_wide;
+      
       signal r_scan_stb     : std_logic := '0';
       signal s_scan_stb     : std_logic;
       signal s_scan_we      : std_logic;
@@ -243,18 +256,15 @@ begin
       signal s_scan_ext     : std_logic_vector(c_ext_bits-1 downto 0);
       signal r_scan_ext     : std_logic_vector(c_ext_bits-1 downto 0);
       
-      signal s_cal_a_data_o : std_logic_vector(c_slots*(c_list_bits+2*g_num_channels)-1 downto 0);
-      signal s_cal_a_list_o : std_logic_vector(c_slots*c_list_bits-1 downto 0);
-      signal s_cal_a_gpio_o : std_logic_vector(c_slots*2*g_num_channels-1 downto 0);
+      signal s_cal_a_data_o : std_logic_vector(c_data_wide-1 downto 0);
+      signal s_cal_a_list_o : std_logic_vector(c_list_wide-1 downto 0);
       signal s_cal_b_en     : std_logic;
       signal s_cal_b_ack    : std_logic;
       signal s_cal_b_addr   : std_logic_vector(c_log_cal_size-1 downto 0);
-      signal s_cal_b_data_o : std_logic_vector(c_slots*(c_list_bits+2*g_num_channels)-1 downto 0);
-      signal s_cal_b_data_i : std_logic_vector(c_slots*(c_list_bits+2*g_num_channels)-1 downto 0);
-      signal s_cal_b_list_o : std_logic_vector(c_slots*c_list_bits-1 downto 0);
-      signal s_cal_b_list_i : std_logic_vector(c_slots*c_list_bits-1 downto 0);
-      signal s_cal_b_gpio_o : std_logic_vector(c_slots*2*g_num_channels-1 downto 0);
-      signal s_cal_b_gpio_i : std_logic_vector(c_slots*2*g_num_channels-1 downto 0);
+      signal s_cal_b_data_o : std_logic_vector(c_data_wide-1 downto 0);
+      signal s_cal_b_data_i : std_logic_vector(c_data_wide-1 downto 0);
+      signal s_cal_b_list_o : std_logic_vector(c_list_wide-1 downto 0);
+      signal s_cal_b_list_i : std_logic_vector(c_list_wide-1 downto 0);
       signal s_cal_record   : std_logic_vector(c_list_bits-1 downto 0);
       signal r_cal_record   : std_logic_vector(c_list_bits-1 downto 0);
       
@@ -264,8 +274,6 @@ begin
       type t_slot_array is array(c_list_bits-1 downto 0) of std_logic_vector(c_slots-1 downto 0);
       signal s_slot_mux     : t_slot_array;
       signal s_slot_select  : std_logic_vector(c_slots-1 downto 0);
-      signal s_chan_select  : std_logic_vector(g_num_channels-1 downto 0);
-      signal r_io_select    : std_logic;
       
       -- Used to compute indexes into s_cal_[ab]_list_[io]
       function f_idx_sb(s, b : natural) return natural is
@@ -334,10 +342,7 @@ begin
         if rising_edge(clk_i) then
           if s_scan_stb = '1' then
             r_scan_low   <= s_scan_low;
-            r_scan_ext   <= s_scan_ext;
             r_cal_record <= s_cal_record;
-            r_io_select  <= (not s_scan_late  or s_scan_ext(c_ext_late)) and 
-                            (not s_scan_early or s_scan_ext(c_ext_early));
           end if;
         end if;
       end process;
@@ -354,37 +359,11 @@ begin
         end generate;
       end generate;
       
-      -- Calculate which slot to put the action into
-      sel_chan_eq1 : if g_num_channels <= 1 generate
-        s_chan_select(0) <= '1';
-      end generate;
-      sel_chan_gt1 : if g_num_channels > 1 generate
-        chans : for i in 0 to g_num_channels-1 generate
-          s_chan_select(i) <= f_eca_eq(
-            std_logic_vector(to_unsigned(i, c_log_channels)),
-            r_scan_ext(c_ext_channel+c_log_channels-1 downto c_ext_channel));
-        end generate;
-      end generate;
-      
       -- Insert action into the correct calendar slot
       slots1 : for s in 0 to c_slots-1 generate
         bits : for b in 0 to c_list_bits-1 generate
           s_cal_b_list_i(f_idx_sb(s,b)) <= 
             f_eca_mux(s_slot_select(s), r_cal_record(b), s_cal_b_list_o(f_idx_sb(s,b)));
-        end generate;
-      end generate;
-      
-      -- Insert action into the correct gpio slot
-      chans : for i in 0 to g_num_channels-1 generate
-        slots : for s in 0 to c_slots-1 generate
-          s_cal_b_gpio_i(f_idx_si(s,i)+0) <=
-            f_eca_mux(s_slot_select(s) and s_chan_select(i) and r_io_select,
-              f_eca_mux(s_cal_b_gpio_o(f_idx_si(s,i)+0), not r_scan_ext(1), r_scan_ext(0)),
-              s_cal_b_gpio_o(f_idx_si(s,i)+0));
-          s_cal_b_gpio_i(f_idx_si(s,i)+1) <=
-            f_eca_mux(s_slot_select(s) and s_chan_select(i) and r_io_select,
-              f_eca_mux(s_cal_b_gpio_o(f_idx_si(s,i)+1), not r_scan_ext(0), r_scan_ext(1)),
-              s_cal_b_gpio_o(f_idx_si(s,i)+1));
         end generate;
       end generate;
       
@@ -401,7 +380,7 @@ begin
       calendar : eca_rmw
         generic map(
           g_addr_bits => c_log_cal_size,
-          g_data_bits => c_slots*(c_list_bits+2*g_num_channels))
+          g_data_bits => c_data_wide)
         port map(
           clk_i    => clk_i,
           rst_n_i  => rst_n_i,
@@ -416,11 +395,9 @@ begin
           b_data_o => s_cal_b_data_o,
           b_data_i => s_cal_b_data_i);
       
-      s_cal_a_list_o <= s_cal_a_data_o(c_slots*c_list_bits-1 downto 0);
-      s_cal_a_gpio_o <= s_cal_a_data_o(c_slots*(c_list_bits+2*g_num_channels)-1 downto c_slots*c_list_bits);
-      s_cal_b_list_o <= s_cal_b_data_o(c_slots*c_list_bits-1 downto 0);
-      s_cal_b_gpio_o <= s_cal_b_data_o(c_slots*(c_list_bits+2*g_num_channels)-1 downto c_slots*c_list_bits);
-      s_cal_b_data_i <= s_cal_b_gpio_i & s_cal_b_list_i;
+      s_cal_a_list_o <= s_cal_a_data_o(c_list_wide-1 downto 0);
+      s_cal_b_list_o <= s_cal_b_data_o(c_list_wide-1 downto 0);
+      s_cal_b_data_i(c_list_wide-1 downto 0) <= s_cal_b_list_i;
       
       -- No need to wipe on reset; it is only read if calendar pointed into it
       -- Format: [num code low-index]
@@ -469,12 +446,66 @@ begin
         end generate;
       end generate;
       
-      output : process(clk_i) is
-      begin
-        if rising_edge(clk_i) then
-          r_gpio_matrix(c) <= s_cal_a_gpio_o;
-        end if;
-      end process;
+      -- Handle the extra IO calendar bits
+      io_yes : if g_support_io generate
+        bl : block is
+          signal s_chan_select  : std_logic_vector(g_num_channels-1 downto 0);
+          signal r_io_select    : std_logic;
+          
+          signal s_cal_a_gpio_o : std_logic_vector(c_gpio_wide-1 downto 0);
+          signal s_cal_b_gpio_o : std_logic_vector(c_gpio_wide-1 downto 0);
+          signal s_cal_b_gpio_i : std_logic_vector(c_gpio_wide-1 downto 0);
+        begin
+        
+          input : process(clk_i) is
+          begin
+            if rising_edge(clk_i) then
+              if s_scan_stb = '1' then
+                r_scan_ext   <= s_scan_ext;
+                r_io_select  <= (not s_scan_late  or s_scan_ext(c_ext_late)) and 
+                                (not s_scan_early or s_scan_ext(c_ext_early));
+              end if;
+            end if;
+          end process;
+          
+          -- Calculate which slot to put the action into
+          sel_chan_eq1 : if g_num_channels <= 1 generate
+            s_chan_select(0) <= '1';
+          end generate;
+          sel_chan_gt1 : if g_num_channels > 1 generate
+            chans : for i in 0 to g_num_channels-1 generate
+              s_chan_select(i) <= f_eca_eq(
+                std_logic_vector(to_unsigned(i, c_log_channels)),
+                r_scan_ext(c_ext_channel+c_log_channels-1 downto c_ext_channel));
+            end generate;
+          end generate;
+          
+          -- Insert action into the correct gpio slot
+          chans : for i in 0 to g_num_channels-1 generate
+            slots : for s in 0 to c_slots-1 generate
+              s_cal_b_gpio_i(f_idx_si(s,i)+0) <=
+                f_eca_mux(s_slot_select(s) and s_chan_select(i) and r_io_select,
+                  f_eca_mux(s_cal_b_gpio_o(f_idx_si(s,i)+0), not r_scan_ext(1), r_scan_ext(0)),
+                  s_cal_b_gpio_o(f_idx_si(s,i)+0));
+              s_cal_b_gpio_i(f_idx_si(s,i)+1) <=
+                f_eca_mux(s_slot_select(s) and s_chan_select(i) and r_io_select,
+                  f_eca_mux(s_cal_b_gpio_o(f_idx_si(s,i)+1), not r_scan_ext(0), r_scan_ext(1)),
+                  s_cal_b_gpio_o(f_idx_si(s,i)+1));
+            end generate;
+          end generate;
+          
+          s_cal_a_gpio_o <= s_cal_a_data_o(c_data_wide-1 downto c_list_wide);
+          s_cal_b_gpio_o <= s_cal_b_data_o(c_data_wide-1 downto c_list_wide);
+          s_cal_b_data_i(c_data_wide-1 downto c_list_wide) <= s_cal_b_gpio_i;
+          
+          output : process(clk_i) is
+          begin
+            if rising_edge(clk_i) then
+              r_gpio_matrix(c) <= s_cal_a_gpio_o;
+            end if;
+          end process;
+        end block;
+      end generate;
     end block;
   end generate; -- parallel_scan (c_calendars)
   
@@ -641,28 +672,39 @@ begin
   snoop_ok_o <= r_stall or not r_mux_valid;
   
   -- Combine all the toggles together to form the GPIO output
-  gpios : process(clk_i, rst_n_i) is
-    variable val : std_logic;
-  begin
-    if rst_n_i = '0' then
-      r_gpio_valid <= '0';
-      r_gpio <= (others => '0');
-      io_o   <= (others => (others => '0'));
-    elsif rising_edge(clk_i) then
-      r_gpio_valid <= r_cal_a_en;
-      if r_gpio_valid = '1' then
-        for i in 0 to g_num_channels-1 loop
-          val := r_gpio(i);
-          for s in 0 to c_slots-1 loop
-            for c in 0 to c_calendars-1 loop
-              val := f_eca_mux(val, not r_gpio_matrix(c)(f_idx_si(s,i)+1), r_gpio_matrix(c)(f_idx_si(s,i)+0));
+  io_yes : if g_support_io generate
+    bl : block is
+      signal r_gpio_valid   : std_logic := '0';
+      signal r_gpio         : std_logic_vector(g_num_channels-1 downto 0) := (others => '0');
+    begin
+      gpios : process(clk_i, rst_n_i) is
+        variable val : std_logic;
+      begin
+        if rst_n_i = '0' then
+          r_gpio_valid <= '0';
+          r_gpio <= (others => '0');
+          io_o   <= (others => (others => '0'));
+        elsif rising_edge(clk_i) then
+          r_gpio_valid <= r_cal_a_en;
+          if r_gpio_valid = '1' then
+            for i in 0 to g_num_channels-1 loop
+              val := r_gpio(i);
+              for s in 0 to c_slots-1 loop
+                for c in 0 to c_calendars-1 loop
+                  val := f_eca_mux(val, not r_gpio_matrix(c)(f_idx_si(s,i)+1), r_gpio_matrix(c)(f_idx_si(s,i)+0));
+                end loop;
+                io_o(i,s) <= val;
+              end loop;
+              r_gpio(i) <= val;
             end loop;
-            io_o(i,s) <= val;
-          end loop;
-          r_gpio(i) <= val;
-        end loop;
-      end if;
-    end if;
-  end process;
+          end if;
+        end if;
+      end process;
+    end block;
+  end generate;
   
+  io_no : if not g_support_io generate
+    io_o <= (others => (others => '0'));
+  end generate;
+   
 end rtl;

@@ -104,6 +104,7 @@ begin
 
   channel : eca_tag_channel
     generic map(
+      g_support_io     => true,
       g_num_channels   => c_num_channels,
       g_log_size       => c_log_size,
       g_log_multiplier => c_log_multiplier,

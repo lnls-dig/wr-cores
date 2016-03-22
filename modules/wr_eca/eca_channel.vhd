@@ -30,6 +30,7 @@ use work.eca_internals_pkg.all;
 
 entity eca_channel is
   generic(
+    g_support_io     : boolean := false; -- Should io_o be driven?
     g_num_channels   : natural :=  1; -- Number of channels emulated by this instance
     g_log_size       : natural :=  8; -- 2**g_log_size = maximum number of pending actions
     g_log_multiplier : natural :=  3; -- 2**g_log_multiplier = ticks per cycle
@@ -89,7 +90,6 @@ architecture rtl of eca_channel is
   signal r_free_idx : std_logic_vector(g_log_size-1 downto 0);
   
   signal s_error    : std_logic;
-  signal r_error    : std_logic;
   signal s_final    : std_logic;
   signal r_final    : std_logic := '0';
   signal s_busy     : std_logic;
@@ -168,6 +168,7 @@ begin
 
   channel : eca_tag_channel
     generic map(
+      g_support_io     => g_support_io,
       g_num_channels   => g_num_channels,
       g_log_size       => g_log_size,
       g_log_multiplier => g_log_multiplier,
@@ -288,7 +289,6 @@ begin
       r_ridx      <= s_ridx;
       r_index     <= s_index;
       r_free_idx  <= s_free_idx;
-      r_error     <= s_error;
     end if;
   end process;
   
