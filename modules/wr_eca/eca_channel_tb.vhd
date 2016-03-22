@@ -89,6 +89,9 @@ architecture rtl of eca_channel_tb is
   signal r_channel  : t_channel := c_idle_channel;
   signal r_clr      : std_logic;
   signal r_set      : std_logic;
+  signal r_stb      : std_logic := '0';
+  signal r_free     : std_logic;
+  signal s_valid    : std_logic;
   signal s_channel  : t_channel;
   signal s_overflow : std_logic;
   signal s_io       : t_eca_matrix(c_num_channels-1 downto 0, 2**c_log_multiplier-1 downto 0);
@@ -116,11 +119,16 @@ begin
       clr_i        => r_clr,
       set_i        => r_set,
       num_i        => r_num,
+      snoop_clk_i  => clk_i,
+      snoop_rst_n_i=> rst_n_i,
+      snoop_stb_i  => r_stb,
+      snoop_free_i => r_free,
       snoop_num_i  => (others => '0'),
       snoop_type_i => (others => '0'),
       snoop_field_i=> (others => '0'),
-      snoop_valid_o=> open,
+      snoop_valid_o=> s_valid,
       snoop_data_o => open,
+      snoop_count_o=> open,
       stall_i      => r_stall,
       channel_o    => s_channel,
       num_o        => s_num,
@@ -139,6 +147,8 @@ begin
     variable valid  : std_logic;
     variable clr    : std_logic;
     variable set    : std_logic;
+    variable stb    : std_logic;
+    variable free   : std_logic;
     variable stall  : std_logic;
     variable ignore : std_logic;
     variable num    : std_logic_vector(r_num'range);
@@ -157,6 +167,7 @@ begin
       -- r_time(r_time'high) <= '1'; -- test for overflow
       r_channel <= c_idle_channel;
       r_stall   <= '0';
+      r_stb     <= '0';
       seq := (others => '0');
       ignore := '0';
     elsif rising_edge(clk_i) then
@@ -164,6 +175,8 @@ begin
       
       p_eca_uniform(s1, s2, clr);
       p_eca_uniform(s1, s2, set);
+      p_eca_uniform(s1, s2, stb);
+      p_eca_uniform(s1, s2, free);
       p_eca_uniform(s1, s2, stall);
       p_eca_uniform(s1, s2, num);
       p_eca_uniform(s1, s2, event);
@@ -206,6 +219,16 @@ begin
       r_clr   <= clr;
       r_set   <= set;
       r_stall <= stall;
+      
+      -- Consider poking/inspecting the channel
+      if r_stb = '0' then
+        r_stb  <= stb;
+        r_free <= free;
+      end if;
+      
+      if s_valid = '1' then
+        r_stb <= '0';
+      end if;
       
       -- All control lines must be valid
       assert (s_channel.valid    xnor s_channel.valid)    = '1' report "Valid meta-value"    severity failure;

@@ -412,13 +412,16 @@ package eca_internals_pkg is
       set_i      : in  std_logic;
       num_i      : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
       -- Inspect the action while idle
-      --snoop_free_i  : in  std_logic; -- fetches counter, and clears it
-      -- num&type affect index choice
+      snoop_clk_i   : in  std_logic;
+      snoop_rst_n_i : in  std_logic;
+      snoop_stb_i   : in  std_logic; -- positive edge triggered
+      snoop_free_i  : in  std_logic;
       snoop_num_i   : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
       snoop_type_i  : in  std_logic_vector(1 downto 0); -- 0=late, 1=early, 2=conflict, 3=delayed
       snoop_field_i : in  std_logic_vector(2 downto 0); -- 0+1=event, 2+3=param, 4=tag, 5=tef, 6+7=time
       snoop_valid_o : out std_logic;
       snoop_data_o  : out std_logic_vector(31 downto 0);
+      snoop_count_o : out std_logic_vector(19 downto 0);
       --msi_stb_o  : out std_logic;
       --msi_ack_i  : in  std_logic;
       --msi_low_o  : out std_logic_vector(15 downto 0); -- # (type) ... (num)
