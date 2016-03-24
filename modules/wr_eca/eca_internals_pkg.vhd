@@ -403,40 +403,38 @@ package eca_internals_pkg is
       g_log_multiplier : natural :=  3; -- 2**g_log_multiplier = ticks per cycle
       g_log_max_delay  : natural := 32; -- 2**g_log_max_delay  = maximum delay before executed as early
       g_log_latency    : natural := 12; -- 2**g_log_latency    = ticks of calendar delay
-      g_log_counter    : natural := 20; -- number of bits in the counters reported
-      g_log_crossing   : natural := 4); -- snoop_clk_i and clk_i must be within factor 2**g_log_crossing
+      g_log_counter    : natural := 20);-- number of bits in the counters reported
     port(
-      clk_i      : in  std_logic;
-      rst_n_i    : in  std_logic;
+      clk_i       : in  std_logic;
+      rst_n_i     : in  std_logic;
       -- Timestamps used for pipeline stages
-      time_i     : in  t_time;
+      time_i      : in  t_time;
       -- Push a record to the queue
       overflow_o : out std_logic;
-      channel_i  : in  t_channel;
-      clr_i      : in  std_logic;
-      set_i      : in  std_logic;
-      num_i      : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
-      -- Read-out port for failed actions
-      snoop_clk_i   : in  std_logic;
-      snoop_rst_n_i : in  std_logic;
-      snoop_stb_i   : in  std_logic; -- positive edge triggered
-      snoop_free_i  : in  std_logic; -- record should be released by this read
-      snoop_num_i   : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
-      snoop_type_i  : in  std_logic_vector(1 downto 0); -- 0=late, 1=early, 2=conflict, 3=delayed
-      snoop_field_i : in  std_logic_vector(2 downto 0); -- 0+1=event, 2+3=param, 4=tag, 5=tef, 6+7=time
-      snoop_valid_o : out std_logic;
-      snoop_data_o  : out std_logic_vector(31 downto 0);
-      snoop_count_o : out std_logic_vector(g_log_counter-1 downto 0); -- saturates if not freed
-      num_overflow_o: out std_logic_vector(g_log_counter-1 downto 0); -- wraps around (also snoop_clk_i)
-      num_valid_o   : out std_logic_vector(g_log_counter-1 downto 0); -- ditto
-      msi_ack_i     : in  std_logic;
-      msi_stb_o     : out std_logic;
-      msi_dat_o     : out std_logic_vector(15 downto 0);
+      channel_i   : in  t_channel;
+      clr_i       : in  std_logic;
+      set_i       : in  std_logic;
+      num_i       : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
       -- Output of the channel
-      stall_i    : in  std_logic;
-      channel_o  : out t_channel;
-      num_o      : out std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
-      io_o       : out t_eca_matrix(g_num_channels-1 downto 0, 2**g_log_multiplier-1 downto 0));
+      stall_i     : in  std_logic;
+      channel_o   : out t_channel;
+      num_o       : out std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
+      io_o        : out t_eca_matrix(g_num_channels-1 downto 0, 2**g_log_multiplier-1 downto 0);
+      -- Bus access ports
+      bus_clk_i   : in  std_logic;
+      bus_rst_n_i : in  std_logic;
+      req_stb_i   : in  std_logic; -- positive edge triggered
+      req_clear_i : in  std_logic; -- record should be released/reset by this read
+      req_final_i : in  std_logic; -- a new MSI should be issued for changes after this read
+      req_num_i   : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
+      req_type_i  : in  std_logic_vector(1 downto 0); -- 0=late, 1=early, 2=conflict, 3=delayed
+      req_field_i : in  std_logic_vector(3 downto 0); -- 0+1=event, 2+3=param, 4=tag, 5=tef, 6+7=timeS
+                                                        -- 8+9=timeE, 10=#error, 11=#exec, 12=#over, 15=full
+      req_valid_o : out std_logic;
+      req_data_o  : out std_logic_vector(31 downto 0);
+      msi_ack_i   : in  std_logic;
+      msi_stb_o   : out std_logic;
+      msi_dat_o   : out std_logic_vector(15 downto 0));
   end component;
 
   -- Testbech for eca_channel

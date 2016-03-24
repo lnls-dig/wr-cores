@@ -94,7 +94,7 @@ architecture rtl of eca_channel_tb is
   signal r_free     : std_logic;
   signal r_snum     : std_logic_vector(c_num_wide-1 downto 0);
   signal r_type     : std_logic_vector(1 downto 0);
-  signal r_field    : std_logic_vector(2 downto 0);
+  signal r_field    : std_logic_vector(3 downto 0);
   signal s_valid    : std_logic;
   signal s_channel  : t_channel;
   signal s_overflow : std_logic;
@@ -118,33 +118,31 @@ begin
       g_log_max_delay  => c_log_max_delay,
       g_log_latency    => c_log_latency)
     port map(
-      clk_i          => clk_i,
-      rst_n_i        => rst_n_i,
-      time_i         => r_time,
-      overflow_o     => s_overflow,
-      channel_i      => r_channel,
-      clr_i          => r_clr,
-      set_i          => r_set,
-      num_i          => r_num,
-      snoop_clk_i    => clk_i,
-      snoop_rst_n_i  => rst_n_i,
-      snoop_stb_i    => r_stb,
-      snoop_free_i   => r_free,
-      snoop_num_i    => r_snum,
-      snoop_type_i   => r_type,
-      snoop_field_i  => r_field,
-      snoop_valid_o  => s_valid,
-      snoop_data_o   => open,
-      snoop_count_o  => open,
-      num_overflow_o => open,
-      num_valid_o    => open,
-      msi_ack_i      => r_msi_ack,
-      msi_stb_o      => s_msi_stb,
-      msi_dat_o      => open,
-      stall_i        => r_stall,
-      channel_o      => s_channel,
-      num_o          => s_num,
-      io_o           => s_io);
+      clk_i        => clk_i,
+      rst_n_i      => rst_n_i,
+      time_i       => r_time,
+      overflow_o   => s_overflow,
+      channel_i    => r_channel,
+      clr_i        => r_clr,
+      set_i        => r_set,
+      num_i        => r_num,
+      stall_i      => r_stall,
+      channel_o    => s_channel,
+      num_o        => s_num,
+      io_o         => s_io,
+      bus_clk_i    => clk_i,
+      bus_rst_n_i  => rst_n_i,
+      req_stb_i    => r_stb,
+      req_clear_i  => r_free,
+      req_final_i  => r_free,
+      req_num_i    => r_snum,
+      req_type_i   => r_type,
+      req_field_i  => r_field,
+      req_valid_o  => s_valid,
+      req_data_o   => open,
+      msi_ack_i    => r_msi_ack,
+      msi_stb_o    => s_msi_stb,
+      msi_dat_o    => open);
 
   main : process(rst_n_i, clk_i) is
     type t_nat_array is array(natural range <>) of natural;
@@ -176,7 +174,7 @@ begin
     
     variable snum   : std_logic_vector(c_num_wide-1 downto 0);
     variable stype  : std_logic_vector(1 downto 0);
-    variable sfield : std_logic_vector(2 downto 0);
+    variable sfield : std_logic_vector(3 downto 0);
     
   begin
     if rst_n_i = '0' then
