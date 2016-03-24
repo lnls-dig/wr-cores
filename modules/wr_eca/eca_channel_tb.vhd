@@ -99,6 +99,7 @@ architecture rtl of eca_channel_tb is
   signal s_msi_stb  : std_logic;
   signal r_msi_ack  : std_logic;
   signal s_io       : t_eca_matrix(c_num_channels-1 downto 0, 2**c_log_multiplier-1 downto 0);
+  signal r_idle     : std_logic;
   
   function f_nat(x : std_logic) return natural is
   begin
@@ -182,6 +183,7 @@ begin
       r_msi_ack <= '0';
       seq := (others => '0');
       ignore := '0';
+      r_idle <= '1';
     elsif rising_edge(clk_i) then
       r_time <= f_eca_add(r_time, 2**c_log_multiplier);
       
@@ -296,6 +298,10 @@ begin
         conflict(to_integer(unsigned(s_channel.num))) := '1';
         seq := s_channel.time;
       end if;
+      
+      -- If something was delayed, there better have been something prior
+      assert (s_channel.delayed and r_idle) = '0' report "Delayed action had no predecessor" severity failure;
+      r_idle <= f_1(flags = 0);
       
       -- Conflicts must have the same timestamp as the last action
       if s_channel.conflict = '1' then

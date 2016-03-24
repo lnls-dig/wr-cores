@@ -111,8 +111,8 @@ architecture rtl of eca_tag_channel is
   signal s_free_full    : std_logic;
   signal s_free_alloc   : std_logic_vector(g_log_size-1 downto 0);
   signal s_data_index   : std_logic_vector(g_log_size-1 downto 0);
-  signal r_data_index0  : std_logic_vector(g_log_size-1 downto 0);
   signal r_data_index1  : std_logic_vector(g_log_size-1 downto 0);
+  signal r_data_index2  : std_logic_vector(g_log_size-1 downto 0);
   signal s_data_accept  : std_logic;
   signal s_ext          : std_logic_vector(c_ext_bits-1 downto 0);
   signal s_data_channel : t_channel;
@@ -160,7 +160,8 @@ architecture rtl of eca_tag_channel is
   signal r_saw_valid    : std_logic_vector(g_num_channels-1 downto 0) := (others => '0');
   signal s_saw_valid    : std_logic;
   signal s_valid        : std_logic;
-  signal s_stall        : std_logic;
+  signal s_stall1       : std_logic;
+  signal s_stall2       : std_logic;
   signal r_stall        : std_logic := '0';
   signal r_gpio_matrix  : t_gpio_matrix(c_calendars-1 downto 0);
   
@@ -525,12 +526,12 @@ begin
   
   -- Fetch the record from the data table, snooping whenever possible
   s_data_index <= 
-    f_eca_mux(not s_mux_valid or s_stall, snoop_i,
+    f_eca_mux(not s_mux_valid or s_stall1, snoop_i,
       s_mux_data(c_fifo_index+g_log_size-1 downto c_fifo_index));
   
   -- Grab the follow-up action from the list
   s_list_addr <= 
-    f_eca_mux(s_stall, 
+    f_eca_mux(s_stall1, 
       r_mux_data(c_fifo_index+c_log_scan_size-1 downto c_fifo_index),
       s_mux_data(c_fifo_index+c_log_scan_size-1 downto c_fifo_index));
   
@@ -553,7 +554,7 @@ begin
   s_mux_valid <= s_list or s_fifo_valid;
 
   -- Pop the record if we're done with it
-  s_fifo_pop <= s_fifo_valid and not (s_list or s_stall);
+  s_fifo_pop <= s_fifo_valid and not (s_list or s_stall1);
   
   -- Expand the list record entry to the same format as a fifo entry
   s_mux_data_l(c_fifo_next) <= '1';
@@ -588,9 +589,9 @@ begin
       r_saw_valid <= (others => '0');
       r_fifo_push <= (others => '0');
     elsif rising_edge(clk_i) then
-      r_stall <= s_stall;
+      r_stall <= s_stall1;
       r_fifo_push <= s_fifo_push;
-      if s_stall = '0' then
+      if s_stall1 = '0' then
         r_mux_valid <= s_mux_valid;
         -- Record which channel numbers have had a valid/delayed action
         if r_mux_next = '0' then
@@ -607,15 +608,17 @@ begin
   begin
     if rising_edge(clk_i) then
       r_fifo_data_i<= s_fifo_data_i;
-      if s_stall = '0' then
+      if s_stall1 = '0' then
         r_mux_ontime<= f_eca_eq(s_mux_code, c_code_valid);
         r_mux_late  <= f_eca_eq(s_mux_code, c_code_late);
         r_mux_early <= f_eca_eq(s_mux_code, c_code_early);
         r_mux_next  <= s_mux_next;
         r_mux_delay <= s_list or not s_fifo_fresh;
         r_mux_data    <= s_mux_data;
-        r_data_index0 <= s_data_index;
-        r_data_index1 <= r_data_index0;
+        r_data_index1 <= s_data_index;
+      end if;
+      if s_stall2 = '0' then
+        r_data_index2 <= r_data_index1;
       end if;
       if r_stall = '0' then
         r_skid_channel <= s_data_channel;
@@ -654,7 +657,8 @@ begin
     (not s_early    or s_mux_channel.early);
   
   -- Stall if we are reporting something not accepted
-  s_stall <= stall_i and r_channel.valid;
+  s_stall2 <= stall_i and r_channel.valid;
+  s_stall1 <= s_stall2 and r_mux_valid;
   
   -- Register the outputs
   output_control : process(clk_i, rst_n_i) is
@@ -666,7 +670,7 @@ begin
       r_channel.late     <= '0';
       r_channel.early    <= '0';
     elsif rising_edge(clk_i) then
-      if s_stall = '0' then
+      if s_stall2 = '0' then
         r_channel.valid    <= s_valid;
         r_channel.delayed  <= s_delayed;
         r_channel.conflict <= s_conflict;
@@ -679,7 +683,7 @@ begin
   output_bulk : process(clk_i) is
   begin
     if rising_edge(clk_i) then
-      if s_stall = '0' then
+      if s_stall2 = '0' then
         r_channel.num      <= s_mux_channel.num;
         r_channel.event    <= s_mux_channel.event;
         r_channel.param    <= s_mux_channel.param;
@@ -692,7 +696,7 @@ begin
   
   -- We're done!
   channel_o <= r_channel;
-  index_o   <= r_data_index1;
+  index_o   <= r_data_index2;
   
   -- Report snooped action
   snoop_o    <= s_data_channel;
