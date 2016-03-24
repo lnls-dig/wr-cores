@@ -57,10 +57,10 @@ architecture rtl of eca_sdp is
   signal r_data   : std_logic_vector(g_data_bits-1 downto 0);
   signal r_bypass : std_logic;
   
-  -- Use an MLAB if less than 32 entries
+  -- Use an MLAB if less than or equal to 64 entries
   function f_style return string is
   begin
-    if g_addr_bits <= 6 and g_data_bits <= 20 then return "MLAB"; else return "no_rw_check"; end if;
+    if g_addr_bits <= 6 then return "MLAB,no_rw_check"; else return "no_rw_check"; end if;
   end f_style;
   attribute ramstyle : string;
   attribute ramstyle of r_memory : signal is f_style;
