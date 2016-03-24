@@ -75,7 +75,7 @@ architecture rtl of eca_channel is
   constant c_count_bits : natural := g_log_counter;
   constant c_valid_bits : natural := f_eca_log2_min1(g_num_channels);
   constant c_saved_bits : natural := 2 + c_valid_bits;
-  constant c_data_bits  : natural := g_log_size + c_count_bits;
+  constant c_data_bits  : natural := g_log_size + c_count_bits + 64;
   constant c_num_bits   : natural := f_eca_log2_min1(g_num_channels);
   
   constant c_zero : std_logic_vector(c_count_bits-1 downto 0) := (others => '0');
@@ -114,6 +114,8 @@ architecture rtl of eca_channel is
   signal s_count_i  : std_logic_vector(c_count_bits-1 downto 0);
   signal s_index_o  : std_logic_vector(g_log_size-1 downto 0);
   signal s_index_i  : std_logic_vector(g_log_size-1 downto 0);
+  signal s_time_o   : t_time;
+  signal s_time_i   : t_time;
   signal s_zero     : std_logic;
   
   signal s_valid    : std_logic;
@@ -169,6 +171,7 @@ architecture rtl of eca_channel is
   signal r_req_idx : std_logic_vector(g_log_size-1 downto 0);
   signal r_req_cnt : std_logic_vector(c_count_bits-1 downto 0);
   signal s_req_cnt : std_logic_vector(31 downto 0) := (others => '0');
+  signal r_req_time: t_time;
   
   -- Remember the data requested
   signal s_req_dok : std_logic;
@@ -289,7 +292,8 @@ begin
   s_ridx <= f_eca_mux(s_busy, s_num & s_code, rc_req_num & rc_req_type);
   s_widx <= r_ridx;
   
-  s_count_o <= s_data_o(c_data_bits-1 downto g_log_size);
+  s_time_o  <= s_data_o(c_data_bits-1 downto g_log_size+c_count_bits);
+  s_count_o <= s_data_o(g_log_size+c_count_bits-1 downto g_log_size);
   s_index_o <= s_data_o(g_log_size-1 downto 0);
   s_zero    <= not f_eca_or(s_count_o);
   
@@ -300,7 +304,8 @@ begin
   s_wen     <= r_busy or s_atom_free; -- r_busy and s_atom_free are mutually exclusive
   s_count_i <= f_eca_mux(r_busy, f_increment(s_count_o), c_zero);
   s_index_i <= f_eca_mux(s_zero, r_index, s_index_o);
-  s_data_i  <= s_count_i & s_index_i;
+  s_time_i  <= f_eca_mux(s_zero, time_i,  s_time_o);
+  s_data_i  <= s_time_i & s_count_i & s_index_i;
   
   -- Track the number of valid actions for each subchannel
   valid : eca_sdp
@@ -347,8 +352,8 @@ begin
     s_snoop.tef  (31 downto  0) when "0101",
     s_snoop.time (63 downto 32) when "0110",
     s_snoop.time (31 downto  0) when "0111",
-    -- exec0 when "1000",
-    -- exec1 when "1001",
+    r_req_time(63 downto 32)    when "1000",
+    r_req_time(31 downto  0)    when "1001",
     -- reserved                 when "1010",
     s_req_cnt                   when "1011",
     s_num_overflow              when "1100",
@@ -517,6 +522,7 @@ begin
       if s_req_idx = '1' then
         r_req_idx <= s_index_o;
         r_req_cnt <= s_count_o;
+        r_req_time<= s_time_o;
       end if;
       if s_req_dok = '1' then
         rc_req_dat <= s_req_dat;
