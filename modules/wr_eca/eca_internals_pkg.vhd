@@ -31,6 +31,7 @@ package eca_internals_pkg is
   constant c_tag_bits   : natural := 32;
   constant c_tef_bits   : natural := 32;
   constant c_time_bits  : natural := 64;
+  constant c_num_bits   : natural :=  8;
   
   subtype t_ascii is std_logic_vector(6 downto 0);
   subtype t_event is std_logic_vector(c_event_bits-1 downto 0);
@@ -38,6 +39,7 @@ package eca_internals_pkg is
   subtype t_tag   is std_logic_vector(c_tag_bits-1   downto 0);
   subtype t_tef   is std_logic_vector(c_tef_bits-1   downto 0);
   subtype t_time  is std_logic_vector(c_time_bits-1  downto 0);
+  subtype t_num   is std_logic_vector(c_num_bits-1   downto 0);
   
   type t_channel is record
     valid    : std_logic;
@@ -45,6 +47,7 @@ package eca_internals_pkg is
     conflict : std_logic;
     late     : std_logic;
     early    : std_logic;
+    num      : t_num;
     event    : t_event;
     param    : t_param;
     tag      : t_tag;
@@ -54,6 +57,7 @@ package eca_internals_pkg is
   
   constant c_idle_channel : t_channel := (
     '0', '0', '0', '0', '0',
+    (others => '0'),
     (others => '0'),
     (others => '0'),
     (others => '0'),
@@ -372,7 +376,6 @@ package eca_internals_pkg is
       channel_i  : in  t_channel;
       clr_i      : in  std_logic;
       set_i      : in  std_logic;
-      num_i      : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
       -- Pick an action to output while idle
       snoop_i    : in  std_logic_vector(g_log_size-1 downto 0);
       snoop_o    : out t_channel;
@@ -383,7 +386,6 @@ package eca_internals_pkg is
       -- Output of the channel
       stall_i    : in  std_logic;
       channel_o  : out t_channel;
-      num_o      : out std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
       index_o    : out std_logic_vector(g_log_size-1 downto 0);
       io_o       : out t_eca_matrix(g_num_channels-1 downto 0, 2**g_log_multiplier-1 downto 0));
   end component;
@@ -412,15 +414,13 @@ package eca_internals_pkg is
       -- Timestamps used for pipeline stages
       time_i      : in  t_time;
       -- Push a record to the queue
-      overflow_o : out std_logic;
+      overflow_o  : out std_logic;
       channel_i   : in  t_channel;
       clr_i       : in  std_logic;
       set_i       : in  std_logic;
-      num_i       : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
       -- Output of the channel
       stall_i     : in  std_logic;
       channel_o   : out t_channel;
-      num_o       : out std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
       io_o        : out t_eca_matrix(g_num_channels-1 downto 0, 2**g_log_multiplier-1 downto 0);
       -- Bus access ports
       bus_clk_i   : in  std_logic;
@@ -428,7 +428,7 @@ package eca_internals_pkg is
       req_stb_i   : in  std_logic; -- positive edge triggered
       req_clear_i : in  std_logic; -- record should be released/reset by this read
       req_final_i : in  std_logic; -- a new MSI should be issued for changes after this read
-      req_num_i   : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
+      req_num_i   : in  t_num;
       req_type_i  : in  std_logic_vector(1 downto 0); -- 0=late, 1=early, 2=conflict, 3=delayed
       req_field_i : in  std_logic_vector(3 downto 0); -- 0+1=event, 2+3=param, 4=tag, 5=tef, 6+7=timeS
                                                         -- 8+9=timeE, 10=#error, 11=#exec, 12=#over, 15=full

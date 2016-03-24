@@ -84,8 +84,6 @@ architecture rtl of eca_tag_channel_tb is
   
   signal r_time     : t_time    := (others => '0');
   signal r_stall    : std_logic;
-  signal r_num      : std_logic_vector(f_eca_log2_min1(c_num_channels)-1 downto 0);
-  signal s_num      : std_logic_vector(f_eca_log2_min1(c_num_channels)-1 downto 0);
   signal r_channel  : t_channel := c_idle_channel;
   signal r_clr      : std_logic;
   signal r_set      : std_logic;
@@ -119,7 +117,6 @@ begin
       channel_i    => r_channel,
       clr_i        => r_clr,
       set_i        => r_set,
-      num_i        => r_num,
       snoop_i      => (others => '0'),
       snoop_o      => open,
       snoop_ok_o   => open,
@@ -127,7 +124,6 @@ begin
       index_i      => s_index,
       stall_i      => r_stall,
       channel_o    => s_channel,
-      num_o        => s_num,
       index_o      => s_index,
       io_o         => s_io);
 
@@ -149,7 +145,7 @@ begin
     variable set    : std_logic;
     variable stall  : std_logic;
     variable ignore : std_logic;
-    variable num    : std_logic_vector(r_num'range);
+    variable num    : t_num;
     variable event  : t_event;
     variable param  : t_param;
     variable tag    : t_tag;
@@ -200,12 +196,14 @@ begin
         busy(index)  := '0';
       end if;
       
-      r_num              <= num;
+      num := std_logic_vector(unsigned(num) mod c_num_channels);
+        
       r_channel.valid    <= valid;
       r_channel.delayed  <= '0';
       r_channel.conflict <= '0';
       r_channel.late     <= '0';
       r_channel.early    <= '0';
+      r_channel.num      <= num;
       r_channel.event    <= event;
       r_channel.param    <= param;
       r_channel.tag      <= tag;
@@ -248,16 +246,16 @@ begin
         if unsigned(s_channel.time) > unsigned(seq) then
           conflict := (others => '0');
         else
-          assert conflict(to_integer(unsigned(s_num))) = '0' report "No conflict despite prior match" severity failure;
+          assert conflict(to_integer(unsigned(s_channel.num))) = '0' report "No conflict despite prior match" severity failure;
         end if;
-        conflict(to_integer(unsigned(s_num))) := '1';
+        conflict(to_integer(unsigned(s_channel.num))) := '1';
         seq := s_channel.time;
       end if;
       
       -- Conflicts must have the same timestamp as the last action
       if s_channel.conflict = '1' then
         assert unsigned(s_channel.time) = unsigned(seq) report "Conflict does not have same timestamp" severity failure;
-        assert conflict(to_integer(unsigned(s_num))) = '1' report "Conflict with nothing?" severity failure;
+        assert conflict(to_integer(unsigned(s_channel.num))) = '1' report "Conflict with nothing?" severity failure;
       end if;
       
       -- If the channel claims this is late, it should be late!

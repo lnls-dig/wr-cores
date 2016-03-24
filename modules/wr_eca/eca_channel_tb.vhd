@@ -85,14 +85,12 @@ architecture rtl of eca_channel_tb is
   
   signal r_time     : t_time    := (others => '0');
   signal r_stall    : std_logic;
-  signal r_num      : std_logic_vector(c_num_wide-1 downto 0);
-  signal s_num      : std_logic_vector(c_num_wide-1 downto 0);
   signal r_channel  : t_channel := c_idle_channel;
   signal r_clr      : std_logic;
   signal r_set      : std_logic;
   signal r_stb      : std_logic := '0';
   signal r_free     : std_logic;
-  signal r_snum     : std_logic_vector(c_num_wide-1 downto 0);
+  signal r_num      : t_num;
   signal r_type     : std_logic_vector(1 downto 0);
   signal r_field    : std_logic_vector(3 downto 0);
   signal s_valid    : std_logic;
@@ -125,17 +123,15 @@ begin
       channel_i    => r_channel,
       clr_i        => r_clr,
       set_i        => r_set,
-      num_i        => r_num,
       stall_i      => r_stall,
       channel_o    => s_channel,
-      num_o        => s_num,
       io_o         => s_io,
       bus_clk_i    => clk_i,
       bus_rst_n_i  => rst_n_i,
       req_stb_i    => r_stb,
       req_clear_i  => r_free,
       req_final_i  => r_free,
-      req_num_i    => r_snum,
+      req_num_i    => r_num,
       req_type_i   => r_type,
       req_field_i  => r_field,
       req_valid_o  => s_valid,
@@ -161,7 +157,7 @@ begin
     variable free   : std_logic;
     variable stall  : std_logic;
     variable ignore : std_logic;
-    variable num    : std_logic_vector(r_num'range);
+    variable num    : t_num;
     variable event  : t_event;
     variable param  : t_param;
     variable tag    : t_tag;
@@ -172,7 +168,7 @@ begin
     variable index  : natural;
     variable msi_ack : std_logic_vector(3 downto 0);
     
-    variable snum   : std_logic_vector(c_num_wide-1 downto 0);
+    variable snum   : t_num;
     variable stype  : std_logic_vector(1 downto 0);
     variable sfield : std_logic_vector(3 downto 0);
     
@@ -225,12 +221,15 @@ begin
         busy(index)  := '0';
       end if;
       
-      r_num              <= num;
+      num  := std_logic_vector(unsigned(num)  mod c_num_channels);
+      snum := std_logic_vector(unsigned(snum) mod c_num_channels);
+      
       r_channel.valid    <= valid;
       r_channel.delayed  <= '0';
       r_channel.conflict <= '0';
       r_channel.late     <= '0';
       r_channel.early    <= '0';
+      r_channel.num      <= num;
       r_channel.event    <= event;
       r_channel.param    <= param;
       r_channel.tag      <= tag;
@@ -245,12 +244,12 @@ begin
       if r_stb = '0' and stb = '1' then
         r_stb   <= '1';
         r_free  <= free;
-        r_snum  <= snum;
+        r_num   <= snum;
         r_type  <= stype;
         r_field <= sfield;
       else
         r_free  <= 'X';
-        r_snum  <= (others => 'X');
+        r_num   <= (others => 'X');
         r_type  <= (others => 'X');
         r_field <= (others => 'X');
       end if;
@@ -292,16 +291,16 @@ begin
         if unsigned(s_channel.time) > unsigned(seq) then
           conflict := (others => '0');
         else
-          assert conflict(to_integer(unsigned(s_num))) = '0' report "No conflict despite prior match" severity failure;
+          assert conflict(to_integer(unsigned(s_channel.num))) = '0' report "No conflict despite prior match" severity failure;
         end if;
-        conflict(to_integer(unsigned(s_num))) := '1';
+        conflict(to_integer(unsigned(s_channel.num))) := '1';
         seq := s_channel.time;
       end if;
       
       -- Conflicts must have the same timestamp as the last action
       if s_channel.conflict = '1' then
         assert unsigned(s_channel.time) = unsigned(seq) report "Conflict does not have same timestamp" severity failure;
-        assert conflict(to_integer(unsigned(s_num))) = '1' report "Conflict with nothing?" severity failure;
+        assert conflict(to_integer(unsigned(s_channel.num))) = '1' report "Conflict with nothing?" severity failure;
       end if;
       
       -- If the channel claims this is late, it should be late!

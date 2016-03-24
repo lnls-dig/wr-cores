@@ -47,7 +47,6 @@ entity eca_tag_channel is
     channel_i  : in  t_channel;
     clr_i      : in  std_logic;
     set_i      : in  std_logic;
-    num_i      : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
     -- Inspect the action while idle
     snoop_i    : in  std_logic_vector(g_log_size-1 downto 0);
     snoop_o    : out t_channel;
@@ -58,7 +57,6 @@ entity eca_tag_channel is
     -- Output of the channel
     stall_i    : in  std_logic;
     channel_o  : out t_channel;
-    num_o      : out std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
     index_o    : out std_logic_vector(g_log_size-1 downto 0);
     io_o       : out t_eca_matrix(g_num_channels-1 downto 0, 2**g_log_multiplier-1 downto 0));
 end eca_tag_channel;
@@ -194,7 +192,8 @@ begin
   s_ext(c_ext_early) <= channel_i.early;
   s_ext(c_ext_late)  <= channel_i.late;
   ext_gt1 : if g_num_channels > 1 generate
-    s_ext(c_ext_channel+c_log_channels-1 downto c_ext_channel) <= num_i;
+    s_ext(c_ext_channel+c_log_channels-1 downto c_ext_channel) <= 
+      channel_i.num(c_log_channels-1 downto 0);
   end generate;
   
   data : eca_data
@@ -584,11 +583,9 @@ begin
 
   -- Which number is this?
   num_le1 : if g_num_channels <= 1 generate
-    num_o     <= "0";
     s_mux_num <= "0";
   end generate;
   num_gt1 : if g_num_channels > 1 generate
-    num_o     <= r_mux_data(c_fifo_channel+c_log_channels-1 downto c_fifo_channel);
     s_mux_num <= s_mux_data(c_fifo_channel+c_log_channels-1 downto c_fifo_channel);
   end generate;
   
@@ -661,6 +658,7 @@ begin
   channel_o.conflict <= r_conflict;
   channel_o.late     <= r_late;
   channel_o.early    <= r_early;
+  channel_o.num      <= f_eca_mux(r_stall, r_data_channel.num,   s_data_channel.num);
   channel_o.event    <= f_eca_mux(r_stall, r_data_channel.event, s_data_channel.event);
   channel_o.param    <= f_eca_mux(r_stall, r_data_channel.param, s_data_channel.param);
   channel_o.tag      <= f_eca_mux(r_stall, r_data_channel.tag,   s_data_channel.tag);

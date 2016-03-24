@@ -47,11 +47,9 @@ entity eca_channel is
     channel_i   : in  t_channel;
     clr_i       : in  std_logic;
     set_i       : in  std_logic;
-    num_i       : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
     -- Output of the channel
     stall_i     : in  std_logic;
     channel_o   : out t_channel;
-    num_o       : out std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
     io_o        : out t_eca_matrix(g_num_channels-1 downto 0, 2**g_log_multiplier-1 downto 0);
     -- Bus access ports
     bus_clk_i   : in  std_logic;
@@ -59,7 +57,7 @@ entity eca_channel is
     req_stb_i   : in  std_logic; -- positive edge triggered
     req_clear_i : in  std_logic; -- record should be released/reset by this read
     req_final_i : in  std_logic; -- a new MSI should be issued for changes after this read
-    req_num_i   : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
+    req_num_i   : in  t_num;
     req_type_i  : in  std_logic_vector(1 downto 0); -- 0=late, 1=early, 2=conflict, 3=delayed
     req_field_i : in  std_logic_vector(3 downto 0); -- 0+1=event, 2+3=param, 4=tag, 5=tef, 6+7=timeS
                                                     -- 8+9=timeE, 10=#error, 11=#exec, 12=#over, 15=full
@@ -240,7 +238,6 @@ begin
       channel_i  => channel_i,
       clr_i      => clr_i,
       set_i      => set_i,
-      num_i      => num_i,
       snoop_i    => r_req_idx,
       snoop_o    => s_snoop,
       snoop_ok_o => s_snoop_ok,
@@ -248,13 +245,11 @@ begin
       index_i    => r_free_idx,
       stall_i    => stall_i,
       channel_o  => s_channel,
-      num_o      => s_num,
       index_o    => s_index,
       io_o       => io_o);
   
   overflow_o <= s_overflow;
   channel_o  <= s_channel;
-  num_o      <= s_num;
   
   -- Goal is to intercept error conditions and record their indices
   saved : eca_sdp
@@ -289,6 +284,7 @@ begin
   s_code(0) <= s_channel.early    or s_channel.delayed;
   s_code(1) <= s_channel.conflict or s_channel.delayed;
   
+  s_num  <= s_channel.num(s_num'range);
   s_ridx <= f_eca_mux(s_busy, s_num & s_code, rc_req_num & rc_req_type);
   s_widx <= r_ridx;
   
@@ -458,7 +454,7 @@ begin
       if s_req_in = '1' then
         rs_req_clear <= req_clear_i;
         rs_req_final <= req_final_i;
-        rs_req_num   <= req_num_i;
+        rs_req_num   <= req_num_i(rs_req_num'range);
         rs_req_type  <= req_type_i;
         rs_req_field <= req_field_i;
       end if;

@@ -50,38 +50,41 @@ architecture rtl of eca_data is
   constant c_early    : natural := 3;
   constant c_delayed  : natural := 4;
   
-  constant c_event : std_logic_vector(t_event'length+c_delayed    downto c_delayed   +1) := (others => '0');
-  constant c_param : std_logic_vector(t_param'length+c_event'high downto c_event'high+1) := (others => '0');
-  constant c_tag   : std_logic_vector(t_tag'length  +c_param'high downto c_param'high+1) := (others => '0');
-  constant c_tef   : std_logic_vector(t_tef'length  +c_tag'high   downto c_tag'high  +1) := (others => '0');
-  constant c_time  : std_logic_vector(t_time'length +c_tef'high   downto c_tef'high  +1) := (others => '0');
+  subtype c_num    is natural range t_num'length  +c_delayed    downto c_delayed   +1;
+  subtype c_event  is natural range t_event'length+c_num'high   downto c_num'high  +1;
+  subtype c_param  is natural range t_param'length+c_event'high downto c_event'high+1;
+  subtype c_tag    is natural range t_tag'length  +c_param'high downto c_param'high+1;
+  subtype c_tef    is natural range t_tef'length  +c_tag'high   downto c_tag'high  +1;
+  subtype c_time   is natural range t_time'length +c_tef'high   downto c_tef'high  +1;
   
   signal s_dat_i : std_logic_vector(c_time'high downto 0);
   signal s_dat_o : std_logic_vector(c_time'high downto 0);
 
 begin
 
-  s_dat_i(c_valid)       <= w_dat_i.valid;
-  s_dat_i(c_conflict)    <= w_dat_i.conflict;
-  s_dat_i(c_late)        <= w_dat_i.late;
-  s_dat_i(c_early)       <= w_dat_i.early;
-  s_dat_i(c_delayed)     <= w_dat_i.delayed;
-  s_dat_i(c_event'range) <= w_dat_i.event;
-  s_dat_i(c_param'range) <= w_dat_i.param;
-  s_dat_i(c_tag'range)   <= w_dat_i.tag;
-  s_dat_i(c_tef'range)   <= w_dat_i.tef;
-  s_dat_i(c_time'range)  <= w_dat_i.time;
+  s_dat_i(c_valid)    <= w_dat_i.valid;
+  s_dat_i(c_conflict) <= w_dat_i.conflict;
+  s_dat_i(c_late)     <= w_dat_i.late;
+  s_dat_i(c_early)    <= w_dat_i.early;
+  s_dat_i(c_delayed)  <= w_dat_i.delayed;
+  s_dat_i(c_num)      <= w_dat_i.num;
+  s_dat_i(c_event)    <= w_dat_i.event;
+  s_dat_i(c_param)    <= w_dat_i.param;
+  s_dat_i(c_tag)      <= w_dat_i.tag;
+  s_dat_i(c_tef)      <= w_dat_i.tef;
+  s_dat_i(c_time)     <= w_dat_i.time;
 
   r_dat_o.valid    <= s_dat_o(c_valid);
   r_dat_o.conflict <= s_dat_o(c_conflict);
   r_dat_o.late     <= s_dat_o(c_late);
   r_dat_o.early    <= s_dat_o(c_early);
   r_dat_o.delayed  <= s_dat_o(c_delayed);
-  r_dat_o.event    <= s_dat_o(c_event'range);
-  r_dat_o.param    <= s_dat_o(c_param'range);
-  r_dat_o.tag      <= s_dat_o(c_tag'range);
-  r_dat_o.tef      <= s_dat_o(c_tef'range);
-  r_dat_o.time     <= s_dat_o(c_time'range);
+  r_dat_o.num      <= s_dat_o(c_num);
+  r_dat_o.event    <= s_dat_o(c_event);
+  r_dat_o.param    <= s_dat_o(c_param);
+  r_dat_o.tag      <= s_dat_o(c_tag);
+  r_dat_o.tef      <= s_dat_o(c_tef);
+  r_dat_o.time     <= s_dat_o(c_time);
   
   table : eca_sdp
     generic map(
