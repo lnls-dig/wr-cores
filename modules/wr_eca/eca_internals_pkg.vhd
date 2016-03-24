@@ -401,7 +401,9 @@ package eca_internals_pkg is
       g_log_size       : natural :=  8; -- 2**g_log_size = maximum number of pending actions
       g_log_multiplier : natural :=  3; -- 2**g_log_multiplier = ticks per cycle
       g_log_max_delay  : natural := 32; -- 2**g_log_max_delay  = maximum delay before executed as early
-      g_log_latency    : natural := 12);-- 2**g_log_latency    = ticks of calendar delay
+      g_log_latency    : natural := 12; -- 2**g_log_latency    = ticks of calendar delay
+      g_log_counter    : natural := 20; -- number of bits in the counters reported
+      g_log_crossing   : natural := 4); -- snoop_clk_i and clk_i must be within factor 2**g_log_crossing
     port(
       clk_i      : in  std_logic;
       rst_n_i    : in  std_logic;
@@ -413,17 +415,19 @@ package eca_internals_pkg is
       clr_i      : in  std_logic;
       set_i      : in  std_logic;
       num_i      : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
-      -- Inspect the action while idle
+      -- Read-out port for failed actions
       snoop_clk_i   : in  std_logic;
       snoop_rst_n_i : in  std_logic;
       snoop_stb_i   : in  std_logic; -- positive edge triggered
-      snoop_free_i  : in  std_logic;
+      snoop_free_i  : in  std_logic; -- record should be released by this read
       snoop_num_i   : in  std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
       snoop_type_i  : in  std_logic_vector(1 downto 0); -- 0=late, 1=early, 2=conflict, 3=delayed
       snoop_field_i : in  std_logic_vector(2 downto 0); -- 0+1=event, 2+3=param, 4=tag, 5=tef, 6+7=time
       snoop_valid_o : out std_logic;
       snoop_data_o  : out std_logic_vector(31 downto 0);
-      snoop_count_o : out std_logic_vector(19 downto 0);
+      snoop_count_o : out std_logic_vector(g_log_counter-1 downto 0); -- saturates if not freed
+      num_overflow_o: out std_logic_vector(g_log_counter-1 downto 0); -- wraps around (also snoop_clk_i)
+      num_valid_o   : out std_logic_vector(g_log_counter-1 downto 0); -- ditto
       --msi_stb_o  : out std_logic;
       --msi_ack_i  : in  std_logic;
       --msi_low_o  : out std_logic_vector(15 downto 0); -- # (type) ... (num)

@@ -35,14 +35,16 @@ entity eca_channel is
     g_log_size       : natural :=  8; -- 2**g_log_size = maximum number of pending actions
     g_log_multiplier : natural :=  3; -- 2**g_log_multiplier = ticks per cycle
     g_log_max_delay  : natural := 32; -- 2**g_log_max_delay  = maximum delay before executed as early
-    g_log_latency    : natural := 12);-- 2**g_log_latency    = ticks of calendar delay
+    g_log_latency    : natural := 12; -- 2**g_log_latency    = ticks of calendar delay
+    g_log_counter    : natural := 20; -- number of bits in the counters reported
+    g_log_crossing   : natural := 4); -- snoop_clk_i and clk_i must be within factor 2**g_log_crossing
   port(
     clk_i      : in  std_logic;
     rst_n_i    : in  std_logic;
     -- Timestamps used for pipeline stages
     time_i     : in  t_time;
     -- Push a record to the queue
-    overflow_o : out std_logic; -- !!! remove
+    overflow_o : out std_logic;
     channel_i  : in  t_channel;
     clr_i      : in  std_logic;
     set_i      : in  std_logic;
@@ -57,7 +59,9 @@ entity eca_channel is
     snoop_field_i : in  std_logic_vector(2 downto 0); -- 0+1=event, 2+3=param, 4=tag, 5=tef, 6+7=time
     snoop_valid_o : out std_logic;
     snoop_data_o  : out std_logic_vector(31 downto 0);
-    snoop_count_o : out std_logic_vector(19 downto 0);
+    snoop_count_o : out std_logic_vector(g_log_counter-1 downto 0); -- saturates if not freed
+    num_overflow_o: out std_logic_vector(g_log_counter-1 downto 0); -- wraps around (also snoop_clk_i)
+    num_valid_o   : out std_logic_vector(g_log_counter-1 downto 0); -- ditto
     --msi_stb_o  : out std_logic;
     --msi_ack_i  : in  std_logic;
     --msi_low_o  : out std_logic_vector(15 downto 0); -- # (type) ... (num)
@@ -70,7 +74,7 @@ end eca_channel;
 
 architecture rtl of eca_channel is
 
-  constant c_count_bits : natural := 20;
+  constant c_count_bits : natural := g_log_counter;
   constant c_addr_bits  : natural := 2 + f_eca_log2_min1(g_num_channels);
   constant c_data_bits  : natural := g_log_size + c_count_bits;
   constant c_num_bits   : natural := f_eca_log2_min1(g_num_channels);
@@ -163,6 +167,24 @@ architecture rtl of eca_channel is
   begin
     return f_eca_mux(f_eca_and(x), x, f_eca_add(x, 1));
   end f_increment;
+  
+  -- Cross simple counters across the domains
+  signal sc_overflow       : std_logic;
+  signal rc_overflow_sum   : std_logic_vector(g_log_crossing-1 downto 0) := (others => '0');
+  signal rc_overflow_gray  : std_logic_vector(g_log_crossing-1 downto 0);
+  signal rs0_overflow_gray : std_logic_vector(g_log_crossing-1 downto 0);
+  signal rs1_overflow_gray : std_logic_vector(g_log_crossing-1 downto 0);
+  signal rs_overflow_sum   : std_logic_vector(g_log_crossing-1 downto 0);
+  signal rs_overflow_done  : std_logic_vector(g_log_crossing-1 downto 0);
+  signal rs_overflow       : std_logic_vector(g_log_counter- 1 downto 0) := (others => '0');
+  signal sc_valid          : std_logic;
+  signal rc_valid_sum      : std_logic_vector(g_log_crossing-1 downto 0) := (others => '0');
+  signal rc_valid_gray     : std_logic_vector(g_log_crossing-1 downto 0);
+  signal rs0_valid_gray    : std_logic_vector(g_log_crossing-1 downto 0);
+  signal rs1_valid_gray    : std_logic_vector(g_log_crossing-1 downto 0);
+  signal rs_valid_sum      : std_logic_vector(g_log_crossing-1 downto 0);
+  signal rs_valid_done     : std_logic_vector(g_log_crossing-1 downto 0);
+  signal rs_valid          : std_logic_vector(g_log_counter -1 downto 0) := (others => '0');
 
 begin
 
@@ -178,7 +200,7 @@ begin
       clk_i      => clk_i,
       rst_n_i    => rst_n_i,
       time_i     => time_i,
-      overflow_o => overflow_o,
+      overflow_o => sc_overflow,
       channel_i  => channel_i,
       clr_i      => clr_i,
       set_i      => set_i,
@@ -411,5 +433,56 @@ begin
   snoop_valid_o <= r_req_out;
   snoop_data_o  <= rs_req_dat;
   snoop_count_o <= rs_req_cnt;
+  
+  -- Number of output actions
+  sc_valid <= s_channel.valid and not stall_i;
+  
+  counters_control : process(clk_i, rst_n_i) is
+  begin
+    if rst_n_i = '0' then
+      rc_overflow_sum <= (others => '0');
+      rc_valid_sum    <= (others => '0');
+    elsif rising_edge(clk_i) then
+      rc_overflow_sum <= f_eca_add(rc_overflow_sum, sc_overflow);
+      rc_valid_sum    <= f_eca_add(rc_valid_sum,    sc_valid);
+    end if;
+  end process;
+  
+  counters_main : process(clk_i) is
+  begin
+    if rising_edge(clk_i) then
+      rc_overflow_gray <= f_eca_gray_encode(rc_overflow_sum);
+      rc_valid_gray    <= f_eca_gray_encode(rc_valid_sum);
+    end if;
+  end process;
+  
+  counters_out : process(snoop_clk_i) is
+  begin
+    if rising_edge(snoop_clk_i) then
+      rs0_overflow_gray <= rc_overflow_gray;
+      rs1_overflow_gray <= rs0_overflow_gray;
+      rs0_valid_gray    <= rc_valid_gray;
+      rs1_valid_gray    <= rs0_valid_gray;
+      rs_overflow_sum   <= f_eca_gray_decode(rs1_overflow_gray, 1);
+      rs_valid_sum      <= f_eca_gray_decode(rs1_valid_gray, 1);
+      rs_overflow_done  <= rs_overflow_sum;
+      rs_valid_done     <= rs_valid_sum;
+    end if;
+  end process;
+  
+  counters_out_control : process(snoop_clk_i, snoop_rst_n_i) is
+  begin
+    if snoop_rst_n_i = '0' then
+      rs_overflow <= (others => '0');
+      rs_valid    <= (others => '0');
+    elsif rising_edge(snoop_clk_i) then
+      rs_overflow <= f_eca_delta(rs_overflow, rs_overflow_done, rs_overflow_sum);
+      rs_valid    <= f_eca_delta(rs_valid,    rs_valid_done,    rs_valid_sum);
+    end if;
+  end process;
+  
+  overflow_o     <= sc_overflow;
+  num_overflow_o <= rs_overflow;
+  num_valid_o    <= rs_valid;
 
 end rtl;
