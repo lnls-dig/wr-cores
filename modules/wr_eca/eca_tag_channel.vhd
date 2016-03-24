@@ -72,7 +72,7 @@ architecture rtl of eca_tag_channel is
   constant c_ext_bits      : natural := c_log_channels + 4;                   -- Format: [num early late set clear]
   constant c_list_bits     : natural := c_log_channels + 2 + c_log_scan_size; -- Format: [num code low-index]
   constant c_fifo_bits     : natural := c_log_channels + 1 + 2 + g_log_size;  -- Format: [num next code index]
-  constant c_pipeline_depth: natural := 7;
+  constant c_pipeline_depth: natural := 8;
   
   constant c_code_bits     : natural := 2;
   constant c_code_empty    : std_logic_vector(1 downto 0) := "00";
@@ -112,12 +112,15 @@ architecture rtl of eca_tag_channel is
   signal r_time         : t_time;
   signal s_free_full    : std_logic;
   signal s_free_alloc   : std_logic_vector(g_log_size-1 downto 0);
-  signal r_free_entry   : std_logic_vector(g_log_size-1 downto 0);
   signal s_data_index   : std_logic_vector(g_log_size-1 downto 0);
+  signal r_data_index0  : std_logic_vector(g_log_size-1 downto 0);
+  signal r_data_index1  : std_logic_vector(g_log_size-1 downto 0);
   signal s_data_accept  : std_logic;
   signal s_ext          : std_logic_vector(c_ext_bits-1 downto 0);
   signal s_data_channel : t_channel;
-  signal r_data_channel : t_channel;
+  signal r_skid_channel : t_channel;
+  signal s_mux_channel  : t_channel;
+  signal r_channel      : t_channel;
   signal r_last_time    : std_logic := '0';
   signal r_cal_reset    : std_logic_vector(c_log_cal_size downto 0) := (others => '0');
   signal s_cal_ready    : std_logic;
@@ -635,37 +638,63 @@ begin
     if rising_edge(clk_i) then
       r_fifo_data_i<= s_fifo_data_i;
       if s_stall = '0' then
-        r_mux_data   <= s_mux_data;
-        r_free_entry <= s_data_index;
+        r_mux_data    <= s_mux_data;
+        r_data_index0 <= s_data_index;
+        r_data_index1 <= r_data_index0;
       end if;
       if r_stall = '0' then
-        r_data_channel <= s_data_channel;
+        r_skid_channel <= s_data_channel;
       end if;
     end if;
   end process;
+  
+  -- Implement a skidpad to allow us to snoop while stalled
+  --   => this is necessary so we can make forward progress reading errors in saftlib
+  --      otherwise, a receiving component could hang the channel and thus hang wishbone
+  -- This bypass is what makes it safe to set s_data_index to snoop_i
+  s_mux_channel.valid    <= '1';
+  s_mux_channel.delayed  <= f_eca_mux(r_stall, r_skid_channel.delayed,  s_data_channel.delayed);
+  s_mux_channel.conflict <= f_eca_mux(r_stall, r_skid_channel.conflict, s_data_channel.conflict);
+  s_mux_channel.late     <= f_eca_mux(r_stall, r_skid_channel.late,     s_data_channel.late);
+  s_mux_channel.early    <= f_eca_mux(r_stall, r_skid_channel.early,    s_data_channel.early);
+  s_mux_channel.num      <= f_eca_mux(r_stall, r_skid_channel.num,      s_data_channel.num);
+  s_mux_channel.event    <= f_eca_mux(r_stall, r_skid_channel.event,    s_data_channel.event);
+  s_mux_channel.param    <= f_eca_mux(r_stall, r_skid_channel.param,    s_data_channel.param);
+  s_mux_channel.tag      <= f_eca_mux(r_stall, r_skid_channel.tag,      s_data_channel.tag);
+  s_mux_channel.tef      <= f_eca_mux(r_stall, r_skid_channel.tef,      s_data_channel.tef);
+  s_mux_channel.time     <= f_eca_mux(r_stall, r_skid_channel.time,     s_data_channel.time);
 
   -- Only valid if the errors are accepted by the condition rule
-  s_valid <= r_stall or (r_mux_valid and
-    (not r_delayed  or s_data_channel.delayed)  and
-    (not r_conflict or s_data_channel.conflict) and
-    (not r_late     or s_data_channel.late)     and
-    (not r_early    or s_data_channel.early));
-  s_stall <= stall_i and s_valid; -- Stall if we are reporting something not accepted
+  s_valid <= r_mux_valid and
+    (not r_delayed  or s_mux_channel.delayed)  and
+    (not r_conflict or s_mux_channel.conflict) and
+    (not r_late     or s_mux_channel.late)     and
+    (not r_early    or s_mux_channel.early);
+  s_stall <= stall_i and r_channel.valid; -- Stall if we are reporting something not accepted
+  
+  -- Register the outputs
+  output : process(clk_i) is
+  begin
+    if rising_edge(clk_i) then
+      if s_stall = '0' then
+        r_channel.valid    <= s_valid and not r_stall;
+        r_channel.delayed  <= r_delayed or (s_valid and r_stall);
+        r_channel.conflict <= r_conflict;
+        r_channel.late     <= r_late;
+        r_channel.early    <= r_early;
+        r_channel.num      <= s_mux_channel.num;
+        r_channel.event    <= s_mux_channel.event;
+        r_channel.param    <= s_mux_channel.param;
+        r_channel.tag      <= s_mux_channel.tag;
+        r_channel.tef      <= s_mux_channel.tef;
+        r_channel.time     <= s_mux_channel.time;
+      end if;
+    end if;
+  end process;
   
   -- We're done!
-  channel_o.valid    <= s_valid;
-  channel_o.delayed  <= r_delayed;
-  channel_o.conflict <= r_conflict;
-  channel_o.late     <= r_late;
-  channel_o.early    <= r_early;
-  channel_o.num      <= f_eca_mux(r_stall, r_data_channel.num,   s_data_channel.num);
-  channel_o.event    <= f_eca_mux(r_stall, r_data_channel.event, s_data_channel.event);
-  channel_o.param    <= f_eca_mux(r_stall, r_data_channel.param, s_data_channel.param);
-  channel_o.tag      <= f_eca_mux(r_stall, r_data_channel.tag,   s_data_channel.tag);
-  channel_o.tef      <= f_eca_mux(r_stall, r_data_channel.tef,   s_data_channel.tef);
-  channel_o.time     <= f_eca_mux(r_stall, r_data_channel.time,  s_data_channel.time);
-  
-  index_o <= r_free_entry;
+  channel_o <= r_channel;
+  index_o   <= r_data_index1;
   
   -- Report snooped action
   snoop_o    <= s_data_channel;
@@ -706,5 +735,5 @@ begin
   io_no : if not g_support_io generate
     io_o <= (others => (others => '0'));
   end generate;
-   
+
 end rtl;

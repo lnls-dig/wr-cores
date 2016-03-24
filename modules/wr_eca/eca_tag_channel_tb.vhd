@@ -80,7 +80,7 @@ architecture rtl of eca_tag_channel_tb is
   constant c_log_latency    : natural := c_log_size + c_log_multiplier + 1 - c_log_calendars;
   constant c_log_max_delay  : natural := c_log_latency+2; -- ensures testing of 'early'
   constant c_ticks          : natural := 2**c_log_multiplier;
-  constant c_pipeline_depth : natural := 12;
+  constant c_pipeline_depth : natural := 13;
   
   signal r_time     : t_time    := (others => '0');
   signal r_stall    : std_logic;
