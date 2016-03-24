@@ -375,7 +375,7 @@ begin
         s_list_dat(b) <= f_eca_or(s_slot_mux(b));
       end generate;
       
-      -- Format: [num code low-index]*c_slots
+      -- Format: [code low-index]*c_slots
       calendar : eca_rmw
         generic map(
           g_addr_bits => c_log_cal_size,
@@ -399,7 +399,7 @@ begin
       s_cal_b_data_i(c_list_wide-1 downto 0) <= s_cal_b_list_i;
       
       -- No need to wipe on reset; it is only read if calendar pointed into it
-      -- Format: [num code low-index]
+      -- Format: [code low-index]
       list : eca_sdp
         generic map(
           g_addr_bits  => c_log_scan_size,
@@ -507,7 +507,7 @@ begin
     s_cal_next(s) <= s_cal_valid(s) and (s_cal_valid(s) - 1);
   end generate;
   
-  -- Format: [num next code index]
+  -- Format: [next code index]
   fifo : eca_piso_fifo
     generic map(
       g_log_size  => g_log_size,
