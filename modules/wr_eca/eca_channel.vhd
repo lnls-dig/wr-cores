@@ -116,6 +116,8 @@ architecture rtl of eca_channel is
   signal s_count_i  : std_logic_vector(c_count_bits-1 downto 0);
   signal s_index_o  : std_logic_vector(g_log_size-1 downto 0);
   signal s_index_i  : std_logic_vector(g_log_size-1 downto 0);
+  signal r_hold     : std_logic;
+  signal r_time     : t_time;
   signal s_time_o   : t_time;
   signal s_time_i   : t_time;
   signal s_zero     : std_logic;
@@ -294,6 +296,8 @@ begin
       w_addr_i => s_widx,
       w_data_i => s_data_i);
   
+  -- !!! missing MSI for valid(n)/overflow/full
+  
   s_error <= s_channel_o.late or s_channel_o.early or s_channel_o.conflict or s_channel_o.delayed;
   s_final <= f_eca_mux(s_channel_o.valid, not stall_i, s_error); -- Index should be freed (if not stolen)
   s_busy  <= s_error and s_final; -- Is this the final time we see this error?
@@ -327,7 +331,7 @@ begin
   s_wen     <= r_busy or s_atom_free or not s_safe; -- r_busy and s_atom_free are mutually exclusive
   s_count_i <= f_eca_mux(r_busy, f_increment(s_count_o), c_zero);
   s_index_i <= f_eca_mux(s_zero, r_index, s_index_o);
-  s_time_i  <= f_eca_mux(s_zero, time_i,  s_time_o);
+  s_time_i  <= f_eca_mux(s_zero, r_time,  s_time_o);
   s_data_i  <= s_time_i & s_count_i & s_index_i;
   
   -- Track the number of valid actions for each subchannel
@@ -456,6 +460,13 @@ begin
       r_val_ridx  <= s_val_ridx;
       r_index     <= s_index;
       r_free_idx  <= s_free_idx;
+      
+      -- Delay time by one cycle, to match when the error came out
+      -- Hold the time stationary in case there is a stall; record when we first reported it
+      r_hold <= stall_i and s_channel_o.valid;
+      if r_hold = '0' then
+        r_time <= time_i;
+      end if;
     end if;
   end process;
   
