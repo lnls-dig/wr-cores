@@ -73,7 +73,8 @@ end eca_channel;
 architecture rtl of eca_channel is
 
   constant c_count_bits : natural := g_log_counter;
-  constant c_addr_bits  : natural := 2 + f_eca_log2_min1(g_num_channels);
+  constant c_valid_bits : natural := f_eca_log2_min1(g_num_channels);
+  constant c_saved_bits : natural := 2 + c_valid_bits;
   constant c_data_bits  : natural := g_log_size + c_count_bits;
   constant c_num_bits   : natural := f_eca_log2_min1(g_num_channels);
   
@@ -93,7 +94,6 @@ architecture rtl of eca_channel is
   signal s_free_idx : std_logic_vector(g_log_size-1 downto 0);
   signal r_free_idx : std_logic_vector(g_log_size-1 downto 0);
   
-  signal s_valid    : std_logic;
   signal s_error    : std_logic;
   signal s_final    : std_logic;
   signal r_final    : std_logic := '0';
@@ -105,9 +105,9 @@ architecture rtl of eca_channel is
   signal s_late_free: std_logic;
 
   signal s_wen      : std_logic;
-  signal s_ridx     : std_logic_vector(c_addr_bits-1 downto 0);
-  signal r_ridx     : std_logic_vector(c_addr_bits-1 downto 0);
-  signal s_widx     : std_logic_vector(c_addr_bits-1 downto 0);
+  signal s_ridx     : std_logic_vector(c_saved_bits-1 downto 0);
+  signal r_ridx     : std_logic_vector(c_saved_bits-1 downto 0);
+  signal s_widx     : std_logic_vector(c_saved_bits-1 downto 0);
   signal s_data_i   : std_logic_vector(c_data_bits-1 downto 0);
   signal s_data_o   : std_logic_vector(c_data_bits-1 downto 0);
   signal s_count_o  : std_logic_vector(c_count_bits-1 downto 0);
@@ -116,13 +116,21 @@ architecture rtl of eca_channel is
   signal s_index_i  : std_logic_vector(g_log_size-1 downto 0);
   signal s_zero     : std_logic;
   
+  signal s_valid    : std_logic;
+  signal r_valid    : std_logic := '0';
+  signal s_val_ridx : std_logic_vector(c_valid_bits-1 downto 0);
+  signal r_val_ridx : std_logic_vector(c_valid_bits-1 downto 0);
+  signal s_val_widx : std_logic_vector(c_valid_bits-1 downto 0);
+  signal s_val_wen  : std_logic;
+  signal s_val_data_i : std_logic_vector(c_count_bits-1 downto 0);
+  signal s_val_data_o : std_logic_vector(c_count_bits-1 downto 0);
+  
   -- Count the number of overflowing and executed actions
-  --signal r_num_executed : std_logic_vector(c_count_bits-1 downto 0); -- !!! matrix?
-  --signal s_num_executed : std_logic_vector(31 downto 0);
+  signal r_most_used    : std_logic_vector(g_log_size downto 0)     := (others => '0');
   signal r_num_overflow : std_logic_vector(c_count_bits-1 downto 0) := (others => '0');
-  signal s_num_overflow : std_logic_vector(31 downto 0);
-  signal r_most_used    : std_logic_vector(g_log_size downto 0) := (others => '0');
-  signal s_used_output  : std_logic_vector(31 downto 0);
+  signal s_num_overflow : std_logic_vector(31 downto 0)             := (others => '0');
+  signal s_val_count    : std_logic_vector(31 downto 0)             := (others => '0');
+  signal s_used_output  : std_logic_vector(31 downto 0)             := (others => '0');
   
   -- Latched by bus_clk_i, but held until request is complete
   signal s_req_in     : std_logic;
@@ -140,8 +148,10 @@ architecture rtl of eca_channel is
   signal rc_req_type  : std_logic_vector(1 downto 0);
   signal rc_req_field : std_logic_vector(3 downto 0);
   signal s_local_field: std_logic;
+  signal s_valid_field: std_logic;
   signal s_over_field : std_logic;
   signal s_used_field : std_logic;
+  signal s_valid_clear: std_logic;
   signal s_over_clear : std_logic;
   signal s_used_clear : std_logic;
   
@@ -158,12 +168,13 @@ architecture rtl of eca_channel is
   signal s_req_idx : std_logic;
   signal r_req_idx : std_logic_vector(g_log_size-1 downto 0);
   signal r_req_cnt : std_logic_vector(c_count_bits-1 downto 0);
-  signal s_req_cnt : std_logic_vector(31 downto 0); -- sign extended
+  signal s_req_cnt : std_logic_vector(31 downto 0) := (others => '0');
   
   -- Remember the data requested
   signal s_req_dok : std_logic;
   signal r_req_dok : std_logic := '1';
   signal s_req_dat : std_logic_vector(31 downto 0);
+  signal s_req_val : std_logic;
   signal rc_req_dat: std_logic_vector(31 downto 0);
   
   -- Synchronize the output strobe
@@ -245,7 +256,7 @@ begin
   -- Goal is to intercept error conditions and record their indices
   saved : eca_sdp
     generic map(
-      g_addr_bits  => c_addr_bits,
+      g_addr_bits  => c_saved_bits,
       g_data_bits  => c_data_bits,
       g_bypass     => true,
       g_dual_clock => false)
@@ -258,7 +269,6 @@ begin
       w_addr_i => s_widx,
       w_data_i => s_data_i);
   
-  s_valid <= s_channel.valid and not stall_i; -- an action can be both s_valid and s_error
   s_error <= s_channel.late or s_channel.early or s_channel.conflict or s_channel.delayed;
   s_final <= f_eca_mux(s_channel.valid, not stall_i, s_error); -- Index should be freed (if not stolen)
   s_busy  <= s_error and s_final; -- Is this the final time we see this error?
@@ -292,19 +302,38 @@ begin
   s_index_i <= f_eca_mux(s_zero, r_index, s_index_o);
   s_data_i  <= s_count_i & s_index_i;
   
-  -- Sign-extend r_req_cnt, r_num_overflow
-  s_req_cnt(s_req_cnt'high   downto r_req_cnt'high) <= (others => r_req_cnt(r_req_cnt'high));
-  s_req_cnt(r_req_cnt'high-1 downto r_req_cnt'low)  <= r_req_cnt(r_req_cnt'high-1 downto r_req_cnt'low);
-  s_num_overflow(s_num_overflow'high   downto r_num_overflow'high) <= (others => r_num_overflow(r_num_overflow'high));
-  s_num_overflow(r_num_overflow'high-1 downto r_num_overflow'low)  <= r_num_overflow(r_num_overflow'high-1 downto r_num_overflow'low);
+  -- Track the number of valid actions for each subchannel
+  valid : eca_sdp
+    generic map(
+      g_addr_bits  => c_valid_bits,
+      g_data_bits  => c_count_bits,
+      g_bypass     => true,
+      g_dual_clock => false)
+    port map(
+      r_clk_i  => clk_i,
+      r_addr_i => s_val_ridx,
+      r_data_o => s_val_data_o,
+      w_clk_i  => clk_i,
+      w_en_i   => s_val_wen,
+      w_addr_i => s_val_widx,
+      w_data_i => s_val_data_i);
   
-  s_used_output(31 downto g_log_size+17) <= (others => '0');
+  s_valid <= s_channel.valid and not stall_i;
+  s_val_ridx <= f_eca_mux(s_valid, s_num, rc_req_num);
+  s_val_widx <= r_val_ridx;
+  s_val_wen  <= r_valid or s_valid_clear;
+  s_val_data_i <= f_eca_mux(r_valid, f_increment(s_val_data_o), c_zero);
+  
+  -- Zero-extend r_req_cnt, r_num_overflow, s_val_data_o
+  s_req_cnt(r_req_cnt'range) <= r_req_cnt;
+  s_num_overflow(r_num_overflow'range) <= r_num_overflow;
+  s_val_count(s_val_data_o'range) <= s_val_data_o;
   s_used_output(g_log_size+16 downto 16) <= s_used;
-  s_used_output(15 downto g_log_size+ 1) <= (others => '0');
   s_used_output(g_log_size+ 0 downto  0) <= r_most_used;
   
   -- Fields with both high bits set are global channel parameters
-  s_local_field <= not (rc_req_field(3) and rc_req_field(2));
+  s_local_field <= not (rc_req_field(3) and rc_req_field(2)); -- field is in 'saved'
+  s_valid_field <= f_eca_eq(rc_req_field, "1101");
   s_over_field  <= f_eca_eq(rc_req_field, "1100");
   s_used_field  <= f_eca_eq(rc_req_field, "1111");
   
@@ -320,13 +349,33 @@ begin
     s_snoop.time (31 downto  0) when "0111",
     -- exec0 when "1000",
     -- exec1 when "1001",
-    s_req_cnt                   when "1010",
-    -- s_num_valid              when "1011",
+    -- reserved                 when "1010",
+    s_req_cnt                   when "1011",
     s_num_overflow              when "1100",
-    -- reserved                 when "1101",
+    s_val_count                 when "1101",
     -- reserved                 when "1110",
     s_used_output               when "1111",
     (others => 'X') when others;
+  
+  with rc_req_field select
+  s_req_val <=
+    s_snoop_ok  when "0000",
+    s_snoop_ok  when "0001",
+    s_snoop_ok  when "0010",
+    s_snoop_ok  when "0011",
+    s_snoop_ok  when "0100",
+    s_snoop_ok  when "0101",
+    s_snoop_ok  when "0110",
+    s_snoop_ok  when "0111",
+    '1'         when "1000", -- exec0 (saved)
+    '1'         when "1001", -- exec1 (saved)
+    -- reserved when "1010",
+    '1'         when "1011", -- count (saved)
+    '1'         when "1100", -- #overflow (reg)
+    not r_valid when "1101", -- #exec (valid)
+    -- reserved when "1110",
+    '1'         when "1111", -- #used (reg)
+    '1'         when others;
   
   -- Clock enable for registers going from bus_clk => clk (bus_clk side)
   s_req_in <= not r_req_old and req_stb_i;
@@ -335,14 +384,15 @@ begin
   -- Clock enable for count register going from clk => bus_clk (clk side)
   s_req_idx <= r_req_rok and not r_req_aok and not r_busy;
   -- Clock enable for data register going from clk => bus_clk (clk side)
-  s_req_dok <= s_snoop_ok and r_req_sok and not r_req_dok;
+  s_req_dok <= s_req_val and r_req_sok and not r_req_dok;
   -- Only allow the request to complete when there's a slot we could potentially free in
   s_req_ack <= r_req_dok and not r_final and not r_req_ack;
   -- Clock enable for the registers going from clk => bus_clk (bus_clk side)
   s_req_ook <= r_req_xor8 xor r_req_xor7;
   
-  s_over_clear <= s_req_dok and s_over_field and rc_req_clear;
-  s_used_clear <= s_req_dok and s_used_field and rc_req_clear;
+  s_valid_clear <= s_req_dok and s_valid_field and rc_req_clear;
+  s_over_clear  <= s_req_dok and s_over_field  and rc_req_clear;
+  s_used_clear  <= s_req_dok and s_used_field  and rc_req_clear;
   
   stat_control : process(clk_i, rst_n_i) is
   begin
@@ -350,12 +400,14 @@ begin
       r_free_stb <= '0';
       r_busy     <= '0';
       r_final    <= '0';
+      r_valid    <= '0';
       r_num_overflow <= (others => '0');
       r_most_used    <= (others => '0');
     elsif rising_edge(clk_i) then
       r_free_stb <= s_free_stb;
       r_busy     <= s_busy;
       r_final    <= s_final;
+      r_valid    <= s_valid;
       
       r_num_overflow <= f_increment(f_eca_mux(s_over_clear, c_zero, r_num_overflow), s_overflow);
       
@@ -373,6 +425,7 @@ begin
   begin
     if rising_edge(clk_i) then
       r_ridx      <= s_ridx;
+      r_val_ridx  <= s_val_ridx;
       r_index     <= s_index;
       r_free_idx  <= s_free_idx;
     end if;
