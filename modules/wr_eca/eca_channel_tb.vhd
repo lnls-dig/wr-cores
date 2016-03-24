@@ -98,6 +98,8 @@ architecture rtl of eca_channel_tb is
   signal s_valid    : std_logic;
   signal s_channel  : t_channel;
   signal s_overflow : std_logic;
+  signal s_msi_stb  : std_logic;
+  signal r_msi_ack  : std_logic;
   signal s_io       : t_eca_matrix(c_num_channels-1 downto 0, 2**c_log_multiplier-1 downto 0);
   
   function f_nat(x : std_logic) return natural is
@@ -136,6 +138,9 @@ begin
       snoop_count_o  => open,
       num_overflow_o => open,
       num_valid_o    => open,
+      msi_ack_i      => r_msi_ack,
+      msi_stb_o      => s_msi_stb,
+      msi_dat_o      => open,
       stall_i        => r_stall,
       channel_o      => s_channel,
       num_o          => s_num,
@@ -167,6 +172,7 @@ begin
     variable seq    : t_time;
     variable flags  : natural;
     variable index  : natural;
+    variable msi_ack : std_logic_vector(3 downto 0);
     
     variable snum   : std_logic_vector(c_num_wide-1 downto 0);
     variable stype  : std_logic_vector(1 downto 0);
@@ -179,6 +185,7 @@ begin
       r_channel <= c_idle_channel;
       r_stall   <= '0';
       r_stb     <= '0';
+      r_msi_ack <= '0';
       seq := (others => '0');
       ignore := '0';
     elsif rising_edge(clk_i) then
@@ -198,6 +205,7 @@ begin
       p_eca_uniform(s1, s2, snum);
       p_eca_uniform(s1, s2, stype);
       p_eca_uniform(s1, s2, sfield);
+      p_eca_uniform(s1, s2, msi_ack);
       
       -- Only insert an action if the test slot was not taken
       index := to_integer(unsigned(param(c_log_size downto 0)));
@@ -233,6 +241,7 @@ begin
       r_clr   <= clr;
       r_set   <= set;
       r_stall <= stall;
+      r_msi_ack <= s_msi_stb and f_eca_and(msi_ack);
       
       -- Consider poking/inspecting the channel
       if r_stb = '0' and stb = '1' then

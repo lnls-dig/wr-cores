@@ -62,9 +62,9 @@ entity eca_channel is
     snoop_count_o : out std_logic_vector(g_log_counter-1 downto 0); -- saturates if not freed
     num_overflow_o: out std_logic_vector(g_log_counter-1 downto 0); -- wraps around (also snoop_clk_i)
     num_valid_o   : out std_logic_vector(g_log_counter-1 downto 0); -- ditto
-    --msi_stb_o  : out std_logic;
-    --msi_ack_i  : in  std_logic;
-    --msi_low_o  : out std_logic_vector(15 downto 0); -- # (type) ... (num)
+    msi_ack_i     : in  std_logic;
+    msi_stb_o     : out std_logic;
+    msi_dat_o     : out std_logic_vector(15 downto 0);
     -- Output of the channel
     stall_i    : in  std_logic;
     channel_o  : out t_channel;
@@ -167,6 +167,28 @@ architecture rtl of eca_channel is
   begin
     return f_eca_mux(f_eca_and(x), x, f_eca_add(x, 1));
   end f_increment;
+  
+  -- Interrupt vector processing and crossing
+  signal r_raised    : std_logic_vector(g_num_channels*4-1 downto 0) := (others => '0');
+  signal r_masked    : std_logic_vector(g_num_channels*4-1 downto 0) := (others => '0');
+  signal s_pending   : std_logic_vector(g_num_channels*4-1 downto 0);
+  signal s_selected  : std_logic_vector(g_num_channels*4-1 downto 0);
+  signal r_selected  : std_logic_vector(g_num_channels*4-1 downto 0);
+  signal sc_msi_rdy  : std_logic;
+  signal rc_msi_rdy  : std_logic := '0';
+  signal rc_msi_xor  : std_logic := '0';
+  signal rc_msi_out  : std_logic_vector(f_eca_log2(g_num_channels)+1 downto 0);
+  signal rs_msi_xor1 : std_logic := '0';
+  signal rs_msi_xor2 : std_logic := '0';
+  signal rs_msi_xor3 : std_logic := '0';
+  signal ss_msi_rdy  : std_logic;
+  signal rs_msi_rdy  : std_logic := '0';
+  signal rs_msi_out  : std_logic_vector(f_eca_log2(g_num_channels)+1 downto 0);
+  signal rs_ack_xor  : std_logic := '0';
+  signal rc_ack_xor1 : std_logic := '0';
+  signal rc_ack_xor2 : std_logic := '0';
+  signal rc_ack_xor3 : std_logic := '0';
+  signal sc_ack      : std_logic;
   
   -- Cross simple counters across the domains
   signal sc_overflow       : std_logic;
@@ -433,6 +455,93 @@ begin
   snoop_valid_o <= r_req_out;
   snoop_data_o  <= rs_req_dat;
   snoop_count_o <= rs_req_cnt;
+  
+  -- Calculate the MSI
+  sc_msi_rdy <= f_eca_or(r_selected);
+  msi_control : process(clk_i, rst_n_i) is
+  begin
+    if rst_n_i = '0' then
+      r_raised    <= (others => '0');
+      r_masked    <= (others => '0');
+      rc_msi_rdy  <= '0';
+      rc_msi_xor  <= '0';
+      rc_ack_xor1 <= '0';
+      rc_ack_xor2 <= '0';
+      rc_ack_xor3 <= '0';
+    elsif rising_edge(clk_i) then
+      -- Set/clear the interrupt corresponding to written table entry
+      if s_wen = '1' then
+        r_raised(to_integer(unsigned(s_widx))) <= r_busy;
+      end if;
+      -- Mask out an interrupt after we've selected it for delivery already
+      if rc_msi_rdy = '0' then
+        r_masked   <= r_masked or r_selected;
+        rc_msi_rdy <= sc_msi_rdy;
+        rc_msi_xor <= rc_msi_xor xor sc_msi_rdy;
+      else
+        rc_msi_rdy <= rc_ack_xor3 xnor rc_ack_xor2;
+      end if;
+      -- When counters are cleared, demask the interrupt so it can be delivered again
+      if s_atom_free = '1' then
+        r_masked(to_integer(unsigned(s_widx))) <= '0';
+      end if;
+      -- Sync the ack
+      rc_ack_xor1 <= rs_ack_xor;
+      rc_ack_xor2 <= rc_ack_xor1;
+      rc_ack_xor3 <= rc_ack_xor2;
+    end if;
+  end process;
+  
+  -- Arbitrate the raised interrupts
+  s_pending  <= r_raised and not r_masked;
+  s_selected <= s_pending and f_eca_add(not s_pending, 1);
+  
+  msi_decode : process(clk_i) is
+  begin
+    if rising_edge(clk_i) then
+      -- The 2-cycle recurrance between r_masked=>r_selected=>r_masked is safe,
+      -- because rc_msi_rdy must transition =>1 and then =>0 before the next pop.
+      r_selected <= s_selected;
+      if rc_msi_rdy = '0' then
+        rc_msi_out <= f_eca_1hot_decode(r_selected);
+      end if;
+    end if;
+  end process;
+  
+  ss_msi_rdy <= rs_msi_xor2 xor rs_msi_xor3;
+  msi_output : process(snoop_clk_i, snoop_rst_n_i)  is
+  begin
+    if snoop_rst_n_i = '0' then
+      rs_msi_xor1 <= '0';
+      rs_msi_xor2 <= '0';
+      rs_msi_xor3 <= '0';
+      rs_msi_rdy  <= '0';
+      rs_ack_xor  <= '0';
+    elsif rising_edge(snoop_clk_i) then
+      rs_msi_xor1 <= rc_msi_xor;
+      rs_msi_xor2 <= rs_msi_xor1;
+      rs_msi_xor3 <= rs_msi_xor2;
+      if ss_msi_rdy = '1' then
+        rs_msi_rdy <= '1';
+      elsif msi_ack_i = '1' then
+        rs_msi_rdy <= '0';
+      end if;
+      rs_ack_xor <= rs_ack_xor xor msi_ack_i;
+    end if;
+  end process;
+  
+  msi_output_bulk : process(snoop_clk_i) is
+  begin
+    if rising_edge(snoop_clk_i) then
+      if ss_msi_rdy = '1' then
+        rs_msi_out <= rc_msi_out;
+      end if;
+    end if;
+  end process;
+  
+  msi_stb_o <= rs_msi_rdy;
+  msi_dat_o(msi_dat_o'high downto rs_msi_out'high+1) <= (others => '0');
+  msi_dat_o(rs_msi_out'range) <= rs_msi_out;
   
   -- Number of output actions
   sc_valid <= s_channel.valid and not stall_i;

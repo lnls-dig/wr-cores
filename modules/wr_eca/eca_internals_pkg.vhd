@@ -89,6 +89,7 @@ package eca_internals_pkg is
   function f_eca_add(x : std_logic_vector; y : std_logic) return std_logic_vector;
   function f_eca_add(x, y : std_logic_vector) return std_logic_vector;
   function f_eca_delta(x, previous, current : std_logic_vector) return std_logic_vector;
+  function f_eca_1hot_decode(x : std_logic_vector) return std_logic_vector;
   
   procedure p_eca_uniform(variable s1, s2 : inout positive; variable x : inout std_logic_vector);
   procedure p_eca_uniform(variable s1, s2 : inout positive; variable x : inout std_logic);
@@ -428,9 +429,9 @@ package eca_internals_pkg is
       snoop_count_o : out std_logic_vector(g_log_counter-1 downto 0); -- saturates if not freed
       num_overflow_o: out std_logic_vector(g_log_counter-1 downto 0); -- wraps around (also snoop_clk_i)
       num_valid_o   : out std_logic_vector(g_log_counter-1 downto 0); -- ditto
-      --msi_stb_o  : out std_logic;
-      --msi_ack_i  : in  std_logic;
-      --msi_low_o  : out std_logic_vector(15 downto 0); -- # (type) ... (num)
+      msi_ack_i     : in  std_logic;
+      msi_stb_o     : out std_logic;
+      msi_dat_o     : out std_logic_vector(15 downto 0);
       -- Output of the channel
       stall_i    : in  std_logic;
       channel_o  : out t_channel;
@@ -698,6 +699,24 @@ package body eca_internals_pkg is
   begin
     return std_logic_vector(unsigned(x) + (unsigned(current) - unsigned(previous)));
   end function;
+  
+  function f_eca_1hot_decode(x : std_logic_vector) return std_logic_vector is
+    variable result : std_logic_vector(f_eca_log2_min1(x'length)-1 downto 0);
+    variable picked : std_logic_vector(x'range);
+    variable step   : natural := 1;
+  begin
+    for i in result'low to result'high loop
+      picked := (others => '0');
+      for j in picked'range loop
+        if (j / step) mod 2 = 1 then
+          picked(j) := x(j);
+        end if;
+      end loop;
+      result(i) := f_eca_or(picked);
+      step := step + step;
+    end loop;
+    return result;
+  end f_eca_1hot_decode;
   
   procedure p_eca_uniform(variable s1, s2 : inout positive; variable x : inout std_logic_vector) is
     constant c_take_bits : natural := 30;
