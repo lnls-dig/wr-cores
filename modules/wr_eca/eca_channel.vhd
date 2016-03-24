@@ -78,7 +78,11 @@ architecture rtl of eca_channel is
   
   constant c_zero : std_logic_vector(c_count_bits-1 downto 0) := (others => '0');
   
-  signal s_channel  : t_channel;
+  signal r_wipe : std_logic_vector(c_saved_bits downto 0) := (others => '0');
+  signal s_safe : std_logic;
+  
+  signal s_channel_i: t_channel;
+  signal s_channel_o: t_channel;
   signal s_snoop    : t_channel;
   signal s_used     : std_logic_vector(g_log_size   downto 0);
   signal s_overflow : std_logic;
@@ -221,6 +225,16 @@ architecture rtl of eca_channel is
 
 begin
 
+  reset : process(clk_i, rst_n_i) is
+  begin
+    if rst_n_i = '0' then
+      r_wipe <= (others => '0');
+    elsif rising_edge(clk_i) then
+      r_wipe <= f_eca_add(r_wipe, not s_safe);
+    end if;
+  end process;
+  s_safe <= r_wipe(r_wipe'high);
+
   channel : eca_tag_channel
     generic map(
       g_support_io     => g_support_io,
@@ -235,7 +249,7 @@ begin
       time_i     => time_i,
       used_o     => s_used,
       overflow_o => s_overflow,
-      channel_i  => channel_i,
+      channel_i  => s_channel_i,
       clr_i      => clr_i,
       set_i      => set_i,
       snoop_i    => r_req_idx,
@@ -244,12 +258,25 @@ begin
       free_i     => r_free_stb,
       index_i    => r_free_idx,
       stall_i    => stall_i,
-      channel_o  => s_channel,
+      channel_o  => s_channel_o,
       index_o    => s_index,
       io_o       => io_o);
   
-  overflow_o <= s_overflow;
-  channel_o  <= s_channel;
+  channel_o <= s_channel_o;
+  
+  -- Block access until wipe is complete
+  overflow_o           <= s_overflow or (channel_i.valid and not s_safe);
+  s_channel_i.valid    <= channel_i.valid and s_safe;
+  s_channel_i.delayed  <= channel_i.delayed;
+  s_channel_i.conflict <= channel_i.conflict;
+  s_channel_i.late     <= channel_i.late;
+  s_channel_i.early    <= channel_i.early;
+  s_channel_i.num      <= channel_i.num;
+  s_channel_i.event    <= channel_i.event;
+  s_channel_i.param    <= channel_i.param;
+  s_channel_i.tag      <= channel_i.tag;
+  s_channel_i.tef      <= channel_i.tef;
+  s_channel_i.time     <= channel_i.time;
   
   -- Goal is to intercept error conditions and record their indices
   saved : eca_sdp
@@ -267,8 +294,8 @@ begin
       w_addr_i => s_widx,
       w_data_i => s_data_i);
   
-  s_error <= s_channel.late or s_channel.early or s_channel.conflict or s_channel.delayed;
-  s_final <= f_eca_mux(s_channel.valid, not stall_i, s_error); -- Index should be freed (if not stolen)
+  s_error <= s_channel_o.late or s_channel_o.early or s_channel_o.conflict or s_channel_o.delayed;
+  s_final <= f_eca_mux(s_channel_o.valid, not stall_i, s_error); -- Index should be freed (if not stolen)
   s_busy  <= s_error and s_final; -- Is this the final time we see this error?
   s_steal <= r_busy and s_zero; -- Record this error for software diagnosis
 
@@ -281,12 +308,12 @@ begin
   s_free_idx <= f_eca_mux(r_final, r_index, r_req_idx);
   
   -- code: 0=late, 1=early, 2=conflict, 3=delayed
-  s_code(0) <= s_channel.early    or s_channel.delayed;
-  s_code(1) <= s_channel.conflict or s_channel.delayed;
+  s_code(0) <= s_channel_o.early    or s_channel_o.delayed;
+  s_code(1) <= s_channel_o.conflict or s_channel_o.delayed;
   
-  s_num  <= s_channel.num(s_num'range);
+  s_num  <= s_channel_o.num(s_num'range);
   s_ridx <= f_eca_mux(s_busy, s_num & s_code, rc_req_num & rc_req_type);
-  s_widx <= r_ridx;
+  s_widx <= f_eca_mux(s_safe, r_ridx, r_wipe(s_widx'range));
   
   s_time_o  <= s_data_o(c_data_bits-1 downto g_log_size+c_count_bits);
   s_count_o <= s_data_o(g_log_size+c_count_bits-1 downto g_log_size);
@@ -297,7 +324,7 @@ begin
   -- Note: for this to work, we need that the table is bypassed
   s_atom_free <= s_req_idx and sc_req_free;
 
-  s_wen     <= r_busy or s_atom_free; -- r_busy and s_atom_free are mutually exclusive
+  s_wen     <= r_busy or s_atom_free or not s_safe; -- r_busy and s_atom_free are mutually exclusive
   s_count_i <= f_eca_mux(r_busy, f_increment(s_count_o), c_zero);
   s_index_i <= f_eca_mux(s_zero, r_index, s_index_o);
   s_time_i  <= f_eca_mux(s_zero, time_i,  s_time_o);
@@ -319,10 +346,10 @@ begin
       w_addr_i => s_val_widx,
       w_data_i => s_val_data_i);
   
-  s_valid <= s_channel.valid and not stall_i;
+  s_valid <= s_channel_o.valid and not stall_i;
   s_val_ridx <= f_eca_mux(s_valid, s_num, rc_req_num);
-  s_val_widx <= r_val_ridx;
-  s_val_wen  <= r_valid or s_valid_clear;
+  s_val_widx <= f_eca_mux(s_safe, r_val_ridx, r_wipe(s_val_widx'range));
+  s_val_wen  <= r_valid or s_valid_clear or not s_safe;
   s_val_data_i <= f_eca_mux(r_valid, f_increment(s_val_data_o), c_zero);
   
   -- Zero-extend r_req_cnt, r_num_overflow, s_val_data_o
