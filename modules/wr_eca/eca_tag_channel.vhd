@@ -43,6 +43,7 @@ entity eca_tag_channel is
     time_i     : in  t_time;
     -- Push a record to the queue
     overflow_o : out std_logic;
+    used_o     : out std_logic_vector(g_log_size downto 0);
     channel_i  : in  t_channel;
     clr_i      : in  std_logic;
     set_i      : in  std_logic;
@@ -178,6 +179,7 @@ begin
     port map(
       clk_i   => clk_i,
       rst_n_i => rst_n_i,
+      used_o  => used_o,
       full_o  => s_free_full,
       alloc_i => channel_i.valid,
       entry_o => s_free_alloc,

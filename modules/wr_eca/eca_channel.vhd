@@ -81,6 +81,7 @@ architecture rtl of eca_channel is
   
   signal s_channel  : t_channel;
   signal s_snoop    : t_channel;
+  signal s_used     : std_logic_vector(g_log_size   downto 0);
   signal s_overflow : std_logic;
   signal s_index    : std_logic_vector(g_log_size-1 downto 0);
   signal r_index    : std_logic_vector(g_log_size-1 downto 0);
@@ -120,6 +121,8 @@ architecture rtl of eca_channel is
   --signal s_num_executed : std_logic_vector(31 downto 0);
   signal r_num_overflow : std_logic_vector(c_count_bits-1 downto 0) := (others => '0');
   signal s_num_overflow : std_logic_vector(31 downto 0);
+  signal r_most_used    : std_logic_vector(g_log_size downto 0) := (others => '0');
+  signal s_used_output  : std_logic_vector(31 downto 0);
   
   -- Latched by bus_clk_i, but held until request is complete
   signal s_req_in     : std_logic;
@@ -137,6 +140,10 @@ architecture rtl of eca_channel is
   signal rc_req_type  : std_logic_vector(1 downto 0);
   signal rc_req_field : std_logic_vector(3 downto 0);
   signal s_local_field: std_logic;
+  signal s_over_field : std_logic;
+  signal s_used_field : std_logic;
+  signal s_over_clear : std_logic;
+  signal s_used_clear : std_logic;
   
   -- Request signalling
   signal r_req_old  : std_logic := '0'; -- bus_clk
@@ -214,6 +221,7 @@ begin
       clk_i      => clk_i,
       rst_n_i    => rst_n_i,
       time_i     => time_i,
+      used_o     => s_used,
       overflow_o => s_overflow,
       channel_i  => channel_i,
       clr_i      => clr_i,
@@ -290,8 +298,15 @@ begin
   s_num_overflow(s_num_overflow'high   downto r_num_overflow'high) <= (others => r_num_overflow(r_num_overflow'high));
   s_num_overflow(r_num_overflow'high-1 downto r_num_overflow'low)  <= r_num_overflow(r_num_overflow'high-1 downto r_num_overflow'low);
   
+  s_used_output(31 downto g_log_size+17) <= (others => '0');
+  s_used_output(g_log_size+16 downto 16) <= s_used;
+  s_used_output(15 downto g_log_size+ 1) <= (others => '0');
+  s_used_output(g_log_size+ 0 downto  0) <= r_most_used;
+  
   -- Fields with both high bits set are global channel parameters
   s_local_field <= not (rc_req_field(3) and rc_req_field(2));
+  s_over_field  <= f_eca_eq(rc_req_field, "1100");
+  s_used_field  <= f_eca_eq(rc_req_field, "1111");
   
   with rc_req_field select
   s_req_dat <=
@@ -310,7 +325,7 @@ begin
     s_num_overflow              when "1100",
     -- reserved                 when "1101",
     -- reserved                 when "1110",
-    -- full                     when "1111",
+    s_used_output               when "1111",
     (others => 'X') when others;
   
   -- Clock enable for registers going from bus_clk => clk (bus_clk side)
@@ -326,6 +341,9 @@ begin
   -- Clock enable for the registers going from clk => bus_clk (bus_clk side)
   s_req_ook <= r_req_xor8 xor r_req_xor7;
   
+  s_over_clear <= s_req_dok and s_over_field and rc_req_clear;
+  s_used_clear <= s_req_dok and s_used_field and rc_req_clear;
+  
   stat_control : process(clk_i, rst_n_i) is
   begin
     if rst_n_i = '0' then
@@ -333,11 +351,21 @@ begin
       r_busy     <= '0';
       r_final    <= '0';
       r_num_overflow <= (others => '0');
+      r_most_used    <= (others => '0');
     elsif rising_edge(clk_i) then
       r_free_stb <= s_free_stb;
       r_busy     <= s_busy;
       r_final    <= s_final;
-      r_num_overflow <= f_increment(r_num_overflow, s_overflow);
+      
+      r_num_overflow <= f_increment(f_eca_mux(s_over_clear, c_zero, r_num_overflow), s_overflow);
+      
+      if unsigned(s_used) > unsigned(r_most_used) then
+        r_most_used <= s_used;
+      end if;
+      
+      if s_used_clear = '1' then
+        r_most_used <= (others => '0');
+      end if;
     end if;
   end process;
   

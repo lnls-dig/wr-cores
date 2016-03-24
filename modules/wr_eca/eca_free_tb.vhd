@@ -53,6 +53,7 @@ begin
     port map(
       clk_i      => clk_i,
       rst_n_i    => rst_n_i,
+      used_o     => open,
       full_o     => s_full,
       alloc_i    => s_alloc,
       entry_o    => s_entry_o,

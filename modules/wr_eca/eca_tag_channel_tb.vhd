@@ -114,6 +114,7 @@ begin
       clk_i        => clk_i,
       rst_n_i      => rst_n_i,
       time_i       => r_time,
+      used_o       => open,
       overflow_o   => s_overflow,
       channel_i    => r_channel,
       clr_i        => r_clr,

@@ -34,6 +34,7 @@ entity eca_free is
   port(
     clk_i   : in  std_logic;
     rst_n_i : in  std_logic;
+    used_o  : out std_logic_vector(g_log_size downto 0);
     full_o  : out std_logic;
     alloc_i : in  std_logic; -- consume the entry output when alloc_i=1
     entry_o : out std_logic_vector(g_log_size-1 downto 0);
@@ -108,6 +109,7 @@ begin
     end if;
   end process;
   
+  used_o  <= r_used;
   full_o  <= s_full;
   entry_o <= s_avail;
   

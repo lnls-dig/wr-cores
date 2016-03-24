@@ -287,6 +287,7 @@ package eca_internals_pkg is
     port(
       clk_i   : in  std_logic;
       rst_n_i : in  std_logic;
+      used_o  : out std_logic_vector(g_log_size downto 0);
       full_o  : out std_logic;
       alloc_i : in  std_logic; -- consume the entry output when alloc_i=1
       entry_o : out std_logic_vector(g_log_size-1 downto 0);
@@ -367,6 +368,7 @@ package eca_internals_pkg is
       time_i     : in  t_time;
       -- Push a record to the queue
       overflow_o : out std_logic;
+      used_o     : out std_logic_vector(g_log_size downto 0);
       channel_i  : in  t_channel;
       clr_i      : in  std_logic;
       set_i      : in  std_logic;
