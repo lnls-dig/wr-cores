@@ -118,7 +118,7 @@ architecture rtl of eca_tag_channel is
   signal s_data_channel : t_channel;
   signal r_skid_channel : t_channel;
   signal s_mux_channel  : t_channel;
-  signal r_channel      : t_channel;
+  signal r_channel      : t_channel := c_idle_channel;
   signal r_last_time    : std_logic := '0';
   signal r_cal_reset    : std_logic_vector(c_log_cal_size downto 0) := (others => '0');
   signal s_cal_ready    : std_logic;
@@ -644,7 +644,7 @@ begin
   s_late     <= r_mux_valid and r_mux_late;
   s_early    <= r_mux_valid and r_mux_early;
   s_conflict <= (r_mux_valid and r_mux_next and s_saw_valid) and not (s_late or s_early);
-  s_delayed  <= (r_mux_valid and (r_mux_delay or r_stall))  and not (s_late or s_early or s_conflict);
+  s_delayed  <= (r_mux_valid and (r_mux_delay or r_stall))   and not (s_late or s_early or s_conflict);
   
   -- Only valid if the errors are accepted by the condition rule
   s_valid <= r_mux_valid and
@@ -657,15 +657,29 @@ begin
   s_stall <= stall_i and r_channel.valid;
   
   -- Register the outputs
-  output : process(clk_i) is
+  output_control : process(clk_i, rst_n_i) is
   begin
-    if rising_edge(clk_i) then
+    if rst_n_i = '0' then
+      r_channel.valid    <= '0';
+      r_channel.delayed  <= '0';
+      r_channel.conflict <= '0';
+      r_channel.late     <= '0';
+      r_channel.early    <= '0';
+    elsif rising_edge(clk_i) then
       if s_stall = '0' then
         r_channel.valid    <= s_valid;
         r_channel.delayed  <= s_delayed;
         r_channel.conflict <= s_conflict;
         r_channel.late     <= s_late;
         r_channel.early    <= s_early;
+      end if;
+    end if;
+  end process;
+  
+  output_bulk : process(clk_i) is
+  begin
+    if rising_edge(clk_i) then
+      if s_stall = '0' then
         r_channel.num      <= s_mux_channel.num;
         r_channel.event    <= s_mux_channel.event;
         r_channel.param    <= s_mux_channel.param;
