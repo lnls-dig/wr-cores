@@ -149,15 +149,16 @@ architecture rtl of eca_tag_channel is
   signal s_mux_next     : std_logic;
   signal s_mux_code     : std_logic_vector(1 downto 0);
   signal s_mux_num      : std_logic_vector(f_eca_log2_min1(g_num_channels)-1 downto 0);
+  signal r_mux_ontime   : std_logic;
+  signal r_mux_late     : std_logic;
+  signal r_mux_early    : std_logic;
+  signal r_mux_next     : std_logic;
+  signal r_mux_delay    : std_logic;
   signal s_list         : std_logic;
   signal s_late         : std_logic;
   signal s_early        : std_logic;
   signal s_conflict     : std_logic;
   signal s_delayed      : std_logic;
-  signal r_late         : std_logic := '0';
-  signal r_early        : std_logic := '0';
-  signal r_conflict     : std_logic := '0';
-  signal r_delayed      : std_logic := '0';
   signal r_saw_valid    : std_logic_vector(g_num_channels-1 downto 0) := (others => '0');
   signal s_saw_valid    : std_logic;
   signal s_valid        : std_logic;
@@ -589,27 +590,17 @@ begin
     s_mux_num <= "0";
   end generate;
   num_gt1 : if g_num_channels > 1 generate
-    s_mux_num <= s_mux_data(c_fifo_channel+c_log_channels-1 downto c_fifo_channel);
+    s_mux_num <= s_mux_channel.num(c_log_channels-1 downto 0);
   end generate;
   
   -- Was something on this time slot already for that number?
   s_saw_valid <= r_saw_valid(to_integer(unsigned(s_mux_num))) when f_eca_safe(s_mux_num)='1' else 'X';
-  
-  -- Determine exceptional conditions
-  s_late     <= s_mux_valid and f_eca_eq(s_mux_code, c_code_late);
-  s_early    <= s_mux_valid and f_eca_eq(s_mux_code, c_code_early);
-  s_conflict <= s_mux_valid and s_mux_next and s_saw_valid;
-  s_delayed  <= s_list or (s_fifo_valid and not s_fifo_fresh);
   
   control : process(clk_i, rst_n_i) is
   begin
     if rst_n_i = '0' then
       r_mux_valid <= '0';
       r_stall     <= '0';
-      r_late      <= '0';
-      r_early     <= '0';
-      r_delayed   <= '0';
-      r_conflict  <= '0';
       r_saw_valid <= (others => '0');
       r_fifo_push <= (others => '0');
     elsif rising_edge(clk_i) then
@@ -617,16 +608,11 @@ begin
       r_fifo_push <= s_fifo_push;
       if s_stall = '0' then
         r_mux_valid <= s_mux_valid;
-        -- late/early/conflict/delayed are mutually exclusive; most severe first
-        r_late      <= s_late;
-        r_early     <= s_early;
-        r_conflict  <= s_conflict and not (s_late or s_early);
-        r_delayed   <= s_delayed  and not (s_late or s_early or s_conflict);
         -- Record which channel numbers have had a valid/delayed action
-        if s_mux_next = '0' then
+        if r_mux_next = '0' then
           r_saw_valid <= (others => '0');
         end if;
-        if (s_late or s_early) = '0' and s_mux_valid = '1' then
+        if (r_mux_valid and r_mux_ontime) = '1' then
           r_saw_valid(to_integer(unsigned(s_mux_num))) <= '1';
         end if;
       end if;
@@ -638,6 +624,11 @@ begin
     if rising_edge(clk_i) then
       r_fifo_data_i<= s_fifo_data_i;
       if s_stall = '0' then
+        r_mux_ontime<= f_eca_eq(s_mux_code, c_code_valid);
+        r_mux_late  <= f_eca_eq(s_mux_code, c_code_late);
+        r_mux_early <= f_eca_eq(s_mux_code, c_code_early);
+        r_mux_next  <= s_mux_next;
+        r_mux_delay <= s_list or not s_fifo_fresh;
         r_mux_data    <= s_mux_data;
         r_data_index0 <= s_data_index;
         r_data_index1 <= r_data_index0;
@@ -664,24 +655,33 @@ begin
   s_mux_channel.tef      <= f_eca_mux(r_stall, r_skid_channel.tef,      s_data_channel.tef);
   s_mux_channel.time     <= f_eca_mux(r_stall, r_skid_channel.time,     s_data_channel.time);
 
+  -- Determine exceptional conditions
+  -- late/early/conflict/delayed are mutually exclusive; most severe first
+  s_late     <= r_mux_valid and r_mux_late;
+  s_early    <= r_mux_valid and r_mux_early;
+  s_conflict <= (r_mux_valid and r_mux_next and s_saw_valid) and not (s_late or s_early);
+  s_delayed  <= (r_mux_valid and (r_mux_delay or r_stall))  and not (s_late or s_early or s_conflict);
+  
   -- Only valid if the errors are accepted by the condition rule
   s_valid <= r_mux_valid and
-    (not r_delayed  or s_mux_channel.delayed)  and
-    (not r_conflict or s_mux_channel.conflict) and
-    (not r_late     or s_mux_channel.late)     and
-    (not r_early    or s_mux_channel.early);
-  s_stall <= stall_i and r_channel.valid; -- Stall if we are reporting something not accepted
+    (not s_delayed  or s_mux_channel.delayed)  and
+    (not s_conflict or s_mux_channel.conflict) and
+    (not s_late     or s_mux_channel.late)     and
+    (not s_early    or s_mux_channel.early);
+  
+  -- Stall if we are reporting something not accepted
+  s_stall <= stall_i and r_channel.valid;
   
   -- Register the outputs
   output : process(clk_i) is
   begin
     if rising_edge(clk_i) then
       if s_stall = '0' then
-        r_channel.valid    <= s_valid and not r_stall;
-        r_channel.delayed  <= r_delayed or (s_valid and r_stall);
-        r_channel.conflict <= r_conflict;
-        r_channel.late     <= r_late;
-        r_channel.early    <= r_early;
+        r_channel.valid    <= s_valid;
+        r_channel.delayed  <= s_delayed;
+        r_channel.conflict <= s_conflict;
+        r_channel.late     <= s_late;
+        r_channel.early    <= s_early;
         r_channel.num      <= s_mux_channel.num;
         r_channel.event    <= s_mux_channel.event;
         r_channel.param    <= s_mux_channel.param;
