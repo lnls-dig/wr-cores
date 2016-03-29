@@ -362,7 +362,7 @@ begin
   s_code(1) <= s_channel_o.conflict or s_channel_o.delayed;
   
   s_num  <= s_channel_o.num(s_num'range);
-  s_ridx <= f_eca_mux(s_busy, s_code & s_num, rc_req_type & rc_req_num);
+  s_ridx <= f_eca_mux(s_busy, s_num & s_code, rc_req_num & rc_req_type);
   s_widx <= f_eca_mux(s_safe, r_ridx, r_wipe(s_widx'range));
   
   s_time_o  <= s_data_o(c_data_bits-1 downto g_log_size+c_count_bits);
@@ -474,7 +474,7 @@ begin
   s_ack_clear   <= s_req_dok and s_ack_field;
   s_full_clear  <= s_req_dok and s_full_field;
   
-  s_set_used <= f_eca_active_high(unsigned(s_used) > unsigned(r_most_used));
+  s_set_used <= f_eca_active_high(unsigned(s_used) > unsigned(r_most_used)) when f_eca_safe(s_used)='1' else 'X';
   
   stat_control : process(clk_i, rst_n_i) is
   begin
@@ -670,7 +670,7 @@ begin
       end if;
       
       -- Set/clear the error interrupt corresponding to written table entry
-      if s_wen = '1' then
+      if (r_busy or s_atom_free) = '1' then
         r_raise_err(to_integer(unsigned(s_widx))) <= r_busy;
       end if;
       -- When counters are cleared, demask the interrupt so it can be delivered again
@@ -680,7 +680,7 @@ begin
       end if;
       
       -- Set/clear the valid interrupt
-      if s_val_wen = '1' then
+      if (r_valid or s_valid_clear) = '1' then
         r_raise_val(to_integer(unsigned(s_val_widx))) <= r_valid;
       end if;
       if s_valid_clear = '1' then
@@ -742,15 +742,15 @@ begin
       if rc_msi_rdy = '0' then
         -- Calculate the code as sea of ORs
         rc_msi_code <= 
-          ('0' & s_msi_err_num(s_msi_err_num'high downto s_msi_err_num'high-1)) or
+          ('0' & s_msi_err_num(1 downto 0)) or
           (f_eca_or(s_select_val) & '0' & '0') or
           (s_select_full & s_select_full & '0') or
           (s_select_over & s_select_over & s_select_over);
-        -- If only 1 channel, don't interpret error flag as part of the number 
+        -- If only 1 channel, avoid null range
         if g_num_channels = 1 then
           rc_msi_num <= s_msi_val_num;
         else
-          rc_msi_num <= s_msi_val_num or s_msi_err_num(rc_msi_num'range);
+          rc_msi_num <= s_msi_val_num or s_msi_err_num(s_msi_err_num'high downto 2);
         end if;
       end if;
     end if;
