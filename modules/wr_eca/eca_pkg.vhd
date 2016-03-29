@@ -151,16 +151,6 @@ package eca_pkg is
       i_master_o  : out t_wishbone_master_out);
   end component;
   
-  -- Put low bits of param to address tag
-  component eca_wb_channel is
-    port(
-      clk_i     : in  std_logic;
-      rst_n_i   : in  std_logic;
-      channel_i : in  t_channel;
-      master_o  : out t_wishbone_master_out;
-      master_i  : in  t_wishbone_master_in);
-  end component;
-  
   -- sends channel_i.tag to the scu bus
   component eca_scubus_channel is
   port(

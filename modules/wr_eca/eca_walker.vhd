@@ -37,7 +37,6 @@ entity eca_walker is
   port(
     clk_i        : in  std_logic;
     rst_n_i      : in  std_logic;
-    time_Q_i     : in  t_time;
     -- Feed in an index to scan from search
     b_stb_i      : in  std_logic;
     b_stall_o    : out std_logic;

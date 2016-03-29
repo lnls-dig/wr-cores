@@ -526,34 +526,41 @@ package eca_internals_pkg is
     port(
       clk_i        : in  std_logic;
       rst_n_i      : in  std_logic;
-      time_Q_i     : in  t_time;
-      -- Feed in an index to scan from binary search
+      -- Feed in an index to scan from search
       b_stb_i      : in  std_logic;
       b_stall_o    : out std_logic;
       b_page_i     : in  std_logic;
       b_first_i    : in  std_logic_vector(g_log_table_size-1 downto 0);
-      b1_event_i   : in  t_event;
+      b1_event_i   : in  t_event; -- all one cycle AFTER the b_stb_i
       b1_param_i   : in  t_param;
       b1_tef_i     : in  t_tef;
       b1_time_i    : in  t_time;
       -- Outputs for the channel queue
       q_channel_o  : out t_channel_array (g_num_channels-1 downto 0);
-      q_full_i     : in  std_logic_vector(g_num_channels-1 downto 0);
-      q_freeze_i   : in  std_logic_vector(g_num_channels-1 downto 0);
-      -- Access the walker table
+      -- Write to the table
       t_clk_i      : in  std_logic;
       t_page_i     : in  std_logic;
       t_addr_i     : in  std_logic_vector(g_log_table_size-1 downto 0);
       tw_en_i      : in  std_logic;
       tw_valid_i   : in  std_logic;
+      tw_delayed_i : in  std_logic;
+      tw_conflict_i: in  std_logic;
+      tw_late_i    : in  std_logic;
+      tw_early_i   : in  std_logic;
       tw_next_i    : in  std_logic_vector(g_log_table_size-1 downto 0);
       tw_time_i    : in  t_time;
       tw_tag_i     : in  t_tag;
+      tw_num_i     : in  t_num;
       tw_channel_i : in  std_logic_vector(f_eca_log2(g_num_channels)-1 downto 0);
       tr_valid_o   : out std_logic;
+      tr_delayed_o : out std_logic;
+      tr_conflict_o: out std_logic;
+      tr_late_o    : out std_logic;
+      tr_early_o   : out std_logic;
       tr_next_o    : out std_logic_vector(g_log_table_size-1 downto 0);
       tr_time_o    : out t_time;
       tr_tag_o     : out t_tag;
+      tr_num_o     : out t_num;
       tr_channel_o : out std_logic_vector(f_eca_log2(g_num_channels)-1 downto 0));
   end component;
   
