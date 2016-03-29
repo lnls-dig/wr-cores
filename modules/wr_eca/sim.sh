@@ -27,6 +27,8 @@ for i in 				\
 	eca_tag_channel_tb.vhd		\
 	eca_channel.vhd			\
 	eca_channel_tb.vhd		\
+	eca_walker.vhd			\
+	eca_search.vhd			\
 	eca_tb.vhd;			\
 do echo $i; ghdl -a --std=93 --ieee=standard --syn-binding  $i
 done
