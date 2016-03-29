@@ -68,11 +68,6 @@ architecture rtl of eca_channel_tb is
     end case;
   end f_cals;
   
-  function f_1(x : boolean) return std_logic is
-  begin
-    if x then return '1'; else return '0'; end if;
-  end f_1;
-  
   constant c_num_channels   : natural := 2;
   constant c_log_size       : natural := 1 + g_case; -- smaller => tests edge cases better
   constant c_log_multiplier : natural := f_mult;
@@ -211,8 +206,8 @@ begin
       time(time'high downto c_log_latency+3) := (others => '0');
       if valid = '1' then
         busy(index)  := '1';
-        early(index) := f_1(unsigned(time) >= 2**c_log_max_delay + c_pipeline_depth*c_ticks);
-        late(index)  := f_1(unsigned(time) <  2**c_log_latency   + c_pipeline_depth*c_ticks);
+        early(index) := f_eca_active_high(unsigned(time) >= 2**c_log_max_delay + c_pipeline_depth*c_ticks);
+        late(index)  := f_eca_active_high(unsigned(time) <  2**c_log_latency   + c_pipeline_depth*c_ticks);
         count(index) := 20;
       end if;
       time := f_eca_add(time, r_time);
@@ -301,7 +296,7 @@ begin
       
       -- If something was delayed, there better have been something prior
       assert (s_channel.delayed and r_idle) = '0' report "Delayed action had no predecessor" severity failure;
-      r_idle <= f_1(flags = 0);
+      r_idle <= f_eca_active_high(flags = 0);
       
       -- Conflicts must have the same timestamp as the last action
       if s_channel.conflict = '1' then

@@ -74,11 +74,6 @@ architecture rtl of eca_fifo is
     return r * g_cols + c;
   end f_idx;
   
-  function f_1(b : boolean) return std_logic is
-  begin
-    if b then return '1'; else return '0'; end if;
-  end f_1;
-
 begin
 
   rows : for r in 0 to g_rows-1 generate
@@ -124,9 +119,9 @@ begin
       r_ridx  <= s_ridx;
       r_widx  <= s_widx;
       rr_widx <= r_widx;
-      r_valid <= f_1(s_ridx /= r_widx);
-      r_fresh <= f_1(s_ridx = rr_widx);
-      r_full  <= f_1((s_widx xor c_high) = s_ridx);
+      r_valid <= f_eca_active_high(s_ridx /= r_widx);
+      r_fresh <= f_eca_active_high(s_ridx = rr_widx);
+      r_full  <= f_eca_active_high((s_widx xor c_high) = s_ridx);
     end if;
   end process;
   

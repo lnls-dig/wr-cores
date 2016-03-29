@@ -62,11 +62,6 @@ architecture rtl of eca_piso_fifo is
     return r*2*c_ports + c;
   end f_idx;
   
-  function f_1(b : boolean) return std_logic is
-  begin
-    if b then return '1'; else return '0'; end if;
-  end f_1;
-  
   function f_sub1(x : natural) return natural is
   begin
     if x = 0 then return 0; else return x-1; end if;
@@ -130,7 +125,7 @@ begin
   end generate;
   
   -- If there are <= c_ports holes, we must start filling next record
-  s_inc(s_inc'high) <= f_1(s_last-1 <= c_ports-1) when f_eca_safe(std_logic_vector(s_last))='1' else 'X';
+  s_inc(s_inc'high) <= f_eca_active_high(s_last-1 <= c_ports-1) when f_eca_safe(std_logic_vector(s_last))='1' else 'X';
   s_holes <= s_last xnor s_inc;
   
   -- Calculate all the differences from r_holes
@@ -233,8 +228,8 @@ begin
       rr_waddr <= r_waddr;
       r_raddr <= s_raddr;
       r_holes <= s_holes;
-      r_valid <= f_1(s_raddr /= r_waddr);
-      r_fresh <= f_1(s_raddr = rr_waddr);
+      r_valid <= f_eca_active_high(s_raddr /= r_waddr);
+      r_fresh <= f_eca_active_high(s_raddr = rr_waddr);
     end if;
   end process;
   
