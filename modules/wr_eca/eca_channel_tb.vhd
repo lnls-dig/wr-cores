@@ -84,7 +84,6 @@ architecture rtl of eca_channel_tb is
   signal r_clr      : std_logic;
   signal r_set      : std_logic;
   signal r_stb      : std_logic := '0';
-  signal r_free     : std_logic;
   signal r_num      : t_num;
   signal r_type     : std_logic_vector(1 downto 0);
   signal r_field    : std_logic_vector(3 downto 0);
@@ -125,8 +124,6 @@ begin
       req_clk_i    => clk_i,
       req_rst_n_i  => rst_n_i,
       req_stb_i    => r_stb,
-      req_clear_i  => r_free,
-      req_final_i  => r_free,
       req_num_i    => r_num,
       req_type_i   => r_type,
       req_field_i  => r_field,
@@ -152,7 +149,6 @@ begin
     variable clr    : std_logic;
     variable set    : std_logic;
     variable stb    : std_logic;
-    variable free   : std_logic;
     variable stall  : std_logic;
     variable ignore : std_logic;
     variable num    : t_num;
@@ -194,7 +190,6 @@ begin
       p_eca_uniform(s1, s2, tag);
       p_eca_uniform(s1, s2, tef);
       p_eca_uniform(s1, s2, time);
-      p_eca_uniform(s1, s2, free);
       p_eca_uniform(s1, s2, snum);
       p_eca_uniform(s1, s2, stype);
       p_eca_uniform(s1, s2, sfield);
@@ -242,12 +237,10 @@ begin
       -- Consider poking/inspecting the channel
       if r_stb = '0' and stb = '1' then
         r_stb   <= '1';
-        r_free  <= free;
         r_num   <= snum;
         r_type  <= stype;
         r_field <= sfield;
       else
-        r_free  <= 'X';
         r_num   <= (others => 'X');
         r_type  <= (others => 'X');
         r_field <= (others => 'X');

@@ -426,12 +426,9 @@ package eca_internals_pkg is
       req_clk_i   : in  std_logic;
       req_rst_n_i : in  std_logic;
       req_stb_i   : in  std_logic; -- positive edge triggered
-      req_clear_i : in  std_logic; -- record should be released/reset by this read
-      req_final_i : in  std_logic; -- a new MSI should be issued for changes after this read
       req_num_i   : in  t_num;
       req_type_i  : in  std_logic_vector(1 downto 0); -- 0=late, 1=early, 2=conflict, 3=delayed
-      req_field_i : in  std_logic_vector(3 downto 0); -- 0+1=event, 2+3=param, 4=tag, 5=tef, 6+7=timeS
-                                                        -- 8+9=timeE, 10=#error, 11=#exec, 12=#over, 15=full
+      req_field_i : in  std_logic_vector(3 downto 0); -- See comments at start of eca_channel.vhd
       req_valid_o : out std_logic;
       req_data_o  : out std_logic_vector(31 downto 0);
       -- MSI delivery ports

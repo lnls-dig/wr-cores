@@ -28,6 +28,26 @@ use ieee.numeric_std.all;
 
 use work.eca_internals_pkg.all;
 
+-- req_field_i selects these values
+--   ====== Indexed by req_num_i and req_type_i =====
+--   0: Event ID bits 63-32
+--   1: Event ID bits 31- 0
+--   2: Param    bits 63-32
+--   3: Param    bits 31- 0
+--   4: Tag
+--   5: TEF
+--   6: Scheduled time bits 63-32
+--   7: Scheduled time bits 31- 0
+--   8: Executed time  bits 63-32
+--   9: Executed time  bits 31- 0
+--  11: Number of errors  (clears to 0, new MSI once non-zero, releases fields 1-9)
+--  ====== Indexed by req_num_i =====
+--  12: Number of success (clears to 0, new MSI once non-zero)
+--  ====== Global =====
+--  13: Number of overflows (clears to 0, new MSI once non-zero)
+--  14: Full<<16|MaxFull    (new MSI when MaxFull changes)
+--  15: Full<<16|MaxFull    (new MSI once MaxFull changes, clears Maxfull to 0)
+
 entity eca_channel is
   generic(
     g_support_io     : boolean := false; -- Should io_o be driven?
@@ -55,12 +75,9 @@ entity eca_channel is
     req_clk_i   : in  std_logic;
     req_rst_n_i : in  std_logic;
     req_stb_i   : in  std_logic; -- positive edge triggered
-    req_clear_i : in  std_logic; -- record should be released/reset by this read
-    req_final_i : in  std_logic; -- a new MSI should be issued for changes after this read
     req_num_i   : in  t_num;
     req_type_i  : in  std_logic_vector(1 downto 0); -- 0=late, 1=early, 2=conflict, 3=delayed
-    req_field_i : in  std_logic_vector(3 downto 0); -- 0+1=event, 2+3=param, 4=tag, 5=tef, 6+7=timeS
-                                                    -- 8+9=timeE, 10=#error, 11=#exec, 12=#over, 15=full
+    req_field_i : in  std_logic_vector(3 downto 0); -- See comments at start of eca_channel.vhd
     req_valid_o : out std_logic;
     req_data_o  : out std_logic_vector(31 downto 0);
     -- MSI delivery ports
@@ -143,26 +160,23 @@ architecture rtl of eca_channel is
   
   -- Latched by bus_clk_i, but held until request is complete
   signal s_req_in     : std_logic;
-  signal rs_req_clear : std_logic;
-  signal rs_req_final : std_logic;
   signal rs_req_num   : std_logic_vector(c_num_bits-1 downto 0);
   signal rs_req_type  : std_logic_vector(1 downto 0);
   signal rs_req_field : std_logic_vector(3 downto 0);
   signal s_req_rok    : std_logic;
   signal r_req_rok    : std_logic := '1';
-  signal rc_req_clear : std_logic;
-  signal rc_req_final : std_logic;
-  signal sc_req_free  : std_logic;
   signal rc_req_num   : std_logic_vector(c_num_bits-1 downto 0);
   signal rc_req_type  : std_logic_vector(1 downto 0);
   signal rc_req_field : std_logic_vector(3 downto 0);
-  signal s_local_field: std_logic;
+  signal s_error_field: std_logic;
   signal s_valid_field: std_logic;
   signal s_over_field : std_logic;
-  signal s_used_field : std_logic;
-  signal s_valid_clear: std_logic;
-  signal s_over_clear : std_logic;
-  signal s_used_clear : std_logic;
+  signal s_ack_field  : std_logic;
+  signal s_full_field : std_logic;
+  signal s_valid_clear: std_logic; -- !!! reset MSI
+  signal s_over_clear : std_logic; -- !!! reset MSI
+  signal s_ack_clear  : std_logic; -- !!! reset MSI
+  signal s_full_clear : std_logic; -- !!! reset MSI (same as above)
   
   -- Request signalling
   signal r_req_old  : std_logic := '0'; -- req_clk
@@ -299,16 +313,13 @@ begin
       w_addr_i => s_widx,
       w_data_i => s_data_i);
   
-  -- !!! missing MSI for valid(n)/overflow/full
-  
   s_error <= s_channel_o.late or s_channel_o.early or s_channel_o.conflict or s_channel_o.delayed;
   s_final <= f_eca_mux(s_channel_o.valid, not stall_i, s_error); -- Index should be freed (if not stolen)
   s_busy  <= s_error and s_final; -- Is this the final time we see this error?
   s_steal <= r_busy and s_zero; -- Record this error for software diagnosis
 
   -- If the request was to free the error, do it on final ack
-  sc_req_free <= rc_req_clear and s_local_field;
-  s_late_free <= s_req_ack and sc_req_free;
+  s_late_free <= s_req_ack and s_error_field;
   
   -- r_final and s_late_free are mutually exclusive
   s_free_stb <= (r_final and not s_steal) or (s_late_free and f_eca_or(r_req_cnt));
@@ -329,7 +340,7 @@ begin
   
   -- Atomically read the current counter+index, while atomically wiping them out for new errors
   -- Note: for this to work, we need that the table is bypassed
-  s_atom_free <= s_req_idx and sc_req_free;
+  s_atom_free <= s_req_idx and s_error_field;
 
   s_wen     <= r_busy or s_atom_free or not s_safe; -- r_busy and s_atom_free are mutually exclusive
   s_count_i <= f_eca_mux(r_busy, f_increment(s_count_o), c_zero);
@@ -367,10 +378,11 @@ begin
   s_used_output(g_log_size+ 0 downto  0) <= r_most_used;
   
   -- Fields with both high bits set are global channel parameters
-  s_local_field <= not (rc_req_field(3) and rc_req_field(2)); -- field is in 'saved'
-  s_valid_field <= f_eca_eq(rc_req_field, "1101");
-  s_over_field  <= f_eca_eq(rc_req_field, "1100");
-  s_used_field  <= f_eca_eq(rc_req_field, "1111");
+  s_error_field <= f_eca_eq(rc_req_field, "1011");
+  s_valid_field <= f_eca_eq(rc_req_field, "1100");
+  s_over_field  <= f_eca_eq(rc_req_field, "1101");
+  s_ack_field   <= f_eca_eq(rc_req_field, "1110");
+  s_full_field  <= f_eca_eq(rc_req_field, "1111");
   
   with rc_req_field select
   s_req_dat <=
@@ -386,9 +398,9 @@ begin
     r_req_time(31 downto  0)    when "1001",
     -- reserved                 when "1010",
     s_req_cnt                   when "1011",
-    s_num_overflow              when "1100",
-    s_val_count                 when "1101",
-    -- reserved                 when "1110", -- maybe use this to distinguish clear vs. ack of full?
+    s_val_count                 when "1100",
+    s_num_overflow              when "1101",
+    s_used_output               when "1110",
     s_used_output               when "1111",
     (others => 'X') when others;
   
@@ -406,9 +418,9 @@ begin
     '1'         when "1001", -- exec1 (saved)
     -- reserved when "1010",
     '1'         when "1011", -- count (saved)
-    '1'         when "1100", -- #overflow (reg)
-    not r_valid when "1101", -- #exec (valid)
-    -- reserved when "1110",
+    not r_valid when "1100", -- #exec (valid)
+    '1'         when "1101", -- #overflow (reg)
+    '1'         when "1110", -- #used (reg)
     '1'         when "1111", -- #used (reg)
     '1'         when others;
   
@@ -425,9 +437,9 @@ begin
   -- Clock enable for the registers going from clk => req_clk (req_clk side)
   s_req_ook <= r_req_xor8 xor r_req_xor7;
   
-  s_valid_clear <= s_req_dok and s_valid_field and rc_req_clear;
-  s_over_clear  <= s_req_dok and s_over_field  and rc_req_clear;
-  s_used_clear  <= s_req_dok and s_used_field  and rc_req_clear;
+  s_valid_clear <= s_req_dok and s_valid_field;
+  s_over_clear  <= s_req_dok and s_over_field;
+  s_full_clear  <= s_req_dok and s_full_field;
   
   stat_control : process(clk_i, rst_n_i) is
   begin
@@ -450,7 +462,7 @@ begin
         r_most_used <= s_used;
       end if;
       
-      if s_used_clear = '1' then
+      if s_full_clear = '1' then
         r_most_used <= (others => '0');
       end if;
     end if;
@@ -493,8 +505,6 @@ begin
   begin
     if rising_edge(req_clk_i) then
       if s_req_in = '1' then
-        rs_req_clear <= req_clear_i;
-        rs_req_final <= req_final_i;
         rs_req_num   <= req_num_i(rs_req_num'range);
         rs_req_type  <= req_type_i;
         rs_req_field <= req_field_i;
@@ -550,8 +560,6 @@ begin
   begin
     if rising_edge(clk_i) then
       if s_req_rok = '1' then
-        rc_req_clear <= rs_req_clear;
-        rc_req_final <= rs_req_final;
         rc_req_num   <= rs_req_num;
         rc_req_type  <= rs_req_type;
         rc_req_field <= rs_req_field;
@@ -563,10 +571,6 @@ begin
       end if;
       if s_req_dok = '1' then
         rc_req_dat <= s_req_dat;
-        -- For simulation, make it easy to see bad reads:
-        if f_eca_or(r_req_cnt) = '0' and s_local_field = '1' and rc_req_field /= "1010" then
-          rc_req_dat <= (others => '-'); -- synthesis optimizes to nothing
-        end if;
       end if;
     end if;
   end process;
@@ -624,7 +628,7 @@ begin
         rc_msi_rdy <= rc_ack_xor3 xnor rc_ack_xor2;
       end if;
       -- When counters are cleared, demask the interrupt so it can be delivered again
-      if s_atom_free = '1' then -- !!! rc_req_final ... ONLY full needs both; can clear valid/overflow
+      if s_atom_free = '1' then
         r_masked(to_integer(unsigned(s_widx))) <= '0';
       end if;
       -- Sync the ack
