@@ -52,8 +52,8 @@ entity eca_channel is
     channel_o   : out t_channel;
     io_o        : out t_eca_matrix(g_num_channels-1 downto 0, 2**g_log_multiplier-1 downto 0);
     -- Bus access ports
-    bus_clk_i   : in  std_logic;
-    bus_rst_n_i : in  std_logic;
+    req_clk_i   : in  std_logic;
+    req_rst_n_i : in  std_logic;
     req_stb_i   : in  std_logic; -- positive edge triggered
     req_clear_i : in  std_logic; -- record should be released/reset by this read
     req_final_i : in  std_logic; -- a new MSI should be issued for changes after this read
@@ -63,6 +63,9 @@ entity eca_channel is
                                                     -- 8+9=timeE, 10=#error, 11=#exec, 12=#over, 15=full
     req_valid_o : out std_logic;
     req_data_o  : out std_logic_vector(31 downto 0);
+    -- MSI delivery ports
+    msi_clk_i   : in  std_logic;
+    msi_rst_n_i : in  std_logic;
     msi_ack_i   : in  std_logic;
     msi_stb_o   : out std_logic;
     msi_dat_o   : out std_logic_vector(15 downto 0));
@@ -162,8 +165,8 @@ architecture rtl of eca_channel is
   signal s_used_clear : std_logic;
   
   -- Request signalling
-  signal r_req_old  : std_logic := '0'; -- bus_clk
-  signal r_req_xor1 : std_logic := '0'; -- bus_clk
+  signal r_req_old  : std_logic := '0'; -- req_clk
+  signal r_req_xor1 : std_logic := '0'; -- req_clk
   signal r_req_xor2 : std_logic := '0'; -- clk
   signal r_req_xor3 : std_logic := '0'; -- clk
   signal r_req_xor4 : std_logic := '0'; -- clk
@@ -188,10 +191,10 @@ architecture rtl of eca_channel is
   signal s_req_ack  : std_logic;
   signal r_req_ack  : std_logic := '1';
   signal r_req_xor5 : std_logic := '0'; -- clk
-  signal r_req_xor6 : std_logic := '0'; -- bus_clk
-  signal r_req_xor7 : std_logic := '0'; -- bus_clk
-  signal r_req_xor8 : std_logic := '0'; -- bus_clk
-  signal r_req_out  : std_logic := '0'; -- bus_clk
+  signal r_req_xor6 : std_logic := '0'; -- req_clk
+  signal r_req_xor7 : std_logic := '0'; -- req_clk
+  signal r_req_xor8 : std_logic := '0'; -- req_clk
+  signal r_req_out  : std_logic := '0'; -- req_clk
   
   -- Final output registers
   signal s_req_ook  : std_logic;
@@ -385,7 +388,7 @@ begin
     s_req_cnt                   when "1011",
     s_num_overflow              when "1100",
     s_val_count                 when "1101",
-    -- reserved                 when "1110",
+    -- reserved                 when "1110", -- maybe use this to distinguish clear vs. ack of full?
     s_used_output               when "1111",
     (others => 'X') when others;
   
@@ -409,17 +412,17 @@ begin
     '1'         when "1111", -- #used (reg)
     '1'         when others;
   
-  -- Clock enable for registers going from bus_clk => clk (bus_clk side)
+  -- Clock enable for registers going from req_clk => clk (req_clk side)
   s_req_in <= not r_req_old and req_stb_i;
-  -- Clock enable for registers going from bus_clk => clk (clk side)
+  -- Clock enable for registers going from req_clk => clk (clk side)
   s_req_rok <= r_req_xor4 xor r_req_xor3;
-  -- Clock enable for count register going from clk => bus_clk (clk side)
+  -- Clock enable for count register going from clk => req_clk (clk side)
   s_req_idx <= r_req_rok and not r_req_aok and not r_busy;
-  -- Clock enable for data register going from clk => bus_clk (clk side)
+  -- Clock enable for data register going from clk => req_clk (clk side)
   s_req_dok <= s_req_val and r_req_sok and not r_req_dok;
   -- Only allow the request to complete when there's a slot we could potentially free in
   s_req_ack <= r_req_dok and not r_final and not r_req_ack;
-  -- Clock enable for the registers going from clk => bus_clk (bus_clk side)
+  -- Clock enable for the registers going from clk => req_clk (req_clk side)
   s_req_ook <= r_req_xor8 xor r_req_xor7;
   
   s_valid_clear <= s_req_dok and s_valid_field and rc_req_clear;
@@ -470,12 +473,12 @@ begin
     end if;
   end process;
   
-  in_control : process(bus_clk_i, bus_rst_n_i) is
+  in_control : process(req_clk_i, req_rst_n_i) is
   begin
-    if bus_rst_n_i = '0' then
+    if req_rst_n_i = '0' then
       r_req_old  <= '0';
       r_req_xor1 <= '0';
-    elsif rising_edge(bus_clk_i) then
+    elsif rising_edge(req_clk_i) then
       if req_stb_i = '1' then
         r_req_old <= '1';
       end if;
@@ -486,9 +489,9 @@ begin
     end if;
   end process;
   
-  in_bulk : process(bus_clk_i) is
+  in_bulk : process(req_clk_i) is
   begin
-    if rising_edge(bus_clk_i) then
+    if rising_edge(req_clk_i) then
       if s_req_in = '1' then
         rs_req_clear <= req_clear_i;
         rs_req_final <= req_final_i;
@@ -568,14 +571,14 @@ begin
     end if;
   end process;
   
-  out_control : process(bus_clk_i, bus_rst_n_i) is
+  out_control : process(req_clk_i, req_rst_n_i) is
   begin
-    if bus_rst_n_i = '0' then
+    if req_rst_n_i = '0' then
       r_req_xor6 <= '0';
       r_req_xor7 <= '0';
       r_req_xor8 <= '0';
       r_req_out  <= '0';
-    elsif rising_edge(bus_clk_i) then
+    elsif rising_edge(req_clk_i) then
       r_req_xor6 <= r_req_xor5;
       r_req_xor7 <= r_req_xor6;
       r_req_xor8 <= r_req_xor7;
@@ -583,9 +586,9 @@ begin
     end if;
   end process;
   
-  out_bulk : process(bus_clk_i) is
+  out_bulk : process(req_clk_i) is
   begin
-    if rising_edge(bus_clk_i) then
+    if rising_edge(req_clk_i) then
       if s_req_ook = '1' then
         rs_req_dat <= rc_req_dat;
       end if;
@@ -621,7 +624,7 @@ begin
         rc_msi_rdy <= rc_ack_xor3 xnor rc_ack_xor2;
       end if;
       -- When counters are cleared, demask the interrupt so it can be delivered again
-      if s_atom_free = '1' then -- !!! rc_req_final
+      if s_atom_free = '1' then -- !!! rc_req_final ... ONLY full needs both; can clear valid/overflow
         r_masked(to_integer(unsigned(s_widx))) <= '0';
       end if;
       -- Sync the ack
@@ -648,15 +651,15 @@ begin
   end process;
   
   ss_msi_rdy <= rs_msi_xor2 xor rs_msi_xor3;
-  msi_output : process(bus_clk_i, bus_rst_n_i)  is
+  msi_output : process(msi_clk_i, msi_rst_n_i)  is
   begin
-    if bus_rst_n_i = '0' then
+    if msi_rst_n_i = '0' then
       rs_msi_xor1 <= '0';
       rs_msi_xor2 <= '0';
       rs_msi_xor3 <= '0';
       rs_msi_rdy  <= '0';
       rs_ack_xor  <= '0';
-    elsif rising_edge(bus_clk_i) then
+    elsif rising_edge(msi_clk_i) then
       rs_msi_xor1 <= rc_msi_xor;
       rs_msi_xor2 <= rs_msi_xor1;
       rs_msi_xor3 <= rs_msi_xor2;
@@ -669,9 +672,9 @@ begin
     end if;
   end process;
   
-  msi_output_bulk : process(bus_clk_i) is
+  msi_output_bulk : process(msi_clk_i) is
   begin
-    if rising_edge(bus_clk_i) then
+    if rising_edge(msi_clk_i) then
       if ss_msi_rdy = '1' then
         rs_msi_out <= rc_msi_out;
       end if;

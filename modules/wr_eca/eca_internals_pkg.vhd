@@ -423,8 +423,8 @@ package eca_internals_pkg is
       channel_o   : out t_channel;
       io_o        : out t_eca_matrix(g_num_channels-1 downto 0, 2**g_log_multiplier-1 downto 0);
       -- Bus access ports
-      bus_clk_i   : in  std_logic;
-      bus_rst_n_i : in  std_logic;
+      req_clk_i   : in  std_logic;
+      req_rst_n_i : in  std_logic;
       req_stb_i   : in  std_logic; -- positive edge triggered
       req_clear_i : in  std_logic; -- record should be released/reset by this read
       req_final_i : in  std_logic; -- a new MSI should be issued for changes after this read
@@ -434,6 +434,9 @@ package eca_internals_pkg is
                                                         -- 8+9=timeE, 10=#error, 11=#exec, 12=#over, 15=full
       req_valid_o : out std_logic;
       req_data_o  : out std_logic_vector(31 downto 0);
+      -- MSI delivery ports
+      msi_clk_i   : in  std_logic;
+      msi_rst_n_i : in  std_logic;
       msi_ack_i   : in  std_logic;
       msi_stb_o   : out std_logic;
       msi_dat_o   : out std_logic_vector(15 downto 0));
