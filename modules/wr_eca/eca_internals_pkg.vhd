@@ -76,7 +76,7 @@ package eca_internals_pkg is
   
   type t_eca_matrix is array(natural range <>, natural range <>) of std_logic;
 
-  -- function f_eca_active_high(x : boolean) return std_logic;
+  function f_eca_active_high(x : boolean) return std_logic;
   function f_eca_and(x : std_logic_vector) return std_logic;
   function f_eca_or(x : std_logic_vector) return std_logic;
   function f_eca_eq(x, y : std_logic_vector) return std_logic;
@@ -609,14 +609,14 @@ package body eca_internals_pkg is
     end case;
   end f_eca_mux;
   
-  -- function f_eca_active_high(x : boolean) return std_logic is
-  -- begin
-  --   if x then
-  --     return '1';
-  --   else
-  --     return '0';
-  --   end if;
-  -- end f_eca_active_high;
+  function f_eca_active_high(x : boolean) return std_logic is
+  begin
+    if x then
+      return '1';
+    else
+      return '0';
+    end if;
+  end f_eca_active_high;
 
   function f_eca_log2(x : natural) return natural is
     variable rest   : natural := x;
