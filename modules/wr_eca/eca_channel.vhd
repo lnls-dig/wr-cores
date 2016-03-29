@@ -40,18 +40,29 @@ use work.eca_internals_pkg.all;
 --   7: Scheduled time bits 31- 0
 --   8: Executed time  bits 63-32
 --   9: Executed time  bits 31- 0
---  11: Number of errors  (clears to 0, new MSI once non-zero, releases fields 1-9)
+--  11: Number of errors (clears to 0, new MSI once non-zero, releases fields 0-9)
 --  ====== Indexed by req_num_i =====
---  12: Number of success (clears to 0, new MSI once non-zero)
+--  12: Number of valid  (clears to 0, new MSI once non-zero)
 --  ====== Global =====
 --  13: Number of overflows (clears to 0, new MSI once non-zero)
 --  14: Full<<16|MaxFull    (new MSI when MaxFull changes)
---  15: Full<<16|MaxFull    (new MSI once MaxFull changes, clears Maxfull to 0)
+--  15: Full<<16|MaxFull    (clears Maxfull and immediately generates a new MSI)
+
+-- msi_code_o has these values
+--  ===== Associated msi_num_o =====
+--  0: late     action
+--  1: early    action
+--  2: conflict action
+--  3: delayed  action
+--  4: valid    action
+--  ===== msi_num_o is 'X' =====
+--  6: MaxFull changed
+--  7: overflow count changed
 
 entity eca_channel is
   generic(
     g_support_io     : boolean := false; -- Should io_o be driven?
-    g_num_channels   : natural :=  1; -- Number of channels emulated by this instance
+    g_num_channels   : natural :=  1; -- Number of channels emulated by this instance (must be >= 1)
     g_log_size       : natural :=  8; -- 2**g_log_size = maximum number of pending actions
     g_log_multiplier : natural :=  3; -- 2**g_log_multiplier = ticks per cycle
     g_log_max_delay  : natural := 32; -- 2**g_log_max_delay  = maximum delay before executed as early
@@ -85,7 +96,8 @@ entity eca_channel is
     msi_rst_n_i : in  std_logic;
     msi_ack_i   : in  std_logic;
     msi_stb_o   : out std_logic;
-    msi_dat_o   : out std_logic_vector(15 downto 0));
+    msi_code_o  : out std_logic_vector(2 downto 0); -- See commends at start of eca_channel.vhd
+    msi_num_o   : out t_num);
 end eca_channel;
 
 architecture rtl of eca_channel is
@@ -104,7 +116,9 @@ architecture rtl of eca_channel is
   signal s_channel_i: t_channel;
   signal s_channel_o: t_channel;
   signal s_snoop    : t_channel;
+  signal s_set_used : std_logic;
   signal s_used     : std_logic_vector(g_log_size   downto 0);
+  signal r_used     : std_logic_vector(g_log_size   downto 0);
   signal s_overflow : std_logic;
   signal s_index    : std_logic_vector(g_log_size-1 downto 0);
   signal r_index    : std_logic_vector(g_log_size-1 downto 0);
@@ -173,10 +187,10 @@ architecture rtl of eca_channel is
   signal s_over_field : std_logic;
   signal s_ack_field  : std_logic;
   signal s_full_field : std_logic;
-  signal s_valid_clear: std_logic; -- !!! reset MSI
-  signal s_over_clear : std_logic; -- !!! reset MSI
-  signal s_ack_clear  : std_logic; -- !!! reset MSI
-  signal s_full_clear : std_logic; -- !!! reset MSI (same as above)
+  signal s_valid_clear: std_logic;
+  signal s_over_clear : std_logic;
+  signal s_ack_clear  : std_logic;
+  signal s_full_clear : std_logic;
   
   -- Request signalling
   signal r_req_old  : std_logic := '0'; -- req_clk
@@ -220,22 +234,40 @@ architecture rtl of eca_channel is
     return f_eca_mux(f_eca_and(x), x, f_eca_add(x, a));
   end f_increment;
   
-  -- Interrupt vector processing and crossing
-  signal r_raised    : std_logic_vector(g_num_channels*4-1 downto 0) := (others => '0');
-  signal r_masked    : std_logic_vector(g_num_channels*4-1 downto 0) := (others => '0');
-  signal s_pending   : std_logic_vector(g_num_channels*4-1 downto 0);
-  signal s_selected  : std_logic_vector(g_num_channels*4-1 downto 0);
-  signal r_selected  : std_logic_vector(g_num_channels*4-1 downto 0);
+  -- Interrupt vector processing
+  signal r_raise_err   : std_logic_vector(g_num_channels*4-1 downto 0) := (others => '0');
+  signal r_raise_val   : std_logic_vector(g_num_channels*1-1 downto 0) := (others => '0');
+  signal r_raise_over  : std_logic := '0';
+  signal r_raise_full  : std_logic := '0';
+  signal s_raised      : std_logic_vector(g_num_channels*5+1 downto 0);
+  signal r_mask_err    : std_logic_vector(g_num_channels*4-1 downto 0) := (others => '0');
+  signal r_mask_val    : std_logic_vector(g_num_channels*1-1 downto 0) := (others => '0');
+  signal r_mask_over   : std_logic := '0';
+  signal r_mask_full   : std_logic := '0';
+  signal s_masked      : std_logic_vector(g_num_channels*5+1 downto 0);
+  signal s_pending     : std_logic_vector(g_num_channels*5+1 downto 0);
+  signal s_selected    : std_logic_vector(g_num_channels*5+1 downto 0);
+  signal r_selected    : std_logic_vector(g_num_channels*5+1 downto 0);
+  signal s_select_err  : std_logic_vector(g_num_channels*4-1 downto 0);
+  signal s_select_val  : std_logic_vector(g_num_channels*1-1 downto 0);
+  signal s_select_over : std_logic;
+  signal s_select_full : std_logic;
+  signal s_msi_err_num : std_logic_vector(f_eca_log2(g_num_channels)+1 downto 0);
+  signal s_msi_val_num : std_logic_vector(c_num_bits-1 downto 0);
+  
+  -- Interrupt reporting
   signal sc_msi_rdy  : std_logic;
   signal rc_msi_rdy  : std_logic := '0';
   signal rc_msi_xor  : std_logic := '0';
-  signal rc_msi_out  : std_logic_vector(f_eca_log2(g_num_channels)+1 downto 0);
+  signal rc_msi_code : std_logic_vector(2 downto 0);
+  signal rc_msi_num  : std_logic_vector(c_num_bits-1 downto 0);
   signal rs_msi_xor1 : std_logic := '0';
   signal rs_msi_xor2 : std_logic := '0';
   signal rs_msi_xor3 : std_logic := '0';
   signal ss_msi_rdy  : std_logic;
   signal rs_msi_rdy  : std_logic := '0';
-  signal rs_msi_out  : std_logic_vector(f_eca_log2(g_num_channels)+1 downto 0);
+  signal rs_msi_code : std_logic_vector(2 downto 0);
+  signal rs_msi_num  : std_logic_vector(c_num_bits-1 downto 0);
   signal rs_ack_xor  : std_logic := '0';
   signal rc_ack_xor1 : std_logic := '0';
   signal rc_ack_xor2 : std_logic := '0';
@@ -330,7 +362,7 @@ begin
   s_code(1) <= s_channel_o.conflict or s_channel_o.delayed;
   
   s_num  <= s_channel_o.num(s_num'range);
-  s_ridx <= f_eca_mux(s_busy, s_num & s_code, rc_req_num & rc_req_type);
+  s_ridx <= f_eca_mux(s_busy, s_code & s_num, rc_req_type & rc_req_num);
   s_widx <= f_eca_mux(s_safe, r_ridx, r_wipe(s_widx'range));
   
   s_time_o  <= s_data_o(c_data_bits-1 downto g_log_size+c_count_bits);
@@ -367,14 +399,14 @@ begin
   s_valid <= s_channel_o.valid and not stall_i;
   s_val_ridx <= f_eca_mux(s_valid, s_num, rc_req_num);
   s_val_widx <= f_eca_mux(s_safe, r_val_ridx, r_wipe(s_val_widx'range));
-  s_val_wen  <= r_valid or s_valid_clear or not s_safe;
+  s_val_wen  <= r_valid or s_valid_clear or not s_safe; -- r_valid and s_valid_clear are mutually exclusive
   s_val_data_i <= f_eca_mux(r_valid, f_increment(s_val_data_o), c_zero);
   
   -- Zero-extend r_req_cnt, r_num_overflow, s_val_data_o
   s_req_cnt(r_req_cnt'range) <= r_req_cnt;
   s_num_overflow(r_num_overflow'range) <= r_num_overflow;
   s_val_count(s_val_data_o'range) <= s_val_data_o;
-  s_used_output(g_log_size+16 downto 16) <= s_used;
+  s_used_output(g_log_size+16 downto 16) <= r_used;
   s_used_output(g_log_size+ 0 downto  0) <= r_most_used;
   
   -- Fields with both high bits set are global channel parameters
@@ -439,7 +471,10 @@ begin
   
   s_valid_clear <= s_req_dok and s_valid_field;
   s_over_clear  <= s_req_dok and s_over_field;
+  s_ack_clear   <= s_req_dok and s_ack_field;
   s_full_clear  <= s_req_dok and s_full_field;
+  
+  s_set_used <= f_eca_active_high(unsigned(s_used) > unsigned(r_most_used));
   
   stat_control : process(clk_i, rst_n_i) is
   begin
@@ -456,14 +491,14 @@ begin
       r_final    <= s_final;
       r_valid    <= s_valid;
       
+      -- s_overflow has higher priority than s_over_clear
       r_num_overflow <= f_increment(f_eca_mux(s_over_clear, c_zero, r_num_overflow), s_overflow);
       
-      if unsigned(s_used) > unsigned(r_most_used) then
-        r_most_used <= s_used;
-      end if;
+      -- delay s_used, so that r_used <= r_most_used ALWAYS
+      r_used <= s_used;
       
-      if s_full_clear = '1' then
-        r_most_used <= (others => '0');
+      if (s_set_used or s_full_clear) = '1' then
+        r_most_used <= s_used;
       end if;
     end if;
   end process;
@@ -607,30 +642,74 @@ begin
   msi_control : process(clk_i, rst_n_i) is
   begin
     if rst_n_i = '0' then
-      r_raised    <= (others => '0');
-      r_masked    <= (others => '0');
-      rc_msi_rdy  <= '0';
-      rc_msi_xor  <= '0';
-      rc_ack_xor1 <= '0';
-      rc_ack_xor2 <= '0';
-      rc_ack_xor3 <= '0';
+      r_raise_err  <= (others => '0');
+      r_raise_val  <= (others => '0');
+      r_raise_over <= '0';
+      r_raise_full <= '0';
+      r_mask_err   <= (others => '0');
+      r_mask_val   <= (others => '0');
+      r_mask_over  <= '0';
+      r_mask_full  <= '0';
+      rc_msi_rdy   <= '0';
+      rc_msi_xor   <= '0';
+      rc_ack_xor1  <= '0';
+      rc_ack_xor2  <= '0';
+      rc_ack_xor3  <= '0';
     elsif rising_edge(clk_i) then
-      -- Set/clear the interrupt corresponding to written table entry
-      if s_wen = '1' then
-        r_raised(to_integer(unsigned(s_widx))) <= r_busy;
-      end if;
       -- Mask out an interrupt after we've selected it for delivery already
       if rc_msi_rdy = '0' then
-        r_masked   <= r_masked or r_selected;
-        rc_msi_rdy <= sc_msi_rdy;
-        rc_msi_xor <= rc_msi_xor xor sc_msi_rdy;
+        r_mask_err  <= r_mask_err  or s_select_err;
+        r_mask_val  <= r_mask_val  or s_select_val;
+        r_mask_over <= r_mask_over or s_select_over;
+        r_mask_full <= r_mask_full or s_select_full;
+        rc_msi_rdy  <= sc_msi_rdy;
+        rc_msi_xor  <= rc_msi_xor xor sc_msi_rdy;
       else
+        -- Clear the MSI once acked
         rc_msi_rdy <= rc_ack_xor3 xnor rc_ack_xor2;
+      end if;
+      
+      -- Set/clear the error interrupt corresponding to written table entry
+      if s_wen = '1' then
+        r_raise_err(to_integer(unsigned(s_widx))) <= r_busy;
       end if;
       -- When counters are cleared, demask the interrupt so it can be delivered again
       if s_atom_free = '1' then
-        r_masked(to_integer(unsigned(s_widx))) <= '0';
+        -- s_atom_free => s_req_idx => !r_busy => [s_widx = rc_req_type & rc_req_num]
+        r_mask_err(to_integer(unsigned(s_widx))) <= '0';
       end if;
+      
+      -- Set/clear the valid interrupt
+      if s_val_wen = '1' then
+        r_raise_val(to_integer(unsigned(s_val_widx))) <= r_valid;
+      end if;
+      if s_valid_clear = '1' then
+        -- s_valid_clear => s_req_dok => s_req_val => !r_valid => [s_val_widx = rc_req_num]
+        r_mask_val(to_integer(unsigned(s_val_widx))) <= '0';
+      end if;
+      
+      -- Used interrupt?
+      if s_ack_clear = '1' then
+        r_raise_full <= '0';
+      end if;
+      if (s_set_used or s_full_clear) = '1' then -- priority over clear
+        r_raise_full <= '1';
+      end if;
+      if (s_full_clear or s_ack_clear) = '1' then
+        r_mask_full <= '0';
+      end if;
+      
+      -- Overflow interrupt?
+      if s_over_clear = '1' then
+        r_raise_over <= '0';
+      end if;
+      if s_overflow = '1' then -- has priority over clearing
+        r_raise_over <= '1';
+      end if;
+      if s_over_clear = '1' then
+        r_mask_over <= '0';
+      end if;
+      
       -- Sync the ack
       rc_ack_xor1 <= rs_ack_xor;
       rc_ack_xor2 <= rc_ack_xor1;
@@ -638,9 +717,21 @@ begin
     end if;
   end process;
   
+  -- Pack the interrupts into one vector; lowest index => highest priority
+  s_raised <= r_raise_err & r_raise_full & r_raise_over & r_raise_val;
+  s_masked <= r_mask_err  & r_mask_full  & r_mask_over  & r_mask_val;
+  s_select_val  <= r_selected(g_num_channels-1 downto 0);
+  s_select_over <= r_selected(g_num_channels);
+  s_select_full <= r_selected(g_num_channels+1);
+  s_select_err  <= r_selected(r_selected'high downto r_selected'high-4*g_num_channels+1);
+  
   -- Arbitrate the raised interrupts
-  s_pending  <= r_raised and not r_masked;
+  s_pending  <= s_raised and not s_masked;
   s_selected <= s_pending and f_eca_add(not s_pending, 1);
+  
+  -- Decode the 1hot state of the selected vector
+  s_msi_err_num <= f_eca_1hot_decode(s_select_err);
+  s_msi_val_num <= f_eca_1hot_decode(s_select_val);
   
   msi_decode : process(clk_i) is
   begin
@@ -649,7 +740,18 @@ begin
       -- because rc_msi_rdy must transition =>1 and then =>0 before the next pop.
       r_selected <= s_selected;
       if rc_msi_rdy = '0' then
-        rc_msi_out <= f_eca_1hot_decode(r_selected);
+        -- Calculate the code as sea of ORs
+        rc_msi_code <= 
+          ('0' & s_msi_err_num(s_msi_err_num'high downto s_msi_err_num'high-1)) or
+          (f_eca_or(s_select_val) & '0' & '0') or
+          (s_select_full & s_select_full & '0') or
+          (s_select_over & s_select_over & s_select_over);
+        -- If only 1 channel, don't interpret error flag as part of the number 
+        if g_num_channels = 1 then
+          rc_msi_num <= s_msi_val_num;
+        else
+          rc_msi_num <= s_msi_val_num or s_msi_err_num(rc_msi_num'range);
+        end if;
       end if;
     end if;
   end process;
@@ -680,13 +782,15 @@ begin
   begin
     if rising_edge(msi_clk_i) then
       if ss_msi_rdy = '1' then
-        rs_msi_out <= rc_msi_out;
+        rs_msi_code <= rc_msi_code;
+        rs_msi_num  <= rc_msi_num;
       end if;
     end if;
   end process;
   
-  msi_stb_o <= rs_msi_rdy;
-  msi_dat_o(msi_dat_o'high downto rs_msi_out'high+1) <= (others => '0');
-  msi_dat_o(rs_msi_out'range) <= rs_msi_out;
+  msi_stb_o  <= rs_msi_rdy;
+  msi_code_o <= rs_msi_code;
+  msi_num_o(msi_num_o'high downto rs_msi_num'high+1) <= (others => '0');
+  msi_num_o(rs_msi_num'range) <= rs_msi_num;
   
 end rtl;

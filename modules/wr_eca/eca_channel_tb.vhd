@@ -133,7 +133,8 @@ begin
       msi_rst_n_i  => rst_n_i,
       msi_ack_i    => r_msi_ack,
       msi_stb_o    => s_msi_stb,
-      msi_dat_o    => open);
+      msi_code_o   => open,
+      msi_num_o    => open);
 
   main : process(rst_n_i, clk_i) is
     type t_nat_array is array(natural range <>) of natural;

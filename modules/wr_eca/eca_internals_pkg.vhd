@@ -31,7 +31,7 @@ package eca_internals_pkg is
   constant c_tag_bits   : natural := 32;
   constant c_tef_bits   : natural := 32;
   constant c_time_bits  : natural := 64;
-  constant c_num_bits   : natural :=  8;
+  constant c_num_bits   : natural :=  8; -- max allowed is 16
   
   subtype t_ascii is std_logic_vector(6 downto 0);
   subtype t_event is std_logic_vector(c_event_bits-1 downto 0);
@@ -402,7 +402,7 @@ package eca_internals_pkg is
   component eca_channel is
     generic(
       g_support_io     : boolean := false; -- Should io_o be driven?
-      g_num_channels   : natural :=  1; -- Number of channels emulated by this instance
+      g_num_channels   : natural :=  1; -- Number of channels emulated by this instance (must be >= 1)
       g_log_size       : natural :=  8; -- 2**g_log_size = maximum number of pending actions
       g_log_multiplier : natural :=  3; -- 2**g_log_multiplier = ticks per cycle
       g_log_max_delay  : natural := 32; -- 2**g_log_max_delay  = maximum delay before executed as early
@@ -436,7 +436,8 @@ package eca_internals_pkg is
       msi_rst_n_i : in  std_logic;
       msi_ack_i   : in  std_logic;
       msi_stb_o   : out std_logic;
-      msi_dat_o   : out std_logic_vector(15 downto 0));
+      msi_code_o  : out std_logic_vector(2 downto 0); -- See commends at start of eca_channel.vhd
+      msi_num_o   : out t_num);
   end component;
 
   -- Testbech for eca_channel
