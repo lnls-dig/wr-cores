@@ -27,6 +27,9 @@ for i in 				\
 	eca_tag_channel_tb.vhd		\
 	eca_channel.vhd			\
 	eca_channel_tb.vhd		\
+	eca_adder.vhd			\
+	eca_offset.vhd			\
+	eca_wr_time.vhd			\
 	eca_walker.vhd			\
 	eca_search.vhd			\
 	eca_tb.vhd;			\

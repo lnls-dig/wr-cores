@@ -29,8 +29,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-use work.wishbone_pkg.all;
-use work.eca_pkg.all;
+use work.eca_internals_pkg.all;
 
 -- Expects registers for inputs. Async outputs.
 -- c1_o is available after 1 cycle (2 once registered)
