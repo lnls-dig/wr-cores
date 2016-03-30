@@ -442,7 +442,7 @@ package eca_internals_pkg is
       msi_rst_n_i : in  std_logic;
       msi_ack_i   : in  std_logic;
       msi_stb_o   : out std_logic;
-      msi_code_o  : out std_logic_vector(2 downto 0); -- See commends at start of eca_channel.vhd
+      msi_code_o  : out t_code; -- See commends at start of eca_channel.vhd
       msi_num_o   : out t_num);
   end component;
 

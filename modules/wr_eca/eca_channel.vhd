@@ -96,7 +96,7 @@ entity eca_channel is
     msi_rst_n_i : in  std_logic;
     msi_ack_i   : in  std_logic;
     msi_stb_o   : out std_logic;
-    msi_code_o  : out std_logic_vector(2 downto 0); -- See commends at start of eca_channel.vhd
+    msi_code_o  : out t_code; -- See commends at start of eca_channel.vhd
     msi_num_o   : out t_num);
 end eca_channel;
 
@@ -259,14 +259,14 @@ architecture rtl of eca_channel is
   signal sc_msi_rdy  : std_logic;
   signal rc_msi_rdy  : std_logic := '0';
   signal rc_msi_xor  : std_logic := '0';
-  signal rc_msi_code : std_logic_vector(2 downto 0);
+  signal rc_msi_code : t_code;
   signal rc_msi_num  : std_logic_vector(c_num_bits-1 downto 0);
   signal rs_msi_xor1 : std_logic := '0';
   signal rs_msi_xor2 : std_logic := '0';
   signal rs_msi_xor3 : std_logic := '0';
   signal ss_msi_rdy  : std_logic;
   signal rs_msi_rdy  : std_logic := '0';
-  signal rs_msi_code : std_logic_vector(2 downto 0);
+  signal rs_msi_code : t_code;
   signal rs_msi_num  : std_logic_vector(c_num_bits-1 downto 0);
   signal rs_ack_xor  : std_logic := '0';
   signal rc_ack_xor1 : std_logic := '0';
