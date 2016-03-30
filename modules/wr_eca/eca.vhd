@@ -9,7 +9,7 @@ use work.eca_internals_pkg.all;
 entity eca is
   generic(
     g_num_ios        : natural :=  8; -- Number of gpios
-    g_num_channels   : natural :=  1;  -- Number of channels (must be >= 1)
+    g_num_channels   : natural :=  1; -- Number of channels (must be >= 1)
     g_log_table_size : natural :=  8; -- 2**g_log_table_size = maximum number of conditions
     g_log_queue_size : natural :=  8; -- 2**g_log_size       = maximum number of pending actions
     g_log_multiplier : natural :=  3; -- 2**g_log_multiplier = ticks per cycle
