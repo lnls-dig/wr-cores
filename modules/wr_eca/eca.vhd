@@ -104,7 +104,8 @@ architecture rtl of eca is
   signal s_slave_channel_executed_hi_RD_o      : std_logic_vector(1-1 downto 0);   -- Read enable flag
   signal s_slave_channel_executed_lo_RD_o      : std_logic_vector(1-1 downto 0);   -- Read enable flag
   
-  signal r_page          : std_logic := '0';
+  signal rc_page         : std_logic := '0';
+  signal ra_page         : std_logic_vector(3 downto 0);
   signal r_bad_ack       : std_logic := '0';
   signal r_search_valid  : std_logic_vector(3 downto 0) := (others => '0');
   signal r_walker_valid  : std_logic_vector(3 downto 0) := (others => '0');
@@ -281,6 +282,7 @@ begin
       rst_n_i    => a_rst_n_i,
       e_stb_i    => e_stb_i,
       e_stall_o  => e_stall_o,
+      e_page_i   => ra_page(0),
       e_event_i  => e_event_i,
       e_param_i  => e_param_i,
       e_tef_i    => e_tef_i,
@@ -294,7 +296,7 @@ begin
       w1_tef_o   => s_sw_tef,
       w1_time_o  => s_sw_time,
       t_clk_i    => c_clk_i,
-      t_page_i   => r_page,
+      t_page_i   => rc_page,
       t_addr_i   => s_slave_search_select_o(g_log_table_size downto 0),
       tw_en_i    => s_slave_search_write_o(0),
       tw_valid_i => s_s_rw_valid,
@@ -326,7 +328,7 @@ begin
       b1_time_i     => s_sw_time,
       q_channel_o   => s_wc_channels,
       t_clk_i       => c_clk_i,
-      t_page_i      => r_page,
+      t_page_i      => rc_page,
       t_addr_i      => s_slave_walker_select_o(g_log_table_size-1 downto 0),
       tw_en_i       => s_slave_walker_write_o(0),
       tw_valid_i    => s_w_rw_valid,
@@ -485,13 +487,13 @@ begin
   main : process(c_clk_i, c_rst_n_i) is
   begin
     if c_rst_n_i = '0' then
-      r_page    <= '0';
+      rc_page   <= '0';
       r_bad_ack <= '0';
       r_search_valid  <= (others => '0');
       r_walker_valid  <= (others => '0');
       r_channel_valid <= (others => '0');
     elsif rising_edge(c_clk_i) then
-      r_page    <= r_page xor s_slave_flip_active_o(0);
+      rc_page   <= rc_page xor s_slave_flip_active_o(0);
       r_bad_ack <= s_req_stb and f_eca_active_high(unsigned(s_slave_channel_select_o) > g_num_channels);
       
       -- Delay visibility of search_ro_* fields
@@ -531,6 +533,7 @@ begin
     if rising_edge(a_clk_i) then
       ra_time      <= a_time_i;
       ra_time_gray <= f_eca_gray_encode(ra_time);
+      ra_page      <= rc_page & ra_page(ra_page'high downto 1);
     end if;
   end process;
 
