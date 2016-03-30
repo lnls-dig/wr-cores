@@ -1,0 +1,80 @@
+<wbdevice author="Wesley W. Terpstra" version="2.0">
+
+  <generic name="channels"        type="natural" default="1"   comment=""/>
+  <generic name="search_capacity" type="natural" default="512" comment=""/>
+  <generic name="walker_capacity" type="natural" default="256" comment=""/>
+
+  <slaveinterface name="slave" data="32" type="pipelined">
+    <sdb vendorID="GSI" productID="0xb2afc251" version="2" date="auto" name="ECA_UNIT:CONTROL" />
+    <registers>
+      <!-- Configuration registers -->
+      <reg name="channels"               read="yes" reset="channels"        bits="8"  comment=""/>
+      <reg name="search_capacity"        read="yes" reset="search_capacity" bits="16" comment=""/>
+      <reg name="walker_capacity"        read="yes" reset="walker_capacity" bits="16" comment=""/>
+
+      <!-- Global control -->
+      <reg name="flip_active"                       write="yes" pulse="yes" bits="1"  comment=""/>
+      <reg name="time_hi"                read="yes" drive="yes"             bits="32" comment=""/>
+      <reg name="time_lo"                read="yes" drive="yes"             bits="32" comment=""/>
+      
+      <!-- Search registers -->
+      <reg name="search_select"          read="yes" write="yes" flags="yes" bits="16" comment=""/>
+      <reg name="search_ro_first"        read="yes" drive="yes"             bits="16" comment=""/>
+      <reg name="search_ro_event_hi"     read="yes" drive="yes"             bits="32" comment=""/>
+      <reg name="search_ro_event_lo"     read="yes" drive="yes"             bits="32" comment=""/>
+      <reg name="search_write"                      write="yes" pulse="yes" bits="1"  comment=""/>
+      <reg name="search_rw_first"        read="yes" write="yes"             bits="16" comment=""/>
+      <reg name="search_rw_event_hi"     read="yes" write="yes"             bits="32" comment=""/>
+      <reg name="search_rw_event_lo"     read="yes" write="yes"             bits="32" comment=""/>
+      
+      <!-- Walker registers -->
+      <reg name="walker_select"          read="yes" write="yes" flags="yes" bits="16" comment=""/>
+      <reg name="walker_ro_next"         read="yes" drive="yes"             bits="16" comment=""/>
+      <reg name="walker_ro_offset_hi"    read="yes" drive="yes"             bits="32" comment=""/>
+      <reg name="walker_ro_offset_lo"    read="yes" drive="yes"             bits="32" comment=""/>
+      <reg name="walker_ro_tag"          read="yes" drive="yes"             bits="32" comment=""/>
+      <reg name="walker_ro_flags"        read="yes" drive="yes"             bits="4"  comment=""/>
+      <reg name="walker_ro_channel"      read="yes" drive="yes"             bits="8"  comment=""/>
+      <reg name="walker_ro_num"          read="yes" drive="yes"             bits="8"  comment=""/>       
+      <reg name="walker_write"                      write="yes" pulse="yes" bits="1"  comment=""/>
+      <reg name="walker_rw_next"         read="yes" write="yes"             bits="16" comment=""/>
+      <reg name="walker_rw_offset_hi"    read="yes" write="yes"             bits="32" comment=""/>
+      <reg name="walker_rw_offset_lo"    read="yes" write="yes"             bits="32" comment=""/>
+      <reg name="walker_rw_tag"          read="yes" write="yes"             bits="32" comment=""/>
+      <reg name="walker_rw_flags"        read="yes" write="yes"             bits="4"  comment=""/>
+      <reg name="walker_rw_channel"      read="yes" write="yes"             bits="8"  comment=""/>
+      <reg name="walker_rw_num"          read="yes" write="yes"             bits="8"  comment=""/>       
+      
+      <!-- Channel registers -->
+      <reg name="channel_select"         read="yes" write="yes" flags="yes" bits="8"  comment=""/>
+      <reg name="channel_num_select"     read="yes" write="yes"             bits="8"  comment=""/>
+      <reg name="channel_code_select"    read="yes" write="yes"             bits="2"  comment=""/>
+      <!-- Top-level channel status, indexed by channel_select -->
+      <reg name="channel_name"           read="yes" drive="yes" flags="yes" bits="32" comment=""/>
+      <reg name="channel_max_num"        read="yes" drive="yes"             bits="8"  comment=""/>
+      <reg name="channel_capacity"       read="yes" drive="yes"             bits="16" comment=""/>
+      <reg name="channel_msi_set_enable"            write="yes" flags="yes" bits="1"  comment=""/>
+      <reg name="channel_msi_get_enable" read="yes" drive="yes"             bits="1"  comment=""/>
+      <reg name="channel_msi_set_target"            write="yes" flags="yes" bits="32" comment=""/>
+      <reg name="channel_msi_get_target" read="yes" drive="yes"             bits="32" comment=""/>
+      <reg name="channel_overflow_count" read="yes" drive="yes" flags="yes" bits="32" comment=""/>
+      <reg name="channel_mostfull_ack"   read="yes" drive="yes" flags="yes" bits="32" comment=""/>
+      <reg name="channel_mostfull_clear" read="yes" drive="yes" flags="yes" bits="32" comment=""/>
+      <!-- Subchannel registers, indexed by channel{,_num}_select -->
+      <reg name="channel_valid_count"    read="yes" drive="yes" flags="yes" bits="32" comment=""/>
+      <!-- Subchannel error registers, indexed by channel{,_num,_code}_select -->
+      <reg name="channel_failed_count"   read="yes" drive="yes" flags="yes" bits="32" comment=""/>
+      <reg name="channel_event_id_hi"    read="yes" drive="yes" flags="yes" bits="32" comment=""/>
+      <reg name="channel_event_id_lo"    read="yes" drive="yes" flags="yes" bits="32" comment=""/>
+      <reg name="channel_param_hi"       read="yes" drive="yes" flags="yes" bits="32" comment=""/>
+      <reg name="channel_param_lo"       read="yes" drive="yes" flags="yes" bits="32" comment=""/>
+      <reg name="channel_tag"            read="yes" drive="yes" flags="yes" bits="32" comment=""/>
+      <reg name="channel_tef"            read="yes" drive="yes" flags="yes" bits="32" comment=""/>
+      <reg name="channel_deadline_hi"    read="yes" drive="yes" flags="yes" bits="32" comment=""/>
+      <reg name="channel_deadline_lo"    read="yes" drive="yes" flags="yes" bits="32" comment=""/>
+      <reg name="channel_executed_hi"    read="yes" drive="yes" flags="yes" bits="32" comment=""/>
+      <reg name="channel_executed_lo"    read="yes" drive="yes" flags="yes" bits="32" comment=""/>
+    </registers>
+  </slaveinterface>
+
+</wbdevice>
