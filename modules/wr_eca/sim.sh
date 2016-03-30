@@ -3,6 +3,9 @@
 set -e
 
 for i in 				\
+	../../../general-cores/modules/genrams/genram_pkg.vhd \
+	../../../general-cores/modules/common/matrix_pkg.vhd \
+	../../../general-cores/modules/wishbone/wishbone_pkg.vhd \
 	eca_internals_pkg.vhd		\
 	eca_compact.vhd			\
 	eca_compact_tb.vhd		\
@@ -32,6 +35,9 @@ for i in 				\
 	eca_wr_time.vhd			\
 	eca_walker.vhd			\
 	eca_search.vhd			\
+	eca_msi.vhd			\
+	eca_auto_pkg.vhd		\
+	eca.vhd				\
 	eca_tb.vhd;			\
 do echo $i; ghdl -a --std=93 --ieee=standard --syn-binding  $i
 done

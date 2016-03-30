@@ -24,6 +24,8 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use ieee.math_real.all;
 
+use work.wishbone_pkg.all;
+
 package eca_internals_pkg is
   
   constant c_event_bits : natural := 64;
@@ -32,6 +34,7 @@ package eca_internals_pkg is
   constant c_tef_bits   : natural := 32;
   constant c_time_bits  : natural := 64;
   constant c_num_bits   : natural :=  8; -- max allowed is 16
+  constant c_code_bits  : natural :=  3;
   
   subtype t_ascii is std_logic_vector(6 downto 0);
   subtype t_event is std_logic_vector(c_event_bits-1 downto 0);
@@ -40,6 +43,7 @@ package eca_internals_pkg is
   subtype t_tef   is std_logic_vector(c_tef_bits-1   downto 0);
   subtype t_time  is std_logic_vector(c_time_bits-1  downto 0);
   subtype t_num   is std_logic_vector(c_num_bits-1   downto 0);
+  subtype t_code  is std_logic_vector(c_code_bits-1  downto 0);
   
   type t_channel is record
     valid    : std_logic;
@@ -73,6 +77,8 @@ package eca_internals_pkg is
   type t_tag_array     is array(natural range <>) of t_tag;
   type t_tef_array     is array(natural range <>) of t_tef;
   type t_time_array    is array(natural range <>) of t_time;
+  type t_num_array     is array(natural range <>) of t_num;
+  type t_code_array    is array(natural range <>) of t_code;
   
   type t_eca_matrix is array(natural range <>, natural range <>) of std_logic;
 
@@ -565,6 +571,32 @@ package eca_internals_pkg is
       tr_channel_o : out std_logic_vector(f_eca_log2(g_num_channels)-1 downto 0));
   end component;
   
+  component eca_msi is
+    generic(
+      g_num_channels : natural :=  1);
+    port(
+      -- Configuration interface
+      c_clk_i        : in  std_logic;
+      c_rst_n_i      : in  std_logic;
+      c_chan_i       : in  std_logic_vector(7 downto 0);
+      c_enable_stb_i : in  std_logic;
+      c_enable_i     : in  std_logic;
+      c_enable_o     : out std_logic;
+      c_target_stb_i : in  std_logic;
+      c_target_i     : in  std_logic_vector(31 downto 0);
+      c_target_o     : out std_logic_vector(31 downto 0);
+      c_stall_o      : out std_logic;
+      -- MSI controller
+      i_clk_i        : in  std_logic;
+      i_rst_n_i      : in  std_logic;
+      i_ack_o        : out std_logic_vector(g_num_channels-1 downto 0);
+      i_stb_i        : in  std_logic_vector(g_num_channels-1 downto 0);
+      i_code_i       : in  t_code_array(g_num_channels-1 downto 0);
+      i_num_i        : in  t_num_array(g_num_channels-1 downto 0);
+      i_master_i     : in  t_wishbone_master_in;
+      i_master_o     : out t_wishbone_master_out);
+  end component;
+
 end eca_internals_pkg;
 
 package body eca_internals_pkg is
