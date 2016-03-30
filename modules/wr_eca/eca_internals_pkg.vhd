@@ -597,6 +597,43 @@ package eca_internals_pkg is
       i_master_o     : out t_wishbone_master_out);
   end component;
 
+  component eca is
+    generic(
+      g_num_ios        : natural :=  8; -- Number of gpios
+      g_num_channels   : natural :=  1; -- Number of channels (must be >= 1)
+      g_log_table_size : natural :=  8; -- 2**g_log_table_size = maximum number of conditions
+      g_log_queue_size : natural :=  8; -- 2**g_log_size       = maximum number of pending actions
+      g_log_multiplier : natural :=  3; -- 2**g_log_multiplier = ticks per cycle
+      g_log_max_delay  : natural := 32; -- 2**g_log_max_delay  = maximum delay before executed as early
+      g_log_latency    : natural := 12; -- 2**g_log_latency    = ticks of calendar delay
+      g_log_counter    : natural := 20);-- number of bits in the counters reported
+    port(
+      -- Push events to the ECA unit (a_clk_i domain)
+      e_stb_i     : in  std_logic;
+      e_stall_o   : out std_logic;
+      e_event_i   : in  t_event;
+      e_param_i   : in  t_param;
+      e_tef_i     : in  t_tef;
+      e_time_i    : in  t_time;
+      -- ECA control registers
+      c_clk_i     : in  std_logic;
+      c_rst_n_i   : in  std_logic;
+      c_slave_i   : in  t_wishbone_slave_in;
+      c_slave_o   : out t_wishbone_slave_out;
+      -- Actions output according to time
+      a_clk_i     : in  std_logic;
+      a_rst_n_i   : in  std_logic;
+      a_time_i    : in  t_time;
+      a_stall_i   : in  std_logic_vector(g_num_channels-1 downto 0);
+      a_channel_o : out t_channel_array(g_num_channels-1 downto 0);
+      a_io_o      : out t_eca_matrix(g_num_ios-1 downto 0, 2**g_log_multiplier-1 downto 0);
+      -- Interrupts that report failure conditions
+      i_clk_i     : in  std_logic;
+      i_rst_n_i   : in  std_logic;
+      i_master_i  : in  t_wishbone_master_in;
+      i_master_o  : out t_wishbone_master_out);
+  end component;
+
 end eca_internals_pkg;
 
 package body eca_internals_pkg is

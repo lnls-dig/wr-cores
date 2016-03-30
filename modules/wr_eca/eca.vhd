@@ -27,7 +27,7 @@ entity eca is
     -- ECA control registers
     c_clk_i     : in  std_logic;
     c_rst_n_i   : in  std_logic;
-    c_slave_i   : in  t_wishbone_slave_in; -- 1KB space
+    c_slave_i   : in  t_wishbone_slave_in;
     c_slave_o   : out t_wishbone_slave_out;
     -- Actions output according to time
     a_clk_i     : in  std_logic;

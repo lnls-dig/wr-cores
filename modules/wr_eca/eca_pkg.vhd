@@ -110,47 +110,6 @@ package eca_pkg is
       i_master_o  : out t_wishbone_master_out);
   end component;
   
-  -- Raw Event-Condition-Action Unit
-  component eca is
-    generic(
-      g_eca_name       : t_name;
-      g_channel_names  : t_name_array;
-      g_log_table_size : natural := 7; -- 128 entries -- condition table
-      g_log_queue_len  : natural := 8; -- 256 entries -- action queue size
-      g_num_channels   : natural := 4; -- max 256
-      g_log_clock_mult : natural := 4; -- a_clk_i and c_clk_i must be within 16*
-      g_inspect_queue  : boolean := true;
-      g_inspect_table  : boolean := true;
-      g_frequency_mul  : natural := 1; -- 125MHz = 1*5^9*2^6/1
-      g_frequency_5s   : natural := 9; -- mul:32, 5s:8, 2s:8, div:16 bits
-      g_frequency_2s   : natural := 6;
-      g_frequency_div  : natural := 1);
-    port(
-      -- Push events to the ECA unit (a_clk_i domain)
-      e_stb_i     : in  std_logic;
-      e_stall_o   : out std_logic;
-      e_event_i   : in  t_event;
-      e_param_i   : in  t_param;
-      e_tef_i     : in  t_tef;
-      e_time_i    : in  t_time;
-      e_index_o   : out std_logic_vector(7 downto 0);
-      -- ECA control registers
-      c_clk_i     : in  std_logic;
-      c_rst_n_i   : in  std_logic;
-      c_slave_i   : in  t_wishbone_slave_in;
-      c_slave_o   : out t_wishbone_slave_out;
-      -- Actions output according to time
-      a_clk_i     : in  std_logic;
-      a_rst_n_i   : in  std_logic;
-      a_time_i    : in  t_time;
-      a_channel_o : out t_channel_array(g_num_channels-1 downto 0);
-      -- Interrupts that report failure conditions
-      i_clk_i     : in  std_logic;
-      i_rst_n_i   : in  std_logic;
-      i_master_i  : in  t_wishbone_master_in;
-      i_master_o  : out t_wishbone_master_out);
-  end component;
-  
   -- sends channel_i.tag to the scu bus
   component eca_scubus_channel is
   port(
