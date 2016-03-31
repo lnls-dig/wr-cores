@@ -3,10 +3,17 @@
 set -e
 
 for i in 				\
-	../../../general-cores/modules/genrams/genram_pkg.vhd \
-	../../../general-cores/modules/common/matrix_pkg.vhd \
-	../../../general-cores/modules/wishbone/wishbone_pkg.vhd \
+	../../../general-cores/modules/genrams/genram_pkg.vhd		\
+	../../../general-cores/modules/common/matrix_pkg.vhd		\
+	../../../general-cores/modules/wishbone/wishbone_pkg.vhd	\
 	eca_internals_pkg.vhd		\
+	eca_auto_pkg.vhd		\
+	eca_queue_auto_pkg.vhd		\
+	eca_ac_wbm_auto_pkg.vhd		\
+	eca_auto.vhd			\
+	eca_queue_auto.vhd		\
+	eca_ac_wbm_auto.vhd		\
+	eca_pkg.vhd			\
 	eca_compact.vhd			\
 	eca_compact_tb.vhd		\
 	eca_bitonic_swap.vhd		\
@@ -36,7 +43,7 @@ for i in 				\
 	eca_walker.vhd			\
 	eca_search.vhd			\
 	eca_msi.vhd			\
-	eca_auto_pkg.vhd		\
+	eca_queue.vhd			\
 	eca.vhd				\
 	eca_tb.vhd;			\
 do echo $i; ghdl -a --std=93 --ieee=standard --syn-binding  $i
