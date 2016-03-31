@@ -1,4 +1,4 @@
-<wbdevice author="Wesley W. Terpstra" version="2.0">
+<wbdevice author="Wesley W. Terpstra" email="w.terpstra@gsi.de" version="2.0">
 
   <generic name="channels"        type="natural" default="1"   comment=""/>
   <generic name="search_capacity" type="natural" default="512" comment=""/>
