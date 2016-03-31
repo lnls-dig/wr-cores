@@ -382,11 +382,11 @@ begin
   
   -- Combine results
   s_req_ack <= f_eca_or(s_req_acks) or r_bad_ack;
-  s_req_dat <= s_req_dats(to_integer(unsigned(s_slave_channel_select_o)));
+  s_req_dat <= s_req_dats(to_integer(unsigned(s_slave_channel_select_o))) when s_req_stb='1' else (others => 'X');
   
   -- Select correct channel
   chan_select : for i in 0 to g_num_channels generate
-    s_req_stbs(i) <= s_req_stb and f_eca_active_high(unsigned(s_slave_channel_select_o) = i);
+    s_req_stbs(i) <= f_eca_active_high(unsigned(s_slave_channel_select_o) = i) when s_req_stb='1' else '0';
   end generate;
   
   io_channel : eca_channel
