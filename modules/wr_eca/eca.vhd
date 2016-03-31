@@ -47,6 +47,7 @@ architecture rtl of eca is
 
   constant c_channel_bits : natural := f_eca_log2(g_num_channels+1);
 
+  signal s_slave_stall_i                       : std_logic_vector(1-1 downto 0);   -- 
   signal s_slave_flip_active_o                 : std_logic_vector(1-1 downto 0);   -- 
   signal s_slave_search_select_WR_o            : std_logic_vector(1-1 downto 0);   -- Write enable flag
   signal s_slave_search_select_o               : std_logic_vector(16-1 downto 0);  -- 
@@ -157,7 +158,7 @@ begin
     port map (
       clk_sys_i                     => c_clk_i,
       rst_sys_n_i                   => c_rst_n_i,
-      -- slave_stall_i                 => '0', -- !!!
+      slave_stall_i                 => s_slave_stall_i,
       flip_active_o                 => s_slave_flip_active_o,
       time_hi_V_i                   => "1",
       time_hi_i                     => rc_time(63 downto 32),
@@ -474,7 +475,7 @@ begin
       c_target_stb_i => s_slave_channel_msi_set_target_WR_o(0),
       c_target_i     => s_slave_channel_msi_set_target_o,
       c_target_o     => s_slave_channel_msi_get_target_i,
-      c_stall_o      => open, -- !!! connect to WB
+      c_stall_o      => s_slave_stall_i(0),
       i_clk_i        => i_clk_i,
       i_rst_n_i      => i_rst_n_i,
       i_ack_o        => s_msi_acks,
