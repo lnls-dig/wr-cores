@@ -182,6 +182,7 @@ begin
     generic map(
       g_addr_bits  => c_table_index_bits,
       g_data_bits  => c_data_bits,
+      g_bypass     => false,
       g_dual_clock => true)
     port map(
       r_clk_i  => clk_i,
@@ -207,6 +208,7 @@ begin
     generic map(
       g_addr_bits  => c_table_index_bits,
       g_data_bits  => c_data_bits,
+      g_bypass     => false,
       g_dual_clock => false)
     port map(
       r_clk_i  => t_clk_i,

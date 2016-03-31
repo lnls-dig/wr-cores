@@ -28,7 +28,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 use work.wishbone_pkg.all;
-use work.eca_pkg.all;
+use work.eca_internals_pkg.all;
 
 entity eca_wb_event is
  port(
@@ -107,6 +107,7 @@ begin
     generic map(
       g_addr_bits  => c_addr1_bits,
       g_data_bits  => 32,
+      g_bypass     => false,
       g_dual_clock => true)
     port map(
       r_clk_i  =>  e_clk_i,
