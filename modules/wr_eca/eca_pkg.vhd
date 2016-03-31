@@ -95,6 +95,8 @@ package eca_pkg is
   
   -- FIFO-style interface to access the output of an ECA channel
   component eca_queue is
+    generic(
+      g_queue_id  : natural);
     port(
       a_clk_i     : in  std_logic;
       a_rst_n_i   : in  std_logic;

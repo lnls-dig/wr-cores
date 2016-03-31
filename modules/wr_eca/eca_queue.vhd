@@ -32,6 +32,8 @@ use work.eca_queue_auto_pkg.all;
 use work.eca_pkg.all;
 
 entity eca_queue is
+  generic(
+    g_queue_id  : natural);
   port(
     a_clk_i     : in  std_logic;
     a_rst_n_i   : in  std_logic;
@@ -125,40 +127,42 @@ begin
   end process;
 
   INST_eca_queue_auto : eca_queue_auto
-  port map (
-    clk_sys_i         => q_clk_i,
-    rst_sys_n_i       => q_rst_n_i,
-    slave_stall_i(0)  => "not"(rq_ready),
-    pop_o(0)          => sq_pop_raw,
-    flags_V_i(0)      => rq_ready,
-    flags_i(0)        => rq_channel.late,
-    flags_i(1)        => rq_channel.early,
-    flags_i(2)        => rq_channel.conflict,
-    flags_i(3)        => rq_channel.delayed,
-    flags_i(4)        => rq_valid,
-    num_V_i(0)        => rq_ready,
-    num_i             => rq_channel.num,
-    event_id_hi_V_i(0)=> rq_ready,
-    event_id_hi_i     => rq_channel.event(63 downto 32),
-    event_id_lo_V_i(0)=> rq_ready,
-    event_id_lo_i     => rq_channel.event(31 downto  0),
-    param_hi_V_i(0)   => rq_ready,
-    param_hi_i        => rq_channel.param(63 downto 32),
-    param_lo_V_i(0)   => rq_ready,
-    param_lo_i        => rq_channel.param(31 downto  0),
-    tag_V_i(0)        => rq_ready,
-    tag_i             => rq_channel.tag,
-    tef_V_i(0)        => rq_ready,
-    tef_i             => rq_channel.tef,
-    deadline_hi_V_i(0)=> rq_ready,
-    deadline_hi_i     => rq_channel.deadline(63 downto 32),
-    deadline_lo_V_i(0)=> rq_ready,
-    deadline_lo_i     => rq_channel.deadline(31 downto  0),
-    executed_hi_V_i(0)=> rq_ready,
-    executed_hi_i     => rq_channel.executed(63 downto 32),
-    executed_lo_V_i(0)=> rq_ready,
-    executed_lo_i     => rq_channel.executed(31 downto  0),
-    slave_i           => q_slave_i,
-    slave_o           => q_slave_o);
+    generic map(
+      g_queue_id        => g_queue_id)
+    port map(
+      clk_sys_i         => q_clk_i,
+      rst_sys_n_i       => q_rst_n_i,
+      slave_stall_i(0)  => "not"(rq_ready),
+      pop_o(0)          => sq_pop_raw,
+      flags_V_i(0)      => rq_ready,
+      flags_i(0)        => rq_channel.late,
+      flags_i(1)        => rq_channel.early,
+      flags_i(2)        => rq_channel.conflict,
+      flags_i(3)        => rq_channel.delayed,
+      flags_i(4)        => rq_valid,
+      num_V_i(0)        => rq_ready,
+      num_i             => rq_channel.num,
+      event_id_hi_V_i(0)=> rq_ready,
+      event_id_hi_i     => rq_channel.event(63 downto 32),
+      event_id_lo_V_i(0)=> rq_ready,
+      event_id_lo_i     => rq_channel.event(31 downto  0),
+      param_hi_V_i(0)   => rq_ready,
+      param_hi_i        => rq_channel.param(63 downto 32),
+      param_lo_V_i(0)   => rq_ready,
+      param_lo_i        => rq_channel.param(31 downto  0),
+      tag_V_i(0)        => rq_ready,
+      tag_i             => rq_channel.tag,
+      tef_V_i(0)        => rq_ready,
+      tef_i             => rq_channel.tef,
+      deadline_hi_V_i(0)=> rq_ready,
+      deadline_hi_i     => rq_channel.deadline(63 downto 32),
+      deadline_lo_V_i(0)=> rq_ready,
+      deadline_lo_i     => rq_channel.deadline(31 downto  0),
+      executed_hi_V_i(0)=> rq_ready,
+      executed_hi_i     => rq_channel.executed(63 downto 32),
+      executed_lo_V_i(0)=> rq_ready,
+      executed_lo_i     => rq_channel.executed(31 downto  0),
+      slave_i           => q_slave_i,
+      slave_o           => q_slave_o);
 
 end rtl;
