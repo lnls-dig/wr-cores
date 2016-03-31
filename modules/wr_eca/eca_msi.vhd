@@ -66,6 +66,7 @@ architecture rtl of eca_msi is
   signal ri_xor  : std_logic_vector(3 downto 0) := (others => '0');
   signal rc_xor  : std_logic_vector(3 downto 0) := (others => '0');
   
+  signal sc_enable  : std_logic;
   signal rc_enable  : std_logic_vector(g_num_channels-1 downto 0) := (others => '0');
   signal ri_enable2 : std_logic_vector(g_num_channels-1 downto 0);
   signal ri_enable1 : std_logic_vector(g_num_channels-1 downto 0);
@@ -124,11 +125,15 @@ begin
     end if;
   end process;
   
-  -- Block access until it would be safe to set the MSI
-  c_stall_o <= r_stall;
+  -- Is the currently selected channel enabled?
+  sc_enable <= rc_enable(to_integer(unsigned(c_chan_i))) when f_eca_safe(c_chan_i)='1' else 'X';
 
+  -- Block access until it would be safe to set the MSI
+  c_stall_o  <= r_stall;
+  c_enable_o <= sc_enable;
+  
   -- Only allow updating the MSI address if the MSI is currently disabled
-  s_wen <= not rc_enable(to_integer(unsigned(c_chan_i))) when c_target_stb_i='1' else '0';
+  s_wen <= not sc_enable and c_target_stb_i;
   
   shadow : eca_sdp
     generic map(
