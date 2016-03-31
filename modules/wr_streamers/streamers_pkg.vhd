@@ -9,7 +9,8 @@ package streamers_pkg is
       g_data_width             : integer := 32;
       g_tx_threshold           : integer := 16;
       g_tx_max_words_per_frame : integer := 128;
-      g_tx_timeout             : integer := 128);
+      g_tx_timeout             : integer := 128;
+      g_escape_code_disable    : boolean := FALSE);
     port (
       clk_sys_i        : in  std_logic;
       rst_n_i          : in  std_logic;
@@ -34,7 +35,9 @@ package streamers_pkg is
     generic (
       g_data_width        : integer := 32;
       g_buffer_size       : integer := 16;
-      g_filter_remote_mac : boolean := false);
+      g_filter_remote_mac : boolean := false;
+      g_escape_code_disable : boolean := FALSE;
+      g_expected_words_number : integer := 0);
     port (
       clk_sys_i               : in  std_logic;
       rst_n_i                 : in  std_logic;

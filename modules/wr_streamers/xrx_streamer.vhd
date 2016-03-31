@@ -17,6 +17,12 @@
 -- Copyright (c) 2013 CERN BE-CO-HT.
 -- Licensed under LGPL 2.1.
 -------------------------------------------------------------------------------
+-- Revisions  :
+-- Date        Version  Author                Description
+-- 2012-11-02  1.0      Tomasz Wlostowski     Created
+-- 2016-03-31  2.0      Maciej Lipinski       made B-train backward compatible 
+--                                            & debugged
+-------------------------------------------------------------------------------
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -38,7 +44,21 @@ entity xrx_streamer is
 
     -- When true, receives only packets whose destination MAC equals
     -- cfg_mac_remote_i. When false. accepts all incoming packets. 
-    g_filter_remote_mac : boolean := false
+    g_filter_remote_mac : boolean := false;
+
+    -- DO NOT USE unless you know what you are doing
+    -- legacy stuff: the streamers that were initially used in Btrain did not check/insert 
+    -- the escape code. This is justified if only one block of a known number of words is 
+    -- sent/expected.
+    g_escape_code_disable : boolean := FALSE;
+
+    -- DO NOT USE unless you know what you are doing
+    -- legacy stuff: the streamers that were initially used in Btrain accepted only a fixed
+    -- number of words, regardless of the frame content. If this generic is set to number
+    -- other than zero, only a fixed number of words is accepted. 
+    -- In combination with the g_escape_code_disable generic set to TRUE, the behaviour of
+    -- the "Btrain streamers" can be recreated.
+    g_expected_words_number : integer := 0
     );
 
   port (
@@ -177,14 +197,14 @@ architecture rtl of xrx_streamer is
       dreq_i    : in  std_logic);
   end component;
 
-  type t_rx_state is (IDLE, HEADER, PAYLOAD, SUBFRAME_HEADER, EOF);
+  type t_rx_state is (IDLE, HEADER, FRAME_SEQ_ID, PAYLOAD, SUBFRAME_HEADER, EOF);
 
   signal fab, fsm_in : t_pipe;
 
   signal state : t_rx_state;
 
-  signal count, ser_count : unsigned(3 downto 0);
-  signal seq_no, seq_new  : unsigned(14 downto 0);
+  signal ser_count : unsigned(7 downto 0);
+  signal seq_no, seq_new,count  : unsigned(14 downto 0);
 
   signal crc_match, crc_en, crc_en_masked, crc_restart : std_logic;
 
@@ -195,7 +215,7 @@ architecture rtl of xrx_streamer is
 
   signal fifo_drop, fifo_accept, fifo_accept_d0, fifo_dvalid : std_logic;
   signal fifo_sync, fifo_last, fifo_lost                     : std_logic;
-  signal fifo_dout, fifo_din                                 : std_logic_vector(g_data_width + 2 downto 0);
+  signal fifo_dout, fifo_din                                 : std_logic_vector(g_data_width + 1 downto 0);
 
   signal pending_write, fab_dvalid_pre : std_logic;
 
@@ -204,10 +224,13 @@ architecture rtl of xrx_streamer is
   signal tx_tag_valid, rx_tag_valid   : std_logic;
 
   signal got_next_subframe : std_logic;
-  
+  signal rst : std_logic;
+  signal is_frame_seq_id : std_logic;
+  signal word_count                                                        : unsigned(11 downto 0);
+  signal sync_seq_no : std_logic;
 begin  -- rtl
 
-
+  rst <= not rst_n_i;
   U_rx_crc_generator : gc_crc_gen
     generic map (
       g_polynomial              => x"1021",
@@ -244,23 +267,29 @@ begin  -- rtl
       dreq_i    => fab.dreq);
 
   fab.dvalid <= '1' when fab_dvalid_pre = '1' and fab.addr = c_WRF_DATA and fab.bytesel = '0' else '0';
-
-  U_Escape_Detect : escape_detector
-    generic map (
-      g_data_width  => 16,
-      g_escape_code => x"cafe")
-    port map (
-      clk_i             => clk_sys_i,
-      rst_n_i           => rst_n_i,
-      d_i               => fab.data,
-      d_detect_enable_i => detect_escapes,
-      d_valid_i         => fab.dvalid,
-      d_req_o           => fab.dreq,
-      d_o               => fsm_in.data,
-      d_escape_o        => is_escape,
-      d_valid_o         => fsm_in.dvalid,
-      d_req_i           => fsm_in.dreq);
-
+  gen_escape: if (g_escape_code_disable = FALSE) generate
+    U_Escape_Detect : escape_detector
+      generic map (
+        g_data_width  => 16,
+        g_escape_code => x"cafe")
+      port map (
+        clk_i             => clk_sys_i,
+        rst_n_i           => rst_n_i,
+        d_i               => fab.data,
+        d_detect_enable_i => detect_escapes,
+        d_valid_i         => fab.dvalid,
+        d_req_o           => fab.dreq,
+        d_o               => fsm_in.data,
+        d_escape_o        => is_escape,
+        d_valid_o         => fsm_in.dvalid,
+        d_req_i           => fsm_in.dreq);
+  end generate gen_escape;
+  gen_no_escape: if (g_escape_code_disable = TRUE) generate
+    fsm_in.dvalid <= fab.dvalid;
+    fsm_in.data   <= fab.data;
+    fab.dreq      <= fsm_in.dreq;
+    is_escape     <= '0';
+  end generate gen_no_escape;
   fsm_in.eof <= fab.eof or fab.error;
   fsm_in.sof <= fab.sof;
 
@@ -268,7 +297,7 @@ begin  -- rtl
   U_Output_FIFO : dropping_buffer
     generic map (
       g_size       => g_buffer_size,
-      g_data_width => g_data_width + 3)
+      g_data_width => g_data_width + 2)
     port map (
       clk_i      => clk_sys_i,
       rst_n_i    => rst_n_i,
@@ -282,7 +311,8 @@ begin  -- rtl
       d_req_i    => rx_dreq_i);
 
   fifo_din(g_data_width+1)          <= fifo_sync;
-  fifo_din(g_data_width)            <= fifo_last;
+  fifo_din(g_data_width)            <= fifo_last or 
+                                        ((not pending_write) and is_escape); -- when word is 16 bits
   fifo_din(g_data_width-1 downto 0) <= fifo_data;
 
   rx_data_o  <= fifo_dout(g_data_width-1 downto 0);
@@ -304,110 +334,158 @@ begin  -- rtl
   begin
     if rising_edge(clk_sys_i) then
       if rst_n_i = '0' then
-        state  <= IDLE;
-        count  <= (others => '0');
-        seq_no <= (others => '0');
+        state                  <= IDLE;
+        count                  <= (others => '0');
+        seq_no                 <= (others => '0');
+        detect_escapes         <= '0';
+        crc_en                 <= '0';
+        fifo_accept            <= '0';
+        fifo_drop              <= '0';
+        fifo_dvalid            <= '0';
+        pending_write          <= '0';
+        got_next_subframe      <= '0';
+        fifo_sync              <= '0';
+        fifo_last              <= '0';
+        rx_latency_valid_o     <= '0';
+        tx_tag_valid           <= '0';
+        ser_count              <= (others => '0');
+        word_count             <= (others => '0');
+        sync_seq_no            <= '1';
       else
         case state is
           when IDLE =>
-            detect_escapes <= '0';
-            crc_en         <= '0';
-            count          <= (others => '0');
-            fifo_accept    <= '0';
-            fifo_drop      <= '0';
-            fifo_dvalid    <= '0';
-            pending_write  <= '0';
-
+            detect_escapes     <= '0';
+            crc_en             <= '0';
+            count              <= (others => '0');
+            fifo_accept        <= '0';
+            fifo_drop          <= '0';
+            fifo_dvalid        <= '0';
+            pending_write      <= '0';
+            got_next_subframe  <='0';
+            ser_count          <= (others => '0');
+            fifo_sync          <='0';
+            fifo_last          <= '0';
+            word_count         <= (others => '0');
             rx_latency_valid_o <= '0';
-            tx_tag_valid <= '0';
+            tx_tag_valid       <= '0';
 
             if(fsm_in.sof = '1') then
-              state <= HEADER;
+              state            <= HEADER;
             end if;
 
           when HEADER =>
             if(fsm_in.eof = '1') then
               state <= IDLE;
             elsif(fsm_in.dvalid = '1') then
-              case count is
-                when x"0" =>
+              case count(7 downto 0) is
+                when x"00" =>
                   if(fsm_in.data /= cfg_mac_local_i(47 downto 32) nor (cfg_accept_broadcasts_i = '1' and fsm_in.data /= x"ffff")) then
                     state <= IDLE;
                   end if;
-                when x"1" =>
+                  count <= count + 1;
+                when x"01" =>
                   if(fsm_in.data /= cfg_mac_local_i(31 downto 16) nor (cfg_accept_broadcasts_i = '1' and fsm_in.data /= x"ffff")) then
                     state <= IDLE;
                   end if;
-                when x"2" =>
+                  count <= count + 1;
+                when x"02" =>
                   if(fsm_in.data /= cfg_mac_local_i(15 downto 0) nor (cfg_accept_broadcasts_i = '1' and fsm_in.data /= x"ffff")) then
                     state <= IDLE;
                   end if;
-                when x"3" =>
+                  count <= count + 1;
+                when x"03" =>
                   if(fsm_in.data /= cfg_mac_remote_i(47 downto 32) and g_filter_remote_mac) then
                     state <= IDLE;
                   end if;
-                when x"4" =>
+                  count <= count + 1;
+                when x"04" =>
                   if(fsm_in.data /= cfg_mac_remote_i(31 downto 16) and g_filter_remote_mac) then
                     state <= IDLE;
                   end if;
-                when x"5" =>
+                  count <= count + 1;
+                when x"05" =>
                   if(fsm_in.data /= cfg_mac_remote_i(15 downto 0) and g_filter_remote_mac) then
                     state <= IDLE;
                   end if;
-                when x"6" =>
+                  count <= count + 1;
+                when x"06" =>
                   if(fsm_in.data /= cfg_ethertype_i) then
                     state <= IDLE;
                   end if;
-                when x"7" =>
-                  tx_tag_valid         <= fsm_in.data(15);
-                  tx_tag_cycles(27 downto 16) <= fsm_in.data(11 downto 0);
-                when x"8" =>
+                  count <= count + 1;
+                when x"07" =>
+                  tx_tag_valid               <= fsm_in.data(15);
+                  tx_tag_cycles(27 downto 16)<= fsm_in.data(11 downto 0);
+                  count <= count + 1;
+                when x"08" =>
                   tx_tag_cycles(15 downto 0) <= fsm_in.data;
-                  crc_en              <= '1';
-                  detect_escapes      <= '1';
-                  state               <= SUBFRAME_HEADER;
+                  count                      <= count + 1;
+                  crc_en                     <= '1';
+                  detect_escapes             <= '1';
+                  state                      <= FRAME_SEQ_ID;
                 when others => null;
               end case;
-              count <= count + 1;
+            end if;
+
+          when FRAME_SEQ_ID =>
+            if(fsm_in.eof = '1') then
+              state <= IDLE;
+            elsif(fsm_in.dvalid = '1') then
+              count               <= "000" & x"001"; -- use as subframe seq_no
+              state               <= PAYLOAD;
+              fifo_drop           <= '0';
+              fifo_accept         <= '0';
+              ser_count           <= (others => '0');
+              word_count          <= word_count + 1; -- count words, increment in advance
+              got_next_subframe   <= '1';
+              if(tx_tag_valid = '1') then
+                rx_latency_valid_o <= '1';
+                if(unsigned(tx_tag_cycles) > unsigned(rx_tag_cycles)) then
+                  rx_latency_o <= std_logic_vector(unsigned(rx_tag_cycles) - unsigned(tx_tag_cycles) + to_unsigned(125000000, 28));
+                else
+                  rx_latency_o <= std_logic_vector(unsigned(rx_tag_cycles) - unsigned(tx_tag_cycles));
+                end if;
+                tx_tag_valid <= '0';
+              else
+                rx_latency_valid_o <= '0';
+              end if;
+
+              if(std_logic_vector(seq_no) /= fsm_in.data(14 downto 0)) then
+                seq_no    <= unsigned(fsm_in.data(14 downto 0))+1;
+                if (sync_seq_no = '1') then -- sync to the first received seq_no
+                  sync_seq_no <= '0';
+                else
+                  fifo_lost <= '1';
+                end if;
+              else
+                seq_no    <= unsigned(seq_no + 1);
+                fifo_lost <= '0';
+              end if;
             end if;
 
           when SUBFRAME_HEADER =>
             fifo_drop   <= '0';
             fifo_accept <= '0';
-
             ser_count <= (others => '0');
-
-            if(tx_tag_valid = '1') then
-              rx_latency_valid_o <= '1';
-              if(unsigned(tx_tag_cycles) > unsigned(rx_tag_cycles)) then
-                rx_latency_o <= std_logic_vector(unsigned(rx_tag_cycles) - unsigned(tx_tag_cycles) + to_unsigned(125000000, 28));
-              else
-                rx_latency_o <= std_logic_vector(unsigned(rx_tag_cycles) - unsigned(tx_tag_cycles));
-              end if;
-              tx_tag_valid <= '0';
-            else
-              rx_latency_valid_o <= '0';
-            end if;
 
             if(fsm_in.eof = '1') then
               state <= IDLE;
+              got_next_subframe <= '0';
             elsif (fsm_in.dvalid = '1' and is_escape = '1') then
               got_next_subframe <= '1';
 
-              if(std_logic_vector(seq_no) /= fsm_in.data(14 downto 0)) then
-                seq_no    <= unsigned(fsm_in.data(14 downto 0));
+              if(std_logic_vector(count) /= fsm_in.data(14 downto 0)) then
+                count     <= unsigned(fsm_in.data(14 downto 0))+1;
                 fifo_lost <= '1';
               else
-                seq_no    <= unsigned(seq_no + 1);
+                count    <= count + 1;
                 fifo_lost <= '0';
               end if;
-
               state <= PAYLOAD;
             end if;
 
-            
-            
           when PAYLOAD =>
+            rx_latency_valid_o <= '0';
             fifo_sync <= got_next_subframe;
 
             if(fsm_in.eof = '1') then
@@ -428,11 +506,11 @@ begin  -- rtl
 
                 if(fsm_in.data(15) = '1') then
                   
-                  if(std_logic_vector(seq_no) /= fsm_in.data(14 downto 0)) then
-                    seq_no    <= unsigned(fsm_in.data(14 downto 0));
+                  if(std_logic_vector(count) /= fsm_in.data(14 downto 0)) then
+                    count     <= unsigned(fsm_in.data(14 downto 0));
                     fifo_lost <= '1';
                   else
-                    seq_no    <= unsigned(seq_no + 1);
+                    count     <= unsigned(count + 1);
                     fifo_lost <= '0';
                   end if;
                   
@@ -457,7 +535,7 @@ begin  -- rtl
                 end if;
 
 --                fifo_dvalid <= '0';
-              else
+              else --of:  if(is_escape = '1' or word_count = g_expected_words_number) then
 
                 fifo_last   <= '0';
                 fifo_accept <= '0';
@@ -467,10 +545,27 @@ begin  -- rtl
 
                 if(ser_count = g_data_width/16 - 1) then
                   ser_count                                        <= (others => '0');
-                  pending_write                                    <= '1';
-                  fifo_data(g_data_width-16-1 downto 0)            <= pack_data(g_data_width-16-1 downto 0);
-                  fifo_data(g_data_width-1 downto g_data_width-16) <= fsm_in.data;
-                  fifo_dvalid                                      <= '0';
+
+                  if (ser_count = x"00") then -- ML: the case when g_data_width == 16
+                     fifo_sync <= got_next_subframe;
+                     fifo_data(g_data_width-1 downto 0)            <= pack_data(g_data_width-1 downto 0);
+                     fifo_dvalid <= not is_escape;
+                     pending_write <= '0';
+                  else
+                    ser_count                                        <= (others => '0');
+                    fifo_data(g_data_width-16-1 downto 0)            <= pack_data(g_data_width-16-1 downto 0);
+                    fifo_data(g_data_width-1 downto g_data_width-16) <= fsm_in.data;
+                    fifo_dvalid                                      <= '0';
+                    pending_write                                    <= '1';
+                  end if;
+                  if(word_count = g_expected_words_number) then
+                    state       <= EOF;
+                    fifo_accept <= '1'; 
+                    fifo_drop   <= '0'; 
+                    fifo_dvalid <= '1';
+                  else
+                    word_count <= word_count + 1;
+                  end if;
                 elsif(ser_count = g_data_width/16-2 and pending_write = '1') then
                   pending_write <= '0';
                   ser_count     <= ser_count + 1;
@@ -483,7 +578,7 @@ begin  -- rtl
                 end if;
                 
               end if;
-            else
+            else --of:  elsif(fsm_in.dvalid = '1') then
               fifo_dvalid <= '0';
             end if;
 
@@ -511,8 +606,9 @@ begin  -- rtl
   end process;
 
 --  fifo_data <= pack_data;
+  rx_lost_o   <= fifo_lost;
 
-  crc_restart <= '1' when (is_escape = '1' and fsm_in.data(15) = '1') else '0';
+  crc_restart <= '1' when (state = FRAME_SEQ_ID or (is_escape = '1' and fsm_in.data(15) = '1')) else not rst_n_i;
   
   
 end rtl;
