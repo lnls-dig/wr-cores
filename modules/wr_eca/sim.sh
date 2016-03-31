@@ -45,6 +45,10 @@ for i in 				\
 	eca_msi.vhd			\
 	eca_queue.vhd			\
 	eca.vhd				\
+	eca_wb_event.vhd		\
+	wr_eca.vhd			\
+	eca_ac_wbm.vhd			\
+	eca_scubus_channel.vhd		\
 	eca_tb.vhd;			\
 do echo $i; ghdl -a --std=93 --ieee=standard --syn-binding  $i
 done
