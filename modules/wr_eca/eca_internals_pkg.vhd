@@ -56,11 +56,13 @@ package eca_internals_pkg is
     param    : t_param;
     tag      : t_tag;
     tef      : t_tef;
-    time     : t_time;
+    deadline : t_time;
+    executed : t_time;
   end record t_channel;
   
   constant c_idle_channel : t_channel := (
     '0', '0', '0', '0', '0',
+    (others => '0'),
     (others => '0'),
     (others => '0'),
     (others => '0'),

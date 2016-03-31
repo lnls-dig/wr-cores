@@ -4,8 +4,7 @@
 --!
 --! Copyright (C) 2013 GSI Helmholtz Centre for Heavy Ion Research GmbH 
 --!
---! This component receives actions to be executed, in any order.
---! It stores them until their deadline arrives
+--! This component stores all fields of an action except valid and executed
 --!
 --------------------------------------------------------------------------------
 --! This library is free software; you can redistribute it and/or
@@ -44,11 +43,10 @@ end eca_data;
 
 architecture rtl of eca_data is
 
-  constant c_valid    : natural := 0;
-  constant c_conflict : natural := 1;
-  constant c_late     : natural := 2;
-  constant c_early    : natural := 3;
-  constant c_delayed  : natural := 4;
+  constant c_conflict : natural := 0;
+  constant c_late     : natural := c_conflict+1;
+  constant c_early    : natural := c_late    +1;
+  constant c_delayed  : natural := c_early   +1;
   
   subtype c_num    is natural range t_num'length  +c_delayed    downto c_delayed   +1;
   subtype c_event  is natural range t_event'length+c_num'high   downto c_num'high  +1;
@@ -62,7 +60,6 @@ architecture rtl of eca_data is
 
 begin
 
-  s_dat_i(c_valid)    <= w_dat_i.valid;
   s_dat_i(c_conflict) <= w_dat_i.conflict;
   s_dat_i(c_late)     <= w_dat_i.late;
   s_dat_i(c_early)    <= w_dat_i.early;
@@ -72,9 +69,9 @@ begin
   s_dat_i(c_param)    <= w_dat_i.param;
   s_dat_i(c_tag)      <= w_dat_i.tag;
   s_dat_i(c_tef)      <= w_dat_i.tef;
-  s_dat_i(c_time)     <= w_dat_i.time;
+  s_dat_i(c_time)     <= w_dat_i.deadline;
 
-  r_dat_o.valid    <= s_dat_o(c_valid);
+  r_dat_o.valid    <= '1';
   r_dat_o.conflict <= s_dat_o(c_conflict);
   r_dat_o.late     <= s_dat_o(c_late);
   r_dat_o.early    <= s_dat_o(c_early);
@@ -84,7 +81,8 @@ begin
   r_dat_o.param    <= s_dat_o(c_param);
   r_dat_o.tag      <= s_dat_o(c_tag);
   r_dat_o.tef      <= s_dat_o(c_tef);
-  r_dat_o.time     <= s_dat_o(c_time);
+  r_dat_o.deadline <= s_dat_o(c_time);
+  r_dat_o.executed <= (others => '0');
   
   table : eca_sdp
     generic map(

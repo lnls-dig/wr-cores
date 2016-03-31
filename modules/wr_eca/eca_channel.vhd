@@ -327,7 +327,8 @@ begin
   s_channel_i.param    <= channel_i.param;
   s_channel_i.tag      <= channel_i.tag;
   s_channel_i.tef      <= channel_i.tef;
-  s_channel_i.time     <= channel_i.time;
+  s_channel_i.deadline <= channel_i.deadline;
+  s_channel_i.executed <= (others => '0');
   
   -- Goal is to intercept error conditions and record their indices
   saved : eca_sdp
@@ -418,22 +419,22 @@ begin
   
   with rc_req_field select
   s_req_dat <=
-    s_snoop.event(63 downto 32) when "0000",
-    s_snoop.event(31 downto  0) when "0001",
-    s_snoop.param(63 downto 32) when "0010",
-    s_snoop.param(31 downto  0) when "0011",
-    s_snoop.tag  (31 downto  0) when "0100",
-    s_snoop.tef  (31 downto  0) when "0101",
-    s_snoop.time (63 downto 32) when "0110",
-    s_snoop.time (31 downto  0) when "0111",
-    r_req_time(63 downto 32)    when "1000",
-    r_req_time(31 downto  0)    when "1001",
-    -- reserved                 when "1010",
-    s_req_cnt                   when "1011",
-    s_val_count                 when "1100",
-    s_num_overflow              when "1101",
-    s_used_output               when "1110",
-    s_used_output               when "1111",
+    s_snoop.event   (63 downto 32) when "0000",
+    s_snoop.event   (31 downto  0) when "0001",
+    s_snoop.param   (63 downto 32) when "0010",
+    s_snoop.param   (31 downto  0) when "0011",
+    s_snoop.tag     (31 downto  0) when "0100",
+    s_snoop.tef     (31 downto  0) when "0101",
+    s_snoop.deadline(63 downto 32) when "0110",
+    s_snoop.deadline(31 downto  0) when "0111",
+    r_req_time      (63 downto 32) when "1000",
+    r_req_time      (31 downto  0) when "1001",
+    -- reserved                    when "1010",
+    s_req_cnt                      when "1011",
+    s_val_count                    when "1100",
+    s_num_overflow                 when "1101",
+    s_used_output                  when "1110",
+    s_used_output                  when "1111",
     (others => 'X') when others;
   
   with rc_req_field select

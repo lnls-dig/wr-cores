@@ -205,7 +205,8 @@ begin
       r_channel.param    <= param;
       r_channel.tag      <= tag;
       r_channel.tef      <= tef;
-      r_channel.time     <= time;
+      r_channel.deadline <= time;
+      r_channel.executed <= (others => '0');
       r_clr   <= clr;
       r_set   <= set;
       r_stall <= stall;
@@ -231,22 +232,26 @@ begin
         busy(index) := '0';
       end if;
       
+      if flags > 0 and ignore = '0' then
+        assert s_channel.executed = r_time report "Incorrect execution time" severity failure;
+      end if;
+      
       -- On time; timestamp must fall within one clock tick
       if s_channel.valid = '1' and ignore = '0' then
-        assert unsigned(r_time) <= unsigned(s_channel.time)        report "Valid too late"  severity failure;
-        assert unsigned(s_channel.time) < unsigned(r_time)+c_ticks report "Valid too early" severity failure;
+        assert unsigned(r_time) <= unsigned(s_channel.deadline)        report "Valid too late"  severity failure;
+        assert unsigned(s_channel.deadline) < unsigned(r_time)+c_ticks report "Valid too early" severity failure;
       end if;
       
       -- At worst delayed; times increase strictly monotone
       if (s_channel.valid or s_channel.delayed) = '1' and ignore = '0' then
-        assert unsigned(s_channel.time) >= unsigned(seq) report "Action timestamps not monotonic" severity failure;
-        if unsigned(s_channel.time) > unsigned(seq) then
+        assert unsigned(s_channel.deadline) >= unsigned(seq) report "Action timestamps not monotonic" severity failure;
+        if unsigned(s_channel.deadline) > unsigned(seq) then
           conflict := (others => '0');
         else
           assert conflict(to_integer(unsigned(s_channel.num))) = '0' report "No conflict despite prior match" severity failure;
         end if;
         conflict(to_integer(unsigned(s_channel.num))) := '1';
-        seq := s_channel.time;
+        seq := s_channel.deadline;
       end if;
       
       -- If something was delayed, there better have been something prior
@@ -255,19 +260,19 @@ begin
       
       -- Conflicts must have the same timestamp as the last action
       if s_channel.conflict = '1' then
-        assert unsigned(s_channel.time) = unsigned(seq) report "Conflict does not have same timestamp" severity failure;
+        assert unsigned(s_channel.deadline) = unsigned(seq) report "Conflict does not have same timestamp" severity failure;
         assert conflict(to_integer(unsigned(s_channel.num))) = '1' report "Conflict with nothing?" severity failure;
       end if;
       
       -- If the channel claims this is late, it should be late!
       if (s_channel.delayed or s_channel.late) = '1' then
-        assert unsigned(r_time) > unsigned(s_channel.time) report "Late action was early" severity failure;
+        assert unsigned(r_time) > unsigned(s_channel.deadline) report "Late action was early" severity failure;
       end if;
       
       -- If the channel claims this is early, it should be early!
       -- ... except it is possible that even though it was early, a super-long stall made it late ;)
       if s_channel.early = '1' then
-        -- assert unsigned(s_channel.time) >= unsigned(r_time)+c_ticks report "Early action was late (this is possible if a long enough stall happens before)" severity warning;
+        -- assert unsigned(s_channel.deadline) >= unsigned(r_time)+c_ticks report "Early action was late (this is possible if a long enough stall happens before)" severity warning;
       end if;
       
       -- Confirm function of stall line

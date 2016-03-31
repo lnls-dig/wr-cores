@@ -310,7 +310,7 @@ begin
           time_i       => r_time,
           wen_i        => s_scan_we,
           stall_o      => open, -- always goes low before s_free_full goes low
-          deadline_i   => channel_i.time,
+          deadline_i   => channel_i.deadline,
           idx_i        => s_free_alloc(c_log_scan_size-1 downto 0),
           ext_i        => s_ext,
           scan_stb_o   => s_scan_stb,
@@ -640,7 +640,8 @@ begin
   s_mux_channel.param    <= f_eca_mux(r_stall, r_skid_channel.param,    s_data_channel.param);
   s_mux_channel.tag      <= f_eca_mux(r_stall, r_skid_channel.tag,      s_data_channel.tag);
   s_mux_channel.tef      <= f_eca_mux(r_stall, r_skid_channel.tef,      s_data_channel.tef);
-  s_mux_channel.time     <= f_eca_mux(r_stall, r_skid_channel.time,     s_data_channel.time);
+  s_mux_channel.deadline <= f_eca_mux(r_stall, r_skid_channel.deadline, s_data_channel.deadline);
+  s_mux_channel.executed <= (others => '0');
 
   -- Determine exceptional conditions
   -- late/early/conflict/delayed are mutually exclusive; most severe first
@@ -689,7 +690,8 @@ begin
         r_channel.param    <= s_mux_channel.param;
         r_channel.tag      <= s_mux_channel.tag;
         r_channel.tef      <= s_mux_channel.tef;
-        r_channel.time     <= s_mux_channel.time;
+        r_channel.deadline <= s_mux_channel.deadline;
+        r_channel.executed <= f_eca_add(time_i, 2**g_log_multiplier);
       end if;
     end if;
   end process;
