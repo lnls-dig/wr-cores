@@ -104,7 +104,6 @@ architecture rtl of eca_walker is
   
   signal r_w_latch : std_logic;
   signal r_w_page  : std_logic;
-  signal r_w_addr  : t_table_ptr;
   signal r_w_event : t_event;
   signal r_w_param : t_param;
   signal r_w_tef   : t_tef;
@@ -144,8 +143,6 @@ architecture rtl of eca_walker is
   signal r2_a_channel     : t_channel_id;
   signal r2_a_valid       : std_logic;
   
-  signal r2_a_offset_neg  : std_logic;
-  
   signal r1_a_delayed     : std_logic;
   signal r1_a_conflict    : std_logic;
   signal r1_a_late        : std_logic;
@@ -155,7 +152,6 @@ architecture rtl of eca_walker is
   signal r1_a_param       : t_param;
   signal r1_a_tag         : t_tag;
   signal r1_a_tef         : t_tef;
-  signal r1_a_channel     : t_channel_id;
   
   signal r1_a_validv      : std_logic_vector(g_num_channels-1 downto 0);
   
@@ -278,7 +274,6 @@ begin
       end if;
       
       r_w_page  <= s_w_page;
-      r_w_addr  <= s_w_addr;
       
       -- If accepting a new request, latch registers
       -- However, do it one cycle late so as to make fan-out timing better
@@ -296,9 +291,6 @@ begin
   s_w_valid  <= s_w_active or b_stb_i;
   s_w_page   <= r_w_page  when s_w_active='1' else b_page_i;
   s_w_addr   <= s_mr_next when s_w_active='1' else b_first_i;
-  -- !!! ^^^ slow b/c s_mr_active must fan out to ptr-bits from one M9k output
-  --     => max freq=320MHz on Arria2
-  -- ... could include fanout-wide s_mr_valid in table
   
   -- Not a register; latency=M9K access
   b_stall_o <= s_w_active;
@@ -349,9 +341,6 @@ begin
       r2_a_channel     <= r3_a_channel;
       r2_a_valid       <= r3_a_valid;
       
-      -- Carry-save adder; final carry done by eca_adder 'late'
-      r2_a_offset_neg  <= r3_a_offset_time(63);
-      
       r1_a_delayed     <= r2_a_delayed;
       r1_a_conflict    <= r2_a_conflict;
       r1_a_late        <= r2_a_late;
@@ -361,7 +350,6 @@ begin
       r1_a_param       <= r2_a_param;
       r1_a_tag         <= r2_a_tag;
       r1_a_tef         <= r2_a_tef;
-      r1_a_channel     <= r2_a_channel;
       
       for i in 0 to g_num_channels-1 loop
         r1_a_validv(i) <= 
