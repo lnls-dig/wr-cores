@@ -70,10 +70,7 @@ package eca_internals_pkg is
     (others => '0'),
     (others => '0'));
   
-  type t_name          is array(63 downto 0)      of t_ascii;
-  type t_name_array    is array(natural range <>) of t_name;
   type t_channel_array is array(natural range <>) of t_channel;
-  
   type t_event_array   is array(natural range <>) of t_event;
   type t_param_array   is array(natural range <>) of t_param;
   type t_tag_array     is array(natural range <>) of t_tag;
@@ -492,6 +489,16 @@ package eca_internals_pkg is
       c2_o    : out std_logic);
   end component;
   
+  -- Convert White Rabbit time to ECA time
+  component eca_wr_time is
+    port(
+      clk_i    : in  std_logic;
+      rst_n_i  : in  std_logic;
+      tai_i    : in  std_logic_vector(39 downto 0);
+      cycles_i : in  std_logic_vector(27 downto 0);
+      time_o   : out t_time);
+  end component;
+  
   component eca_search is
     generic(
       g_log_table_size : natural := 8);
@@ -636,6 +643,24 @@ package eca_internals_pkg is
       i_master_o  : out t_wishbone_master_out);
   end component;
 
+  -- Convert WB writes into inbound ECA events
+  component eca_wb_event is
+    port(
+      w_clk_i   : in  std_logic;
+      w_rst_n_i : in  std_logic;
+      w_slave_i : in  t_wishbone_slave_in;
+      w_slave_o : out t_wishbone_slave_out;
+      e_clk_i   : in  std_logic;
+      e_rst_n_i : in  std_logic;
+      e_stb_o   : out std_logic;
+      e_stall_i : in  std_logic;
+      e_event_o : out t_event;
+      e_param_o : out t_param;
+      e_tef_o   : out t_tef;
+      e_time_o  : out t_time;
+      e_index_i : in  std_logic_vector(7 downto 0));
+  end component;
+  
 end eca_internals_pkg;
 
 package body eca_internals_pkg is
