@@ -364,7 +364,7 @@ begin
       for i in 0 to g_num_channels-1 loop
         r1_a_validv(i) <= 
           r2_a_valid and
-          f_eca_active_high(to_integer(unsigned(r2_a_channel)) = i);
+          f_eca_eq(r2_a_channel, std_logic_vector(to_unsigned(i, r2_a_channel'length)));
       end loop;
     end if;
   end process;
