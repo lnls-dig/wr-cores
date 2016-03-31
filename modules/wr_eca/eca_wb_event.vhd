@@ -43,8 +43,7 @@ entity eca_wb_event is
    e_event_o : out t_event;
    e_param_o : out t_param;
    e_tef_o   : out t_tef;
-   e_time_o  : out t_time;
-   e_index_i : in  std_logic_vector(7 downto 0));
+   e_time_o  : out t_time);
 end eca_wb_event;
 
 architecture rtl of eca_wb_event is
@@ -99,10 +98,7 @@ architecture rtl of eca_wb_event is
   signal se_data    : t_wishbone_data;
 begin
 
-  -- e_index_i is effectively constant and thus safe to cross clock domains
-  w_slave_o.DAT(31 downto 8) <= (others => '0');
-  w_slave_o.DAT( 7 downto 0) <= e_index_i;
-  
+  w_slave_o.DAT <= (others => '0');
   w_slave_o.STALL <= '0'; -- Never stall; report error if something bad happens
   w_slave_o.RTY <= '0';
   w_slave_o.INT <= '0'; -- This doesn't belong in the struct :-/

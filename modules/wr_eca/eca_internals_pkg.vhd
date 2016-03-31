@@ -657,8 +657,7 @@ package eca_internals_pkg is
       e_event_o : out t_event;
       e_param_o : out t_param;
       e_tef_o   : out t_tef;
-      e_time_o  : out t_time;
-      e_index_i : in  std_logic_vector(7 downto 0));
+      e_time_o  : out t_time);
   end component;
   
 end eca_internals_pkg;
