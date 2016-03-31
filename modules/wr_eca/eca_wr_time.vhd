@@ -138,6 +138,6 @@ begin
     end if;
   end process;
 
-  time_o <= r0_time_out;
+  time_o <= r0_time_out(60 downto 0) & "000";
   
 end rtl;
