@@ -1,7 +1,7 @@
 --! @file        eca_auto.vhd
 --  DesignUnit   eca_auto
 --! @author      Wesley W. Terpstra <w.terpstra@gsi.de>
---! @date        31/03/2016
+--! @date        01/04/2016
 --! @version     2.0
 --! @copyright   2016 GSI Helmholtz Centre for Heavy Ion Research GmbH
 --!
@@ -42,7 +42,9 @@ entity eca_auto is
 generic(
    g_channels        : natural   := 1;    --
    g_search_capacity : natural   := 512;  --
-   g_walker_capacity : natural   := 256   --
+   g_offset_bits     : natural   := 32;   --
+   g_walker_capacity : natural   := 256;  --
+   g_latency         : natural   := 4096  --
 );
 Port(
    clk_sys_i                     : std_logic;                           -- Clock input for sys domain
@@ -73,8 +75,6 @@ Port(
    channel_msi_get_enable_V_i    : in  std_logic_vector(1-1 downto 0);  -- Valid flag - channel_msi_get_enable
    channel_msi_get_target_i      : in  std_logic_vector(32-1 downto 0); -- 
    channel_msi_get_target_V_i    : in  std_logic_vector(1-1 downto 0);  -- Valid flag - channel_msi_get_target
-   channel_name_i                : in  std_logic_vector(32-1 downto 0); -- 
-   channel_name_V_i              : in  std_logic_vector(1-1 downto 0);  -- Valid flag - channel_name
    channel_overflow_count_i      : in  std_logic_vector(32-1 downto 0); -- 
    channel_overflow_count_V_i    : in  std_logic_vector(1-1 downto 0);  -- Valid flag - channel_overflow_count
    channel_param_hi_i            : in  std_logic_vector(32-1 downto 0); -- 
@@ -85,6 +85,8 @@ Port(
    channel_tag_V_i               : in  std_logic_vector(1-1 downto 0);  -- Valid flag - channel_tag
    channel_tef_i                 : in  std_logic_vector(32-1 downto 0); -- 
    channel_tef_V_i               : in  std_logic_vector(1-1 downto 0);  -- Valid flag - channel_tef
+   channel_type_i                : in  std_logic_vector(32-1 downto 0); -- 
+   channel_type_V_i              : in  std_logic_vector(1-1 downto 0);  -- Valid flag - channel_type
    channel_valid_count_i         : in  std_logic_vector(32-1 downto 0); -- 
    channel_valid_count_V_i       : in  std_logic_vector(1-1 downto 0);  -- Valid flag - channel_valid_count
    search_ro_event_hi_i          : in  std_logic_vector(32-1 downto 0); -- 
@@ -126,7 +128,6 @@ Port(
    channel_msi_set_enable_WR_o   : out std_logic_vector(1-1 downto 0);  -- Write enable flag - channel_msi_set_enable
    channel_msi_set_target_o      : out std_logic_vector(32-1 downto 0); -- 
    channel_msi_set_target_WR_o   : out std_logic_vector(1-1 downto 0);  -- Write enable flag - channel_msi_set_target
-   channel_name_RD_o             : out std_logic_vector(1-1 downto 0);  -- Read enable flag - channel_name
    channel_num_select_o          : out std_logic_vector(8-1 downto 0);  -- 
    channel_overflow_count_RD_o   : out std_logic_vector(1-1 downto 0);  -- Read enable flag - channel_overflow_count
    channel_param_hi_RD_o         : out std_logic_vector(1-1 downto 0);  -- Read enable flag - channel_param_hi
@@ -183,6 +184,8 @@ architecture rtl of eca_auto is
    signal r_channels                   : std_logic_vector(8-1 downto 0)    := std_logic_vector(to_unsigned(g_channels, 8));         -- 
    signal r_search_capacity            : std_logic_vector(16-1 downto 0)   := std_logic_vector(to_unsigned(g_search_capacity, 16)); -- 
    signal r_walker_capacity            : std_logic_vector(16-1 downto 0)   := std_logic_vector(to_unsigned(g_walker_capacity, 16)); -- 
+   signal r_latency                    : std_logic_vector(32-1 downto 0)   := std_logic_vector(to_unsigned(g_latency, 32));         -- 
+   signal r_offset_bits                : std_logic_vector(8-1 downto 0)    := std_logic_vector(to_unsigned(g_offset_bits, 8));      -- 
    signal r_flip_active                : std_logic_vector(1-1 downto 0)    := (others => '0');                                      -- 
    signal r_time_hi_V                  : std_logic_vector(1-1 downto 0)    := (others => '0');                                      -- Valid flag - time_hi
    signal s_time_hi_V_i                : std_logic_vector(1-1 downto 0)    := (others => '0');                                      -- Valid flag - time_hi
@@ -255,11 +258,10 @@ architecture rtl of eca_auto is
    signal r_channel_select             : std_logic_vector(8-1 downto 0)    := (others => '0');                                      -- 
    signal r_channel_num_select         : std_logic_vector(8-1 downto 0)    := (others => '0');                                      -- 
    signal r_channel_code_select        : std_logic_vector(2-1 downto 0)    := (others => '0');                                      -- 
-   signal r_channel_name_RD            : std_logic_vector(1-1 downto 0)    := std_logic_vector(to_unsigned(0, 1));                  -- Read enable flag - channel_name
-   signal r_channel_name_V             : std_logic_vector(1-1 downto 0)    := (others => '0');                                      -- Valid flag - channel_name
-   signal s_channel_name_V_i           : std_logic_vector(1-1 downto 0)    := (others => '0');                                      -- Valid flag - channel_name
-   signal r_channel_name               : std_logic_vector(32-1 downto 0)   := (others => '0');                                      -- 
-   signal s_channel_name_i             : std_logic_vector(32-1 downto 0)   := (others => '0');                                      -- 
+   signal r_channel_type_V             : std_logic_vector(1-1 downto 0)    := (others => '0');                                      -- Valid flag - channel_type
+   signal s_channel_type_V_i           : std_logic_vector(1-1 downto 0)    := (others => '0');                                      -- Valid flag - channel_type
+   signal r_channel_type               : std_logic_vector(32-1 downto 0)   := (others => '0');                                      -- 
+   signal s_channel_type_i             : std_logic_vector(32-1 downto 0)   := (others => '0');                                      -- 
    signal r_channel_max_num_V          : std_logic_vector(1-1 downto 0)    := (others => '0');                                      -- Valid flag - channel_max_num
    signal s_channel_max_num_V_i        : std_logic_vector(1-1 downto 0)    := (others => '0');                                      -- Valid flag - channel_max_num
    signal r_channel_max_num            : std_logic_vector(8-1 downto 0)    := (others => '0');                                      -- 
@@ -373,7 +375,7 @@ begin
    s_walker_ro_flags_V_i(0)         when c_walker_ro_flags_GET,         -- 
    s_walker_ro_channel_V_i(0)       when c_walker_ro_channel_GET,       -- 
    s_walker_ro_num_V_i(0)           when c_walker_ro_num_GET,           -- 
-   s_channel_name_V_i(0)            when c_channel_name_GET,            -- 
+   s_channel_type_V_i(0)            when c_channel_type_GET,            -- 
    s_channel_max_num_V_i(0)         when c_channel_max_num_GET,         -- 
    s_channel_capacity_V_i(0)        when c_channel_capacity_GET,        -- 
    s_channel_msi_get_enable_V_i(0)  when c_channel_msi_get_enable_GET,  -- 
@@ -448,9 +450,8 @@ begin
    channel_select_o              <= r_channel_select;
    channel_num_select_o          <= r_channel_num_select;
    channel_code_select_o         <= r_channel_code_select;
-   channel_name_RD_o             <= r_channel_name_RD;
-   s_channel_name_V_i            <= channel_name_V_i;
-   s_channel_name_i              <= channel_name_i;
+   s_channel_type_V_i            <= channel_type_V_i;
+   s_channel_type_i              <= channel_type_i;
    s_channel_max_num_V_i         <= channel_max_num_V_i;
    s_channel_max_num_i           <= channel_max_num_i;
    s_channel_capacity_V_i        <= channel_capacity_V_i;
@@ -521,6 +522,8 @@ begin
             r_channels                    <= std_logic_vector(to_unsigned(g_channels, 8));
             r_search_capacity             <= std_logic_vector(to_unsigned(g_search_capacity, 16));
             r_walker_capacity             <= std_logic_vector(to_unsigned(g_walker_capacity, 16));
+            r_latency                     <= std_logic_vector(to_unsigned(g_latency, 32));
+            r_offset_bits                 <= std_logic_vector(to_unsigned(g_offset_bits, 8));
             r_flip_active                 <= (others => '0');
             r_search_select_WR            <= std_logic_vector(to_unsigned(0, 1));
             r_search_select_RD            <= std_logic_vector(to_unsigned(0, 1));
@@ -530,7 +533,6 @@ begin
             r_walker_write                <= (others => '0');
             r_channel_select_WR           <= std_logic_vector(to_unsigned(0, 1));
             r_channel_select_RD           <= std_logic_vector(to_unsigned(0, 1));
-            r_channel_name_RD             <= std_logic_vector(to_unsigned(0, 1));
             r_channel_msi_set_enable_WR   <= std_logic_vector(to_unsigned(0, 1));
             r_channel_msi_set_target_WR   <= std_logic_vector(to_unsigned(0, 1));
             r_channel_overflow_count_RD   <= std_logic_vector(to_unsigned(0, 1));
@@ -552,9 +554,7 @@ begin
          
             -- short names
             r_d <= slave_i.dat;
-            if slave_i.cyc = '1' then
             r_a0 <= to_integer(unsigned(slave_i.adr(7 downto 2)) & "00");
-            end if;
             r_a1 <= r_a0;
             r_s <= slave_i.sel;
             r_w <= slave_i.we;
@@ -573,12 +573,12 @@ begin
             if s_channel_mostfull_clear_V_i  = "1" then r_channel_mostfull_clear <= s_channel_mostfull_clear_i; end if; -- 
             if s_channel_msi_get_enable_V_i  = "1" then r_channel_msi_get_enable <= s_channel_msi_get_enable_i; end if; -- 
             if s_channel_msi_get_target_V_i  = "1" then r_channel_msi_get_target <= s_channel_msi_get_target_i; end if; -- 
-            if s_channel_name_V_i            = "1" then r_channel_name           <= s_channel_name_i; end if;           -- 
             if s_channel_overflow_count_V_i  = "1" then r_channel_overflow_count <= s_channel_overflow_count_i; end if; -- 
             if s_channel_param_hi_V_i        = "1" then r_channel_param_hi       <= s_channel_param_hi_i; end if;       -- 
             if s_channel_param_lo_V_i        = "1" then r_channel_param_lo       <= s_channel_param_lo_i; end if;       -- 
             if s_channel_tag_V_i             = "1" then r_channel_tag            <= s_channel_tag_i; end if;            -- 
             if s_channel_tef_V_i             = "1" then r_channel_tef            <= s_channel_tef_i; end if;            -- 
+            if s_channel_type_V_i            = "1" then r_channel_type           <= s_channel_type_i; end if;           -- 
             if s_channel_valid_count_V_i     = "1" then r_channel_valid_count    <= s_channel_valid_count_i; end if;    -- 
             if s_search_ro_event_hi_V_i      = "1" then r_search_ro_event_hi     <= s_search_ro_event_hi_i; end if;     -- 
             if s_search_ro_event_lo_V_i      = "1" then r_search_ro_event_lo     <= s_search_ro_event_lo_i; end if;     -- 
@@ -603,7 +603,6 @@ begin
             r_channel_mostfull_clear_RD                                          <= (others => '0');
             r_channel_msi_set_enable_WR                                          <= (others => '0');
             r_channel_msi_set_target_WR                                          <= (others => '0');
-            r_channel_name_RD                                                    <= (others => '0');
             r_channel_overflow_count_RD                                          <= (others => '0');
             r_channel_param_hi_RD                                                <= (others => '0');
             r_channel_param_lo_RD                                                <= (others => '0');
@@ -660,6 +659,8 @@ begin
                      when c_channels_GET                    => null;
                      when c_search_capacity_GET             => null;
                      when c_walker_capacity_GET             => null;
+                     when c_latency_GET                     => null;
+                     when c_offset_bits_GET                 => null;
                      when c_time_hi_GET                     => null;
                      when c_time_lo_GET                     => null;
                      when c_search_select_RW                => null;
@@ -690,8 +691,7 @@ begin
                      r_channel_select_RD <= (others         => '1');
                      when c_channel_num_select_RW           => null;
                      when c_channel_code_select_RW          => null;
-                     when c_channel_name_GET                => null;
-                     r_channel_name_RD <= (others           => '1');
+                     when c_channel_type_GET                => null;
                      when c_channel_max_num_GET             => null;
                      when c_channel_capacity_GET            => null;
                      when c_channel_msi_get_enable_GET      => null;
@@ -740,6 +740,8 @@ begin
                when c_channels_GET                 => slave_o.dat <= std_logic_vector(resize(unsigned(r_channels), slave_o.dat'length));                 -- 
                when c_search_capacity_GET          => slave_o.dat <= std_logic_vector(resize(unsigned(r_search_capacity), slave_o.dat'length));          -- 
                when c_walker_capacity_GET          => slave_o.dat <= std_logic_vector(resize(unsigned(r_walker_capacity), slave_o.dat'length));          -- 
+               when c_latency_GET                  => slave_o.dat <= std_logic_vector(resize(unsigned(r_latency), slave_o.dat'length));                  -- 
+               when c_offset_bits_GET              => slave_o.dat <= std_logic_vector(resize(unsigned(r_offset_bits), slave_o.dat'length));              -- 
                when c_time_hi_GET                  => slave_o.dat <= std_logic_vector(resize(unsigned(r_time_hi), slave_o.dat'length));                  -- 
                when c_time_lo_GET                  => slave_o.dat <= std_logic_vector(resize(unsigned(r_time_lo), slave_o.dat'length));                  -- 
                when c_search_select_RW             => slave_o.dat <= std_logic_vector(resize(unsigned(r_search_select), slave_o.dat'length));            -- 
@@ -767,7 +769,7 @@ begin
                when c_channel_select_RW            => slave_o.dat <= std_logic_vector(resize(unsigned(r_channel_select), slave_o.dat'length));           -- 
                when c_channel_num_select_RW        => slave_o.dat <= std_logic_vector(resize(unsigned(r_channel_num_select), slave_o.dat'length));       -- 
                when c_channel_code_select_RW       => slave_o.dat <= std_logic_vector(resize(unsigned(r_channel_code_select), slave_o.dat'length));      -- 
-               when c_channel_name_GET             => slave_o.dat <= std_logic_vector(resize(unsigned(r_channel_name), slave_o.dat'length));             -- 
+               when c_channel_type_GET             => slave_o.dat <= std_logic_vector(resize(unsigned(r_channel_type), slave_o.dat'length));             -- 
                when c_channel_max_num_GET          => slave_o.dat <= std_logic_vector(resize(unsigned(r_channel_max_num), slave_o.dat'length));          -- 
                when c_channel_capacity_GET         => slave_o.dat <= std_logic_vector(resize(unsigned(r_channel_capacity), slave_o.dat'length));         -- 
                when c_channel_msi_get_enable_GET   => slave_o.dat <= std_logic_vector(resize(unsigned(r_channel_msi_get_enable), slave_o.dat'length));   -- 

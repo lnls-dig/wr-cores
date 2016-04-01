@@ -36,7 +36,6 @@ package eca_internals_pkg is
   constant c_num_bits   : natural :=  8; -- max allowed is 16
   constant c_code_bits  : natural :=  3;
   
-  subtype t_ascii is std_logic_vector(6 downto 0);
   subtype t_event is std_logic_vector(c_event_bits-1 downto 0);
   subtype t_param is std_logic_vector(c_param_bits-1 downto 0);
   subtype t_tag   is std_logic_vector(c_tag_bits-1   downto 0);
@@ -70,6 +69,7 @@ package eca_internals_pkg is
     (others => '0'),
     (others => '0'));
   
+  type t_nat_array     is array(natural range <>) of natural;
   type t_channel_array is array(natural range <>) of t_channel;
   type t_event_array   is array(natural range <>) of t_event;
   type t_param_array   is array(natural range <>) of t_param;
@@ -608,8 +608,9 @@ package eca_internals_pkg is
 
   component eca is
     generic(
+      g_channel_types  : t_nat_array;
+      g_channel_nums   : t_nat_array;   -- Anything not explicitly set is 1
       g_num_ios        : natural :=  8; -- Number of gpios
-      g_num_channels   : natural :=  1; -- Number of channels (must be >= 1)
       g_log_table_size : natural :=  8; -- 2**g_log_table_size = maximum number of conditions
       g_log_queue_size : natural :=  8; -- 2**g_log_size       = maximum number of pending actions
       g_log_multiplier : natural :=  3; -- 2**g_log_multiplier = ticks per cycle
@@ -633,8 +634,8 @@ package eca_internals_pkg is
       a_clk_i     : in  std_logic;
       a_rst_n_i   : in  std_logic;
       a_time_i    : in  t_time;
-      a_stall_i   : in  std_logic_vector(g_num_channels-1 downto 0);
-      a_channel_o : out t_channel_array(g_num_channels-1 downto 0);
+      a_stall_i   : in  std_logic_vector(g_channel_types'range);
+      a_channel_o : out t_channel_array(g_channel_types'range);
       a_io_o      : out t_eca_matrix(g_num_ios-1 downto 0, 2**g_log_multiplier-1 downto 0);
       -- Interrupts that report failure conditions
       i_clk_i     : in  std_logic;

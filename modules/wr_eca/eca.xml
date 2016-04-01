@@ -1,8 +1,10 @@
 <wbdevice author="Wesley W. Terpstra" email="w.terpstra@gsi.de" version="2.0">
 
-  <generic name="channels"        type="natural" default="1"   comment=""/>
-  <generic name="search_capacity" type="natural" default="512" comment=""/>
-  <generic name="walker_capacity" type="natural" default="256" comment=""/>
+  <generic name="channels"        type="natural" default="1"    comment=""/>
+  <generic name="search_capacity" type="natural" default="512"  comment=""/>
+  <generic name="walker_capacity" type="natural" default="256"  comment=""/>
+  <generic name="latency"         type="natural" default="4096" comment=""/>
+  <generic name="offset_bits"     type="natural" default="32"   comment=""/>
 
   <slaveinterface name="slave" data="32" type="pipelined">
     <sdb vendorID="GSI" productID="0xb2afc251" version="2" date="auto" name="ECA_UNIT:CONTROL" />
@@ -11,6 +13,8 @@
       <reg name="channels"               read="yes" reset="channels"        bits="8"  comment=""/>
       <reg name="search_capacity"        read="yes" reset="search_capacity" bits="16" comment=""/>
       <reg name="walker_capacity"        read="yes" reset="walker_capacity" bits="16" comment=""/>
+      <reg name="latency"                read="yes" reset="latency"         bits="32" comment=""/>
+      <reg name="offset_bits"            read="yes" reset="offset_bits"     bits="8" comment=""/>
 
       <!-- Global control -->
       <reg name="flip_active"                       write="yes" pulse="yes" bits="1"  comment=""/>
@@ -50,7 +54,7 @@
       <reg name="channel_num_select"     read="yes" write="yes"             bits="8"  comment=""/>
       <reg name="channel_code_select"    read="yes" write="yes"             bits="2"  comment=""/>
       <!-- Top-level channel status, indexed by channel_select -->
-      <reg name="channel_name"           read="yes" drive="yes" flags="yes" bits="32" comment=""/>
+      <reg name="channel_type"           read="yes" drive="yes"             bits="32" comment=""/>
       <reg name="channel_max_num"        read="yes" drive="yes"             bits="8"  comment=""/>
       <reg name="channel_capacity"       read="yes" drive="yes"             bits="16" comment=""/>
       <reg name="channel_msi_set_enable"            write="yes" flags="yes" bits="1"  comment=""/>

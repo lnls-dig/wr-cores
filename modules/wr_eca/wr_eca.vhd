@@ -32,8 +32,9 @@ use work.eca_internals_pkg.all;
 
 entity wr_eca is
   generic(
+    g_channel_types  : t_nat_array;
+    g_channel_nums   : t_nat_array;
     g_num_ios        : natural :=  8; -- Number of gpios
-    g_num_channels   : natural :=  1; -- Number of channels (must be >= 1)
     g_num_streams    : natural :=  1; -- Number of streams  (must be >= 1)
     g_log_table_size : natural :=  8; -- 2**g_log_table_size = maximum number of conditions
     g_log_queue_size : natural :=  8; -- 2**g_log_size       = maximum number of pending actions
@@ -54,8 +55,8 @@ entity wr_eca is
     a_rst_n_i   : in  std_logic; -- Hold for at least 10 cycles
     a_tai_i     : in  std_logic_vector(39 downto 0);
     a_cycles_i  : in  std_logic_vector(27 downto 0);
-    a_stall_i   : in  std_logic_vector(g_num_channels-1 downto 0);
-    a_channel_o : out t_channel_array(g_num_channels-1 downto 0);
+    a_stall_i   : in  std_logic_vector(g_channel_types'range);
+    a_channel_o : out t_channel_array(g_channel_types'range);
     a_io_o      : out t_gpio_array(g_num_ios-1 downto 0);
     -- Interrupts that report failure conditions
     i_clk_i     : in  std_logic;
@@ -90,8 +91,9 @@ begin
 
   E0 : eca
     generic map(
+      g_channel_types  => g_channel_types,
+      g_channel_nums   => g_channel_nums,
       g_num_ios        => g_num_ios,
-      g_num_channels   => g_num_channels,
       g_log_table_size => g_log_table_size,
       g_log_queue_size => g_log_queue_size,
       g_log_multiplier => 3, -- 125*2**3 = 1GHz

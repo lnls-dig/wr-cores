@@ -1,7 +1,7 @@
 --! @file        eca_auto_pkg.vhd
 --  DesignUnit   eca_auto
 --! @author      Wesley W. Terpstra <w.terpstra@gsi.de>
---! @date        31/03/2016
+--! @date        01/04/2016
 --! @version     2.0
 --! @copyright   2016 GSI Helmholtz Centre for Heavy Ion Research GmbH
 --!
@@ -41,65 +41,69 @@ package eca_auto_pkg is
    constant c_channels_GET                : natural   := 16#00#;  -- ro,  8 b, 
    constant c_search_capacity_GET         : natural   := 16#04#;  -- ro, 16 b, 
    constant c_walker_capacity_GET         : natural   := 16#08#;  -- ro, 16 b, 
-   constant c_flip_active_OWR             : natural   := 16#0c#;  -- wo,  1 b, 
-   constant c_time_hi_GET                 : natural   := 16#10#;  -- ro, 32 b, 
-   constant c_time_lo_GET                 : natural   := 16#14#;  -- ro, 32 b, 
-   constant c_search_select_RW            : natural   := 16#18#;  -- rw, 16 b, 
-   constant c_search_ro_first_GET         : natural   := 16#1c#;  -- ro, 16 b, 
-   constant c_search_ro_event_hi_GET      : natural   := 16#20#;  -- ro, 32 b, 
-   constant c_search_ro_event_lo_GET      : natural   := 16#24#;  -- ro, 32 b, 
-   constant c_search_write_OWR            : natural   := 16#28#;  -- wo,  1 b, 
-   constant c_search_rw_first_RW          : natural   := 16#2c#;  -- rw, 16 b, 
-   constant c_search_rw_event_hi_RW       : natural   := 16#30#;  -- rw, 32 b, 
-   constant c_search_rw_event_lo_RW       : natural   := 16#34#;  -- rw, 32 b, 
-   constant c_walker_select_RW            : natural   := 16#38#;  -- rw, 16 b, 
-   constant c_walker_ro_next_GET          : natural   := 16#3c#;  -- ro, 16 b, 
-   constant c_walker_ro_offset_hi_GET     : natural   := 16#40#;  -- ro, 32 b, 
-   constant c_walker_ro_offset_lo_GET     : natural   := 16#44#;  -- ro, 32 b, 
-   constant c_walker_ro_tag_GET           : natural   := 16#48#;  -- ro, 32 b, 
-   constant c_walker_ro_flags_GET         : natural   := 16#4c#;  -- ro,  4 b, 
-   constant c_walker_ro_channel_GET       : natural   := 16#50#;  -- ro,  8 b, 
-   constant c_walker_ro_num_GET           : natural   := 16#54#;  -- ro,  8 b, 
-   constant c_walker_write_OWR            : natural   := 16#58#;  -- wo,  1 b, 
-   constant c_walker_rw_next_RW           : natural   := 16#5c#;  -- rw, 16 b, 
-   constant c_walker_rw_offset_hi_RW      : natural   := 16#60#;  -- rw, 32 b, 
-   constant c_walker_rw_offset_lo_RW      : natural   := 16#64#;  -- rw, 32 b, 
-   constant c_walker_rw_tag_RW            : natural   := 16#68#;  -- rw, 32 b, 
-   constant c_walker_rw_flags_RW          : natural   := 16#6c#;  -- rw,  4 b, 
-   constant c_walker_rw_channel_RW        : natural   := 16#70#;  -- rw,  8 b, 
-   constant c_walker_rw_num_RW            : natural   := 16#74#;  -- rw,  8 b, 
-   constant c_channel_select_RW           : natural   := 16#78#;  -- rw,  8 b, 
-   constant c_channel_num_select_RW       : natural   := 16#7c#;  -- rw,  8 b, 
-   constant c_channel_code_select_RW      : natural   := 16#80#;  -- rw,  2 b, 
-   constant c_channel_name_GET            : natural   := 16#84#;  -- ro, 32 b, 
-   constant c_channel_max_num_GET         : natural   := 16#88#;  -- ro,  8 b, 
-   constant c_channel_capacity_GET        : natural   := 16#8c#;  -- ro, 16 b, 
-   constant c_channel_msi_set_enable_OWR  : natural   := 16#90#;  -- wo,  1 b, 
-   constant c_channel_msi_get_enable_GET  : natural   := 16#94#;  -- ro,  1 b, 
-   constant c_channel_msi_set_target_OWR  : natural   := 16#98#;  -- wo, 32 b, 
-   constant c_channel_msi_get_target_GET  : natural   := 16#9c#;  -- ro, 32 b, 
-   constant c_channel_overflow_count_GET  : natural   := 16#a0#;  -- ro, 32 b, 
-   constant c_channel_mostfull_ack_GET    : natural   := 16#a4#;  -- ro, 32 b, 
-   constant c_channel_mostfull_clear_GET  : natural   := 16#a8#;  -- ro, 32 b, 
-   constant c_channel_valid_count_GET     : natural   := 16#ac#;  -- ro, 32 b, 
-   constant c_channel_failed_count_GET    : natural   := 16#b0#;  -- ro, 32 b, 
-   constant c_channel_event_id_hi_GET     : natural   := 16#b4#;  -- ro, 32 b, 
-   constant c_channel_event_id_lo_GET     : natural   := 16#b8#;  -- ro, 32 b, 
-   constant c_channel_param_hi_GET        : natural   := 16#bc#;  -- ro, 32 b, 
-   constant c_channel_param_lo_GET        : natural   := 16#c0#;  -- ro, 32 b, 
-   constant c_channel_tag_GET             : natural   := 16#c4#;  -- ro, 32 b, 
-   constant c_channel_tef_GET             : natural   := 16#c8#;  -- ro, 32 b, 
-   constant c_channel_deadline_hi_GET     : natural   := 16#cc#;  -- ro, 32 b, 
-   constant c_channel_deadline_lo_GET     : natural   := 16#d0#;  -- ro, 32 b, 
-   constant c_channel_executed_hi_GET     : natural   := 16#d4#;  -- ro, 32 b, 
-   constant c_channel_executed_lo_GET     : natural   := 16#d8#;  -- ro, 32 b, 
+   constant c_latency_GET                 : natural   := 16#0c#;  -- ro, 32 b, 
+   constant c_offset_bits_GET             : natural   := 16#10#;  -- ro,  8 b, 
+   constant c_flip_active_OWR             : natural   := 16#14#;  -- wo,  1 b, 
+   constant c_time_hi_GET                 : natural   := 16#18#;  -- ro, 32 b, 
+   constant c_time_lo_GET                 : natural   := 16#1c#;  -- ro, 32 b, 
+   constant c_search_select_RW            : natural   := 16#20#;  -- rw, 16 b, 
+   constant c_search_ro_first_GET         : natural   := 16#24#;  -- ro, 16 b, 
+   constant c_search_ro_event_hi_GET      : natural   := 16#28#;  -- ro, 32 b, 
+   constant c_search_ro_event_lo_GET      : natural   := 16#2c#;  -- ro, 32 b, 
+   constant c_search_write_OWR            : natural   := 16#30#;  -- wo,  1 b, 
+   constant c_search_rw_first_RW          : natural   := 16#34#;  -- rw, 16 b, 
+   constant c_search_rw_event_hi_RW       : natural   := 16#38#;  -- rw, 32 b, 
+   constant c_search_rw_event_lo_RW       : natural   := 16#3c#;  -- rw, 32 b, 
+   constant c_walker_select_RW            : natural   := 16#40#;  -- rw, 16 b, 
+   constant c_walker_ro_next_GET          : natural   := 16#44#;  -- ro, 16 b, 
+   constant c_walker_ro_offset_hi_GET     : natural   := 16#48#;  -- ro, 32 b, 
+   constant c_walker_ro_offset_lo_GET     : natural   := 16#4c#;  -- ro, 32 b, 
+   constant c_walker_ro_tag_GET           : natural   := 16#50#;  -- ro, 32 b, 
+   constant c_walker_ro_flags_GET         : natural   := 16#54#;  -- ro,  4 b, 
+   constant c_walker_ro_channel_GET       : natural   := 16#58#;  -- ro,  8 b, 
+   constant c_walker_ro_num_GET           : natural   := 16#5c#;  -- ro,  8 b, 
+   constant c_walker_write_OWR            : natural   := 16#60#;  -- wo,  1 b, 
+   constant c_walker_rw_next_RW           : natural   := 16#64#;  -- rw, 16 b, 
+   constant c_walker_rw_offset_hi_RW      : natural   := 16#68#;  -- rw, 32 b, 
+   constant c_walker_rw_offset_lo_RW      : natural   := 16#6c#;  -- rw, 32 b, 
+   constant c_walker_rw_tag_RW            : natural   := 16#70#;  -- rw, 32 b, 
+   constant c_walker_rw_flags_RW          : natural   := 16#74#;  -- rw,  4 b, 
+   constant c_walker_rw_channel_RW        : natural   := 16#78#;  -- rw,  8 b, 
+   constant c_walker_rw_num_RW            : natural   := 16#7c#;  -- rw,  8 b, 
+   constant c_channel_select_RW           : natural   := 16#80#;  -- rw,  8 b, 
+   constant c_channel_num_select_RW       : natural   := 16#84#;  -- rw,  8 b, 
+   constant c_channel_code_select_RW      : natural   := 16#88#;  -- rw,  2 b, 
+   constant c_channel_type_GET            : natural   := 16#8c#;  -- ro, 32 b, 
+   constant c_channel_max_num_GET         : natural   := 16#90#;  -- ro,  8 b, 
+   constant c_channel_capacity_GET        : natural   := 16#94#;  -- ro, 16 b, 
+   constant c_channel_msi_set_enable_OWR  : natural   := 16#98#;  -- wo,  1 b, 
+   constant c_channel_msi_get_enable_GET  : natural   := 16#9c#;  -- ro,  1 b, 
+   constant c_channel_msi_set_target_OWR  : natural   := 16#a0#;  -- wo, 32 b, 
+   constant c_channel_msi_get_target_GET  : natural   := 16#a4#;  -- ro, 32 b, 
+   constant c_channel_overflow_count_GET  : natural   := 16#a8#;  -- ro, 32 b, 
+   constant c_channel_mostfull_ack_GET    : natural   := 16#ac#;  -- ro, 32 b, 
+   constant c_channel_mostfull_clear_GET  : natural   := 16#b0#;  -- ro, 32 b, 
+   constant c_channel_valid_count_GET     : natural   := 16#b4#;  -- ro, 32 b, 
+   constant c_channel_failed_count_GET    : natural   := 16#b8#;  -- ro, 32 b, 
+   constant c_channel_event_id_hi_GET     : natural   := 16#bc#;  -- ro, 32 b, 
+   constant c_channel_event_id_lo_GET     : natural   := 16#c0#;  -- ro, 32 b, 
+   constant c_channel_param_hi_GET        : natural   := 16#c4#;  -- ro, 32 b, 
+   constant c_channel_param_lo_GET        : natural   := 16#c8#;  -- ro, 32 b, 
+   constant c_channel_tag_GET             : natural   := 16#cc#;  -- ro, 32 b, 
+   constant c_channel_tef_GET             : natural   := 16#d0#;  -- ro, 32 b, 
+   constant c_channel_deadline_hi_GET     : natural   := 16#d4#;  -- ro, 32 b, 
+   constant c_channel_deadline_lo_GET     : natural   := 16#d8#;  -- ro, 32 b, 
+   constant c_channel_executed_hi_GET     : natural   := 16#dc#;  -- ro, 32 b, 
+   constant c_channel_executed_lo_GET     : natural   := 16#e0#;  -- ro, 32 b, 
 
    --| Component ------------------------- eca_auto --------------------------------------------|
    component eca_auto is
    generic(
       g_channels        : natural   := 1;    --
       g_search_capacity : natural   := 512;  --
-      g_walker_capacity : natural   := 256   --
+      g_offset_bits     : natural   := 32;   --
+      g_walker_capacity : natural   := 256;  --
+      g_latency         : natural   := 4096  --
    );
    Port(
       clk_sys_i                     : std_logic;                           -- Clock input for sys domain
@@ -130,8 +134,6 @@ package eca_auto_pkg is
       channel_msi_get_enable_V_i    : in  std_logic_vector(1-1 downto 0);  -- Valid flag - channel_msi_get_enable
       channel_msi_get_target_i      : in  std_logic_vector(32-1 downto 0); -- 
       channel_msi_get_target_V_i    : in  std_logic_vector(1-1 downto 0);  -- Valid flag - channel_msi_get_target
-      channel_name_i                : in  std_logic_vector(32-1 downto 0); -- 
-      channel_name_V_i              : in  std_logic_vector(1-1 downto 0);  -- Valid flag - channel_name
       channel_overflow_count_i      : in  std_logic_vector(32-1 downto 0); -- 
       channel_overflow_count_V_i    : in  std_logic_vector(1-1 downto 0);  -- Valid flag - channel_overflow_count
       channel_param_hi_i            : in  std_logic_vector(32-1 downto 0); -- 
@@ -142,6 +144,8 @@ package eca_auto_pkg is
       channel_tag_V_i               : in  std_logic_vector(1-1 downto 0);  -- Valid flag - channel_tag
       channel_tef_i                 : in  std_logic_vector(32-1 downto 0); -- 
       channel_tef_V_i               : in  std_logic_vector(1-1 downto 0);  -- Valid flag - channel_tef
+      channel_type_i                : in  std_logic_vector(32-1 downto 0); -- 
+      channel_type_V_i              : in  std_logic_vector(1-1 downto 0);  -- Valid flag - channel_type
       channel_valid_count_i         : in  std_logic_vector(32-1 downto 0); -- 
       channel_valid_count_V_i       : in  std_logic_vector(1-1 downto 0);  -- Valid flag - channel_valid_count
       search_ro_event_hi_i          : in  std_logic_vector(32-1 downto 0); -- 
@@ -183,7 +187,6 @@ package eca_auto_pkg is
       channel_msi_set_enable_WR_o   : out std_logic_vector(1-1 downto 0);  -- Write enable flag - channel_msi_set_enable
       channel_msi_set_target_o      : out std_logic_vector(32-1 downto 0); -- 
       channel_msi_set_target_WR_o   : out std_logic_vector(1-1 downto 0);  -- Write enable flag - channel_msi_set_target
-      channel_name_RD_o             : out std_logic_vector(1-1 downto 0);  -- Read enable flag - channel_name
       channel_num_select_o          : out std_logic_vector(8-1 downto 0);  -- 
       channel_overflow_count_RD_o   : out std_logic_vector(1-1 downto 0);  -- Read enable flag - channel_overflow_count
       channel_param_hi_RD_o         : out std_logic_vector(1-1 downto 0);  -- Read enable flag - channel_param_hi
@@ -234,7 +237,7 @@ package eca_auto_pkg is
    vendor_id     => x"0000000000000651",
    device_id     => x"b2afc251",
    version       => x"00000020",
-   date          => x"20160331",
+   date          => x"20160401",
    name          => "ECA_UNIT:CONTROL   ")));
 
 end eca_auto_pkg;

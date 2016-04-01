@@ -8,8 +8,9 @@ use work.eca_internals_pkg.all;
 
 entity eca is
   generic(
+    g_channel_types  : t_nat_array;
+    g_channel_nums   : t_nat_array; -- Anything not explicitly set is 1
     g_num_ios        : natural :=  8; -- Number of gpios
-    g_num_channels   : natural :=  1; -- Number of channels (must be >= 1)
     g_log_table_size : natural :=  8; -- 2**g_log_table_size = maximum number of conditions
     g_log_queue_size : natural :=  8; -- 2**g_log_size       = maximum number of pending actions
     g_log_multiplier : natural :=  3; -- 2**g_log_multiplier = ticks per cycle
@@ -33,8 +34,8 @@ entity eca is
     a_clk_i     : in  std_logic;
     a_rst_n_i   : in  std_logic;
     a_time_i    : in  t_time;
-    a_stall_i   : in  std_logic_vector(g_num_channels-1 downto 0);
-    a_channel_o : out t_channel_array(g_num_channels-1 downto 0);
+    a_stall_i   : in  std_logic_vector(g_channel_types'range);
+    a_channel_o : out t_channel_array(g_channel_types'range);
     a_io_o      : out t_eca_matrix(g_num_ios-1 downto 0, 2**g_log_multiplier-1 downto 0);
     -- Interrupts that report failure conditions
     i_clk_i     : in  std_logic;
@@ -45,7 +46,46 @@ end eca;
 
 architecture rtl of eca is
 
-  constant c_channel_bits : natural := f_eca_log2(g_num_channels+1);
+  constant c_num_channels : natural := g_channel_types'length;
+  constant c_channel_bits : natural := f_eca_log2(c_num_channels+1);
+  
+  function f_i(x : natural) return natural is 
+  begin
+    return x + g_channel_types'low;
+  end function;
+  
+  function f_num(x : natural) return natural is
+  begin
+    if x >= g_channel_nums'length then
+      return 1;
+    else
+      return g_channel_nums(x + g_channel_nums'low);
+    end if;
+  end function;
+  
+  type t_type_table is array(c_num_channels downto 0) of std_logic_vector(31 downto 0);
+  function f_type_table return t_type_table is
+    variable result : t_type_table;
+  begin
+    result(0) := std_logic_vector(to_unsigned(g_num_ios, 32));
+    for i in 1 to c_num_channels loop
+      result(i) := std_logic_vector(to_unsigned(g_channel_types(i-1 + g_channel_types'low), 32));
+    end loop;
+    return result;
+  end function;
+  constant c_type_table : t_type_table := f_type_table;
+  
+  type t_num_table is array(c_num_channels downto 0) of std_logic_vector(7 downto 0);
+  function f_num_table return t_num_table is
+    variable result : t_num_table;
+  begin
+    result(0) := (others => '0');
+    for i in 1 to c_num_channels loop
+      result(i) := std_logic_vector(to_unsigned(f_num(i-1), 8));
+    end loop;
+    return result;
+  end function;
+  constant c_num_table : t_num_table := f_num_table;
 
   signal s_slave_stall_i                       : std_logic_vector(1-1 downto 0);   -- 
   signal s_slave_flip_active_o                 : std_logic_vector(1-1 downto 0);   -- 
@@ -79,8 +119,7 @@ architecture rtl of eca is
   signal s_slave_channel_select_o              : std_logic_vector(8-1 downto 0);   -- 
   signal s_slave_channel_num_select_o          : std_logic_vector(8-1 downto 0);   -- 
   signal s_slave_channel_code_select_o         : std_logic_vector(2-1 downto 0);   -- 
-  signal s_slave_channel_name_RD_o             : std_logic_vector(1-1 downto 0);   -- Read enable flag
-  signal s_slave_channel_name_i                : std_logic_vector(32-1 downto 0);  -- 
+  signal s_slave_channel_type_i                : std_logic_vector(32-1 downto 0);  -- 
   signal s_slave_channel_max_num_i             : std_logic_vector(8-1 downto 0);   -- 
   signal s_slave_channel_capacity_i            : std_logic_vector(16-1 downto 0);  -- 
   signal s_slave_channel_msi_set_enable_WR_o   : std_logic_vector(1-1 downto 0);   -- Write enable flag
@@ -124,23 +163,23 @@ architecture rtl of eca is
   signal s_s_ro_valid  : std_logic;
   signal s_w_rw_valid  : std_logic;
   signal s_w_ro_valid  : std_logic;
-  signal s_wc_channels : t_channel_array(g_num_channels downto 0);
+  signal s_wc_channels : t_channel_array(c_num_channels downto 0);
   
   type t_words is array(natural range <>) of std_logic_vector(31 downto 0);
   
   signal s_req_fields : std_logic_vector(15 downto 0);
   signal s_req_field  : std_logic_vector( 3 downto 0);
   signal s_req_stb    : std_logic;
-  signal s_req_stbs   : std_logic_vector(g_num_channels downto 0);
-  signal s_req_acks   : std_logic_vector(g_num_channels downto 0);
+  signal s_req_stbs   : std_logic_vector(c_num_channels downto 0);
+  signal s_req_acks   : std_logic_vector(c_num_channels downto 0);
   signal s_req_ack    : std_logic;
-  signal s_req_dats   : t_words(g_num_channels downto 0);
+  signal s_req_dats   : t_words(c_num_channels downto 0);
   signal s_req_dat    : std_logic_vector(31 downto 0);
   
-  signal s_msi_acks   : std_logic_vector(g_num_channels downto 0);
-  signal s_msi_stbs   : std_logic_vector(g_num_channels downto 0);
-  signal s_msi_codes  : t_code_array(g_num_channels downto 0);
-  signal s_msi_nums   : t_num_array(g_num_channels downto 0);
+  signal s_msi_acks   : std_logic_vector(c_num_channels downto 0);
+  signal s_msi_stbs   : std_logic_vector(c_num_channels downto 0);
+  signal s_msi_codes  : t_code_array(c_num_channels downto 0);
+  signal s_msi_nums   : t_num_array(c_num_channels downto 0);
   
   signal ra_time       : t_time;
   signal ra_time_gray  : t_time;
@@ -152,9 +191,11 @@ begin
 
   INST_eca_auto : eca_auto
     generic map(
-      g_channels        => g_num_channels+1,
+      g_channels        => c_num_channels+1,
       g_search_capacity => 2**(g_log_table_size+1),
-      g_walker_capacity => 2**g_log_table_size)
+      g_walker_capacity => 2**g_log_table_size,
+      g_latency         => 2**g_log_latency,
+      g_offset_bits     => g_log_max_delay)
     port map (
       clk_sys_i                     => c_clk_i,
       rst_sys_n_i                   => c_rst_n_i,
@@ -207,9 +248,8 @@ begin
       channel_select_o              => s_slave_channel_select_o,
       channel_num_select_o          => s_slave_channel_num_select_o,
       channel_code_select_o         => s_slave_channel_code_select_o,
-      channel_name_RD_o             => s_slave_channel_name_RD_o,
-      channel_name_V_i              => r_channel_valid(0 downto 0),
-      channel_name_i                => s_slave_channel_name_i,
+      channel_type_V_i              => r_channel_valid(0 downto 0),
+      channel_type_i                => s_slave_channel_type_i,
       channel_max_num_V_i           => r_channel_valid(0 downto 0),
       channel_max_num_i             => s_slave_channel_max_num_i,
       channel_capacity_V_i          => r_channel_valid(0 downto 0),
@@ -271,9 +311,17 @@ begin
       slave_o                       => c_slave_o);
   
   -- Simple fields
-  s_slave_channel_name_i     <= (others => '0'); -- !!!
-  s_slave_channel_max_num_i  <= (others => '0'); -- !!!
   s_slave_channel_capacity_i <= std_logic_vector(to_unsigned(2**g_log_queue_size, 16));
+  
+  s_slave_channel_type_i <=
+    c_type_table(to_integer(unsigned(s_slave_channel_select_o)))
+    when f_eca_safe(s_slave_channel_select_o) = '1' else
+    (others => 'X');
+    
+  s_slave_channel_max_num_i <=
+    c_num_table(to_integer(unsigned(s_slave_channel_select_o)))
+    when f_eca_safe(s_slave_channel_select_o) = '1' else
+    (others => 'X');
   
   search : eca_search
     generic map(
@@ -315,7 +363,7 @@ begin
   walker : eca_walker
     generic map(
       g_log_table_size => g_log_table_size,
-      g_num_channels   => g_num_channels+1)
+      g_num_channels   => c_num_channels+1)
     port map(
       clk_i         => a_clk_i,
       rst_n_i       => a_rst_n_i,
@@ -386,7 +434,7 @@ begin
   s_req_dat <= s_req_dats(to_integer(unsigned(s_slave_channel_select_o))) when s_req_stb='1' else (others => 'X');
   
   -- Select correct channel
-  chan_select : for i in 0 to g_num_channels generate
+  chan_select : for i in 0 to c_num_channels generate
     s_req_stbs(i) <= f_eca_active_high(unsigned(s_slave_channel_select_o) = i) when s_req_stb='1' else '0';
   end generate;
   
@@ -425,11 +473,11 @@ begin
       msi_code_o  => s_msi_codes(0),
       msi_num_o   => s_msi_nums(0));
   
-  channels : for i in 1 to g_num_channels generate
+  channels : for i in 1 to c_num_channels generate
     tag_channel : eca_channel
       generic map(
         g_support_io     => false,
-        g_num_channels   => 8, -- !!!..., -- user natural array
+        g_num_channels   => f_num(i-1),
         g_log_size       => g_log_queue_size,
         g_log_multiplier => g_log_multiplier,
         g_log_max_delay  => g_log_max_delay,
@@ -443,8 +491,8 @@ begin
         channel_i   => s_wc_channels(i),
         clr_i       => '0',
         set_i       => '0',
-        stall_i     => a_stall_i(i-1),
-        channel_o   => a_channel_o(i-1),
+        stall_i     => a_stall_i  (f_i(i-1)),
+        channel_o   => a_channel_o(f_i(i-1)),
         io_o        => open,
         req_clk_i   => c_clk_i,
         req_rst_n_i => c_rst_n_i,
@@ -464,7 +512,7 @@ begin
   
   msi : eca_msi
     generic map(
-      g_num_channels => g_num_channels+1)
+      g_num_channels => c_num_channels+1)
     port map(
       c_clk_i        => c_clk_i,
       c_rst_n_i      => c_rst_n_i,
@@ -495,7 +543,7 @@ begin
       r_channel_valid <= (others => '0');
     elsif rising_edge(c_clk_i) then
       rc_page   <= rc_page xor s_slave_flip_active_o(0);
-      r_bad_ack <= s_req_stb and f_eca_active_high(unsigned(s_slave_channel_select_o) > g_num_channels);
+      r_bad_ack <= s_req_stb and f_eca_active_high(unsigned(s_slave_channel_select_o) > c_num_channels);
       
       -- Delay visibility of search_ro_* fields
       if (s_slave_flip_active_o or s_slave_search_write_o or s_slave_search_select_WR_o) = "1" then
@@ -512,7 +560,7 @@ begin
       end if;
       
       -- Delay visibility of channel status fields
-      if (s_slave_channel_select_WR_o or s_slave_channel_name_RD_o) = "1" then
+      if s_slave_channel_select_WR_o = "1" then
         r_channel_valid <= (others => '0');
       else
         r_channel_valid <= '1' & r_channel_valid(r_channel_valid'high downto 1);

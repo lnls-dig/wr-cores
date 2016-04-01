@@ -54,15 +54,21 @@ package eca_pkg is
     date          => x"20130204",
     name          => "ECA_UNIT:EVENTS_IN ")));
 
+  subtype t_nat_array     is work.eca_internals_pkg.t_nat_array;
   subtype t_channel       is work.eca_internals_pkg.t_channel;
   subtype t_channel_array is work.eca_internals_pkg.t_channel_array;
   type    t_gpio_array    is array(natural range <>) of std_logic_vector(7 downto 0);
   
+  constant c_linux      : natural := 1;
+  constant c_wb_master  : natural := 2;
+  constant c_scubus_tag : natural := 128;
+  
   -- White-Rabbit variant of Event-Condition-Action Unit
   component wr_eca is
     generic(
+      g_channel_types  : t_nat_array := (0 => c_linux);
+      g_channel_nums   : t_nat_array := (0 => 32); -- Anything not explicitly set is 1
       g_num_ios        : natural :=  8; -- Number of gpios
-      g_num_channels   : natural :=  1; -- Number of channels (must be >= 1)
       g_num_streams    : natural :=  1; -- Number of streams  (must be >= 1)
       g_log_table_size : natural :=  8; -- 2**g_log_table_size = maximum number of conditions
       g_log_queue_size : natural :=  8; -- 2**g_log_size       = maximum number of pending actions
@@ -83,8 +89,8 @@ package eca_pkg is
       a_rst_n_i   : in  std_logic; -- Hold for at least 10 cycles
       a_tai_i     : in  std_logic_vector(39 downto 0);
       a_cycles_i  : in  std_logic_vector(27 downto 0);
-      a_stall_i   : in  std_logic_vector(g_num_channels-1 downto 0);
-      a_channel_o : out t_channel_array(g_num_channels-1 downto 0);
+      a_stall_i   : in  std_logic_vector(g_channel_types'range);
+      a_channel_o : out t_channel_array(g_channel_types'range);
       a_io_o      : out t_gpio_array(g_num_ios-1 downto 0);
       -- Interrupts that report failure conditions
       i_clk_i     : in  std_logic;
