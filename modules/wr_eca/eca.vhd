@@ -331,7 +331,7 @@ begin
       rst_n_i    => a_rst_n_i,
       e_stb_i    => e_stb_i,
       e_stall_o  => e_stall_o,
-      e_page_i   => ra_page(0),
+      e_page_i   => "not"(ra_page(0)),
       e_event_i  => e_event_i,
       e_param_i  => e_param_i,
       e_tef_i    => e_tef_i,
