@@ -156,6 +156,8 @@ architecture rtl of eca_channel is
   signal s_time_i   : t_time;
   signal s_zero     : std_logic;
   
+  signal s_repeat   : std_logic;
+  signal r_repeat   : std_logic := '0';
   signal s_valid    : std_logic;
   signal r_valid    : std_logic := '0';
   signal s_val_ridx : std_logic_vector(c_valid_bits-1 downto 0);
@@ -397,7 +399,8 @@ begin
       w_addr_i => s_val_widx,
       w_data_i => s_val_data_i);
   
-  s_valid <= s_channel_o.valid and not stall_i;
+  s_repeat <= s_channel_o.valid and not stall_i;
+  s_valid  <= s_channel_o.valid and not r_repeat;
   s_val_ridx <= f_eca_mux(s_valid, s_num, rc_req_num);
   s_val_widx <= f_eca_mux(s_safe, r_val_ridx, r_wipe(s_val_widx'range));
   s_val_wen  <= r_valid or s_valid_clear or not s_safe; -- r_valid and s_valid_clear are mutually exclusive
@@ -483,6 +486,7 @@ begin
       r_free_stb <= '0';
       r_busy     <= '0';
       r_final    <= '0';
+      r_repeat   <= '0';
       r_valid    <= '0';
       r_num_overflow <= (others => '0');
       r_most_used    <= (others => '0');
@@ -490,6 +494,7 @@ begin
       r_free_stb <= s_free_stb;
       r_busy     <= s_busy;
       r_final    <= s_final;
+      r_repeat   <= s_repeat;
       r_valid    <= s_valid;
       
       -- s_overflow has higher priority than s_over_clear
