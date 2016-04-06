@@ -132,7 +132,8 @@ begin
     port map(
       clk_sys_i         => q_clk_i,
       rst_sys_n_i       => q_rst_n_i,
-      slave_stall_i(0)  => "not"(rq_ready),
+      stall_i(0)        => "not"(rq_ready),
+      error_i           => "0",
       pop_o(0)          => sq_pop_raw,
       flags_V_i(0)      => rq_ready,
       flags_i(0)        => rq_channel.late,

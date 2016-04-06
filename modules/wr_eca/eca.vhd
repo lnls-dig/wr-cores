@@ -199,7 +199,8 @@ begin
     port map (
       clk_sys_i                     => c_clk_i,
       rst_sys_n_i                   => c_rst_n_i,
-      slave_stall_i                 => s_slave_stall_i,
+      stall_i                       => s_slave_stall_i,
+      error_i                       => "0",
       flip_active_o                 => s_slave_flip_active_o,
       time_hi_V_i                   => "1",
       time_hi_i                     => rc_time(63 downto 32),

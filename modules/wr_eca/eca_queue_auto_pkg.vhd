@@ -1,7 +1,7 @@
 --! @file        eca_queue_auto_pkg.vhd
 --  DesignUnit   eca_queue_auto
 --! @author      Wesley W. Terpstra <w.terpstra@gsi.de>
---! @date        31/03/2016
+--! @date        06/04/2016
 --! @version     2.0
 --! @copyright   2016 GSI Helmholtz Centre for Heavy Ion Research GmbH
 --!
@@ -34,82 +34,83 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.wishbone_pkg.all;
-use work.matrix_pkg.all;
+use work.wbgenplus_pkg.all;
 use work.genram_pkg.all;
 package eca_queue_auto_pkg is
 
-   constant c_queue_id_GET    : natural   := 16#00#;  -- ro,  8 b, 
-   constant c_pop_OWR         : natural   := 16#04#;  -- wo,  1 b, 
-   constant c_flags_GET       : natural   := 16#08#;  -- ro,  5 b, 
-   constant c_num_GET         : natural   := 16#0c#;  -- ro,  8 b, 
-   constant c_event_id_hi_GET : natural   := 16#10#;  -- ro, 32 b, 
-   constant c_event_id_lo_GET : natural   := 16#14#;  -- ro, 32 b, 
-   constant c_param_hi_GET    : natural   := 16#18#;  -- ro, 32 b, 
-   constant c_param_lo_GET    : natural   := 16#1c#;  -- ro, 32 b, 
-   constant c_tag_GET         : natural   := 16#20#;  -- ro, 32 b, 
-   constant c_tef_GET         : natural   := 16#24#;  -- ro, 32 b, 
-   constant c_deadline_hi_GET : natural   := 16#28#;  -- ro, 32 b, 
-   constant c_deadline_lo_GET : natural   := 16#2c#;  -- ro, 32 b, 
-   constant c_executed_hi_GET : natural   := 16#30#;  -- ro, 32 b, 
-   constant c_executed_lo_GET : natural   := 16#34#;  -- ro, 32 b, 
+  constant c_queue_id_GET     : natural := 16#00#;  -- ro,  8 b, 
+  constant c_pop_OWR          : natural := 16#04#;  -- wo,  1 b, 
+  constant c_flags_GET        : natural := 16#08#;  -- ro,  5 b, 
+  constant c_num_GET          : natural := 16#0c#;  -- ro,  8 b, 
+  constant c_event_id_hi_GET  : natural := 16#10#;  -- ro, 32 b, 
+  constant c_event_id_lo_GET  : natural := 16#14#;  -- ro, 32 b, 
+  constant c_param_hi_GET     : natural := 16#18#;  -- ro, 32 b, 
+  constant c_param_lo_GET     : natural := 16#1c#;  -- ro, 32 b, 
+  constant c_tag_GET          : natural := 16#20#;  -- ro, 32 b, 
+  constant c_tef_GET          : natural := 16#24#;  -- ro, 32 b, 
+  constant c_deadline_hi_GET  : natural := 16#28#;  -- ro, 32 b, 
+  constant c_deadline_lo_GET  : natural := 16#2c#;  -- ro, 32 b, 
+  constant c_executed_hi_GET  : natural := 16#30#;  -- ro, 32 b, 
+  constant c_executed_lo_GET  : natural := 16#34#;  -- ro, 32 b, 
 
-   --| Component ---------------------- eca_queue_auto -----------------------------------------|
-   component eca_queue_auto is
-   generic(
-      g_queue_id  : natural   := 0  --
-   );
-   Port(
-      clk_sys_i         : std_logic;                           -- Clock input for sys domain
-      rst_sys_n_i       : std_logic;                           -- Reset input (active low) for sys domain
-      deadline_hi_i     : in  std_logic_vector(32-1 downto 0); -- 
-      deadline_hi_V_i   : in  std_logic_vector(1-1 downto 0);  -- Valid flag - deadline_hi
-      deadline_lo_i     : in  std_logic_vector(32-1 downto 0); -- 
-      deadline_lo_V_i   : in  std_logic_vector(1-1 downto 0);  -- Valid flag - deadline_lo
-      event_id_hi_i     : in  std_logic_vector(32-1 downto 0); -- 
-      event_id_hi_V_i   : in  std_logic_vector(1-1 downto 0);  -- Valid flag - event_id_hi
-      event_id_lo_i     : in  std_logic_vector(32-1 downto 0); -- 
-      event_id_lo_V_i   : in  std_logic_vector(1-1 downto 0);  -- Valid flag - event_id_lo
-      executed_hi_i     : in  std_logic_vector(32-1 downto 0); -- 
-      executed_hi_V_i   : in  std_logic_vector(1-1 downto 0);  -- Valid flag - executed_hi
-      executed_lo_i     : in  std_logic_vector(32-1 downto 0); -- 
-      executed_lo_V_i   : in  std_logic_vector(1-1 downto 0);  -- Valid flag - executed_lo
-      flags_i           : in  std_logic_vector(5-1 downto 0);  -- 
-      flags_V_i         : in  std_logic_vector(1-1 downto 0);  -- Valid flag - flags
-      num_i             : in  std_logic_vector(8-1 downto 0);  -- 
-      num_V_i           : in  std_logic_vector(1-1 downto 0);  -- Valid flag - num
-      param_hi_i        : in  std_logic_vector(32-1 downto 0); -- 
-      param_hi_V_i      : in  std_logic_vector(1-1 downto 0);  -- Valid flag - param_hi
-      param_lo_i        : in  std_logic_vector(32-1 downto 0); -- 
-      param_lo_V_i      : in  std_logic_vector(1-1 downto 0);  -- Valid flag - param_lo
-      slave_stall_i     : in  std_logic_vector(1-1 downto 0);  -- flow control
-      tag_i             : in  std_logic_vector(32-1 downto 0); -- 
-      tag_V_i           : in  std_logic_vector(1-1 downto 0);  -- Valid flag - tag
-      tef_i             : in  std_logic_vector(32-1 downto 0); -- 
-      tef_V_i           : in  std_logic_vector(1-1 downto 0);  -- Valid flag - tef
-      pop_o             : out std_logic_vector(1-1 downto 0);  -- 
-      
-      slave_i           : in  t_wishbone_slave_in;
-      slave_o           : out t_wishbone_slave_out
+  --| Component ---------------------- eca_queue_auto -----------------------------------------|
+  component eca_queue_auto is
+  generic(
+    g_queue_id  : natural := 0  --
+  );
+  Port(
+    clk_sys_i       : std_logic;                            -- Clock input for sys domain
+    rst_sys_n_i     : std_logic;                            -- Reset input (active low) for sys domain
+    deadline_hi_i   : in  std_logic_vector(32-1 downto 0);  -- 
+    deadline_hi_V_i : in  std_logic_vector(1-1 downto 0);   -- Valid flag - deadline_hi
+    deadline_lo_i   : in  std_logic_vector(32-1 downto 0);  -- 
+    deadline_lo_V_i : in  std_logic_vector(1-1 downto 0);   -- Valid flag - deadline_lo
+    error_i         : in  std_logic_vector(1-1 downto 0);   -- Error control
+    event_id_hi_i   : in  std_logic_vector(32-1 downto 0);  -- 
+    event_id_hi_V_i : in  std_logic_vector(1-1 downto 0);   -- Valid flag - event_id_hi
+    event_id_lo_i   : in  std_logic_vector(32-1 downto 0);  -- 
+    event_id_lo_V_i : in  std_logic_vector(1-1 downto 0);   -- Valid flag - event_id_lo
+    executed_hi_i   : in  std_logic_vector(32-1 downto 0);  -- 
+    executed_hi_V_i : in  std_logic_vector(1-1 downto 0);   -- Valid flag - executed_hi
+    executed_lo_i   : in  std_logic_vector(32-1 downto 0);  -- 
+    executed_lo_V_i : in  std_logic_vector(1-1 downto 0);   -- Valid flag - executed_lo
+    flags_i         : in  std_logic_vector(5-1 downto 0);   -- 
+    flags_V_i       : in  std_logic_vector(1-1 downto 0);   -- Valid flag - flags
+    num_i           : in  std_logic_vector(8-1 downto 0);   -- 
+    num_V_i         : in  std_logic_vector(1-1 downto 0);   -- Valid flag - num
+    param_hi_i      : in  std_logic_vector(32-1 downto 0);  -- 
+    param_hi_V_i    : in  std_logic_vector(1-1 downto 0);   -- Valid flag - param_hi
+    param_lo_i      : in  std_logic_vector(32-1 downto 0);  -- 
+    param_lo_V_i    : in  std_logic_vector(1-1 downto 0);   -- Valid flag - param_lo
+    stall_i         : in  std_logic_vector(1-1 downto 0);   -- flow control
+    tag_i           : in  std_logic_vector(32-1 downto 0);  -- 
+    tag_V_i         : in  std_logic_vector(1-1 downto 0);   -- Valid flag - tag
+    tef_i           : in  std_logic_vector(32-1 downto 0);  -- 
+    tef_V_i         : in  std_logic_vector(1-1 downto 0);   -- Valid flag - tef
+    pop_o           : out std_logic_vector(1-1 downto 0);   -- 
+    
+    slave_i         : in  t_wishbone_slave_in;
+    slave_o         : out t_wishbone_slave_out
 
-      
-   );
-   end component;
+    
+  );
+  end component;
 
-   constant c_eca_queue_slave_sdb : t_sdb_device := (
-   abi_class     => x"0000", -- undocumented device
-   abi_ver_major => x"01",
-   abi_ver_minor => x"00",
-   wbd_endian    => c_sdb_endian_big,
-   wbd_width     => x"7", -- 8/16/32-bit port granularity
-   sdb_component => (
-   addr_first    => x"0000000000000000",
-   addr_last     => x"000000000000003f",
-   product => (
-   vendor_id     => x"0000000000000651",
-   device_id     => x"d5a3faea",
-   version       => x"00000020",
-   date          => x"20160331",
-   name          => "ECA_UNIT:QUEUE     ")));
+  constant c_eca_queue_slave_sdb : t_sdb_device := (
+  abi_class     => x"0000", -- undocumented device
+  abi_ver_major => x"01",
+  abi_ver_minor => x"00",
+  wbd_endian    => c_sdb_endian_big,
+  wbd_width     => x"7", -- 8/16/32-bit port granularity
+  sdb_component => (
+  addr_first    => x"0000000000000000",
+  addr_last     => x"000000000000003f",
+  product => (
+  vendor_id     => x"0000000000000651",
+  device_id     => x"d5a3faea",
+  version       => x"00000020",
+  date          => x"20160406",
+  name          => "ECA_UNIT:QUEUE     ")));
 
 end eca_queue_auto_pkg;
 package body eca_queue_auto_pkg is

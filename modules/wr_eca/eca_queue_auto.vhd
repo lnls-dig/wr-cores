@@ -1,7 +1,7 @@
 --! @file        eca_queue_auto.vhd
 --  DesignUnit   eca_queue_auto
 --! @author      Wesley W. Terpstra <w.terpstra@gsi.de>
---! @date        31/03/2016
+--! @date        06/04/2016
 --! @version     2.0
 --! @copyright   2016 GSI Helmholtz Centre for Heavy Ion Research GmbH
 --!
@@ -34,258 +34,277 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use work.wishbone_pkg.all;
-use work.matrix_pkg.all;
+use work.wbgenplus_pkg.all;
 use work.genram_pkg.all;
 use work.eca_queue_auto_pkg.all;
 
 entity eca_queue_auto is
 generic(
-   g_queue_id  : natural   := 0  --
+  g_queue_id  : natural := 0  --
 );
 Port(
-   clk_sys_i         : std_logic;                           -- Clock input for sys domain
-   rst_sys_n_i       : std_logic;                           -- Reset input (active low) for sys domain
-   deadline_hi_i     : in  std_logic_vector(32-1 downto 0); -- 
-   deadline_hi_V_i   : in  std_logic_vector(1-1 downto 0);  -- Valid flag - deadline_hi
-   deadline_lo_i     : in  std_logic_vector(32-1 downto 0); -- 
-   deadline_lo_V_i   : in  std_logic_vector(1-1 downto 0);  -- Valid flag - deadline_lo
-   event_id_hi_i     : in  std_logic_vector(32-1 downto 0); -- 
-   event_id_hi_V_i   : in  std_logic_vector(1-1 downto 0);  -- Valid flag - event_id_hi
-   event_id_lo_i     : in  std_logic_vector(32-1 downto 0); -- 
-   event_id_lo_V_i   : in  std_logic_vector(1-1 downto 0);  -- Valid flag - event_id_lo
-   executed_hi_i     : in  std_logic_vector(32-1 downto 0); -- 
-   executed_hi_V_i   : in  std_logic_vector(1-1 downto 0);  -- Valid flag - executed_hi
-   executed_lo_i     : in  std_logic_vector(32-1 downto 0); -- 
-   executed_lo_V_i   : in  std_logic_vector(1-1 downto 0);  -- Valid flag - executed_lo
-   flags_i           : in  std_logic_vector(5-1 downto 0);  -- 
-   flags_V_i         : in  std_logic_vector(1-1 downto 0);  -- Valid flag - flags
-   num_i             : in  std_logic_vector(8-1 downto 0);  -- 
-   num_V_i           : in  std_logic_vector(1-1 downto 0);  -- Valid flag - num
-   param_hi_i        : in  std_logic_vector(32-1 downto 0); -- 
-   param_hi_V_i      : in  std_logic_vector(1-1 downto 0);  -- Valid flag - param_hi
-   param_lo_i        : in  std_logic_vector(32-1 downto 0); -- 
-   param_lo_V_i      : in  std_logic_vector(1-1 downto 0);  -- Valid flag - param_lo
-   slave_stall_i     : in  std_logic_vector(1-1 downto 0);  -- flow control
-   tag_i             : in  std_logic_vector(32-1 downto 0); -- 
-   tag_V_i           : in  std_logic_vector(1-1 downto 0);  -- Valid flag - tag
-   tef_i             : in  std_logic_vector(32-1 downto 0); -- 
-   tef_V_i           : in  std_logic_vector(1-1 downto 0);  -- Valid flag - tef
-   pop_o             : out std_logic_vector(1-1 downto 0);  -- 
-   
-   slave_i           : in  t_wishbone_slave_in;
-   slave_o           : out t_wishbone_slave_out
+  clk_sys_i       : std_logic;                            -- Clock input for sys domain
+  rst_sys_n_i     : std_logic;                            -- Reset input (active low) for sys domain
+  deadline_hi_i   : in  std_logic_vector(32-1 downto 0);  -- 
+  deadline_hi_V_i : in  std_logic_vector(1-1 downto 0);   -- Valid flag - deadline_hi
+  deadline_lo_i   : in  std_logic_vector(32-1 downto 0);  -- 
+  deadline_lo_V_i : in  std_logic_vector(1-1 downto 0);   -- Valid flag - deadline_lo
+  error_i         : in  std_logic_vector(1-1 downto 0);   -- Error control
+  event_id_hi_i   : in  std_logic_vector(32-1 downto 0);  -- 
+  event_id_hi_V_i : in  std_logic_vector(1-1 downto 0);   -- Valid flag - event_id_hi
+  event_id_lo_i   : in  std_logic_vector(32-1 downto 0);  -- 
+  event_id_lo_V_i : in  std_logic_vector(1-1 downto 0);   -- Valid flag - event_id_lo
+  executed_hi_i   : in  std_logic_vector(32-1 downto 0);  -- 
+  executed_hi_V_i : in  std_logic_vector(1-1 downto 0);   -- Valid flag - executed_hi
+  executed_lo_i   : in  std_logic_vector(32-1 downto 0);  -- 
+  executed_lo_V_i : in  std_logic_vector(1-1 downto 0);   -- Valid flag - executed_lo
+  flags_i         : in  std_logic_vector(5-1 downto 0);   -- 
+  flags_V_i       : in  std_logic_vector(1-1 downto 0);   -- Valid flag - flags
+  num_i           : in  std_logic_vector(8-1 downto 0);   -- 
+  num_V_i         : in  std_logic_vector(1-1 downto 0);   -- Valid flag - num
+  param_hi_i      : in  std_logic_vector(32-1 downto 0);  -- 
+  param_hi_V_i    : in  std_logic_vector(1-1 downto 0);   -- Valid flag - param_hi
+  param_lo_i      : in  std_logic_vector(32-1 downto 0);  -- 
+  param_lo_V_i    : in  std_logic_vector(1-1 downto 0);   -- Valid flag - param_lo
+  stall_i         : in  std_logic_vector(1-1 downto 0);   -- flow control
+  tag_i           : in  std_logic_vector(32-1 downto 0);  -- 
+  tag_V_i         : in  std_logic_vector(1-1 downto 0);   -- Valid flag - tag
+  tef_i           : in  std_logic_vector(32-1 downto 0);  -- 
+  tef_V_i         : in  std_logic_vector(1-1 downto 0);   -- Valid flag - tef
+  pop_o           : out std_logic_vector(1-1 downto 0);   -- 
+  
+  slave_i         : in  t_wishbone_slave_in;
+  slave_o         : out t_wishbone_slave_out
 
-   
+  
 );
 end eca_queue_auto;
 
 architecture rtl of eca_queue_auto is
 
-   signal s_e, r_e            : std_logic;
-   signal r_e_wait            : std_logic;
-   signal r_w                 : std_logic;
-   signal r_a0, r_a1, r_p     : natural;
-   signal r_d                 : std_logic_vector(32-1 downto 0);
-   signal r_s                 : std_logic_vector(4-1 downto 0);
-   signal s_stall             : std_logic;
-   signal s_valid             : std_logic;
-   signal r_ack               : std_logic;
-   signal r_err               : std_logic;
-   
-   signal r_error             : std_logic_vector(1-1 downto 0)    := std_logic_vector(to_unsigned(0, 1));            -- Error control
-   signal r_slave_stall       : std_logic_vector(1-1 downto 0)    := std_logic_vector(to_unsigned(0, 1));            -- flow control
-   signal s_slave_stall_i     : std_logic_vector(1-1 downto 0)    := std_logic_vector(to_unsigned(0, 1));            -- flow control
-   signal r_queue_id          : std_logic_vector(8-1 downto 0)    := std_logic_vector(to_unsigned(g_queue_id, 8));   -- 
-   signal r_pop               : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- 
-   signal r_flags_V           : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - flags
-   signal s_flags_V_i         : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - flags
-   signal r_flags             : std_logic_vector(5-1 downto 0)    := (others => '0');                                -- 
-   signal s_flags_i           : std_logic_vector(5-1 downto 0)    := (others => '0');                                -- 
-   signal r_num_V             : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - num
-   signal s_num_V_i           : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - num
-   signal r_num               : std_logic_vector(8-1 downto 0)    := (others => '0');                                -- 
-   signal s_num_i             : std_logic_vector(8-1 downto 0)    := (others => '0');                                -- 
-   signal r_event_id_hi_V     : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - event_id_hi
-   signal s_event_id_hi_V_i   : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - event_id_hi
-   signal r_event_id_hi       : std_logic_vector(32-1 downto 0)   := (others => '0');                                -- 
-   signal s_event_id_hi_i     : std_logic_vector(32-1 downto 0)   := (others => '0');                                -- 
-   signal r_event_id_lo_V     : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - event_id_lo
-   signal s_event_id_lo_V_i   : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - event_id_lo
-   signal r_event_id_lo       : std_logic_vector(32-1 downto 0)   := (others => '0');                                -- 
-   signal s_event_id_lo_i     : std_logic_vector(32-1 downto 0)   := (others => '0');                                -- 
-   signal r_param_hi_V        : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - param_hi
-   signal s_param_hi_V_i      : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - param_hi
-   signal r_param_hi          : std_logic_vector(32-1 downto 0)   := (others => '0');                                -- 
-   signal s_param_hi_i        : std_logic_vector(32-1 downto 0)   := (others => '0');                                -- 
-   signal r_param_lo_V        : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - param_lo
-   signal s_param_lo_V_i      : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - param_lo
-   signal r_param_lo          : std_logic_vector(32-1 downto 0)   := (others => '0');                                -- 
-   signal s_param_lo_i        : std_logic_vector(32-1 downto 0)   := (others => '0');                                -- 
-   signal r_tag_V             : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - tag
-   signal s_tag_V_i           : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - tag
-   signal r_tag               : std_logic_vector(32-1 downto 0)   := (others => '0');                                -- 
-   signal s_tag_i             : std_logic_vector(32-1 downto 0)   := (others => '0');                                -- 
-   signal r_tef_V             : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - tef
-   signal s_tef_V_i           : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - tef
-   signal r_tef               : std_logic_vector(32-1 downto 0)   := (others => '0');                                -- 
-   signal s_tef_i             : std_logic_vector(32-1 downto 0)   := (others => '0');                                -- 
-   signal r_deadline_hi_V     : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - deadline_hi
-   signal s_deadline_hi_V_i   : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - deadline_hi
-   signal r_deadline_hi       : std_logic_vector(32-1 downto 0)   := (others => '0');                                -- 
-   signal s_deadline_hi_i     : std_logic_vector(32-1 downto 0)   := (others => '0');                                -- 
-   signal r_deadline_lo_V     : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - deadline_lo
-   signal s_deadline_lo_V_i   : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - deadline_lo
-   signal r_deadline_lo       : std_logic_vector(32-1 downto 0)   := (others => '0');                                -- 
-   signal s_deadline_lo_i     : std_logic_vector(32-1 downto 0)   := (others => '0');                                -- 
-   signal r_executed_hi_V     : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - executed_hi
-   signal s_executed_hi_V_i   : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - executed_hi
-   signal r_executed_hi       : std_logic_vector(32-1 downto 0)   := (others => '0');                                -- 
-   signal s_executed_hi_i     : std_logic_vector(32-1 downto 0)   := (others => '0');                                -- 
-   signal r_executed_lo_V     : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - executed_lo
-   signal s_executed_lo_V_i   : std_logic_vector(1-1 downto 0)    := (others => '0');                                -- Valid flag - executed_lo
-   signal r_executed_lo       : std_logic_vector(32-1 downto 0)   := (others => '0');                                -- 
-   signal s_executed_lo_i     : std_logic_vector(32-1 downto 0)   := (others => '0');                                -- 
+  signal s_pop, s_push      : std_logic;
+  signal s_empty, s_full    : std_logic;
+  signal r_e_wait           : std_logic;
+  signal s_stall            : std_logic;
+  signal s_valid            : std_logic;
+  signal r_ack              : std_logic;
+  signal r_err              : std_logic;
+  signal s_e, s_w           : std_logic;
+  signal s_d                : std_logic_vector(32-1 downto 0);
+  signal s_s                : std_logic_vector(4-1 downto 0);
+  signal s_a                : std_logic_vector(4-1 downto 0);
+  signal s_a_ext, r_a_ext   : std_logic_vector(6-1 downto 0);
+  signal r_error            : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));           -- Error
+  signal s_error_i          : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Error control
+  signal s_stall_i          : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- flow control
+  signal r_queue_id         : std_logic_vector(8-1 downto 0)  := std_logic_vector(to_unsigned(g_queue_id, 8));  -- 
+  signal r_pop              : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- 
+  signal r_flags_V          : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - flags
+  signal s_flags_V_i        : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - flags
+  signal r_flags            : std_logic_vector(5-1 downto 0)  := (others => '0');                               -- 
+  signal s_flags_i          : std_logic_vector(5-1 downto 0)  := (others => '0');                               -- 
+  signal r_num_V            : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - num
+  signal s_num_V_i          : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - num
+  signal r_num              : std_logic_vector(8-1 downto 0)  := (others => '0');                               -- 
+  signal s_num_i            : std_logic_vector(8-1 downto 0)  := (others => '0');                               -- 
+  signal r_event_id_hi_V    : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - event_id_hi
+  signal s_event_id_hi_V_i  : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - event_id_hi
+  signal r_event_id_hi      : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal s_event_id_hi_i    : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal r_event_id_lo_V    : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - event_id_lo
+  signal s_event_id_lo_V_i  : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - event_id_lo
+  signal r_event_id_lo      : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal s_event_id_lo_i    : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal r_param_hi_V       : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - param_hi
+  signal s_param_hi_V_i     : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - param_hi
+  signal r_param_hi         : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal s_param_hi_i       : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal r_param_lo_V       : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - param_lo
+  signal s_param_lo_V_i     : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - param_lo
+  signal r_param_lo         : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal s_param_lo_i       : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal r_tag_V            : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - tag
+  signal s_tag_V_i          : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - tag
+  signal r_tag              : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal s_tag_i            : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal r_tef_V            : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - tef
+  signal s_tef_V_i          : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - tef
+  signal r_tef              : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal s_tef_i            : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal r_deadline_hi_V    : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - deadline_hi
+  signal s_deadline_hi_V_i  : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - deadline_hi
+  signal r_deadline_hi      : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal s_deadline_hi_i    : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal r_deadline_lo_V    : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - deadline_lo
+  signal s_deadline_lo_V_i  : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - deadline_lo
+  signal r_deadline_lo      : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal s_deadline_lo_i    : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal r_executed_hi_V    : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - executed_hi
+  signal s_executed_hi_V_i  : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - executed_hi
+  signal r_executed_hi      : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal s_executed_hi_i    : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal r_executed_lo_V    : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - executed_lo
+  signal s_executed_lo_V_i  : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - executed_lo
+  signal r_executed_lo      : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal s_executed_lo_i    : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
 
 
 begin
 
-   validmux: with r_a0 select
-   s_valid <= 
-   s_flags_V_i(0)       when c_flags_GET,       -- 
-   s_num_V_i(0)         when c_num_GET,         -- 
-   s_event_id_hi_V_i(0) when c_event_id_hi_GET, -- 
-   s_event_id_lo_V_i(0) when c_event_id_lo_GET, -- 
-   s_param_hi_V_i(0)    when c_param_hi_GET,    -- 
-   s_param_lo_V_i(0)    when c_param_lo_GET,    -- 
-   s_tag_V_i(0)         when c_tag_GET,         -- 
-   s_tef_V_i(0)         when c_tef_GET,         -- 
-   s_deadline_hi_V_i(0) when c_deadline_hi_GET, -- 
-   s_deadline_lo_V_i(0) when c_deadline_lo_GET, -- 
-   s_executed_hi_V_i(0) when c_executed_hi_GET, -- 
-   s_executed_lo_V_i(0) when c_executed_lo_GET, -- 
-   '1'                  when others;
-   
-   s_stall           <= (s_e and not  s_valid) or r_slave_stall(0);
-   s_e               <= r_e or r_e_wait;
-   slave_o.stall     <= s_stall;
-   
-   s_slave_stall_i   <= slave_stall_i;
-   pop_o             <= r_pop;
-   s_flags_V_i       <= flags_V_i;
-   s_flags_i         <= flags_i;
-   s_num_V_i         <= num_V_i;
-   s_num_i           <= num_i;
-   s_event_id_hi_V_i <= event_id_hi_V_i;
-   s_event_id_hi_i   <= event_id_hi_i;
-   s_event_id_lo_V_i <= event_id_lo_V_i;
-   s_event_id_lo_i   <= event_id_lo_i;
-   s_param_hi_V_i    <= param_hi_V_i;
-   s_param_hi_i      <= param_hi_i;
-   s_param_lo_V_i    <= param_lo_V_i;
-   s_param_lo_i      <= param_lo_i;
-   s_tag_V_i         <= tag_V_i;
-   s_tag_i           <= tag_i;
-   s_tef_V_i         <= tef_V_i;
-   s_tef_i           <= tef_i;
-   s_deadline_hi_V_i <= deadline_hi_V_i;
-   s_deadline_hi_i   <= deadline_hi_i;
-   s_deadline_lo_V_i <= deadline_lo_V_i;
-   s_deadline_lo_i   <= deadline_lo_i;
-   s_executed_hi_V_i <= executed_hi_V_i;
-   s_executed_hi_i   <= executed_hi_i;
-   s_executed_lo_V_i <= executed_lo_V_i;
-   s_executed_lo_i   <= executed_lo_i;
-   
-   slave : process(clk_sys_i)
-   begin
-      if rising_edge(clk_sys_i) then
-         if(rst_sys_n_i = '0') then
-            r_e      <= '0';
-            r_e_wait <= '0';
-            r_a0     <=  0;
-            r_error        <= std_logic_vector(to_unsigned(0, 1));
-            r_slave_stall  <= std_logic_vector(to_unsigned(0, 1));
-            r_queue_id     <= std_logic_vector(to_unsigned(g_queue_id, 8));
-            r_pop          <= (others => '0');
-         else
-         
-            -- short names
-            r_d <= slave_i.dat;
-            r_a0 <= to_integer(unsigned(slave_i.adr(5 downto 2)) & "00");
-            r_a1 <= r_a0;
-            r_s <= slave_i.sel;
-            r_w <= slave_i.we;
-            r_e <= (slave_i.cyc and slave_i.stb and (not s_stall));
+  sp : wb_skidpad
+  generic map(
+    g_adrbits   => 4
+  )
+  Port map(
+    clk_i        => clk_sys_i,
+    rst_n_i      => rst_sys_n_i,
+    push_i       => s_push,
+    pop_i        => s_pop,
+    full_o       => s_full,
+    empty_o      => s_empty,
+    adr_i        => slave_i.adr(5 downto 2),
+    dat_i        => slave_i.dat,
+    sel_i        => slave_i.sel,
+    we_i         => slave_i.we,
+    adr_o        => s_a,
+    dat_o        => s_d,
+    sel_o        => s_s,
+    we_o         => s_w
+  );
 
-            if s_deadline_hi_V_i = "1" then r_deadline_hi   <= s_deadline_hi_i; end if;   -- 
-            if s_deadline_lo_V_i = "1" then r_deadline_lo   <= s_deadline_lo_i; end if;   -- 
-            if s_event_id_hi_V_i = "1" then r_event_id_hi   <= s_event_id_hi_i; end if;   -- 
-            if s_event_id_lo_V_i = "1" then r_event_id_lo   <= s_event_id_lo_i; end if;   -- 
-            if s_executed_hi_V_i = "1" then r_executed_hi   <= s_executed_hi_i; end if;   -- 
-            if s_executed_lo_V_i = "1" then r_executed_lo   <= s_executed_lo_i; end if;   -- 
-            if s_flags_V_i       = "1" then r_flags         <= s_flags_i; end if;         -- 
-            if s_num_V_i         = "1" then r_num           <= s_num_i; end if;           -- 
-            if s_param_hi_V_i    = "1" then r_param_hi      <= s_param_hi_i; end if;      -- 
-            if s_param_lo_V_i    = "1" then r_param_lo      <= s_param_lo_i; end if;      -- 
-            if s_tag_V_i         = "1" then r_tag           <= s_tag_i; end if;           -- 
-            if s_tef_V_i         = "1" then r_tef           <= s_tef_i; end if;           -- 
-            r_error                                         <= (others => '0');
-            r_pop                                           <= (others => '0');
-            
-            r_e_wait <= (r_e_wait or r_e) and not s_valid;
-            
-            if(r_e = '1') then
-               if(r_w = '1') then
-                  -- WISHBONE WRITE ACTIONS
-                  case r_a0 is
-                     when c_pop_OWR => r_pop    <= f_wb_wr(r_pop, r_d, r_s, "owr"); -- 
-                     when others    => r_error  <= "1";
-                  end case;
-               else
-                  -- WISHBONE READ ACTIONS
-                  case r_a0 is
-                     when c_queue_id_GET     => null;
-                     when c_flags_GET        => null;
-                     when c_num_GET          => null;
-                     when c_event_id_hi_GET  => null;
-                     when c_event_id_lo_GET  => null;
-                     when c_param_hi_GET     => null;
-                     when c_param_lo_GET     => null;
-                     when c_tag_GET          => null;
-                     when c_tef_GET          => null;
-                     when c_deadline_hi_GET  => null;
-                     when c_deadline_lo_GET  => null;
-                     when c_executed_hi_GET  => null;
-                     when c_executed_lo_GET  => null;
-                     when others             => r_error <= "1";
-                  end case;
-               end if; -- r_w
-            end if; -- r_e
-            
-            r_ack    <= s_e and      s_valid and not r_error(0);
-            r_err    <= s_e and      s_valid and     r_error(0);
-            slave_o.ack <= r_ack;
-            slave_o.err <= r_err;
-            
-            case r_a1 is
-               when c_queue_id_GET     => slave_o.dat <= std_logic_vector(resize(unsigned(r_queue_id), slave_o.dat'length));     -- 
-               when c_flags_GET        => slave_o.dat <= std_logic_vector(resize(unsigned(r_flags), slave_o.dat'length));        -- 
-               when c_num_GET          => slave_o.dat <= std_logic_vector(resize(unsigned(r_num), slave_o.dat'length));          -- 
-               when c_event_id_hi_GET  => slave_o.dat <= std_logic_vector(resize(unsigned(r_event_id_hi), slave_o.dat'length));  -- 
-               when c_event_id_lo_GET  => slave_o.dat <= std_logic_vector(resize(unsigned(r_event_id_lo), slave_o.dat'length));  -- 
-               when c_param_hi_GET     => slave_o.dat <= std_logic_vector(resize(unsigned(r_param_hi), slave_o.dat'length));     -- 
-               when c_param_lo_GET     => slave_o.dat <= std_logic_vector(resize(unsigned(r_param_lo), slave_o.dat'length));     -- 
-               when c_tag_GET          => slave_o.dat <= std_logic_vector(resize(unsigned(r_tag), slave_o.dat'length));          -- 
-               when c_tef_GET          => slave_o.dat <= std_logic_vector(resize(unsigned(r_tef), slave_o.dat'length));          -- 
-               when c_deadline_hi_GET  => slave_o.dat <= std_logic_vector(resize(unsigned(r_deadline_hi), slave_o.dat'length));  -- 
-               when c_deadline_lo_GET  => slave_o.dat <= std_logic_vector(resize(unsigned(r_deadline_lo), slave_o.dat'length));  -- 
-               when c_executed_hi_GET  => slave_o.dat <= std_logic_vector(resize(unsigned(r_executed_hi), slave_o.dat'length));  -- 
-               when c_executed_lo_GET  => slave_o.dat <= std_logic_vector(resize(unsigned(r_executed_lo), slave_o.dat'length));  -- 
-               when others             => slave_o.dat <= (others => 'X');
+  validmux: with to_integer(unsigned(s_a_ext)) select
+  s_valid <= 
+  s_flags_V_i(0)        when c_flags_GET,       -- 
+  s_num_V_i(0)          when c_num_GET,         -- 
+  s_event_id_hi_V_i(0)  when c_event_id_hi_GET, -- 
+  s_event_id_lo_V_i(0)  when c_event_id_lo_GET, -- 
+  s_param_hi_V_i(0)     when c_param_hi_GET,    -- 
+  s_param_lo_V_i(0)     when c_param_lo_GET,    -- 
+  s_tag_V_i(0)          when c_tag_GET,         -- 
+  s_tef_V_i(0)          when c_tef_GET,         -- 
+  s_deadline_hi_V_i(0)  when c_deadline_hi_GET, -- 
+  s_deadline_lo_V_i(0)  when c_deadline_lo_GET, -- 
+  s_executed_hi_V_i(0)  when c_executed_hi_GET, -- 
+  s_executed_lo_V_i(0)  when c_executed_lo_GET, -- 
+  '1'                   when others;
+  
+  s_a_ext           <= s_a & "00";
+  s_stall           <= s_full;
+  s_push            <= slave_i.cyc and slave_i.stb and not s_stall;
+ -- push if wb op not stalled
+  s_e               <= not (s_empty or  r_e_wait or stall_i(0)) ;-- op enable when skidpad not empty and not waiting for completion
+  s_pop             <= (s_e or          r_e_wait) and s_valid; -- if op enabled or waiting for completion, pop on valid from entity
+  slave_o.stall     <= s_stall;
+  
+  s_error_i         <= error_i;
+  s_stall_i         <= stall_i;
+  pop_o             <= r_pop;
+  s_flags_V_i       <= flags_V_i;
+  s_flags_i         <= flags_i;
+  s_num_V_i         <= num_V_i;
+  s_num_i           <= num_i;
+  s_event_id_hi_V_i <= event_id_hi_V_i;
+  s_event_id_hi_i   <= event_id_hi_i;
+  s_event_id_lo_V_i <= event_id_lo_V_i;
+  s_event_id_lo_i   <= event_id_lo_i;
+  s_param_hi_V_i    <= param_hi_V_i;
+  s_param_hi_i      <= param_hi_i;
+  s_param_lo_V_i    <= param_lo_V_i;
+  s_param_lo_i      <= param_lo_i;
+  s_tag_V_i         <= tag_V_i;
+  s_tag_i           <= tag_i;
+  s_tef_V_i         <= tef_V_i;
+  s_tef_i           <= tef_i;
+  s_deadline_hi_V_i <= deadline_hi_V_i;
+  s_deadline_hi_i   <= deadline_hi_i;
+  s_deadline_lo_V_i <= deadline_lo_V_i;
+  s_deadline_lo_i   <= deadline_lo_i;
+  s_executed_hi_V_i <= executed_hi_V_i;
+  s_executed_hi_i   <= executed_hi_i;
+  s_executed_lo_V_i <= executed_lo_V_i;
+  s_executed_lo_i   <= executed_lo_i;
+  
+  slave : process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if(rst_sys_n_i = '0') then
+        r_e_wait <= '0';
+        r_a_ext  <=  (others => '0');
+        r_error     <= std_logic_vector(to_unsigned(0, 1));
+        r_queue_id  <= std_logic_vector(to_unsigned(g_queue_id, 8));
+        r_pop       <= (others => '0');
+      else
+        r_a_ext  <= s_a_ext;
+        r_e_wait <= (r_e_wait or s_e) and not s_valid;
+        r_ack    <= s_pop and not (error_i(0) or r_error(0));
+        r_err    <= s_pop and     (error_i(0) or r_error(0));
+        slave_o.ack <= r_ack;
+        slave_o.err <= r_err;
+        
+        if s_deadline_hi_V_i  = "1" then r_deadline_hi  <= s_deadline_hi_i; end if; -- 
+        if s_deadline_lo_V_i  = "1" then r_deadline_lo  <= s_deadline_lo_i; end if; -- 
+        if s_event_id_hi_V_i  = "1" then r_event_id_hi  <= s_event_id_hi_i; end if; -- 
+        if s_event_id_lo_V_i  = "1" then r_event_id_lo  <= s_event_id_lo_i; end if; -- 
+        if s_executed_hi_V_i  = "1" then r_executed_hi  <= s_executed_hi_i; end if; -- 
+        if s_executed_lo_V_i  = "1" then r_executed_lo  <= s_executed_lo_i; end if; -- 
+        if s_flags_V_i        = "1" then r_flags        <= s_flags_i; end if;       -- 
+        if s_num_V_i          = "1" then r_num          <= s_num_i; end if;         -- 
+        if s_param_hi_V_i     = "1" then r_param_hi     <= s_param_hi_i; end if;    -- 
+        if s_param_lo_V_i     = "1" then r_param_lo     <= s_param_lo_i; end if;    -- 
+        if s_tag_V_i          = "1" then r_tag          <= s_tag_i; end if;         -- 
+        if s_tef_V_i          = "1" then r_tef          <= s_tef_i; end if;         -- 
+        r_error                                         <= (others => '0');
+        r_pop                                           <= (others => '0');
+        
+        
+        if(s_e = '1') then
+          if(s_w = '1') then
+            -- WISHBONE WRITE ACTIONS
+            case to_integer(unsigned(s_a_ext)) is
+              when c_pop_OWR  => r_pop    <= f_wb_wr(r_pop, s_d, s_s, "owr"); -- 
+              when others     => r_error  <= "1";
             end case;
-            
-         end if; -- rst
-      end if; -- clk edge
-   end process;
+          else
+            -- WISHBONE READ ACTIONS
+            case to_integer(unsigned(s_a_ext)) is
+              when c_queue_id_GET     => null;
+              when c_flags_GET        => null;
+              when c_num_GET          => null;
+              when c_event_id_hi_GET  => null;
+              when c_event_id_lo_GET  => null;
+              when c_param_hi_GET     => null;
+              when c_param_lo_GET     => null;
+              when c_tag_GET          => null;
+              when c_tef_GET          => null;
+              when c_deadline_hi_GET  => null;
+              when c_deadline_lo_GET  => null;
+              when c_executed_hi_GET  => null;
+              when c_executed_lo_GET  => null;
+              when others             => r_error <= "1";
+            end case;
+          end if; -- s_w
+        end if; -- s_e
+        
+        case to_integer(unsigned(r_a_ext)) is
+          when c_queue_id_GET     => slave_o.dat  <= std_logic_vector(resize(unsigned(r_queue_id), slave_o.dat'length));      -- 
+          when c_flags_GET        => slave_o.dat  <= std_logic_vector(resize(unsigned(r_flags), slave_o.dat'length));         -- 
+          when c_num_GET          => slave_o.dat  <= std_logic_vector(resize(unsigned(r_num), slave_o.dat'length));           -- 
+          when c_event_id_hi_GET  => slave_o.dat  <= std_logic_vector(resize(unsigned(r_event_id_hi), slave_o.dat'length));   -- 
+          when c_event_id_lo_GET  => slave_o.dat  <= std_logic_vector(resize(unsigned(r_event_id_lo), slave_o.dat'length));   -- 
+          when c_param_hi_GET     => slave_o.dat  <= std_logic_vector(resize(unsigned(r_param_hi), slave_o.dat'length));      -- 
+          when c_param_lo_GET     => slave_o.dat  <= std_logic_vector(resize(unsigned(r_param_lo), slave_o.dat'length));      -- 
+          when c_tag_GET          => slave_o.dat  <= std_logic_vector(resize(unsigned(r_tag), slave_o.dat'length));           -- 
+          when c_tef_GET          => slave_o.dat  <= std_logic_vector(resize(unsigned(r_tef), slave_o.dat'length));           -- 
+          when c_deadline_hi_GET  => slave_o.dat  <= std_logic_vector(resize(unsigned(r_deadline_hi), slave_o.dat'length));   -- 
+          when c_deadline_lo_GET  => slave_o.dat  <= std_logic_vector(resize(unsigned(r_deadline_lo), slave_o.dat'length));   -- 
+          when c_executed_hi_GET  => slave_o.dat  <= std_logic_vector(resize(unsigned(r_executed_hi), slave_o.dat'length));   -- 
+          when c_executed_lo_GET  => slave_o.dat  <= std_logic_vector(resize(unsigned(r_executed_lo), slave_o.dat'length));   -- 
+          when others             => slave_o.dat  <= (others => 'X');
+        end case;
+
+        
+      end if; -- rst
+    end if; -- clk edge
+  end process;
 
 end rtl;
