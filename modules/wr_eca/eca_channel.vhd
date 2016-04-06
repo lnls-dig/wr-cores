@@ -74,7 +74,7 @@ entity eca_channel is
     -- Timestamps used for pipeline stages
     time_i      : in  t_time;
     -- Push a record to the queue
-    overflow_o : out std_logic;
+    overflow_o  : out std_logic;
     channel_i   : in  t_channel;
     clr_i       : in  std_logic;
     set_i       : in  std_logic;
@@ -399,7 +399,7 @@ begin
       w_addr_i => s_val_widx,
       w_data_i => s_val_data_i);
   
-  s_repeat <= s_channel_o.valid and not stall_i;
+  s_repeat <= s_channel_o.valid and stall_i;
   s_valid  <= s_channel_o.valid and not r_repeat;
   s_val_ridx <= f_eca_mux(s_valid, s_num, rc_req_num);
   s_val_widx <= f_eca_mux(s_safe, r_val_ridx, r_wipe(s_val_widx'range));
