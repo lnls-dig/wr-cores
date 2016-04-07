@@ -3,9 +3,9 @@
 set -e
 
 for i in 				\
-	../../../general-cores/modules/genrams/genram_pkg.vhd		\
-	../../../general-cores/modules/common/matrix_pkg.vhd		\
-	../../../general-cores/modules/wishbone/wishbone_pkg.vhd	\
+	../../../general-cores/modules/genrams/genram_pkg.vhd			\
+	../../../general-cores/modules/wishbone/wishbone_pkg.vhd		\
+	../../../general-cores/modules/wishbone/wbgenplus/wbgenplus_pkg.vhd	\
 	eca_internals_pkg.vhd		\
 	eca_auto_pkg.vhd		\
 	eca_queue_auto_pkg.vhd		\
