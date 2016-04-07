@@ -67,7 +67,7 @@ architecture rtl of eca is
   function f_type_table return t_type_table is
     variable result : t_type_table;
   begin
-    result(0) := std_logic_vector(to_unsigned(g_num_ios, 32));
+    result(0) := (others => '0');
     for i in 1 to c_num_channels loop
       result(i) := std_logic_vector(to_unsigned(g_channel_types(i-1 + g_channel_types'low), 32));
     end loop;
@@ -79,7 +79,7 @@ architecture rtl of eca is
   function f_num_table return t_num_table is
     variable result : t_num_table;
   begin
-    result(0) := (others => '0');
+    result(0) := std_logic_vector(to_unsigned(g_num_ios, 8));
     for i in 1 to c_num_channels loop
       result(i) := std_logic_vector(to_unsigned(f_num(i-1), 8));
     end loop;
