@@ -55,6 +55,8 @@ package eca_pkg is
     name          => "ECA_UNIT:EVENTS_IN ")));
 
   subtype t_nat_array     is work.eca_internals_pkg.t_nat_array;
+  subtype t_stream        is work.eca_internals_pkg.t_stream;
+  subtype t_stream_array  is work.eca_internals_pkg.t_stream_array;
   subtype t_channel       is work.eca_internals_pkg.t_channel;
   subtype t_channel_array is work.eca_internals_pkg.t_channel_array;
   type    t_gpio_array    is array(natural range <>) of std_logic_vector(7 downto 0);
@@ -68,27 +70,27 @@ package eca_pkg is
     generic(
       g_channel_types  : t_nat_array := (0 => c_linux);
       g_channel_nums   : t_nat_array := (0 => 32); -- Anything not explicitly set is 1
+      g_num_streams    : natural :=  1; -- Number of streams
       g_num_ios        : natural :=  8; -- Number of gpios
-      g_num_streams    : natural :=  1; -- Number of streams  (must be >= 1)
       g_log_table_size : natural :=  8; -- 2**g_log_table_size = maximum number of conditions
       g_log_queue_size : natural :=  8; -- 2**g_log_size       = maximum number of pending actions
       g_log_max_delay  : natural := 32);-- 2**g_log_max_delay  = maximum delay before executed as early
     port(
-      -- Stream events to the ECA unit (lower index has priority)
-      e_clk_i     : in  std_logic_vector          (g_num_streams-1 downto 0);
-      e_rst_n_i   : in  std_logic_vector          (g_num_streams-1 downto 0);
-      e_slave_i   : in  t_wishbone_slave_in_array (g_num_streams-1 downto 0);
-      e_slave_o   : out t_wishbone_slave_out_array(g_num_streams-1 downto 0);
       -- ECA control registers
       c_clk_i     : in  std_logic;
       c_rst_n_i   : in  std_logic;
       c_slave_i   : in  t_wishbone_slave_in;
       c_slave_o   : out t_wishbone_slave_out;
-      -- Actions output according to time
+      -- Action clock domain
       a_clk_i     : in  std_logic;
       a_rst_n_i   : in  std_logic; -- Hold for at least 10 cycles
       a_tai_i     : in  std_logic_vector(39 downto 0);
       a_cycles_i  : in  std_logic_vector(27 downto 0);
+      a_time_o    : out t_time;
+      -- Input streams (lower index has priority)
+      a_stream_i  : in  t_stream_array(g_num_streams-1 downto 0);
+      a_stall_o   : out std_logic_vector(g_num_streams-1 downto 0);
+      -- Output actions
       a_stall_i   : in  std_logic_vector(g_channel_types'range);
       a_channel_o : out t_channel_array(g_channel_types'range);
       a_io_o      : out t_gpio_array(g_num_ios-1 downto 0);
@@ -97,6 +99,19 @@ package eca_pkg is
       i_rst_n_i   : in  std_logic;
       i_master_i  : in  t_wishbone_master_in;
       i_master_o  : out t_wishbone_master_out);
+  end component;
+  
+  -- Convert WB writes into inbound ECA event stream
+  component eca_wb_event is
+    port(
+      w_clk_i    : in  std_logic;
+      w_rst_n_i  : in  std_logic;
+      w_slave_i  : in  t_wishbone_slave_in;
+      w_slave_o  : out t_wishbone_slave_out;
+      e_clk_i    : in  std_logic;
+      e_rst_n_i  : in  std_logic;
+      e_stream_o : out t_stream;
+      e_stall_i  : in  std_logic);
   end component;
   
   -- FIFO-style interface to access the output of an ECA channel

@@ -44,6 +44,14 @@ package eca_internals_pkg is
   subtype t_num   is std_logic_vector(c_num_bits-1   downto 0);
   subtype t_code  is std_logic_vector(c_code_bits-1  downto 0);
   
+  type t_stream is record
+    stb   : std_logic;
+    event : t_event;
+    param : t_param;
+    tef   : t_tef;
+    time  : t_time;
+  end record t_stream;
+  
   type t_channel is record
     valid    : std_logic;
     delayed  : std_logic;
@@ -70,12 +78,8 @@ package eca_internals_pkg is
     (others => '0'));
   
   type t_nat_array     is array(natural range <>) of natural;
+  type t_stream_array  is array(natural range <>) of t_stream;
   type t_channel_array is array(natural range <>) of t_channel;
-  type t_event_array   is array(natural range <>) of t_event;
-  type t_param_array   is array(natural range <>) of t_param;
-  type t_tag_array     is array(natural range <>) of t_tag;
-  type t_tef_array     is array(natural range <>) of t_tef;
-  type t_time_array    is array(natural range <>) of t_time;
   type t_num_array     is array(natural range <>) of t_num;
   type t_code_array    is array(natural range <>) of t_code;
   
@@ -612,6 +616,7 @@ package eca_internals_pkg is
     generic(
       g_channel_types  : t_nat_array;
       g_channel_nums   : t_nat_array;   -- Anything not explicitly set is 1
+      g_num_streams    : natural :=  1; -- Number of streams
       g_num_ios        : natural :=  8; -- Number of gpios
       g_log_table_size : natural :=  8; -- 2**g_log_table_size = maximum number of conditions
       g_log_queue_size : natural :=  8; -- 2**g_log_size       = maximum number of pending actions
@@ -620,22 +625,19 @@ package eca_internals_pkg is
       g_log_latency    : natural := 12; -- 2**g_log_latency    = ticks of calendar delay
       g_log_counter    : natural := 20);-- number of bits in the counters reported
     port(
-      -- Push events to the ECA unit (a_clk_i domain)
-      e_stb_i     : in  std_logic;
-      e_stall_o   : out std_logic;
-      e_event_i   : in  t_event;
-      e_param_i   : in  t_param;
-      e_tef_i     : in  t_tef;
-      e_time_i    : in  t_time;
       -- ECA control registers
       c_clk_i     : in  std_logic;
       c_rst_n_i   : in  std_logic;
       c_slave_i   : in  t_wishbone_slave_in;
       c_slave_o   : out t_wishbone_slave_out;
-      -- Actions output according to time
+      -- Action clock domain
       a_clk_i     : in  std_logic;
       a_rst_n_i   : in  std_logic;
       a_time_i    : in  t_time;
+      -- Input streams (lower index has priority)
+      a_stream_i  : in  t_stream_array(g_num_streams-1 downto 0);
+      a_stall_o   : out std_logic_vector(g_num_streams-1 downto 0);
+      -- Output actions
       a_stall_i   : in  std_logic_vector(g_channel_types'range);
       a_channel_o : out t_channel_array(g_channel_types'range);
       a_io_o      : out t_eca_matrix(g_num_ios-1 downto 0, 2**g_log_multiplier-1 downto 0);
@@ -646,23 +648,6 @@ package eca_internals_pkg is
       i_master_o  : out t_wishbone_master_out);
   end component;
 
-  -- Convert WB writes into inbound ECA events
-  component eca_wb_event is
-    port(
-      w_clk_i   : in  std_logic;
-      w_rst_n_i : in  std_logic;
-      w_slave_i : in  t_wishbone_slave_in;
-      w_slave_o : out t_wishbone_slave_out;
-      e_clk_i   : in  std_logic;
-      e_rst_n_i : in  std_logic;
-      e_stb_o   : out std_logic;
-      e_stall_i : in  std_logic;
-      e_event_o : out t_event;
-      e_param_o : out t_param;
-      e_tef_o   : out t_tef;
-      e_time_o  : out t_time);
-  end component;
-  
 end eca_internals_pkg;
 
 package body eca_internals_pkg is

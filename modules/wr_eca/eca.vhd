@@ -10,6 +10,7 @@ entity eca is
   generic(
     g_channel_types  : t_nat_array;
     g_channel_nums   : t_nat_array; -- Anything not explicitly set is 1
+    g_num_streams    : natural :=  1; -- Number of input streams
     g_num_ios        : natural :=  8; -- Number of gpios
     g_log_table_size : natural :=  8; -- 2**g_log_table_size = maximum number of conditions
     g_log_queue_size : natural :=  8; -- 2**g_log_size       = maximum number of pending actions
@@ -18,22 +19,19 @@ entity eca is
     g_log_latency    : natural := 12; -- 2**g_log_latency    = ticks of calendar delay
     g_log_counter    : natural := 20);-- number of bits in the counters reported
   port(
-    -- Push events to the ECA unit (a_clk_i domain)
-    e_stb_i     : in  std_logic;
-    e_stall_o   : out std_logic;
-    e_event_i   : in  t_event;
-    e_param_i   : in  t_param;
-    e_tef_i     : in  t_tef;
-    e_time_i    : in  t_time;
     -- ECA control registers
     c_clk_i     : in  std_logic;
     c_rst_n_i   : in  std_logic;
     c_slave_i   : in  t_wishbone_slave_in;
     c_slave_o   : out t_wishbone_slave_out;
-    -- Actions output according to time
+    -- Action clock domain
     a_clk_i     : in  std_logic;
     a_rst_n_i   : in  std_logic;
     a_time_i    : in  t_time;
+    -- Input streams (lower index has priority)
+    a_stream_i  : in  t_stream_array(g_num_streams-1 downto 0);
+    a_stall_o   : out std_logic_vector(g_num_streams-1 downto 0);
+    -- Output actions
     a_stall_i   : in  std_logic_vector(g_channel_types'range);
     a_channel_o : out t_channel_array(g_channel_types'range);
     a_io_o      : out t_eca_matrix(g_num_ios-1 downto 0, 2**g_log_multiplier-1 downto 0);
@@ -143,6 +141,9 @@ architecture rtl of eca is
   signal s_slave_channel_deadline_lo_RD_o      : std_logic_vector(1-1 downto 0);   -- Read enable flag
   signal s_slave_channel_executed_hi_RD_o      : std_logic_vector(1-1 downto 0);   -- Read enable flag
   signal s_slave_channel_executed_lo_RD_o      : std_logic_vector(1-1 downto 0);   -- Read enable flag
+  
+  signal sa_streams : t_stream_array(g_num_streams downto 0);
+  signal sa_stalls  : std_logic_vector(g_num_streams downto 0);
   
   signal rc_page         : std_logic := '0';
   signal ra_page         : std_logic_vector(3 downto 0);
@@ -324,19 +325,35 @@ begin
     when f_eca_safe(s_slave_channel_select_o) = '1' else
     (others => 'X');
   
+  -- Arbitrate inputs, priority access goes to #0
+  sa_streams(g_num_streams).stb   <= '0';
+  sa_streams(g_num_streams).event <= (others => '-');
+  sa_streams(g_num_streams).param <= (others => '-');
+  sa_streams(g_num_streams).tef   <= (others => '-');
+  sa_streams(g_num_streams).time  <= (others => '-');
+  Sx : for s in 0 to g_num_streams-1 generate
+    sa_stalls(s+1)      <= a_stream_i(s).stb   or                              sa_stalls(s);
+    sa_streams(s).stb   <= a_stream_i(s).stb   or                              sa_streams(s+1).stb;
+    sa_streams(s).event <= a_stream_i(s).event when a_stream_i(s).stb='1' else sa_streams(s+1).event;
+    sa_streams(s).param <= a_stream_i(s).param when a_stream_i(s).stb='1' else sa_streams(s+1).param;
+    sa_streams(s).tef   <= a_stream_i(s).tef   when a_stream_i(s).stb='1' else sa_streams(s+1).tef;
+    sa_streams(s).time  <= a_stream_i(s).time  when a_stream_i(s).stb='1' else sa_streams(s+1).time;
+  end generate;
+  a_stall_o <= sa_stalls(a_stall_o'range);
+  
   search : eca_search
     generic map(
       g_log_table_size => g_log_table_size)
     port map(
       clk_i      => a_clk_i,
       rst_n_i    => a_rst_n_i,
-      e_stb_i    => e_stb_i,
-      e_stall_o  => e_stall_o,
+      e_stb_i    => sa_streams(0).stb,
+      e_stall_o  => sa_stalls(0),
       e_page_i   => "not"(ra_page(0)),
-      e_event_i  => e_event_i,
-      e_param_i  => e_param_i,
-      e_tef_i    => e_tef_i,
-      e_time_i   => e_time_i,
+      e_event_i  => sa_streams(0).event,
+      e_param_i  => sa_streams(0).param,
+      e_tef_i    => sa_streams(0).tef,
+      e_time_i   => sa_streams(0).time,
       w_stb_o    => s_sw_stb,
       w_stall_i  => s_ws_stall,
       w_page_o   => s_sw_page,
