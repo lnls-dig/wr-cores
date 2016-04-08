@@ -62,6 +62,7 @@ use work.eca_internals_pkg.all;
 entity eca_channel is
   generic(
     g_support_io     : boolean := false; -- Should io_o be driven?
+    g_never_delayed  : boolean := false; -- Report delayed as valid?
     g_num_channels   : natural :=  1; -- Number of channels emulated by this instance (must be >= 1)
     g_log_size       : natural :=  8; -- 2**g_log_size = maximum number of pending actions
     g_log_multiplier : natural :=  3; -- 2**g_log_multiplier = ticks per cycle
@@ -302,6 +303,7 @@ begin
   channel : eca_tag_channel
     generic map(
       g_support_io     => g_support_io,
+      g_never_delayed  => g_never_delayed,
       g_num_channels   => g_num_channels,
       g_log_size       => g_log_size,
       g_log_multiplier => g_log_multiplier,

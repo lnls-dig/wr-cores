@@ -442,6 +442,7 @@ begin
   io_channel : eca_channel
     generic map(
       g_support_io     => true,
+      g_never_delayed  => true,
       g_num_channels   => g_num_ios,
       g_log_size       => g_log_queue_size,
       g_log_multiplier => g_log_multiplier,
@@ -478,6 +479,7 @@ begin
     tag_channel : eca_channel
       generic map(
         g_support_io     => false,
+        g_never_delayed  => false,
         g_num_channels   => f_num(i-1),
         g_log_size       => g_log_queue_size,
         g_log_multiplier => g_log_multiplier,

@@ -31,6 +31,7 @@ use work.eca_internals_pkg.all;
 entity eca_tag_channel is
   generic(
     g_support_io     : boolean := false; -- Should io_o be driven?
+    g_never_delayed  : boolean := false; -- Report delayed as valid?
     g_num_channels   : natural :=  1; -- Number of channels emulated by this instance
     g_log_size       : natural :=  8; -- 2**g_log_size = maximum number of pending actions
     g_log_multiplier : natural :=  3; -- 2**g_log_multiplier = ticks per cycle
@@ -648,7 +649,8 @@ begin
   s_late     <= r_mux_valid and r_mux_late;
   s_early    <= r_mux_valid and r_mux_early;
   s_conflict <= (r_mux_valid and r_mux_next and s_saw_valid) and not (s_late or s_early);
-  s_delayed  <= (r_mux_valid and (r_mux_delay or r_stall))   and not (s_late or s_early or s_conflict);
+  s_delayed  <= (r_mux_valid and (r_mux_delay or r_stall))   and not (s_late or s_early or s_conflict)
+                and not f_eca_active_high(g_never_delayed);
   
   -- Only valid if the errors are accepted by the condition rule
   s_valid <= r_mux_valid and
