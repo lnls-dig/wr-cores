@@ -1,7 +1,7 @@
 --! @file        eca_queue_auto.vhd
 --  DesignUnit   eca_queue_auto
 --! @author      Wesley W. Terpstra <w.terpstra@gsi.de>
---! @date        06/04/2016
+--! @date        08/04/2016
 --! @version     2.0
 --! @copyright   2016 GSI Helmholtz Centre for Heavy Ion Research GmbH
 --!
@@ -40,38 +40,38 @@ use work.eca_queue_auto_pkg.all;
 
 entity eca_queue_auto is
 generic(
-  g_queue_id  : natural := 0  --
+  g_queue_id  : natural := 0  --The index of a_channel_o from the ECA to which this queue is connected (set channel_select=queue_id+1)
 );
 Port(
   clk_sys_i       : std_logic;                            -- Clock input for sys domain
   rst_sys_n_i     : std_logic;                            -- Reset input (active low) for sys domain
-  deadline_hi_i   : in  std_logic_vector(32-1 downto 0);  -- 
+  deadline_hi_i   : in  std_logic_vector(32-1 downto 0);  -- Deadline (high word)
   deadline_hi_V_i : in  std_logic_vector(1-1 downto 0);   -- Valid flag - deadline_hi
-  deadline_lo_i   : in  std_logic_vector(32-1 downto 0);  -- 
+  deadline_lo_i   : in  std_logic_vector(32-1 downto 0);  -- Deadline (low word)
   deadline_lo_V_i : in  std_logic_vector(1-1 downto 0);   -- Valid flag - deadline_lo
   error_i         : in  std_logic_vector(1-1 downto 0);   -- Error control
-  event_id_hi_i   : in  std_logic_vector(32-1 downto 0);  -- 
+  event_id_hi_i   : in  std_logic_vector(32-1 downto 0);  -- Event ID (high word)
   event_id_hi_V_i : in  std_logic_vector(1-1 downto 0);   -- Valid flag - event_id_hi
-  event_id_lo_i   : in  std_logic_vector(32-1 downto 0);  -- 
+  event_id_lo_i   : in  std_logic_vector(32-1 downto 0);  -- Event ID (low word)
   event_id_lo_V_i : in  std_logic_vector(1-1 downto 0);   -- Valid flag - event_id_lo
-  executed_hi_i   : in  std_logic_vector(32-1 downto 0);  -- 
+  executed_hi_i   : in  std_logic_vector(32-1 downto 0);  -- Actual execution time (high word)
   executed_hi_V_i : in  std_logic_vector(1-1 downto 0);   -- Valid flag - executed_hi
-  executed_lo_i   : in  std_logic_vector(32-1 downto 0);  -- 
+  executed_lo_i   : in  std_logic_vector(32-1 downto 0);  -- Actual execution time (low word)
   executed_lo_V_i : in  std_logic_vector(1-1 downto 0);   -- Valid flag - executed_lo
-  flags_i         : in  std_logic_vector(5-1 downto 0);   -- 
+  flags_i         : in  std_logic_vector(5-1 downto 0);   -- Error flags for this action(0=late, 1=early, 2=conflict, 3=delayed, 4=valid)
   flags_V_i       : in  std_logic_vector(1-1 downto 0);   -- Valid flag - flags
-  num_i           : in  std_logic_vector(8-1 downto 0);   -- 
+  num_i           : in  std_logic_vector(8-1 downto 0);   -- Subchannel target
   num_V_i         : in  std_logic_vector(1-1 downto 0);   -- Valid flag - num
-  param_hi_i      : in  std_logic_vector(32-1 downto 0);  -- 
+  param_hi_i      : in  std_logic_vector(32-1 downto 0);  -- Parameter (high word)
   param_hi_V_i    : in  std_logic_vector(1-1 downto 0);   -- Valid flag - param_hi
-  param_lo_i      : in  std_logic_vector(32-1 downto 0);  -- 
+  param_lo_i      : in  std_logic_vector(32-1 downto 0);  -- Parameter (low word)
   param_lo_V_i    : in  std_logic_vector(1-1 downto 0);   -- Valid flag - param_lo
   stall_i         : in  std_logic_vector(1-1 downto 0);   -- flow control
-  tag_i           : in  std_logic_vector(32-1 downto 0);  -- 
+  tag_i           : in  std_logic_vector(32-1 downto 0);  -- Tag from the condition
   tag_V_i         : in  std_logic_vector(1-1 downto 0);   -- Valid flag - tag
-  tef_i           : in  std_logic_vector(32-1 downto 0);  -- 
+  tef_i           : in  std_logic_vector(32-1 downto 0);  -- Timing extension field
   tef_V_i         : in  std_logic_vector(1-1 downto 0);   -- Valid flag - tef
-  pop_o           : out std_logic_vector(1-1 downto 0);   -- 
+  pop_o           : out std_logic_vector(1-1 downto 0);   -- Pop action from the channel's queue
   
   slave_i         : in  t_wishbone_slave_in;
   slave_o         : out t_wishbone_slave_out
@@ -97,56 +97,56 @@ architecture rtl of eca_queue_auto is
   signal r_error            : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));           -- Error
   signal s_error_i          : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Error control
   signal s_stall_i          : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- flow control
-  signal r_queue_id         : std_logic_vector(8-1 downto 0)  := std_logic_vector(to_unsigned(g_queue_id, 8));  -- 
-  signal r_pop              : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- 
+  signal r_queue_id         : std_logic_vector(8-1 downto 0)  := std_logic_vector(to_unsigned(g_queue_id, 8));  -- The index of a_channel_o from the ECA to which this queue is connected (set channel_select=queue_id+1)
+  signal r_pop              : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Pop action from the channel's queue
   signal r_flags_V          : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - flags
   signal s_flags_V_i        : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - flags
-  signal r_flags            : std_logic_vector(5-1 downto 0)  := (others => '0');                               -- 
-  signal s_flags_i          : std_logic_vector(5-1 downto 0)  := (others => '0');                               -- 
+  signal r_flags            : std_logic_vector(5-1 downto 0)  := (others => '0');                               -- Error flags for this action(0=late, 1=early, 2=conflict, 3=delayed, 4=valid)
+  signal s_flags_i          : std_logic_vector(5-1 downto 0)  := (others => '0');                               -- Error flags for this action(0=late, 1=early, 2=conflict, 3=delayed, 4=valid)
   signal r_num_V            : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - num
   signal s_num_V_i          : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - num
-  signal r_num              : std_logic_vector(8-1 downto 0)  := (others => '0');                               -- 
-  signal s_num_i            : std_logic_vector(8-1 downto 0)  := (others => '0');                               -- 
+  signal r_num              : std_logic_vector(8-1 downto 0)  := (others => '0');                               -- Subchannel target
+  signal s_num_i            : std_logic_vector(8-1 downto 0)  := (others => '0');                               -- Subchannel target
   signal r_event_id_hi_V    : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - event_id_hi
   signal s_event_id_hi_V_i  : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - event_id_hi
-  signal r_event_id_hi      : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
-  signal s_event_id_hi_i    : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal r_event_id_hi      : std_logic_vector(32-1 downto 0) := (others => '0');                               -- Event ID (high word)
+  signal s_event_id_hi_i    : std_logic_vector(32-1 downto 0) := (others => '0');                               -- Event ID (high word)
   signal r_event_id_lo_V    : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - event_id_lo
   signal s_event_id_lo_V_i  : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - event_id_lo
-  signal r_event_id_lo      : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
-  signal s_event_id_lo_i    : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal r_event_id_lo      : std_logic_vector(32-1 downto 0) := (others => '0');                               -- Event ID (low word)
+  signal s_event_id_lo_i    : std_logic_vector(32-1 downto 0) := (others => '0');                               -- Event ID (low word)
   signal r_param_hi_V       : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - param_hi
   signal s_param_hi_V_i     : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - param_hi
-  signal r_param_hi         : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
-  signal s_param_hi_i       : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal r_param_hi         : std_logic_vector(32-1 downto 0) := (others => '0');                               -- Parameter (high word)
+  signal s_param_hi_i       : std_logic_vector(32-1 downto 0) := (others => '0');                               -- Parameter (high word)
   signal r_param_lo_V       : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - param_lo
   signal s_param_lo_V_i     : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - param_lo
-  signal r_param_lo         : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
-  signal s_param_lo_i       : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal r_param_lo         : std_logic_vector(32-1 downto 0) := (others => '0');                               -- Parameter (low word)
+  signal s_param_lo_i       : std_logic_vector(32-1 downto 0) := (others => '0');                               -- Parameter (low word)
   signal r_tag_V            : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - tag
   signal s_tag_V_i          : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - tag
-  signal r_tag              : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
-  signal s_tag_i            : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal r_tag              : std_logic_vector(32-1 downto 0) := (others => '0');                               -- Tag from the condition
+  signal s_tag_i            : std_logic_vector(32-1 downto 0) := (others => '0');                               -- Tag from the condition
   signal r_tef_V            : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - tef
   signal s_tef_V_i          : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - tef
-  signal r_tef              : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
-  signal s_tef_i            : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal r_tef              : std_logic_vector(32-1 downto 0) := (others => '0');                               -- Timing extension field
+  signal s_tef_i            : std_logic_vector(32-1 downto 0) := (others => '0');                               -- Timing extension field
   signal r_deadline_hi_V    : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - deadline_hi
   signal s_deadline_hi_V_i  : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - deadline_hi
-  signal r_deadline_hi      : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
-  signal s_deadline_hi_i    : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal r_deadline_hi      : std_logic_vector(32-1 downto 0) := (others => '0');                               -- Deadline (high word)
+  signal s_deadline_hi_i    : std_logic_vector(32-1 downto 0) := (others => '0');                               -- Deadline (high word)
   signal r_deadline_lo_V    : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - deadline_lo
   signal s_deadline_lo_V_i  : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - deadline_lo
-  signal r_deadline_lo      : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
-  signal s_deadline_lo_i    : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal r_deadline_lo      : std_logic_vector(32-1 downto 0) := (others => '0');                               -- Deadline (low word)
+  signal s_deadline_lo_i    : std_logic_vector(32-1 downto 0) := (others => '0');                               -- Deadline (low word)
   signal r_executed_hi_V    : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - executed_hi
   signal s_executed_hi_V_i  : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - executed_hi
-  signal r_executed_hi      : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
-  signal s_executed_hi_i    : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal r_executed_hi      : std_logic_vector(32-1 downto 0) := (others => '0');                               -- Actual execution time (high word)
+  signal s_executed_hi_i    : std_logic_vector(32-1 downto 0) := (others => '0');                               -- Actual execution time (high word)
   signal r_executed_lo_V    : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - executed_lo
   signal s_executed_lo_V_i  : std_logic_vector(1-1 downto 0)  := (others => '0');                               -- Valid flag - executed_lo
-  signal r_executed_lo      : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
-  signal s_executed_lo_i    : std_logic_vector(32-1 downto 0) := (others => '0');                               -- 
+  signal r_executed_lo      : std_logic_vector(32-1 downto 0) := (others => '0');                               -- Actual execution time (low word)
+  signal s_executed_lo_i    : std_logic_vector(32-1 downto 0) := (others => '0');                               -- Actual execution time (low word)
 
 
 begin

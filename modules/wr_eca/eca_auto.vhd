@@ -1,7 +1,7 @@
 --! @file        eca_auto.vhd
 --  DesignUnit   eca_auto
 --! @author      Wesley W. Terpstra <w.terpstra@gsi.de>
---! @date        06/04/2016
+--! @date        08/04/2016
 --! @version     2.0
 --! @copyright   2016 GSI Helmholtz Centre for Heavy Ion Research GmbH
 --!
@@ -40,82 +40,82 @@ use work.eca_auto_pkg.all;
 
 entity eca_auto is
 generic(
-  g_channels        : natural := 1;   --
-  g_search_capacity : natural := 512; --
-  g_offset_bits     : natural := 32;  --
-  g_walker_capacity : natural := 256; --
-  g_latency         : natural := 4096 --
+  g_channels        : natural := 1;   --Number of channels implemented by the ECA, including the internal IO channel #0
+  g_search_capacity : natural := 512; --Total number of search table entries per active page
+  g_offset_bits     : natural := 32;  --Actions scheduled for execution with a delay in ticks exceeding offset_bits are executed early
+  g_walker_capacity : natural := 256; --Total number of walker table entries per active page
+  g_latency         : natural := 4096 --Delay in ticks (typically nanoseconds) between an event's arrival at the ECA and its earliest possible execution as an action
 );
 Port(
   clk_sys_i                   : std_logic;                            -- Clock input for sys domain
   rst_sys_n_i                 : std_logic;                            -- Reset input (active low) for sys domain
-  channel_capacity_i          : in  std_logic_vector(16-1 downto 0);  -- 
+  channel_capacity_i          : in  std_logic_vector(16-1 downto 0);  -- Total number of actions which may be enqueued by the selected channel at a time
   channel_capacity_V_i        : in  std_logic_vector(1-1 downto 0);   -- Valid flag - channel_capacity
-  channel_deadline_hi_i       : in  std_logic_vector(32-1 downto 0);  -- 
+  channel_deadline_hi_i       : in  std_logic_vector(32-1 downto 0);  -- The deadline of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count is read (high word)
   channel_deadline_hi_V_i     : in  std_logic_vector(1-1 downto 0);   -- Valid flag - channel_deadline_hi
-  channel_deadline_lo_i       : in  std_logic_vector(32-1 downto 0);  -- 
+  channel_deadline_lo_i       : in  std_logic_vector(32-1 downto 0);  -- The deadline of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count is read (low word)
   channel_deadline_lo_V_i     : in  std_logic_vector(1-1 downto 0);   -- Valid flag - channel_deadline_lo
-  channel_event_id_hi_i       : in  std_logic_vector(32-1 downto 0);  -- 
+  channel_event_id_hi_i       : in  std_logic_vector(32-1 downto 0);  -- The event ID of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count is read (high word)
   channel_event_id_hi_V_i     : in  std_logic_vector(1-1 downto 0);   -- Valid flag - channel_event_id_hi
-  channel_event_id_lo_i       : in  std_logic_vector(32-1 downto 0);  -- 
+  channel_event_id_lo_i       : in  std_logic_vector(32-1 downto 0);  -- The event ID of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count is read (low word)
   channel_event_id_lo_V_i     : in  std_logic_vector(1-1 downto 0);   -- Valid flag - channel_event_id_lo
-  channel_executed_hi_i       : in  std_logic_vector(32-1 downto 0);  -- 
+  channel_executed_hi_i       : in  std_logic_vector(32-1 downto 0);  -- The actual execution time of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count is read (high word)
   channel_executed_hi_V_i     : in  std_logic_vector(1-1 downto 0);   -- Valid flag - channel_executed_hi
-  channel_executed_lo_i       : in  std_logic_vector(32-1 downto 0);  -- 
+  channel_executed_lo_i       : in  std_logic_vector(32-1 downto 0);  -- The actual execution time of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count is read (low word)
   channel_executed_lo_V_i     : in  std_logic_vector(1-1 downto 0);   -- Valid flag - channel_executed_lo
-  channel_failed_count_i      : in  std_logic_vector(32-1 downto 0);  -- 
+  channel_failed_count_i      : in  std_logic_vector(32-1 downto 0);  -- Read and clear the number of actions with the selected error code which were destined for the selected subchannel, MSI=(code<<16|num) will be sent when the count becomes non-zero
   channel_failed_count_V_i    : in  std_logic_vector(1-1 downto 0);   -- Valid flag - channel_failed_count
-  channel_max_num_i           : in  std_logic_vector(8-1 downto 0);   -- 
+  channel_max_num_i           : in  std_logic_vector(8-1 downto 0);   -- Total number of subchannels supported by the selected channel
   channel_max_num_V_i         : in  std_logic_vector(1-1 downto 0);   -- Valid flag - channel_max_num
-  channel_mostfull_ack_i      : in  std_logic_vector(32-1 downto 0);  -- 
+  channel_mostfull_ack_i      : in  std_logic_vector(32-1 downto 0);  -- Read the selected channel's fill status (used_now<<16 | used_most), MSI=(6<<16) will be sent if used_most changes
   channel_mostfull_ack_V_i    : in  std_logic_vector(1-1 downto 0);   -- Valid flag - channel_mostfull_ack
-  channel_mostfull_clear_i    : in  std_logic_vector(32-1 downto 0);  -- 
+  channel_mostfull_clear_i    : in  std_logic_vector(32-1 downto 0);  -- Read and clear the selected channel's fill status (used_now<<16 | used_most), MSI=(6<<16) will be sent if used_most changes
   channel_mostfull_clear_V_i  : in  std_logic_vector(1-1 downto 0);   -- Valid flag - channel_mostfull_clear
-  channel_msi_get_enable_i    : in  std_logic_vector(1-1 downto 0);   -- 
+  channel_msi_get_enable_i    : in  std_logic_vector(1-1 downto 0);   -- Check if MSI messages are enabled for the selected channel
   channel_msi_get_enable_V_i  : in  std_logic_vector(1-1 downto 0);   -- Valid flag - channel_msi_get_enable
-  channel_msi_get_target_i    : in  std_logic_vector(32-1 downto 0);  -- 
+  channel_msi_get_target_i    : in  std_logic_vector(32-1 downto 0);  -- Get the destination MSI address for the selected channel
   channel_msi_get_target_V_i  : in  std_logic_vector(1-1 downto 0);   -- Valid flag - channel_msi_get_target
-  channel_overflow_count_i    : in  std_logic_vector(32-1 downto 0);  -- 
+  channel_overflow_count_i    : in  std_logic_vector(32-1 downto 0);  -- Read and clear the number of actions which could not be enqueued to the selected full channel which were destined for the selected subchannel, MSI=(5<<16|num) will be sent when the count becomes non-zero
   channel_overflow_count_V_i  : in  std_logic_vector(1-1 downto 0);   -- Valid flag - channel_overflow_count
-  channel_param_hi_i          : in  std_logic_vector(32-1 downto 0);  -- 
+  channel_param_hi_i          : in  std_logic_vector(32-1 downto 0);  -- The parameter of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count is read (high word)
   channel_param_hi_V_i        : in  std_logic_vector(1-1 downto 0);   -- Valid flag - channel_param_hi
-  channel_param_lo_i          : in  std_logic_vector(32-1 downto 0);  -- 
+  channel_param_lo_i          : in  std_logic_vector(32-1 downto 0);  -- The parameter of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count is read (low word)
   channel_param_lo_V_i        : in  std_logic_vector(1-1 downto 0);   -- Valid flag - channel_param_lo
-  channel_tag_i               : in  std_logic_vector(32-1 downto 0);  -- 
+  channel_tag_i               : in  std_logic_vector(32-1 downto 0);  -- The tag of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count is read
   channel_tag_V_i             : in  std_logic_vector(1-1 downto 0);   -- Valid flag - channel_tag
-  channel_tef_i               : in  std_logic_vector(32-1 downto 0);  -- 
+  channel_tef_i               : in  std_logic_vector(32-1 downto 0);  -- The TEF of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count is read
   channel_tef_V_i             : in  std_logic_vector(1-1 downto 0);   -- Valid flag - channel_tef
-  channel_type_i              : in  std_logic_vector(32-1 downto 0);  -- 
+  channel_type_i              : in  std_logic_vector(32-1 downto 0);  -- Type of the selected channel (0=io, 1=linux, 2=wbm, ...)
   channel_type_V_i            : in  std_logic_vector(1-1 downto 0);   -- Valid flag - channel_type
-  channel_valid_count_i       : in  std_logic_vector(32-1 downto 0);  -- 
+  channel_valid_count_i       : in  std_logic_vector(32-1 downto 0);  -- Read and clear the number of actions output by the selected subchannel, MSI=(4<<16|num) will be sent when the count becomes non-zero
   channel_valid_count_V_i     : in  std_logic_vector(1-1 downto 0);   -- Valid flag - channel_valid_count
   error_i                     : in  std_logic_vector(1-1 downto 0);   -- Error control
-  search_ro_event_hi_i        : in  std_logic_vector(32-1 downto 0);  -- 
+  search_ro_event_hi_i        : in  std_logic_vector(32-1 downto 0);  -- Event IDs greater than or equal to this value match this search table record (high word)
   search_ro_event_hi_V_i      : in  std_logic_vector(1-1 downto 0);   -- Valid flag - search_ro_event_hi
-  search_ro_event_lo_i        : in  std_logic_vector(32-1 downto 0);  -- 
+  search_ro_event_lo_i        : in  std_logic_vector(32-1 downto 0);  -- Event IDs greater than or equal to this value match this search table record (low word)
   search_ro_event_lo_V_i      : in  std_logic_vector(1-1 downto 0);   -- Valid flag - search_ro_event_lo
-  search_ro_first_i           : in  std_logic_vector(16-1 downto 0);  -- 
+  search_ro_first_i           : in  std_logic_vector(16-1 downto 0);  -- The first walker entry to execute if an event matches this record in the search table
   search_ro_first_V_i         : in  std_logic_vector(1-1 downto 0);   -- Valid flag - search_ro_first
   stall_i                     : in  std_logic_vector(1-1 downto 0);   -- flow control
-  time_hi_i                   : in  std_logic_vector(32-1 downto 0);  -- 
+  time_hi_i                   : in  std_logic_vector(32-1 downto 0);  -- Ticks (nanoseconds) since Jan 1, 1970 (high word)
   time_hi_V_i                 : in  std_logic_vector(1-1 downto 0);   -- Valid flag - time_hi
-  time_lo_i                   : in  std_logic_vector(32-1 downto 0);  -- 
+  time_lo_i                   : in  std_logic_vector(32-1 downto 0);  -- Ticks (nanoseconds) since Jan 1, 1970 (low word)
   time_lo_V_i                 : in  std_logic_vector(1-1 downto 0);   -- Valid flag - time_lo
-  walker_ro_channel_i         : in  std_logic_vector(8-1 downto 0);   -- 
+  walker_ro_channel_i         : in  std_logic_vector(8-1 downto 0);   -- The channel to which the resulting action will be sent
   walker_ro_channel_V_i       : in  std_logic_vector(1-1 downto 0);   -- Valid flag - walker_ro_channel
-  walker_ro_flags_i           : in  std_logic_vector(4-1 downto 0);   -- 
+  walker_ro_flags_i           : in  std_logic_vector(4-1 downto 0);   -- Execute the resulting action even if it suffers from the errors set in this flag register
   walker_ro_flags_V_i         : in  std_logic_vector(1-1 downto 0);   -- Valid flag - walker_ro_flags
-  walker_ro_next_i            : in  std_logic_vector(16-1 downto 0);  -- 
+  walker_ro_next_i            : in  std_logic_vector(16-1 downto 0);  -- The next walker entry to execute after this record (0xffff = end of list)
   walker_ro_next_V_i          : in  std_logic_vector(1-1 downto 0);   -- Valid flag - walker_ro_next
-  walker_ro_num_i             : in  std_logic_vector(8-1 downto 0);   -- 
+  walker_ro_num_i             : in  std_logic_vector(8-1 downto 0);   -- The subchannel to which the resulting action will be sent
   walker_ro_num_V_i           : in  std_logic_vector(1-1 downto 0);   -- Valid flag - walker_ro_num
-  walker_ro_offset_hi_i       : in  std_logic_vector(32-1 downto 0);  -- 
+  walker_ro_offset_hi_i       : in  std_logic_vector(32-1 downto 0);  -- The resulting action's deadline is the event timestamp plus this offset (high word)
   walker_ro_offset_hi_V_i     : in  std_logic_vector(1-1 downto 0);   -- Valid flag - walker_ro_offset_hi
-  walker_ro_offset_lo_i       : in  std_logic_vector(32-1 downto 0);  -- 
+  walker_ro_offset_lo_i       : in  std_logic_vector(32-1 downto 0);  -- The resulting action's deadline is the event timestamp plus this offset (low word)
   walker_ro_offset_lo_V_i     : in  std_logic_vector(1-1 downto 0);   -- Valid flag - walker_ro_offset_lo
-  walker_ro_tag_i             : in  std_logic_vector(32-1 downto 0);  -- 
+  walker_ro_tag_i             : in  std_logic_vector(32-1 downto 0);  -- The resulting actions's tag
   walker_ro_tag_V_i           : in  std_logic_vector(1-1 downto 0);   -- Valid flag - walker_ro_tag
-  channel_code_select_o       : out std_logic_vector(2-1 downto 0);   -- 
+  channel_code_select_o       : out std_logic_vector(2-1 downto 0);   -- Read/clear this error condition (0=late, 1=early, 2=conflict, 3=delayed)
   channel_deadline_hi_RD_o    : out std_logic_vector(1-1 downto 0);   -- Read enable flag - channel_deadline_hi
   channel_deadline_lo_RD_o    : out std_logic_vector(1-1 downto 0);   -- Read enable flag - channel_deadline_lo
   channel_event_id_hi_RD_o    : out std_logic_vector(1-1 downto 0);   -- Read enable flag - channel_event_id_hi
@@ -125,39 +125,39 @@ Port(
   channel_failed_count_RD_o   : out std_logic_vector(1-1 downto 0);   -- Read enable flag - channel_failed_count
   channel_mostfull_ack_RD_o   : out std_logic_vector(1-1 downto 0);   -- Read enable flag - channel_mostfull_ack
   channel_mostfull_clear_RD_o : out std_logic_vector(1-1 downto 0);   -- Read enable flag - channel_mostfull_clear
-  channel_msi_set_enable_o    : out std_logic_vector(1-1 downto 0);   -- 
+  channel_msi_set_enable_o    : out std_logic_vector(1-1 downto 0);   -- Turn on/off MSI messages for the selected channel
   channel_msi_set_enable_WR_o : out std_logic_vector(1-1 downto 0);   -- Write enable flag - channel_msi_set_enable
-  channel_msi_set_target_o    : out std_logic_vector(32-1 downto 0);  -- 
+  channel_msi_set_target_o    : out std_logic_vector(32-1 downto 0);  -- Set the destination MSI address for the selected channel (only possible while it has MSIs disabled)
   channel_msi_set_target_WR_o : out std_logic_vector(1-1 downto 0);   -- Write enable flag - channel_msi_set_target
-  channel_num_select_o        : out std_logic_vector(8-1 downto 0);   -- 
+  channel_num_select_o        : out std_logic_vector(8-1 downto 0);   -- Read/clear this subchannel
   channel_overflow_count_RD_o : out std_logic_vector(1-1 downto 0);   -- Read enable flag - channel_overflow_count
   channel_param_hi_RD_o       : out std_logic_vector(1-1 downto 0);   -- Read enable flag - channel_param_hi
   channel_param_lo_RD_o       : out std_logic_vector(1-1 downto 0);   -- Read enable flag - channel_param_lo
-  channel_select_o            : out std_logic_vector(8-1 downto 0);   -- 
+  channel_select_o            : out std_logic_vector(8-1 downto 0);   -- Read/clear this channel
   channel_select_RD_o         : out std_logic_vector(1-1 downto 0);   -- Read enable flag - channel_select
   channel_select_WR_o         : out std_logic_vector(1-1 downto 0);   -- Write enable flag - channel_select
   channel_tag_RD_o            : out std_logic_vector(1-1 downto 0);   -- Read enable flag - channel_tag
   channel_tef_RD_o            : out std_logic_vector(1-1 downto 0);   -- Read enable flag - channel_tef
   channel_valid_count_RD_o    : out std_logic_vector(1-1 downto 0);   -- Read enable flag - channel_valid_count
-  flip_active_o               : out std_logic_vector(1-1 downto 0);   -- 
-  search_rw_event_hi_o        : out std_logic_vector(32-1 downto 0);  -- 
-  search_rw_event_lo_o        : out std_logic_vector(32-1 downto 0);  -- 
-  search_rw_first_o           : out std_logic_vector(16-1 downto 0);  -- 
-  search_select_o             : out std_logic_vector(16-1 downto 0);  -- 
+  flip_active_o               : out std_logic_vector(1-1 downto 0);   -- Flip the active search and walker tables with the inactive tables
+  search_rw_event_hi_o        : out std_logic_vector(32-1 downto 0);  -- Scratch register to be written to search_ro_event_hi
+  search_rw_event_lo_o        : out std_logic_vector(32-1 downto 0);  -- Scratch register to be written to search_ro_event_lo
+  search_rw_first_o           : out std_logic_vector(16-1 downto 0);  -- Scratch register to be written to search_ro_first
+  search_select_o             : out std_logic_vector(16-1 downto 0);  -- Read/write this record in the inactive search table
   search_select_RD_o          : out std_logic_vector(1-1 downto 0);   -- Read enable flag - search_select
   search_select_WR_o          : out std_logic_vector(1-1 downto 0);   -- Write enable flag - search_select
-  search_write_o              : out std_logic_vector(1-1 downto 0);   -- 
-  walker_rw_channel_o         : out std_logic_vector(8-1 downto 0);   -- 
-  walker_rw_flags_o           : out std_logic_vector(4-1 downto 0);   -- 
-  walker_rw_next_o            : out std_logic_vector(16-1 downto 0);  -- 
-  walker_rw_num_o             : out std_logic_vector(8-1 downto 0);   -- 
-  walker_rw_offset_hi_o       : out std_logic_vector(32-1 downto 0);  -- 
-  walker_rw_offset_lo_o       : out std_logic_vector(32-1 downto 0);  -- 
-  walker_rw_tag_o             : out std_logic_vector(32-1 downto 0);  -- 
-  walker_select_o             : out std_logic_vector(16-1 downto 0);  -- 
+  search_write_o              : out std_logic_vector(1-1 downto 0);   -- Store the scratch registers to the inactive search table record search_select
+  walker_rw_channel_o         : out std_logic_vector(8-1 downto 0);   -- Scratch register to be written to walker_ro_channel
+  walker_rw_flags_o           : out std_logic_vector(4-1 downto 0);   -- Scratch register to be written to walker_ro_flags
+  walker_rw_next_o            : out std_logic_vector(16-1 downto 0);  -- Scratch register to be written to walker_ro_next
+  walker_rw_num_o             : out std_logic_vector(8-1 downto 0);   -- Scratch register to be written to walker_ro_num
+  walker_rw_offset_hi_o       : out std_logic_vector(32-1 downto 0);  -- Scratch register to be written to walker_ro_offset_hi
+  walker_rw_offset_lo_o       : out std_logic_vector(32-1 downto 0);  -- Scratch register to be written to walker_ro_offset_lo
+  walker_rw_tag_o             : out std_logic_vector(32-1 downto 0);  -- Scratch register to be written to walker_ro_tag
+  walker_select_o             : out std_logic_vector(16-1 downto 0);  -- Read/write this record in the inactive walker table
   walker_select_RD_o          : out std_logic_vector(1-1 downto 0);   -- Read enable flag - walker_select
   walker_select_WR_o          : out std_logic_vector(1-1 downto 0);   -- Write enable flag - walker_select
-  walker_write_o              : out std_logic_vector(1-1 downto 0);   -- 
+  walker_write_o              : out std_logic_vector(1-1 downto 0);   -- Store the scratch registers to the inactive walker table record walker_select
   
   slave_i                     : in  t_wishbone_slave_in;
   slave_o                     : out t_wishbone_slave_out
@@ -183,182 +183,183 @@ architecture rtl of eca_auto is
   signal r_error                      : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Error
   signal s_error_i                    : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Error control
   signal s_stall_i                    : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- flow control
-  signal r_channels                   : std_logic_vector(8-1 downto 0)  := std_logic_vector(to_unsigned(g_channels, 8));          -- 
-  signal r_search_capacity            : std_logic_vector(16-1 downto 0) := std_logic_vector(to_unsigned(g_search_capacity, 16));  -- 
-  signal r_walker_capacity            : std_logic_vector(16-1 downto 0) := std_logic_vector(to_unsigned(g_walker_capacity, 16));  -- 
-  signal r_latency                    : std_logic_vector(32-1 downto 0) := std_logic_vector(to_unsigned(g_latency, 32));          -- 
-  signal r_offset_bits                : std_logic_vector(8-1 downto 0)  := std_logic_vector(to_unsigned(g_offset_bits, 8));       -- 
-  signal r_flip_active                : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- 
+  signal r_channels                   : std_logic_vector(8-1 downto 0)  := std_logic_vector(to_unsigned(g_channels, 8));          -- Number of channels implemented by the ECA, including the internal IO channel #0
+  signal r_search_capacity            : std_logic_vector(16-1 downto 0) := std_logic_vector(to_unsigned(g_search_capacity, 16));  -- Total number of search table entries per active page
+  signal r_walker_capacity            : std_logic_vector(16-1 downto 0) := std_logic_vector(to_unsigned(g_walker_capacity, 16));  -- Total number of walker table entries per active page
+  signal r_latency                    : std_logic_vector(32-1 downto 0) := std_logic_vector(to_unsigned(g_latency, 32));          -- Delay in ticks (typically nanoseconds) between an event's arrival at the ECA and its earliest possible execution as an action
+  signal r_offset_bits                : std_logic_vector(8-1 downto 0)  := std_logic_vector(to_unsigned(g_offset_bits, 8));       -- Actions scheduled for execution with a delay in ticks exceeding offset_bits are executed early
+  signal r_flip_active                : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Flip the active search and walker tables with the inactive tables
   signal r_time_hi_V                  : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - time_hi
   signal s_time_hi_V_i                : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - time_hi
-  signal r_time_hi                    : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_time_hi_i                  : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_time_hi                    : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Ticks (nanoseconds) since Jan 1, 1970 (high word)
+  signal s_time_hi_i                  : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Ticks (nanoseconds) since Jan 1, 1970 (high word)
   signal r_time_lo_V                  : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - time_lo
   signal s_time_lo_V_i                : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - time_lo
-  signal r_time_lo                    : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_time_lo_i                  : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_time_lo                    : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Ticks (nanoseconds) since Jan 1, 1970 (low word)
+  signal s_time_lo_i                  : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Ticks (nanoseconds) since Jan 1, 1970 (low word)
   signal r_search_select_WR           : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Write enable flag - search_select
   signal r_search_select_RD           : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Read enable flag - search_select
-  signal r_search_select              : std_logic_vector(16-1 downto 0) := (others => '0');                                       -- 
+  signal r_search_select              : std_logic_vector(16-1 downto 0) := (others => '0');                                       -- Read/write this record in the inactive search table
+  signal r_search_rw_first            : std_logic_vector(16-1 downto 0) := (others => '0');                                       -- Scratch register to be written to search_ro_first
+  signal r_search_rw_event_hi         : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Scratch register to be written to search_ro_event_hi
+  signal r_search_rw_event_lo         : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Scratch register to be written to search_ro_event_lo
+  signal r_search_write               : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Store the scratch registers to the inactive search table record search_select
   signal r_search_ro_first_V          : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - search_ro_first
   signal s_search_ro_first_V_i        : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - search_ro_first
-  signal r_search_ro_first            : std_logic_vector(16-1 downto 0) := (others => '0');                                       -- 
-  signal s_search_ro_first_i          : std_logic_vector(16-1 downto 0) := (others => '0');                                       -- 
+  signal r_search_ro_first            : std_logic_vector(16-1 downto 0) := (others => '0');                                       -- The first walker entry to execute if an event matches this record in the search table
+  signal s_search_ro_first_i          : std_logic_vector(16-1 downto 0) := (others => '0');                                       -- The first walker entry to execute if an event matches this record in the search table
   signal r_search_ro_event_hi_V       : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - search_ro_event_hi
   signal s_search_ro_event_hi_V_i     : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - search_ro_event_hi
-  signal r_search_ro_event_hi         : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_search_ro_event_hi_i       : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_search_ro_event_hi         : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Event IDs greater than or equal to this value match this search table record (high word)
+  signal s_search_ro_event_hi_i       : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Event IDs greater than or equal to this value match this search table record (high word)
   signal r_search_ro_event_lo_V       : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - search_ro_event_lo
   signal s_search_ro_event_lo_V_i     : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - search_ro_event_lo
-  signal r_search_ro_event_lo         : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_search_ro_event_lo_i       : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal r_search_write               : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- 
-  signal r_search_rw_first            : std_logic_vector(16-1 downto 0) := (others => '0');                                       -- 
-  signal r_search_rw_event_hi         : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal r_search_rw_event_lo         : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_search_ro_event_lo         : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Event IDs greater than or equal to this value match this search table record (low word)
+  signal s_search_ro_event_lo_i       : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Event IDs greater than or equal to this value match this search table record (low word)
   signal r_walker_select_WR           : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Write enable flag - walker_select
   signal r_walker_select_RD           : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Read enable flag - walker_select
-  signal r_walker_select              : std_logic_vector(16-1 downto 0) := (others => '0');                                       -- 
+  signal r_walker_select              : std_logic_vector(16-1 downto 0) := (others => '0');                                       -- Read/write this record in the inactive walker table
+  signal r_walker_rw_next             : std_logic_vector(16-1 downto 0) := (others => '0');                                       -- Scratch register to be written to walker_ro_next
+  signal r_walker_rw_offset_hi        : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Scratch register to be written to walker_ro_offset_hi
+  signal r_walker_rw_offset_lo        : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Scratch register to be written to walker_ro_offset_lo
+  signal r_walker_rw_tag              : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Scratch register to be written to walker_ro_tag
+  signal r_walker_rw_flags            : std_logic_vector(4-1 downto 0)  := (others => '0');                                       -- Scratch register to be written to walker_ro_flags
+  signal r_walker_rw_channel          : std_logic_vector(8-1 downto 0)  := (others => '0');                                       -- Scratch register to be written to walker_ro_channel
+  signal r_walker_rw_num              : std_logic_vector(8-1 downto 0)  := (others => '0');                                       -- Scratch register to be written to walker_ro_num
+  signal r_walker_write               : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Store the scratch registers to the inactive walker table record walker_select
   signal r_walker_ro_next_V           : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - walker_ro_next
   signal s_walker_ro_next_V_i         : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - walker_ro_next
-  signal r_walker_ro_next             : std_logic_vector(16-1 downto 0) := (others => '0');                                       -- 
-  signal s_walker_ro_next_i           : std_logic_vector(16-1 downto 0) := (others => '0');                                       -- 
+  signal r_walker_ro_next             : std_logic_vector(16-1 downto 0) := (others => '0');                                       -- The next walker entry to execute after this record (0xffff = end of list)
+  signal s_walker_ro_next_i           : std_logic_vector(16-1 downto 0) := (others => '0');                                       -- The next walker entry to execute after this record (0xffff = end of list)
   signal r_walker_ro_offset_hi_V      : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - walker_ro_offset_hi
   signal s_walker_ro_offset_hi_V_i    : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - walker_ro_offset_hi
-  signal r_walker_ro_offset_hi        : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_walker_ro_offset_hi_i      : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_walker_ro_offset_hi        : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The resulting action's deadline                                                                                                            is the event timestamp plus this offset (high word)
+  signal s_walker_ro_offset_hi_i      : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The resulting action's deadline                                                                                                          is the event timestamp plus this offset (high word)
   signal r_walker_ro_offset_lo_V      : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - walker_ro_offset_lo
   signal s_walker_ro_offset_lo_V_i    : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - walker_ro_offset_lo
-  signal r_walker_ro_offset_lo        : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_walker_ro_offset_lo_i      : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_walker_ro_offset_lo        : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The resulting action's deadline                                                                                                            is the event timestamp plus this offset (low word)
+  signal s_walker_ro_offset_lo_i      : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The resulting action's deadline                                                                                                          is the event timestamp plus this offset (low word)
   signal r_walker_ro_tag_V            : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - walker_ro_tag
   signal s_walker_ro_tag_V_i          : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - walker_ro_tag
-  signal r_walker_ro_tag              : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_walker_ro_tag_i            : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_walker_ro_tag              : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The resulting actions's tag
+  signal s_walker_ro_tag_i            : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The resulting actions's tag
   signal r_walker_ro_flags_V          : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - walker_ro_flags
   signal s_walker_ro_flags_V_i        : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - walker_ro_flags
-  signal r_walker_ro_flags            : std_logic_vector(4-1 downto 0)  := (others => '0');                                       -- 
-  signal s_walker_ro_flags_i          : std_logic_vector(4-1 downto 0)  := (others => '0');                                       -- 
+  signal r_walker_ro_flags            : std_logic_vector(4-1 downto 0)  := (others => '0');                                       -- Execute the resulting action even if it suffers from the errors set in this flag register
+  signal s_walker_ro_flags_i          : std_logic_vector(4-1 downto 0)  := (others => '0');                                       -- Execute the resulting action even if it suffers from the errors set in this flag register
   signal r_walker_ro_channel_V        : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - walker_ro_channel
   signal s_walker_ro_channel_V_i      : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - walker_ro_channel
-  signal r_walker_ro_channel          : std_logic_vector(8-1 downto 0)  := (others => '0');                                       -- 
-  signal s_walker_ro_channel_i        : std_logic_vector(8-1 downto 0)  := (others => '0');                                       -- 
+  signal r_walker_ro_channel          : std_logic_vector(8-1 downto 0)  := (others => '0');                                       -- The channel to which the resulting action will be sent
+  signal s_walker_ro_channel_i        : std_logic_vector(8-1 downto 0)  := (others => '0');                                       -- The channel to which the resulting action will be sent
   signal r_walker_ro_num_V            : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - walker_ro_num
   signal s_walker_ro_num_V_i          : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - walker_ro_num
-  signal r_walker_ro_num              : std_logic_vector(8-1 downto 0)  := (others => '0');                                       -- 
-  signal s_walker_ro_num_i            : std_logic_vector(8-1 downto 0)  := (others => '0');                                       -- 
-  signal r_walker_write               : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- 
-  signal r_walker_rw_next             : std_logic_vector(16-1 downto 0) := (others => '0');                                       -- 
-  signal r_walker_rw_offset_hi        : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal r_walker_rw_offset_lo        : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal r_walker_rw_tag              : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal r_walker_rw_flags            : std_logic_vector(4-1 downto 0)  := (others => '0');                                       -- 
-  signal r_walker_rw_channel          : std_logic_vector(8-1 downto 0)  := (others => '0');                                       -- 
-  signal r_walker_rw_num              : std_logic_vector(8-1 downto 0)  := (others => '0');                                       -- 
+  signal r_walker_ro_num              : std_logic_vector(8-1 downto 0)  := (others => '0');                                       -- The subchannel to which the resulting action will be sent
+  signal s_walker_ro_num_i            : std_logic_vector(8-1 downto 0)  := (others => '0');                                       -- The subchannel to which the resulting action will be sent
   signal r_channel_select_WR          : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Write enable flag - channel_select
   signal r_channel_select_RD          : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Read enable flag - channel_select
-  signal r_channel_select             : std_logic_vector(8-1 downto 0)  := (others => '0');                                       -- 
-  signal r_channel_num_select         : std_logic_vector(8-1 downto 0)  := (others => '0');                                       -- 
-  signal r_channel_code_select        : std_logic_vector(2-1 downto 0)  := (others => '0');                                       -- 
+  signal r_channel_select             : std_logic_vector(8-1 downto 0)  := (others => '0');                                       -- Read/clear this channel
+  signal r_channel_num_select         : std_logic_vector(8-1 downto 0)  := (others => '0');                                       -- Read/clear this subchannel
+  signal r_channel_code_select        : std_logic_vector(2-1 downto 0)  := (others => '0');                                       -- Read/clear this error condition (0=late, 1=early, 2=conflict, 3=delayed)
+  signal r_reserved                   : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- reserved
   signal r_channel_type_V             : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_type
   signal s_channel_type_V_i           : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_type
-  signal r_channel_type               : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_channel_type_i             : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_channel_type               : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Type of the selected channel (0=io, 1=linux, 2=wbm, ...)
+  signal s_channel_type_i             : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Type of the selected channel (0=io, 1=linux, 2=wbm, ...)
   signal r_channel_max_num_V          : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_max_num
   signal s_channel_max_num_V_i        : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_max_num
-  signal r_channel_max_num            : std_logic_vector(8-1 downto 0)  := (others => '0');                                       -- 
-  signal s_channel_max_num_i          : std_logic_vector(8-1 downto 0)  := (others => '0');                                       -- 
+  signal r_channel_max_num            : std_logic_vector(8-1 downto 0)  := (others => '0');                                       -- Total number of subchannels supported by the selected channel
+  signal s_channel_max_num_i          : std_logic_vector(8-1 downto 0)  := (others => '0');                                       -- Total number of subchannels supported by the selected channel
   signal r_channel_capacity_V         : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_capacity
   signal s_channel_capacity_V_i       : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_capacity
-  signal r_channel_capacity           : std_logic_vector(16-1 downto 0) := (others => '0');                                       -- 
-  signal s_channel_capacity_i         : std_logic_vector(16-1 downto 0) := (others => '0');                                       -- 
+  signal r_channel_capacity           : std_logic_vector(16-1 downto 0) := (others => '0');                                       -- Total number of actions which may be enqueued by the selected channel at a time
+  signal s_channel_capacity_i         : std_logic_vector(16-1 downto 0) := (others => '0');                                       -- Total number of actions which may be enqueued by the selected channel at a time
   signal r_channel_msi_set_enable_WR  : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Write enable flag - channel_msi_set_enable
-  signal r_channel_msi_set_enable     : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- 
+  signal r_channel_msi_set_enable     : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Turn on/off MSI messages for the selected channel
   signal r_channel_msi_get_enable_V   : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_msi_get_enable
   signal s_channel_msi_get_enable_V_i : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_msi_get_enable
-  signal r_channel_msi_get_enable     : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- 
-  signal s_channel_msi_get_enable_i   : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- 
+  signal r_channel_msi_get_enable     : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Check if MSI messages are enabled for the selected channel
+  signal s_channel_msi_get_enable_i   : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Check if MSI messages are enabled for the selected channel
   signal r_channel_msi_set_target_WR  : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Write enable flag - channel_msi_set_target
-  signal r_channel_msi_set_target     : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_channel_msi_set_target     : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Set the destination MSI address for the selected channel (only possible while it has MSIs disabled)
   signal r_channel_msi_get_target_V   : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_msi_get_target
   signal s_channel_msi_get_target_V_i : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_msi_get_target
-  signal r_channel_msi_get_target     : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_channel_msi_get_target_i   : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal r_channel_overflow_count_RD  : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Read enable flag - channel_overflow_count
-  signal r_channel_overflow_count_V   : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_overflow_count
-  signal s_channel_overflow_count_V_i : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_overflow_count
-  signal r_channel_overflow_count     : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_channel_overflow_count_i   : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_channel_msi_get_target     : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Get the destination MSI address for the selected channel
+  signal s_channel_msi_get_target_i   : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Get the destination MSI address for the selected channel
   signal r_channel_mostfull_ack_RD    : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Read enable flag - channel_mostfull_ack
   signal r_channel_mostfull_ack_V     : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_mostfull_ack
   signal s_channel_mostfull_ack_V_i   : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_mostfull_ack
-  signal r_channel_mostfull_ack       : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_channel_mostfull_ack_i     : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_channel_mostfull_ack       : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Read the selected channel's fill status (used_now<<16 | used_most), MSI=(6<<16) will be sent if used_most changes
+  signal s_channel_mostfull_ack_i     : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Read the selected channel's fill status (used_now<<16 | used_most), MSI=(6<<16) will be sent if used_most changes
   signal r_channel_mostfull_clear_RD  : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Read enable flag - channel_mostfull_clear
   signal r_channel_mostfull_clear_V   : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_mostfull_clear
   signal s_channel_mostfull_clear_V_i : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_mostfull_clear
-  signal r_channel_mostfull_clear     : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_channel_mostfull_clear_i   : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_channel_mostfull_clear     : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Read and clear the selected channel's fill status (used_now<<16 | used_most), MSI=(6<<16) will be sent if used_most changes
+  signal s_channel_mostfull_clear_i   : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Read and clear the selected channel's fill status (used_now<<16 | used_most), MSI=(6<<16) will be sent if used_most changes
   signal r_channel_valid_count_RD     : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Read enable flag - channel_valid_count
   signal r_channel_valid_count_V      : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_valid_count
   signal s_channel_valid_count_V_i    : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_valid_count
-  signal r_channel_valid_count        : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_channel_valid_count_i      : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_channel_valid_count        : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Read and clear the number of actions output by the selected subchannel, MSI=(4<<16|num) will be sent when the count becomes non-zero
+  signal s_channel_valid_count_i      : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Read and clear the number of actions output by the selected subchannel, MSI=(4<<16|num) will be sent when the count becomes non-zero
+  signal r_channel_overflow_count_RD  : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Read enable flag - channel_overflow_count
+  signal r_channel_overflow_count_V   : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_overflow_count
+  signal s_channel_overflow_count_V_i : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_overflow_count
+  signal r_channel_overflow_count     : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Read and clear the number of actions which could not be enqueued to the selected full channel which were destined for the selected subchannel, MSI=(5<<16|num) will be sent when the count becomes non-zero
+  signal s_channel_overflow_count_i   : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Read and clear the number of actions which could not be enqueued to the selected full channel which were destined for the selected subchannel, MSI=(5<<16|num) will be sent when the count becomes non-zero
   signal r_channel_failed_count_RD    : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Read enable flag - channel_failed_count
   signal r_channel_failed_count_V     : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_failed_count
   signal s_channel_failed_count_V_i   : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_failed_count
-  signal r_channel_failed_count       : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_channel_failed_count_i     : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_channel_failed_count       : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Read and clear the number of actions with the selected error code which were destined for the selected subchannel, MSI=(code<<16|num) will be sent when the count becomes non-zero
+  signal s_channel_failed_count_i     : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- Read and clear the number of actions with the selected error code which were destined for the selected subchannel, MSI=(code<<16|num) will be sent when the count becomes non-zero
   signal r_channel_event_id_hi_RD     : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Read enable flag - channel_event_id_hi
   signal r_channel_event_id_hi_V      : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_event_id_hi
   signal s_channel_event_id_hi_V_i    : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_event_id_hi
-  signal r_channel_event_id_hi        : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_channel_event_id_hi_i      : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_channel_event_id_hi        : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The event ID of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count                is read (high word)
+  signal s_channel_event_id_hi_i      : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The event ID of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count              is read (high word)
   signal r_channel_event_id_lo_RD     : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Read enable flag - channel_event_id_lo
   signal r_channel_event_id_lo_V      : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_event_id_lo
   signal s_channel_event_id_lo_V_i    : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_event_id_lo
-  signal r_channel_event_id_lo        : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_channel_event_id_lo_i      : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_channel_event_id_lo        : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The event ID of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count                is read (low word)
+  signal s_channel_event_id_lo_i      : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The event ID of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count              is read (low word)
   signal r_channel_param_hi_RD        : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Read enable flag - channel_param_hi
   signal r_channel_param_hi_V         : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_param_hi
   signal s_channel_param_hi_V_i       : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_param_hi
-  signal r_channel_param_hi           : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_channel_param_hi_i         : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_channel_param_hi           : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The parameter of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count                  is read (high word)
+  signal s_channel_param_hi_i         : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The parameter of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count                is read (high word)
   signal r_channel_param_lo_RD        : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Read enable flag - channel_param_lo
   signal r_channel_param_lo_V         : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_param_lo
   signal s_channel_param_lo_V_i       : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_param_lo
-  signal r_channel_param_lo           : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_channel_param_lo_i         : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_channel_param_lo           : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The parameter of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count                  is read (low word)
+  signal s_channel_param_lo_i         : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The parameter of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count                is read (low word)
   signal r_channel_tag_RD             : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Read enable flag - channel_tag
   signal r_channel_tag_V              : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_tag
   signal s_channel_tag_V_i            : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_tag
-  signal r_channel_tag                : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_channel_tag_i              : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_channel_tag                : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The tag of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count                             is read
+  signal s_channel_tag_i              : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The tag of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count                           is read
   signal r_channel_tef_RD             : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Read enable flag - channel_tef
   signal r_channel_tef_V              : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_tef
   signal s_channel_tef_V_i            : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_tef
-  signal r_channel_tef                : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_channel_tef_i              : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_channel_tef                : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The TEF of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count                             is read
+  signal s_channel_tef_i              : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The TEF of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count                           is read
   signal r_channel_deadline_hi_RD     : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Read enable flag - channel_deadline_hi
   signal r_channel_deadline_hi_V      : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_deadline_hi
   signal s_channel_deadline_hi_V_i    : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_deadline_hi
-  signal r_channel_deadline_hi        : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_channel_deadline_hi_i      : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_channel_deadline_hi        : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The deadline of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count                is read (high word)
+  signal s_channel_deadline_hi_i      : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The deadline of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count              is read (high word)
   signal r_channel_deadline_lo_RD     : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Read enable flag - channel_deadline_lo
   signal r_channel_deadline_lo_V      : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_deadline_lo
   signal s_channel_deadline_lo_V_i    : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_deadline_lo
-  signal r_channel_deadline_lo        : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_channel_deadline_lo_i      : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_channel_deadline_lo        : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The deadline of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count                is read (low word)
+  signal s_channel_deadline_lo_i      : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The deadline of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count              is read (low word)
   signal r_channel_executed_hi_RD     : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Read enable flag - channel_executed_hi
   signal r_channel_executed_hi_V      : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_executed_hi
   signal s_channel_executed_hi_V_i    : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_executed_hi
-  signal r_channel_executed_hi        : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_channel_executed_hi_i      : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_channel_executed_hi        : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The actual execution time of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count   is read (high word)
+  signal s_channel_executed_hi_i      : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The actual execution time of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count is read (high word)
   signal r_channel_executed_lo_RD     : std_logic_vector(1-1 downto 0)  := std_logic_vector(to_unsigned(0, 1));                   -- Read enable flag - channel_executed_lo
   signal r_channel_executed_lo_V      : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_executed_lo
   signal s_channel_executed_lo_V_i    : std_logic_vector(1-1 downto 0)  := (others => '0');                                       -- Valid flag - channel_executed_lo
-  signal r_channel_executed_lo        : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
-  signal s_channel_executed_lo_i      : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- 
+  signal r_channel_executed_lo        : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The actual execution time of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count   is read (low word)
+  signal s_channel_executed_lo_i      : std_logic_vector(32-1 downto 0) := (others => '0');                                       -- The actual execution time of the first action with the selected error code on the selected subchannel, cleared when channel_failed_count is read (low word)
 
 
 begin
@@ -403,10 +404,10 @@ begin
   s_channel_capacity_V_i(0)       when c_channel_capacity_GET,        -- 
   s_channel_msi_get_enable_V_i(0) when c_channel_msi_get_enable_GET,  -- 
   s_channel_msi_get_target_V_i(0) when c_channel_msi_get_target_GET,  -- 
-  s_channel_overflow_count_V_i(0) when c_channel_overflow_count_GET,  -- 
   s_channel_mostfull_ack_V_i(0)   when c_channel_mostfull_ack_GET,    -- 
   s_channel_mostfull_clear_V_i(0) when c_channel_mostfull_clear_GET,  -- 
   s_channel_valid_count_V_i(0)    when c_channel_valid_count_GET,     -- 
+  s_channel_overflow_count_V_i(0) when c_channel_overflow_count_GET,  -- 
   s_channel_failed_count_V_i(0)   when c_channel_failed_count_GET,    -- 
   s_channel_event_id_hi_V_i(0)    when c_channel_event_id_hi_GET,     -- 
   s_channel_event_id_lo_V_i(0)    when c_channel_event_id_lo_GET,     -- 
@@ -438,19 +439,27 @@ begin
   search_select_WR_o            <= r_search_select_WR;
   search_select_RD_o            <= r_search_select_RD;
   search_select_o               <= r_search_select;
+  search_rw_first_o             <= r_search_rw_first;
+  search_rw_event_hi_o          <= r_search_rw_event_hi;
+  search_rw_event_lo_o          <= r_search_rw_event_lo;
+  search_write_o                <= r_search_write;
   s_search_ro_first_V_i         <= search_ro_first_V_i;
   s_search_ro_first_i           <= search_ro_first_i;
   s_search_ro_event_hi_V_i      <= search_ro_event_hi_V_i;
   s_search_ro_event_hi_i        <= search_ro_event_hi_i;
   s_search_ro_event_lo_V_i      <= search_ro_event_lo_V_i;
   s_search_ro_event_lo_i        <= search_ro_event_lo_i;
-  search_write_o                <= r_search_write;
-  search_rw_first_o             <= r_search_rw_first;
-  search_rw_event_hi_o          <= r_search_rw_event_hi;
-  search_rw_event_lo_o          <= r_search_rw_event_lo;
   walker_select_WR_o            <= r_walker_select_WR;
   walker_select_RD_o            <= r_walker_select_RD;
   walker_select_o               <= r_walker_select;
+  walker_rw_next_o              <= r_walker_rw_next;
+  walker_rw_offset_hi_o         <= r_walker_rw_offset_hi;
+  walker_rw_offset_lo_o         <= r_walker_rw_offset_lo;
+  walker_rw_tag_o               <= r_walker_rw_tag;
+  walker_rw_flags_o             <= r_walker_rw_flags;
+  walker_rw_channel_o           <= r_walker_rw_channel;
+  walker_rw_num_o               <= r_walker_rw_num;
+  walker_write_o                <= r_walker_write;
   s_walker_ro_next_V_i          <= walker_ro_next_V_i;
   s_walker_ro_next_i            <= walker_ro_next_i;
   s_walker_ro_offset_hi_V_i     <= walker_ro_offset_hi_V_i;
@@ -465,14 +474,6 @@ begin
   s_walker_ro_channel_i         <= walker_ro_channel_i;
   s_walker_ro_num_V_i           <= walker_ro_num_V_i;
   s_walker_ro_num_i             <= walker_ro_num_i;
-  walker_write_o                <= r_walker_write;
-  walker_rw_next_o              <= r_walker_rw_next;
-  walker_rw_offset_hi_o         <= r_walker_rw_offset_hi;
-  walker_rw_offset_lo_o         <= r_walker_rw_offset_lo;
-  walker_rw_tag_o               <= r_walker_rw_tag;
-  walker_rw_flags_o             <= r_walker_rw_flags;
-  walker_rw_channel_o           <= r_walker_rw_channel;
-  walker_rw_num_o               <= r_walker_rw_num;
   channel_select_WR_o           <= r_channel_select_WR;
   channel_select_RD_o           <= r_channel_select_RD;
   channel_select_o              <= r_channel_select;
@@ -492,9 +493,6 @@ begin
   channel_msi_set_target_o      <= r_channel_msi_set_target;
   s_channel_msi_get_target_V_i  <= channel_msi_get_target_V_i;
   s_channel_msi_get_target_i    <= channel_msi_get_target_i;
-  channel_overflow_count_RD_o   <= r_channel_overflow_count_RD;
-  s_channel_overflow_count_V_i  <= channel_overflow_count_V_i;
-  s_channel_overflow_count_i    <= channel_overflow_count_i;
   channel_mostfull_ack_RD_o     <= r_channel_mostfull_ack_RD;
   s_channel_mostfull_ack_V_i    <= channel_mostfull_ack_V_i;
   s_channel_mostfull_ack_i      <= channel_mostfull_ack_i;
@@ -504,6 +502,9 @@ begin
   channel_valid_count_RD_o      <= r_channel_valid_count_RD;
   s_channel_valid_count_V_i     <= channel_valid_count_V_i;
   s_channel_valid_count_i       <= channel_valid_count_i;
+  channel_overflow_count_RD_o   <= r_channel_overflow_count_RD;
+  s_channel_overflow_count_V_i  <= channel_overflow_count_V_i;
+  s_channel_overflow_count_i    <= channel_overflow_count_i;
   channel_failed_count_RD_o     <= r_channel_failed_count_RD;
   s_channel_failed_count_V_i    <= channel_failed_count_V_i;
   s_channel_failed_count_i      <= channel_failed_count_i;
@@ -561,10 +562,10 @@ begin
         r_channel_select_RD         <= std_logic_vector(to_unsigned(0, 1));
         r_channel_msi_set_enable_WR <= std_logic_vector(to_unsigned(0, 1));
         r_channel_msi_set_target_WR <= std_logic_vector(to_unsigned(0, 1));
-        r_channel_overflow_count_RD <= std_logic_vector(to_unsigned(0, 1));
         r_channel_mostfull_ack_RD   <= std_logic_vector(to_unsigned(0, 1));
         r_channel_mostfull_clear_RD <= std_logic_vector(to_unsigned(0, 1));
         r_channel_valid_count_RD    <= std_logic_vector(to_unsigned(0, 1));
+        r_channel_overflow_count_RD <= std_logic_vector(to_unsigned(0, 1));
         r_channel_failed_count_RD   <= std_logic_vector(to_unsigned(0, 1));
         r_channel_event_id_hi_RD    <= std_logic_vector(to_unsigned(0, 1));
         r_channel_event_id_lo_RD    <= std_logic_vector(to_unsigned(0, 1));
@@ -652,13 +653,12 @@ begin
               when c_flip_active_OWR                  => r_flip_active            <= f_wb_wr(r_flip_active, s_d, s_s, "owr");             -- 
               when c_search_select_RW                 => r_search_select          <= f_wb_wr(r_search_select, s_d, s_s, "owr");           -- 
               r_search_select_WR                                                  <= (others           => '1');
-              when c_search_write_OWR                 => r_search_write           <= f_wb_wr(r_search_write, s_d, s_s, "owr");            -- 
               when c_search_rw_first_RW               => r_search_rw_first        <= f_wb_wr(r_search_rw_first, s_d, s_s, "owr");         -- 
               when c_search_rw_event_hi_RW            => r_search_rw_event_hi     <= f_wb_wr(r_search_rw_event_hi, s_d, s_s, "owr");      -- 
               when c_search_rw_event_lo_RW            => r_search_rw_event_lo     <= f_wb_wr(r_search_rw_event_lo, s_d, s_s, "owr");      -- 
+              when c_search_write_OWR                 => r_search_write           <= f_wb_wr(r_search_write, s_d, s_s, "owr");            -- 
               when c_walker_select_RW                 => r_walker_select          <= f_wb_wr(r_walker_select, s_d, s_s, "owr");           -- 
               r_walker_select_WR                                                  <= (others           => '1');
-              when c_walker_write_OWR                 => r_walker_write           <= f_wb_wr(r_walker_write, s_d, s_s, "owr");            -- 
               when c_walker_rw_next_RW                => r_walker_rw_next         <= f_wb_wr(r_walker_rw_next, s_d, s_s, "owr");          -- 
               when c_walker_rw_offset_hi_RW           => r_walker_rw_offset_hi    <= f_wb_wr(r_walker_rw_offset_hi, s_d, s_s, "owr");     -- 
               when c_walker_rw_offset_lo_RW           => r_walker_rw_offset_lo    <= f_wb_wr(r_walker_rw_offset_lo, s_d, s_s, "owr");     -- 
@@ -666,6 +666,7 @@ begin
               when c_walker_rw_flags_RW               => r_walker_rw_flags        <= f_wb_wr(r_walker_rw_flags, s_d, s_s, "owr");         -- 
               when c_walker_rw_channel_RW             => r_walker_rw_channel      <= f_wb_wr(r_walker_rw_channel, s_d, s_s, "owr");       -- 
               when c_walker_rw_num_RW                 => r_walker_rw_num          <= f_wb_wr(r_walker_rw_num, s_d, s_s, "owr");           -- 
+              when c_walker_write_OWR                 => r_walker_write           <= f_wb_wr(r_walker_write, s_d, s_s, "owr");            -- 
               when c_channel_select_RW                => r_channel_select         <= f_wb_wr(r_channel_select, s_d, s_s, "owr");          -- 
               r_channel_select_WR                                                 <= (others          => '1');
               when c_channel_num_select_RW            => r_channel_num_select     <= f_wb_wr(r_channel_num_select, s_d, s_s, "owr");      -- 
@@ -688,21 +689,14 @@ begin
               when c_time_lo_GET                      => null;
               when c_search_select_RW                 => null;
               r_search_select_RD <= (others           => '1');
-              when c_search_ro_first_GET              => null;
-              when c_search_ro_event_hi_GET           => null;
-              when c_search_ro_event_lo_GET           => null;
               when c_search_rw_first_RW               => null;
               when c_search_rw_event_hi_RW            => null;
               when c_search_rw_event_lo_RW            => null;
+              when c_search_ro_first_GET              => null;
+              when c_search_ro_event_hi_GET           => null;
+              when c_search_ro_event_lo_GET           => null;
               when c_walker_select_RW                 => null;
               r_walker_select_RD <= (others           => '1');
-              when c_walker_ro_next_GET               => null;
-              when c_walker_ro_offset_hi_GET          => null;
-              when c_walker_ro_offset_lo_GET          => null;
-              when c_walker_ro_tag_GET                => null;
-              when c_walker_ro_flags_GET              => null;
-              when c_walker_ro_channel_GET            => null;
-              when c_walker_ro_num_GET                => null;
               when c_walker_rw_next_RW                => null;
               when c_walker_rw_offset_hi_RW           => null;
               when c_walker_rw_offset_lo_RW           => null;
@@ -710,6 +704,13 @@ begin
               when c_walker_rw_flags_RW               => null;
               when c_walker_rw_channel_RW             => null;
               when c_walker_rw_num_RW                 => null;
+              when c_walker_ro_next_GET               => null;
+              when c_walker_ro_offset_hi_GET          => null;
+              when c_walker_ro_offset_lo_GET          => null;
+              when c_walker_ro_tag_GET                => null;
+              when c_walker_ro_flags_GET              => null;
+              when c_walker_ro_channel_GET            => null;
+              when c_walker_ro_num_GET                => null;
               when c_channel_select_RW                => null;
               r_channel_select_RD <= (others          => '1');
               when c_channel_num_select_RW            => null;
@@ -719,14 +720,14 @@ begin
               when c_channel_capacity_GET             => null;
               when c_channel_msi_get_enable_GET       => null;
               when c_channel_msi_get_target_GET       => null;
-              when c_channel_overflow_count_GET       => null;
-              r_channel_overflow_count_RD <= (others  => '1');
               when c_channel_mostfull_ack_GET         => null;
               r_channel_mostfull_ack_RD <= (others    => '1');
               when c_channel_mostfull_clear_GET       => null;
               r_channel_mostfull_clear_RD <= (others  => '1');
               when c_channel_valid_count_GET          => null;
               r_channel_valid_count_RD <= (others     => '1');
+              when c_channel_overflow_count_GET       => null;
+              r_channel_overflow_count_RD <= (others  => '1');
               when c_channel_failed_count_GET         => null;
               r_channel_failed_count_RD <= (others    => '1');
               when c_channel_event_id_hi_GET          => null;
@@ -763,20 +764,13 @@ begin
           when c_time_hi_GET                => slave_o.dat  <= std_logic_vector(resize(unsigned(r_time_hi), slave_o.dat'length));                 -- 
           when c_time_lo_GET                => slave_o.dat  <= std_logic_vector(resize(unsigned(r_time_lo), slave_o.dat'length));                 -- 
           when c_search_select_RW           => slave_o.dat  <= std_logic_vector(resize(unsigned(r_search_select), slave_o.dat'length));           -- 
-          when c_search_ro_first_GET        => slave_o.dat  <= std_logic_vector(resize(unsigned(r_search_ro_first), slave_o.dat'length));         -- 
-          when c_search_ro_event_hi_GET     => slave_o.dat  <= std_logic_vector(resize(unsigned(r_search_ro_event_hi), slave_o.dat'length));      -- 
-          when c_search_ro_event_lo_GET     => slave_o.dat  <= std_logic_vector(resize(unsigned(r_search_ro_event_lo), slave_o.dat'length));      -- 
           when c_search_rw_first_RW         => slave_o.dat  <= std_logic_vector(resize(unsigned(r_search_rw_first), slave_o.dat'length));         -- 
           when c_search_rw_event_hi_RW      => slave_o.dat  <= std_logic_vector(resize(unsigned(r_search_rw_event_hi), slave_o.dat'length));      -- 
           when c_search_rw_event_lo_RW      => slave_o.dat  <= std_logic_vector(resize(unsigned(r_search_rw_event_lo), slave_o.dat'length));      -- 
+          when c_search_ro_first_GET        => slave_o.dat  <= std_logic_vector(resize(unsigned(r_search_ro_first), slave_o.dat'length));         -- 
+          when c_search_ro_event_hi_GET     => slave_o.dat  <= std_logic_vector(resize(unsigned(r_search_ro_event_hi), slave_o.dat'length));      -- 
+          when c_search_ro_event_lo_GET     => slave_o.dat  <= std_logic_vector(resize(unsigned(r_search_ro_event_lo), slave_o.dat'length));      -- 
           when c_walker_select_RW           => slave_o.dat  <= std_logic_vector(resize(unsigned(r_walker_select), slave_o.dat'length));           -- 
-          when c_walker_ro_next_GET         => slave_o.dat  <= std_logic_vector(resize(unsigned(r_walker_ro_next), slave_o.dat'length));          -- 
-          when c_walker_ro_offset_hi_GET    => slave_o.dat  <= std_logic_vector(resize(unsigned(r_walker_ro_offset_hi), slave_o.dat'length));     -- 
-          when c_walker_ro_offset_lo_GET    => slave_o.dat  <= std_logic_vector(resize(unsigned(r_walker_ro_offset_lo), slave_o.dat'length));     -- 
-          when c_walker_ro_tag_GET          => slave_o.dat  <= std_logic_vector(resize(unsigned(r_walker_ro_tag), slave_o.dat'length));           -- 
-          when c_walker_ro_flags_GET        => slave_o.dat  <= std_logic_vector(resize(unsigned(r_walker_ro_flags), slave_o.dat'length));         -- 
-          when c_walker_ro_channel_GET      => slave_o.dat  <= std_logic_vector(resize(unsigned(r_walker_ro_channel), slave_o.dat'length));       -- 
-          when c_walker_ro_num_GET          => slave_o.dat  <= std_logic_vector(resize(unsigned(r_walker_ro_num), slave_o.dat'length));           -- 
           when c_walker_rw_next_RW          => slave_o.dat  <= std_logic_vector(resize(unsigned(r_walker_rw_next), slave_o.dat'length));          -- 
           when c_walker_rw_offset_hi_RW     => slave_o.dat  <= std_logic_vector(resize(unsigned(r_walker_rw_offset_hi), slave_o.dat'length));     -- 
           when c_walker_rw_offset_lo_RW     => slave_o.dat  <= std_logic_vector(resize(unsigned(r_walker_rw_offset_lo), slave_o.dat'length));     -- 
@@ -784,6 +778,13 @@ begin
           when c_walker_rw_flags_RW         => slave_o.dat  <= std_logic_vector(resize(unsigned(r_walker_rw_flags), slave_o.dat'length));         -- 
           when c_walker_rw_channel_RW       => slave_o.dat  <= std_logic_vector(resize(unsigned(r_walker_rw_channel), slave_o.dat'length));       -- 
           when c_walker_rw_num_RW           => slave_o.dat  <= std_logic_vector(resize(unsigned(r_walker_rw_num), slave_o.dat'length));           -- 
+          when c_walker_ro_next_GET         => slave_o.dat  <= std_logic_vector(resize(unsigned(r_walker_ro_next), slave_o.dat'length));          -- 
+          when c_walker_ro_offset_hi_GET    => slave_o.dat  <= std_logic_vector(resize(unsigned(r_walker_ro_offset_hi), slave_o.dat'length));     -- 
+          when c_walker_ro_offset_lo_GET    => slave_o.dat  <= std_logic_vector(resize(unsigned(r_walker_ro_offset_lo), slave_o.dat'length));     -- 
+          when c_walker_ro_tag_GET          => slave_o.dat  <= std_logic_vector(resize(unsigned(r_walker_ro_tag), slave_o.dat'length));           -- 
+          when c_walker_ro_flags_GET        => slave_o.dat  <= std_logic_vector(resize(unsigned(r_walker_ro_flags), slave_o.dat'length));         -- 
+          when c_walker_ro_channel_GET      => slave_o.dat  <= std_logic_vector(resize(unsigned(r_walker_ro_channel), slave_o.dat'length));       -- 
+          when c_walker_ro_num_GET          => slave_o.dat  <= std_logic_vector(resize(unsigned(r_walker_ro_num), slave_o.dat'length));           -- 
           when c_channel_select_RW          => slave_o.dat  <= std_logic_vector(resize(unsigned(r_channel_select), slave_o.dat'length));          -- 
           when c_channel_num_select_RW      => slave_o.dat  <= std_logic_vector(resize(unsigned(r_channel_num_select), slave_o.dat'length));      -- 
           when c_channel_code_select_RW     => slave_o.dat  <= std_logic_vector(resize(unsigned(r_channel_code_select), slave_o.dat'length));     -- 
@@ -792,10 +793,10 @@ begin
           when c_channel_capacity_GET       => slave_o.dat  <= std_logic_vector(resize(unsigned(r_channel_capacity), slave_o.dat'length));        -- 
           when c_channel_msi_get_enable_GET => slave_o.dat  <= std_logic_vector(resize(unsigned(r_channel_msi_get_enable), slave_o.dat'length));  -- 
           when c_channel_msi_get_target_GET => slave_o.dat  <= std_logic_vector(resize(unsigned(r_channel_msi_get_target), slave_o.dat'length));  -- 
-          when c_channel_overflow_count_GET => slave_o.dat  <= std_logic_vector(resize(unsigned(r_channel_overflow_count), slave_o.dat'length));  -- 
           when c_channel_mostfull_ack_GET   => slave_o.dat  <= std_logic_vector(resize(unsigned(r_channel_mostfull_ack), slave_o.dat'length));    -- 
           when c_channel_mostfull_clear_GET => slave_o.dat  <= std_logic_vector(resize(unsigned(r_channel_mostfull_clear), slave_o.dat'length));  -- 
           when c_channel_valid_count_GET    => slave_o.dat  <= std_logic_vector(resize(unsigned(r_channel_valid_count), slave_o.dat'length));     -- 
+          when c_channel_overflow_count_GET => slave_o.dat  <= std_logic_vector(resize(unsigned(r_channel_overflow_count), slave_o.dat'length));  -- 
           when c_channel_failed_count_GET   => slave_o.dat  <= std_logic_vector(resize(unsigned(r_channel_failed_count), slave_o.dat'length));    -- 
           when c_channel_event_id_hi_GET    => slave_o.dat  <= std_logic_vector(resize(unsigned(r_channel_event_id_hi), slave_o.dat'length));     -- 
           when c_channel_event_id_lo_GET    => slave_o.dat  <= std_logic_vector(resize(unsigned(r_channel_event_id_lo), slave_o.dat'length));     -- 
