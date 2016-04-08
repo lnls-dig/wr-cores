@@ -377,6 +377,9 @@ begin
         s_list_dat(b) <= f_eca_or(s_slot_mux(b));
       end generate;
       
+      -- The above muxes puts the most recently discovered action at the head of the list
+      -- Thus, intra-bank tag conflict resolution prefers the latest action scanned
+      
       -- Format: [code low-index]*c_slots
       calendar : eca_rmw
         generic map(
@@ -489,6 +492,10 @@ begin
             end generate;
           end generate;
           
+          -- The above muxes apply the action's clear/set to the output.
+          -- In the case that another action already modified the state, it is overridden
+          -- Thus, intra-bank io conflict resolution prefers the latest action scanned
+          
           s_cal_a_gpio_o <= s_cal_a_data_o(c_data_wide-1 downto c_list_wide);
           s_cal_b_gpio_o <= s_cal_b_data_o(c_data_wide-1 downto c_list_wide);
           s_cal_b_data_i(c_data_wide-1 downto c_list_wide) <= s_cal_b_gpio_i;
@@ -524,6 +531,9 @@ begin
       valid_o => s_fifo_valid,
       fresh_o => s_fifo_fresh,
       data_o  => s_fifo_data_o);
+  
+  -- The FIFO compacts inputs and lowest indexes go first.
+  -- Thus, inter-bank tag conflict resolution prefers the lowest calendar's action.
   
   -- Fetch the record from the data table, snooping whenever possible
   s_data_index <= 
@@ -725,7 +735,7 @@ begin
             for i in 0 to g_num_channels-1 loop
               val := r_gpio(i);
               for s in 0 to c_slots-1 loop
-                for c in 0 to c_calendars-1 loop
+                for c in c_calendars-1 downto 0 loop
                   val := f_eca_mux(val, not r_gpio_matrix(c)(f_idx_si(s,i)+1), r_gpio_matrix(c)(f_idx_si(s,i)+0));
                 end loop;
                 io_o(i,s) <= val;
@@ -737,6 +747,9 @@ begin
       end process;
     end block;
   end generate;
+  
+  -- The muxes iterate over calendars from largest to smallest, smallest overwrites largest
+  -- Thus, inter-bank io conflict resolution prefers the lowest calendar's action.
   
   io_no : if not g_support_io generate
     io_o <= (others => (others => '0'));
