@@ -9,9 +9,11 @@ for i in 				\
 	eca_internals_pkg.vhd		\
 	eca_auto_pkg.vhd		\
 	eca_queue_auto_pkg.vhd		\
+	eca_tlu_auto_pkg.vhd		\
 	eca_ac_wbm_auto_pkg.vhd		\
 	eca_auto.vhd			\
 	eca_queue_auto.vhd		\
+	eca_tlu_auto.vhd		\
 	eca_ac_wbm_auto.vhd		\
 	eca_pkg.vhd			\
 	eca_compact.vhd			\
@@ -49,6 +51,8 @@ for i in 				\
 	wr_eca.vhd			\
 	eca_ac_wbm.vhd			\
 	eca_scubus_channel.vhd		\
+	eca_tlu_fsm.vhd			\
+	eca_tlu.vhd			\
 	eca_tb.vhd;			\
 do echo $i; ghdl -a --std=93 --ieee=standard --syn-binding  $i
 done

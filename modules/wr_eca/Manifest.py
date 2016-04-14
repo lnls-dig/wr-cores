@@ -2,10 +2,12 @@ files = [
   "eca_internals_pkg.vhd",
   "eca_auto_pkg.vhd",
   "eca_queue_auto_pkg.vhd",
+  "eca_tlu_auto_pkg.vhd",
   "eca_ac_wbm_auto_pkg.vhd",
   "eca_pkg.vhd",
   "eca_auto.vhd",
   "eca_queue_auto.vhd",
+  "eca_tlu_auto.vhd",
   "eca_ac_wbm_auto.vhd",
   "eca_sdp.vhd",
   "eca_tdp.vhd",
@@ -27,4 +29,6 @@ files = [
   "wr_eca.vhd",
   "eca_ac_wbm.vhd",
   "eca_scubus_channel.vhd",
-  "eca_queue.vhd"]
+  "eca_queue.vhd",
+  "eca_tlu_fsm.vhd",
+  "eca_tlu.vhd"]

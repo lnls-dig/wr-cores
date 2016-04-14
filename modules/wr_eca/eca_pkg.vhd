@@ -29,6 +29,7 @@ library work;
 use work.wishbone_pkg.all;
 use work.eca_auto_pkg.all;
 use work.eca_queue_auto_pkg.all;
+use work.eca_tlu_auto_pkg.all;
 use work.eca_ac_wbm_auto_pkg.all;
 use work.eca_internals_pkg.all;
 
@@ -36,6 +37,7 @@ package eca_pkg is
 
  constant c_eca_slave_sdb        : t_sdb_device := work.eca_auto_pkg.c_eca_slave_sdb;
  constant c_eca_queue_slave_sdb  : t_sdb_device := work.eca_queue_auto_pkg.c_eca_queue_slave_sdb;
+ constant c_eca_tlu_slave_sdb    : t_sdb_device := work.eca_tlu_auto_pkg.c_eca_tlu_slave_sdb;
  constant c_eca_ac_wbm_slave_sdb : t_sdb_device := work.eca_ac_wbm_auto_pkg.c_eca_ac_wbm_slave_sdb;
 
  constant c_eca_event_sdb : t_sdb_device := (
@@ -59,6 +61,7 @@ package eca_pkg is
   subtype t_stream_array  is work.eca_internals_pkg.t_stream_array;
   subtype t_channel       is work.eca_internals_pkg.t_channel;
   subtype t_channel_array is work.eca_internals_pkg.t_channel_array;
+  subtype t_time          is work.eca_internals_pkg.t_time;
   type    t_gpio_array    is array(natural range <>) of std_logic_vector(7 downto 0);
   
   constant c_linux      : natural := 1;
@@ -112,6 +115,25 @@ package eca_pkg is
       e_rst_n_i  : in  std_logic;
       e_stream_o : out t_stream;
       e_stall_i  : in  std_logic);
+  end component;
+  
+  -- Convert input edges into inbound ECA event stream
+  component eca_tlu is
+    generic(
+      g_inputs  : natural;
+      g_history : natural := 10000; -- 10us
+      g_stable  : natural := 10);
+    port(
+      c_clk_i    : in  std_logic;
+      c_rst_n_i  : in  std_logic;
+      c_slave_i  : in  t_wishbone_slave_in;
+      c_slave_o  : out t_wishbone_slave_out;
+      a_clk_i    : in  std_logic;
+      a_rst_n_i  : in  std_logic;
+      a_time_i   : in  t_time;
+      a_gpio_i   : in  t_gpio_array(g_inputs-1 downto 0);
+      a_stream_o : out t_stream;
+      a_stall_i  : in  std_logic);
   end component;
   
   -- FIFO-style interface to access the output of an ECA channel

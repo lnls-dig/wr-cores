@@ -101,6 +101,7 @@ package eca_internals_pkg is
   function f_eca_add(x : std_logic_vector; y : integer) return std_logic_vector;
   function f_eca_add(x : std_logic_vector; y : std_logic) return std_logic_vector;
   function f_eca_add(x, y : std_logic_vector) return std_logic_vector;
+  function f_eca_sub(x, y : std_logic_vector) return std_logic_vector;
   function f_eca_delta(x, previous, current : std_logic_vector) return std_logic_vector;
   function f_eca_1hot_decode(x : std_logic_vector) return std_logic_vector;
   
@@ -648,6 +649,24 @@ package eca_internals_pkg is
       i_master_o  : out t_wishbone_master_out);
   end component;
 
+  component eca_tlu_fsm is
+    generic(
+      g_history: natural := 10000; -- how many ticks in the past can events come?
+      g_stable : natural := 10;
+      g_serdes : natural := 8);
+    port(
+      clk_i    : in  std_logic;
+      rst_n_i  : in  std_logic;
+      enable_i : in  std_logic;
+      stable_i : in  std_logic_vector(g_stable-1 downto 0);
+      time_i   : in  t_time;
+      gpio_i   : in  std_logic_vector(g_serdes-1 downto 0);
+      ack_i    : in  std_logic;
+      stb_o    : out std_logic;
+      edge_o   : out std_logic;
+      time_o   : out t_time);
+  end component;
+
 end eca_internals_pkg;
 
 package body eca_internals_pkg is
@@ -784,6 +803,11 @@ package body eca_internals_pkg is
   function f_eca_add(x, y : std_logic_vector) return std_logic_vector is
   begin
     return std_logic_vector(unsigned(x) + unsigned(y));
+  end function;
+  
+  function f_eca_sub(x, y : std_logic_vector) return std_logic_vector is
+  begin
+    return std_logic_vector(unsigned(x) - unsigned(y));
   end function;
   
   function f_eca_delta(x, previous, current : std_logic_vector) return std_logic_vector is
