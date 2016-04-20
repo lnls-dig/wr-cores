@@ -64,9 +64,10 @@ package eca_pkg is
   subtype t_time          is work.eca_internals_pkg.t_time;
   type    t_gpio_array    is array(natural range <>) of std_logic_vector(7 downto 0);
   
-  constant c_linux      : natural := 1;
-  constant c_wb_master  : natural := 2;
-  constant c_scubus_tag : natural := 128;
+  constant c_linux        : natural := 1;
+  constant c_wb_master    : natural := 2;
+  constant c_embedded_cpu : natural := 3;
+  constant c_scubus_tag   : natural := 128;
   
   -- White-Rabbit variant of Event-Condition-Action Unit
   component wr_eca is
