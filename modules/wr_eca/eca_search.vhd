@@ -30,8 +30,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-use work.wishbone_pkg.all;
-use work.eca_pkg.all;
+use work.eca_internals_pkg.all;
 
 entity eca_search is
   generic(
@@ -183,6 +182,7 @@ begin
     generic map(
       g_addr_bits  => c_table_index_bits,
       g_data_bits  => c_data_bits,
+      g_bypass     => false,
       g_dual_clock => true)
     port map(
       r_clk_i  => clk_i,
@@ -208,6 +208,7 @@ begin
     generic map(
       g_addr_bits  => c_table_index_bits,
       g_data_bits  => c_data_bits,
+      g_bypass     => false,
       g_dual_clock => false)
     port map(
       r_clk_i  => t_clk_i,

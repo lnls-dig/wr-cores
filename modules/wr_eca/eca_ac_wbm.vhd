@@ -276,7 +276,7 @@ begin
    begin
       
          if((s_rst_n and rst_ref_n_i) = '0') then
-            r_channel <= ( '0', '0', '0',
+            r_channel <= ( '0', '0', '0', '0', '0',
                            (others=>'0'),
                            (others=>'0'),
                            (others=>'0'),
@@ -425,8 +425,8 @@ begin
          when c_SHOW_PAR_LO   => v_out                := r_channel.param(31 downto 0);
          when c_SHOW_TAG      => v_out                := r_channel.tag;
          when c_SHOW_TEF      => v_out                := r_channel.tef;
-         when c_SHOW_T_HI     => v_out                := r_channel.time(63 downto 32);
-         when c_SHOW_T_LO     => v_out                := r_channel.time(31 downto 0);
+         when c_SHOW_T_HI     => v_out                := r_channel.deadline(63 downto 32);
+         when c_SHOW_T_LO     => v_out                := r_channel.deadline(31 downto 0);
          when others          => v_out                := s_q.wb.data;              
       end case;
       

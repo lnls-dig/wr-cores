@@ -28,8 +28,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-use work.wishbone_pkg.all;
-use work.eca_pkg.all;
+use work.eca_internals_pkg.all;
 
 entity eca_wr_time is
   port(
@@ -139,6 +138,6 @@ begin
     end if;
   end process;
 
-  time_o <= r0_time_out;
+  time_o <= r0_time_out(60 downto 0) & "000";
   
 end rtl;

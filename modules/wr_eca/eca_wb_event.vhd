@@ -28,23 +28,18 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 use work.wishbone_pkg.all;
-use work.eca_pkg.all;
+use work.eca_internals_pkg.all;
 
 entity eca_wb_event is
- port(
-   w_clk_i   : in  std_logic;
-   w_rst_n_i : in  std_logic;
-   w_slave_i : in  t_wishbone_slave_in;
-   w_slave_o : out t_wishbone_slave_out;
-   e_clk_i   : in  std_logic;
-   e_rst_n_i : in  std_logic;
-   e_stb_o   : out std_logic;
-   e_stall_i : in  std_logic;
-   e_event_o : out t_event;
-   e_param_o : out t_param;
-   e_tef_o   : out t_tef;
-   e_time_o  : out t_time;
-   e_index_i : in  std_logic_vector(7 downto 0));
+  port(
+    w_clk_i    : in  std_logic;
+    w_rst_n_i  : in  std_logic;
+    w_slave_i  : in  t_wishbone_slave_in;
+    w_slave_o  : out t_wishbone_slave_out;
+    e_clk_i    : in  std_logic;
+    e_rst_n_i  : in  std_logic;
+    e_stream_o : out t_stream;
+    e_stall_i  : in  std_logic);
 end eca_wb_event;
 
 architecture rtl of eca_wb_event is
@@ -92,17 +87,19 @@ architecture rtl of eca_wb_event is
   signal re_state : t_state   := S0;
   signal re_stb   : std_logic := '0';
   signal re_addr  : t_addr1   := (others => '0');
+  signal re_event : t_event   := (others => '0');
+  signal re_param : t_param   := (others => '0');
+  signal re_tef   : t_tef     := (others => '0');
+  signal re_time  : t_time    := (others => '0');
   
   -- Signals in clock domain e_clk_i
   signal se_exit_s0 : boolean;
   signal se_addr    : t_addr1;
   signal se_data    : t_wishbone_data;
+
 begin
 
-  -- e_index_i is effectively constant and thus safe to cross clock domains
-  w_slave_o.DAT(31 downto 8) <= (others => '0');
-  w_slave_o.DAT( 7 downto 0) <= e_index_i;
-  
+  w_slave_o.DAT <= (others => '0');
   w_slave_o.STALL <= '0'; -- Never stall; report error if something bad happens
   w_slave_o.RTY <= '0';
   w_slave_o.INT <= '0'; -- This doesn't belong in the struct :-/
@@ -111,6 +108,7 @@ begin
     generic map(
       g_addr_bits  => c_addr1_bits,
       g_data_bits  => 32,
+      g_bypass     => false,
       g_dual_clock => true)
     port map(
       r_clk_i  =>  e_clk_i,
@@ -212,7 +210,11 @@ begin
     end if; -- clock
   end process;
   
-  e_stb_o <= re_stb;
+  e_stream_o.stb   <= re_stb;
+  e_stream_o.event <= re_event;
+  e_stream_o.param <= re_param;
+  e_stream_o.tef   <= re_tef;
+  e_stream_o.time  <= re_time;
   
   -- This cannot be inside the process because both re_addr and Q.r_addr_i latch se_addr
   se_exit_s0 <= (re_sent /= re_ready) and (re_stb = '0' or e_stall_i = '0');
@@ -230,10 +232,10 @@ begin
       re_ready <= unsigned(f_eca_gray_decode(std_logic_vector(re0_ready_gray), 1));
       
       if e_rst_n_i = '0' then
-        e_event_o <= (others => '0');
-        e_param_o <= (others => '0');
-        e_tef_o   <= (others => '0');
-        e_time_o  <= (others => '0');
+        re_event <= (others => '0');
+        re_param <= (others => '0');
+        re_tef   <= (others => '0');
+        re_time  <= (others => '0');
         
         re_sent  <= (others => '0');
         re_state <= S0;
@@ -249,7 +251,7 @@ begin
             end if;
             
             if re_stb = '0' or e_stall_i = '0' then
-              e_event_o(63 downto 32) <= se_data;
+              re_event(63 downto 32) <= se_data;
             end if;
             
             if se_exit_s0 then
@@ -257,15 +259,15 @@ begin
             end if;
             
           when S1 =>
-            e_event_o(31 downto  0) <= se_data;
+            re_event(31 downto  0) <= se_data;
             re_state <= S2;
           
           when S2 =>
-            e_param_o(63 downto 32) <= se_data;
+            re_param(63 downto 32) <= se_data;
             re_state <= S3;
           
           when S3 =>
-            e_param_o(31 downto  0) <= se_data;
+            re_param(31 downto  0) <= se_data;
             re_state <= S4;
           
           when S4 =>
@@ -273,15 +275,15 @@ begin
             re_state <= S5;
           
           when S5 =>
-            e_tef_o(31 downto  0) <= se_data;
+            re_tef(31 downto  0) <= se_data;
             re_state <= S6;
             
           when S6 =>
-            e_time_o(63 downto 32) <= se_data;
+            re_time(63 downto 32) <= se_data;
             re_state <= S7;
             
           when S7 =>
-            e_time_o(31 downto  0) <= se_data;
+            re_time(31 downto  0) <= se_data;
             re_state <= S0;
             
             re_stb <= '1';

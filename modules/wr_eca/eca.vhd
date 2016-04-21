@@ -1,126 +1,40 @@
---! @file eca.vhd
---! @brief Event-Condition-Action Unit
---! @author Wesley W. Terpstra <w.terpstra@gsi.de>
---!
---! Copyright (C) 2013 GSI Helmholtz Centre for Heavy Ion Research GmbH 
---!
---! This entity ties all the ECA components together under Wishbone control.
---! The register layout is as follows:
---!
---! Wishbone registers (all 4-byte values):
---!
---! 0x00 RW: ECA params
---!  0   R : log(table size)
---!  1   R : log(queue depth)
---!  2   R : number of channels
---!  3   RW: index of ECA
---! 0x04 RW: ECA Control
---!  0   R : Feature bits; 1=inspect_table, 2=inspect_queue
---!  1   R : ASCII ECA Name
---!  2    W: Clear control bits
---!  3   RW: Set   control bits; 1=disable, 2=interrupt enable, 4=flip(toggle only)
---! 0x08 R : Time1
---! 0x0C R : Time0
---! 0x10 RW: Search index
---! 0x14 RW:  First
---! 0x18 RW:  Event1
---! 0x1C RW:  Event0
---! 0x20 RW: Walk index
---! 0x24 RW:  Next
---! 0x28 RW:  Offset1
---! 0x2C RW:  Offset0
---! 0x30 RW:  Tag
---! 0x34 RW:  Channel
---! 0x38 R : Frequency numerator
---! 0x3C R : Frequency coefficients
---!  0   R : powers of 5
---!  1   R : powers of 2
---!  2-3 R : Frequency divisor
---!
---! 0x40 RW:  Channel+Record Select
---!  0-1 R :  Channel #
---!  2-3 R :  Record Index
---! 0x44 RW:  Channel Control
---!  0   R :  Record status; 1=valid, 2=late
---!  1   R :  ASCII Channel Name
---!  2    W:  Clear control bits
---!  3   RW:  Set   control bits; 1=draining, 2=frozen, 4=interrupt mask
---! 0x48 RW:  Interrupt address
---! 0x4C -- reserved --
---!
---! 0x50 RW:  Fill
---!   0x0-1:  Current Channel fill
---!   0x2-3:  Max fill (can be cleared to 0)
---! 0x54 RW:  Valid    actions counter (includes conflict+late)
---! 0x58 RW:  Conflict actions counter
---! 0x5C RW:  Late     actions counter
---! 
---! 0x60 R :  Event1 ... do NOT synchronize; hold index long enough
---! 0x64 R :  Event0
---! 0x68 R :  Param1
---! 0x6C R :  Param0
---! 0x70 R :  Tag
---! 0x74 R :  Tef
---! 0x78 R :  Time1
---! 0x7C R :  Time0
---!
---------------------------------------------------------------------------------
---! This library is free software; you can redistribute it and/or
---! modify it under the terms of the GNU Lesser General Public
---! License as published by the Free Software Foundation; either
---! version 3 of the License, or (at your option) any later version.
---!
---! This library is distributed in the hope that it will be useful,
---! but WITHOUT ANY WARRANTY; without even the implied warranty of
---! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
---! Lesser General Public License for more details.
---!  
---! You should have received a copy of the GNU Lesser General Public
---! License along with this library. If not, see <http://www.gnu.org/licenses/>.
----------------------------------------------------------------------------------
-
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 use work.wishbone_pkg.all;
-use work.eca_pkg.all;
-use work.gencores_pkg.all;
-use work.wb_irq_pkg.all;
+use work.eca_auto_pkg.all;
+use work.eca_internals_pkg.all;
 
 entity eca is
   generic(
-    g_eca_name       : t_name;
-    g_channel_names  : t_name_array;
-    g_log_table_size : natural := 7;  -- 128 entries -- condition table
-    g_log_queue_len  : natural := 8;  -- 256 entries -- action queue size
-    g_num_channels   : natural := 4;  -- max 256
-    g_log_clock_mult : natural := 4; -- a_clk_i and c_clk_i must be within 16*
-    g_inspect_queue  : boolean := true;
-    g_inspect_table  : boolean := true;
-    g_frequency_mul  : natural := 1; -- 125MHz = 1*5^9*2^6/1
-    g_frequency_5s   : natural := 9;
-    g_frequency_2s   : natural := 6;
-    g_frequency_div  : natural := 1);
+    g_channel_types  : t_nat_array;
+    g_channel_nums   : t_nat_array; -- Anything not explicitly set is 1
+    g_num_streams    : natural :=  1; -- Number of input streams
+    g_num_ios        : natural :=  8; -- Number of gpios
+    g_log_table_size : natural :=  8; -- 2**g_log_table_size = maximum number of conditions
+    g_log_queue_size : natural :=  8; -- 2**g_log_size       = maximum number of pending actions
+    g_log_multiplier : natural :=  3; -- 2**g_log_multiplier = ticks per cycle
+    g_log_max_delay  : natural := 32; -- 2**g_log_max_delay  = maximum delay before executed as early
+    g_log_latency    : natural := 12; -- 2**g_log_latency    = ticks of calendar delay
+    g_log_counter    : natural := 20);-- number of bits in the counters reported
   port(
-    -- Push events to the ECA unit (a_clk_i domain)
-    e_stb_i     : in  std_logic;
-    e_stall_o   : out std_logic;
-    e_event_i   : in  t_event;
-    e_param_i   : in  t_param;
-    e_tef_i     : in  t_tef;
-    e_time_i    : in  t_time;
-    e_index_o   : out std_logic_vector(7 downto 0);
     -- ECA control registers
     c_clk_i     : in  std_logic;
     c_rst_n_i   : in  std_logic;
-    c_slave_i   : in  t_wishbone_slave_in; -- 1KB space
+    c_slave_i   : in  t_wishbone_slave_in;
     c_slave_o   : out t_wishbone_slave_out;
-    -- Actions output according to time
+    -- Action clock domain
     a_clk_i     : in  std_logic;
     a_rst_n_i   : in  std_logic;
     a_time_i    : in  t_time;
-    a_channel_o : out t_channel_array(g_num_channels-1 downto 0);
+    -- Input streams (lower index has priority)
+    a_stream_i  : in  t_stream_array(g_num_streams-1 downto 0);
+    a_stall_o   : out std_logic_vector(g_num_streams-1 downto 0);
+    -- Output actions
+    a_stall_i   : in  std_logic_vector(g_channel_types'range);
+    a_channel_o : out t_channel_array(g_channel_types'range);
+    a_io_o      : out t_eca_matrix(g_num_ios-1 downto 0, 2**g_log_multiplier-1 downto 0);
     -- Interrupts that report failure conditions
     i_clk_i     : in  std_logic;
     i_rst_n_i   : in  std_logic;
@@ -129,748 +43,567 @@ entity eca is
 end eca;
 
 architecture rtl of eca is
-  -- Out of principle, tell quartus to leave my design alone.
-  attribute altera_attribute : string; 
-  attribute altera_attribute of rtl : architecture is "-name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
+
+  constant c_num_channels : natural := g_channel_types'length;
+  constant c_channel_bits : natural := f_eca_log2(c_num_channels+1);
   
-  constant c_channel_bits  : natural := f_ceil_log2(g_num_channels);
-  constant c_address_bits  : natural := f_ceil_log2(g_num_channels+2) + 5;
-  constant c_all_name_bits : natural := (g_num_channels+1)*7;
-  constant c_control_zeros : std_logic_vector(c_address_bits-1 downto 6) := (others => '0');
-  constant c_counter_bits  : natural := 32;
-  
-  subtype t_search_index  is std_logic_vector(g_log_table_size   downto 0);
-  subtype t_event_index   is std_logic_vector(g_log_table_size-1 downto 0);
-  subtype t_queue_index   is std_logic_vector(g_log_queue_len    downto 0);
-  subtype t_qtable_index  is std_logic_vector(g_log_queue_len-1  downto 0);
-  subtype t_channel_index is std_logic_vector(c_channel_bits-1   downto 0);
-  subtype t_all_name      is std_logic_vector(c_all_name_bits-1  downto 0);
-  subtype t_counter       is std_logic_vector(c_counter_bits-1   downto 0);
-  subtype t_counter_cross is std_logic_vector(g_log_clock_mult   downto 0);
-  
-  type t_queue_index_array   is array(natural range <>) of t_queue_index;
-  type t_counter_array       is array(natural range <>) of t_counter;
-  type t_counter_cross_array is array(natural range <>) of t_counter_cross;
-  type t_ascii_array         is array(natural range <>) of t_ascii;
-  type t_all_name_array      is array(63 downto 0) of t_all_name;
-  
-  -- Registers:
-  signal rc_cs_page     : std_logic       := '0';
-  signal rc_cf_enabled  : std_logic       := '0';
-  signal rc_cs_wen      : std_logic       := '0';
-  signal rc_cs_active   : std_logic       := '0';
-  signal rc_cs_addr     : t_search_index  := (others => '0');
-  signal rc_cs_valid    : std_logic       := '0';
-  signal rc_cs_first    : t_event_index   := (others => '0');
-  signal rc_cs_event    : t_event         := (others => '0');
-  signal rc_cw_wen      : std_logic       := '0';
-  signal rc_cw_active   : std_logic       := '0';
-  signal rc_cw_addr     : t_event_index   := (others => '0');
-  signal rc_cw_valid    : std_logic       := '0';
-  signal rc_cw_next     : t_event_index   := (others => '0');
-  signal rc_cw_time     : t_time          := (others => '0');
-  signal rc_cw_tag      : t_tag           := (others => '0');
-  signal rc_cw_channel  : t_channel_index := (others => '0');
-  signal rc_cq_channel  : t_channel_index := (others => '0');
-  signal rc_cq_index    : t_qtable_index  := (others => '0');
-  signal rc_max_fill    : t_queue_index_array (g_num_channels-1 downto 0) := (others => (others => '0'));
-  signal rc_cq_drain    : std_logic_vector(g_num_channels-1 downto 0) := (others => '1');
-  signal rc_cq_freeze   : std_logic_vector(g_num_channels-1 downto 0) := (others => '1');
-  signal rc_ce_idx      : std_logic_vector(7 downto 0)                := (others => '0');
-  signal rc_cn_index    : std_logic_vector(5 downto 0)                := (others => '1');
-  signal rc_stall       : std_logic_vector(9 downto 0)                := (others => '1');
-  signal rc_ci_enable   : std_logic := '0';
-  signal rc_ci_mask     : std_logic_vector(g_num_channels-1 downto 0) := (others => '0');
-  signal rc_ci_dest     : t_wishbone_address_array(g_num_channels-1 downto 0) := (others => (others => '0'));
-  
-  -- Registers fed from c_clk_i => a_clk_i
-  signal ra1_cs_page    : std_logic;
-  signal ra0_cs_page    : std_logic;
-  signal ra1_cf_enabled : std_logic;
-  signal ra0_cf_enabled : std_logic;
-  signal ra1_cq_drain   : std_logic_vector(g_num_channels-1 downto 0);
-  signal ra0_cq_drain   : std_logic_vector(g_num_channels-1 downto 0);
-  signal ra1_cq_freeze  : std_logic_vector(g_num_channels-1 downto 0);
-  signal ra0_cq_freeze  : std_logic_vector(g_num_channels-1 downto 0);
-  
-  -- Registers fed from c_clk_i => i_clk_i
-  signal rc_ci_ready : std_logic_vector(g_num_channels-1 downto 0);
-  signal sc_ci_clear : std_logic_vector(g_num_channels-1 downto 0);
-  signal sc_ci_send  : std_logic_vector(g_num_channels-1 downto 0);
-  
-  -- Signals between c_clk_i => i_clk_i
-  signal si_interrupt : std_logic_vector(g_num_channels-1 downto 0);
-  
-  -- Signals between name and control
-  signal sc_nc_record   : t_all_name;
-  signal sc_nc_eca      : t_ascii;
-  signal sc_nc_channel  : t_ascii_array(g_num_channels-1 downto 0); 
-  
-  -- Signals between Control and Search (c_clk_i)
-  signal sc_cs_program_page : std_logic;
-  signal sc_sc_valid        : std_logic;
-  signal sc_sc_first        : t_event_index;
-  signal sc_sc_event        : t_event;
-  
-  -- Signals between Control and Walker (c_clk_i)
-  signal sc_cw_program_page : std_logic;
-  signal sc_wc_valid        : std_logic;
-  signal sc_wc_next         : t_event_index;
-  signal sc_wc_time         : t_time;
-  signal sc_wc_tag          : t_tag;
-  signal sc_wc_channel      : t_channel_index;
-  
-  -- Signals for search->walker
-  signal sa_sw_stb   : std_logic;
-  signal sa_ws_stall : std_logic;
-  signal sa_sw_page  : std_logic;
-  signal sa_sw_event : t_event;
-  signal sa_sw_param : t_param;
-  signal sa_sw_tef   : t_tef;
-  signal sa_sw_time  : t_time;
-  signal sa_sw_first : t_event_index;
-  
-  -- Registers for the action queues
-  signal ra_qc_channel  : t_channel_array    (g_num_channels-1 downto 0);
-  signal ra_aq_time_Q   : t_time;
-  
-  -- Signals for the action queues
-  signal sa_qc_fill     : t_queue_index_array(g_num_channels-1 downto 0);
-  signal sa_qw_full     : std_logic_vector   (g_num_channels-1 downto 0);
-  signal sa_wq_channel  : t_channel_array    (g_num_channels-1 downto 0);
-  signal sa_qc_channel  : t_channel_array    (g_num_channels-1 downto 0);
-  signal sa_qc_inspect  : t_channel_array    (g_num_channels-1 downto 0);
-  signal sa_aq_time_off : t_time;
-  
-  -- Registers fed from e_clk_i to a_clk_i
-  signal ra_qc_fill_gray  : t_queue_index_array(g_num_channels-1 downto 0);
-  signal rc1_qc_fill_gray : t_queue_index_array(g_num_channels-1 downto 0);
-  signal rc0_qc_fill_gray : t_queue_index_array(g_num_channels-1 downto 0);
-  signal rc_qc_fill       : t_queue_index_array(g_num_channels-1 downto 0);
-  signal ra_time_gray     : t_time;
-  signal rc1_time_gray    : t_time;
-  signal rc0_time_gray    : t_time;
-  
-  -- Wide counters, crossed using smaller counters
-  signal ra_qc_valid                : std_logic_vector(g_num_channels-1 downto 0);
-  signal ra_qc_valid_cross          : t_counter_cross_array(g_num_channels-1 downto 0);
-  signal ra_qc_valid_cross_gray     : t_counter_cross_array(g_num_channels-1 downto 0);
-  signal rc1_qc_valid_cross_gray    : t_counter_cross_array(g_num_channels-1 downto 0);
-  signal rc0_qc_valid_cross_gray    : t_counter_cross_array(g_num_channels-1 downto 0);
-  signal rc_qc_valid_cross          : t_counter_cross_array(g_num_channels-1 downto 0);
-  signal rc_qc_valid_done           : t_counter_cross_array(g_num_channels-1 downto 0);
-  signal rc_valid_count             : t_counter_array(g_num_channels-1 downto 0);
-  signal ra_qc_late                 : std_logic_vector(g_num_channels-1 downto 0);
-  signal ra_qc_late_cross           : t_counter_cross_array(g_num_channels-1 downto 0);
-  signal ra_qc_late_cross_gray      : t_counter_cross_array(g_num_channels-1 downto 0);
-  signal rc1_qc_late_cross_gray     : t_counter_cross_array(g_num_channels-1 downto 0);
-  signal rc0_qc_late_cross_gray     : t_counter_cross_array(g_num_channels-1 downto 0);
-  signal rc_qc_late_cross           : t_counter_cross_array(g_num_channels-1 downto 0);
-  signal rc_qc_late_done            : t_counter_cross_array(g_num_channels-1 downto 0);
-  signal rc_late_count              : t_counter_array(g_num_channels-1 downto 0);
-  signal ra_qc_conflict             : std_logic_vector(g_num_channels-1 downto 0);
-  signal ra_qc_conflict_cross       : t_counter_cross_array(g_num_channels-1 downto 0);
-  signal ra_qc_conflict_cross_gray  : t_counter_cross_array(g_num_channels-1 downto 0);
-  signal rc1_qc_conflict_cross_gray : t_counter_cross_array(g_num_channels-1 downto 0);
-  signal rc0_qc_conflict_cross_gray : t_counter_cross_array(g_num_channels-1 downto 0);
-  signal rc_qc_conflict_cross       : t_counter_cross_array(g_num_channels-1 downto 0);
-  signal rc_qc_conflict_done        : t_counter_cross_array(g_num_channels-1 downto 0);
-  signal rc_conflict_count          : t_counter_array(g_num_channels-1 downto 0);
-  
-  impure function update(x : std_logic_vector) return std_logic_vector is
-    variable v_sel : std_logic_vector(x'range);
-    variable v_dat : std_logic_vector(x'range);
+  function f_i(x : natural) return natural is 
   begin
-    for i in x'range loop
-      v_sel(i) := c_slave_i.sel((i-x'low) / 8);
-      v_dat(i) := c_slave_i.dat(i-x'low);
-    end loop;
-    return (x and not v_sel) or (v_dat and v_sel);
-  end update;
+    return x + g_channel_types'low;
+  end function;
   
-  impure function toggle(x : std_logic; i : natural) return std_logic is
-    constant c_set : std_logic := c_slave_i.dat(i+0) and c_slave_i.sel(0);
-    constant c_clr : std_logic := c_slave_i.dat(i+8) and c_slave_i.sel(1);
+  function f_num(x : natural) return natural is
   begin
-    return ((not c_set) and (not c_clr) and (    x)) or -- unmodified
-           ((    c_set) and (    c_clr) and (not x)) or -- toggled
-           ((    c_set) and (not c_clr));               -- set
-  end toggle;
+    if x >= g_channel_nums'length then
+      return 1;
+    else
+      return g_channel_nums(x + g_channel_nums'low);
+    end if;
+  end function;
   
-  function f_all_names return t_all_name_array is
-    variable result : t_all_name_array;
+  type t_type_table is array(c_num_channels downto 0) of std_logic_vector(31 downto 0);
+  function f_type_table return t_type_table is
+    variable result : t_type_table;
   begin
-    for i in 0 to 63 loop
-      for c in 0 to g_num_channels-1 loop
-        result(i)((c+1)*7-1 downto c*7) := g_channel_names(c)(i);
-      end loop;
-      result(i)((g_num_channels+1)*7-1 downto g_num_channels*7) := g_eca_name(i);
+    result(0) := (others => '0');
+    for i in 1 to c_num_channels loop
+      result(i) := std_logic_vector(to_unsigned(g_channel_types(i-1 + g_channel_types'low), 32));
     end loop;
     return result;
-  end f_all_names;
+  end function;
+  constant c_type_table : t_type_table := f_type_table;
   
-  constant c_names : t_all_name_array := f_all_names;
+  type t_num_table is array(c_num_channels downto 0) of std_logic_vector(7 downto 0);
+  function f_num_table return t_num_table is
+    variable result : t_num_table;
+  begin
+    result(0) := std_logic_vector(to_unsigned(g_num_ios, 8));
+    for i in 1 to c_num_channels loop
+      result(i) := std_logic_vector(to_unsigned(f_num(i-1), 8));
+    end loop;
+    return result;
+  end function;
+  constant c_num_table : t_num_table := f_num_table;
+
+  signal s_slave_stall_i                       : std_logic_vector(1-1 downto 0);   -- 
+  signal s_slave_flip_active_o                 : std_logic_vector(1-1 downto 0);   -- 
+  signal s_slave_search_select_WR_o            : std_logic_vector(1-1 downto 0);   -- Write enable flag
+  signal s_slave_search_select_o               : std_logic_vector(16-1 downto 0);  -- 
+  signal s_slave_search_ro_first_i             : std_logic_vector(16-1 downto 0);  -- 
+  signal s_slave_search_ro_event_hi_i          : std_logic_vector(32-1 downto 0);  -- 
+  signal s_slave_search_ro_event_lo_i          : std_logic_vector(32-1 downto 0);  -- 
+  signal s_slave_search_write_o                : std_logic_vector(1-1 downto 0);   -- 
+  signal s_slave_search_rw_first_o             : std_logic_vector(16-1 downto 0);  -- 
+  signal s_slave_search_rw_event_hi_o          : std_logic_vector(32-1 downto 0);  -- 
+  signal s_slave_search_rw_event_lo_o          : std_logic_vector(32-1 downto 0);  -- 
+  signal s_slave_walker_select_WR_o            : std_logic_vector(1-1 downto 0);   -- Write enable flag
+  signal s_slave_walker_select_o               : std_logic_vector(16-1 downto 0);  -- 
+  signal s_slave_walker_ro_next_i              : std_logic_vector(16-1 downto 0);  -- 
+  signal s_slave_walker_ro_offset_hi_i         : std_logic_vector(32-1 downto 0);  -- 
+  signal s_slave_walker_ro_offset_lo_i         : std_logic_vector(32-1 downto 0);  -- 
+  signal s_slave_walker_ro_tag_i               : std_logic_vector(32-1 downto 0);  -- 
+  signal s_slave_walker_ro_flags_i             : std_logic_vector(4-1 downto 0);   -- 
+  signal s_slave_walker_ro_channel_i           : std_logic_vector(8-1 downto 0);   -- 
+  signal s_slave_walker_ro_num_i               : std_logic_vector(8-1 downto 0);   -- 
+  signal s_slave_walker_write_o                : std_logic_vector(1-1 downto 0);   -- 
+  signal s_slave_walker_rw_next_o              : std_logic_vector(16-1 downto 0);  -- 
+  signal s_slave_walker_rw_offset_hi_o         : std_logic_vector(32-1 downto 0);  -- 
+  signal s_slave_walker_rw_offset_lo_o         : std_logic_vector(32-1 downto 0);  -- 
+  signal s_slave_walker_rw_tag_o               : std_logic_vector(32-1 downto 0);  -- 
+  signal s_slave_walker_rw_flags_o             : std_logic_vector(4-1 downto 0);   -- 
+  signal s_slave_walker_rw_channel_o           : std_logic_vector(8-1 downto 0);   -- 
+  signal s_slave_walker_rw_num_o               : std_logic_vector(8-1 downto 0);   -- 
+  signal s_slave_channel_select_WR_o           : std_logic_vector(1-1 downto 0);   -- Write enable flag
+  signal s_slave_channel_select_o              : std_logic_vector(8-1 downto 0);   -- 
+  signal s_slave_channel_num_select_o          : std_logic_vector(8-1 downto 0);   -- 
+  signal s_slave_channel_code_select_o         : std_logic_vector(2-1 downto 0);   -- 
+  signal s_slave_channel_type_i                : std_logic_vector(32-1 downto 0);  -- 
+  signal s_slave_channel_max_num_i             : std_logic_vector(8-1 downto 0);   -- 
+  signal s_slave_channel_capacity_i            : std_logic_vector(16-1 downto 0);  -- 
+  signal s_slave_channel_msi_set_enable_WR_o   : std_logic_vector(1-1 downto 0);   -- Write enable flag
+  signal s_slave_channel_msi_set_enable_o      : std_logic_vector(1-1 downto 0);   -- 
+  signal s_slave_channel_msi_get_enable_i      : std_logic_vector(1-1 downto 0);   -- 
+  signal s_slave_channel_msi_set_target_WR_o   : std_logic_vector(1-1 downto 0);   -- Write enable flag
+  signal s_slave_channel_msi_set_target_o      : std_logic_vector(32-1 downto 0);  -- 
+  signal s_slave_channel_msi_get_target_i      : std_logic_vector(32-1 downto 0);  -- 
+  signal s_slave_channel_overflow_count_RD_o   : std_logic_vector(1-1 downto 0);   -- Read enable flag
+  signal s_slave_channel_mostfull_ack_RD_o     : std_logic_vector(1-1 downto 0);   -- Read enable flag
+  signal s_slave_channel_mostfull_clear_RD_o   : std_logic_vector(1-1 downto 0);   -- Read enable flag
+  signal s_slave_channel_valid_count_RD_o      : std_logic_vector(1-1 downto 0);   -- Read enable flag
+  signal s_slave_channel_failed_count_RD_o     : std_logic_vector(1-1 downto 0);   -- Read enable flag
+  signal s_slave_channel_event_id_hi_RD_o      : std_logic_vector(1-1 downto 0);   -- Read enable flag
+  signal s_slave_channel_event_id_lo_RD_o      : std_logic_vector(1-1 downto 0);   -- Read enable flag
+  signal s_slave_channel_param_hi_RD_o         : std_logic_vector(1-1 downto 0);   -- Read enable flag
+  signal s_slave_channel_param_lo_RD_o         : std_logic_vector(1-1 downto 0);   -- Read enable flag
+  signal s_slave_channel_tag_RD_o              : std_logic_vector(1-1 downto 0);   -- Read enable flag
+  signal s_slave_channel_tef_RD_o              : std_logic_vector(1-1 downto 0);   -- Read enable flag
+  signal s_slave_channel_deadline_hi_RD_o      : std_logic_vector(1-1 downto 0);   -- Read enable flag
+  signal s_slave_channel_deadline_lo_RD_o      : std_logic_vector(1-1 downto 0);   -- Read enable flag
+  signal s_slave_channel_executed_hi_RD_o      : std_logic_vector(1-1 downto 0);   -- Read enable flag
+  signal s_slave_channel_executed_lo_RD_o      : std_logic_vector(1-1 downto 0);   -- Read enable flag
+  
+  signal sa_streams : t_stream_array(g_num_streams downto 0);
+  signal sa_stalls  : std_logic_vector(g_num_streams downto 0);
+  
+  signal rc_page         : std_logic := '0';
+  signal ra_page         : std_logic_vector(3 downto 0);
+  signal r_bad_ack       : std_logic := '0';
+  signal r_search_valid  : std_logic_vector(3 downto 0) := (others => '0');
+  signal r_walker_valid  : std_logic_vector(3 downto 0) := (others => '0');
+  signal r_channel_valid : std_logic_vector(3 downto 0) := (others => '0');
+  
+  signal s_sw_stb      : std_logic;
+  signal s_ws_stall    : std_logic;
+  signal s_sw_page     : std_logic;
+  signal s_sw_first    : std_logic_vector(g_log_table_size-1 downto 0);
+  signal s_sw_event    : t_event;
+  signal s_sw_param    : t_param;
+  signal s_sw_tef      : t_tef;
+  signal s_sw_time     : t_time;
+  signal s_s_rw_valid  : std_logic;
+  signal s_s_ro_valid  : std_logic;
+  signal s_w_rw_valid  : std_logic;
+  signal s_w_ro_valid  : std_logic;
+  signal s_wc_channels : t_channel_array(c_num_channels downto 0);
+  
+  type t_words is array(natural range <>) of std_logic_vector(31 downto 0);
+  
+  signal s_req_fields : std_logic_vector(15 downto 0);
+  signal s_req_field  : std_logic_vector( 3 downto 0);
+  signal s_req_stb    : std_logic;
+  signal s_req_stbs   : std_logic_vector(c_num_channels downto 0);
+  signal s_req_acks   : std_logic_vector(c_num_channels downto 0);
+  signal s_req_ack    : std_logic;
+  signal s_req_dats   : t_words(c_num_channels downto 0);
+  signal s_req_dat    : std_logic_vector(31 downto 0);
+  
+  signal s_msi_acks   : std_logic_vector(c_num_channels downto 0);
+  signal s_msi_stbs   : std_logic_vector(c_num_channels downto 0);
+  signal s_msi_codes  : t_code_array(c_num_channels downto 0);
+  signal s_msi_nums   : t_num_array(c_num_channels downto 0);
+  
+  signal ra_time       : t_time;
+  signal ra_time_gray  : t_time;
+  signal rc_time_gray0 : t_time;
+  signal rc_time_gray1 : t_time;
+  signal rc_time       : t_time;
+  
 begin
 
-  -- Name index
-  sc_nc_record <= c_names(to_integer(unsigned(rc_cn_index)));
-  sc_nc_eca <= sc_nc_record((g_num_channels+1)*7-1 downto g_num_channels*7);
-  names : for channel_idx in 0 to g_num_channels-1 generate
-    sc_nc_channel(channel_idx) <= sc_nc_record((channel_idx+1)*7-1 downto channel_idx*7);
-  end generate;
-  
-  c_slave_o.STALL <= rc_stall(0);
-  c_slave_o.ERR <= '0';
-  c_slave_o.RTY <= '0';
-  c_slave_o.INT <= '0'; -- Why is this here?? :-/
-  
-  e_index_o <= rc_ce_idx;
-
-  sc_cs_program_page <= (not rc_cs_page) xor rc_cs_active;
-  sc_cw_program_page <= (not rc_cs_page) xor rc_cw_active;
-  
-  wb : process(c_clk_i) is
-    variable channel : integer;
-  begin
-    if rising_edge(c_clk_i) then
-      channel := to_integer(unsigned(rc_cq_channel));
-      
-      if c_rst_n_i = '0' then
-        rc_cs_page    <= '0';
-        rc_cf_enabled <= '0';
-        rc_cs_wen     <= '0';
-        rc_cs_active  <= '0';
-        rc_cs_addr    <= (others => '0');
-        rc_cs_valid   <= '0';
-        rc_cs_first   <= (others => '0');
-        rc_cs_event   <= (others => '0');
-        rc_cw_wen     <= '0';
-        rc_cw_active  <= '0';
-        rc_cw_addr    <= (others => '0');
-        rc_cw_valid   <= '0';
-        rc_cw_next    <= (others => '0');
-        rc_cw_time    <= (others => '0');
-        rc_cw_tag     <= (others => '0');
-        rc_cw_channel <= (others => '0');
-        rc_cq_channel <= (others => '0');
-        rc_cq_index   <= (others => '0');
-        rc_max_fill   <= (others => (others => '0'));
-        rc_cq_drain   <= (others => '1');
-        rc_cq_freeze  <= (others => '1');
-        rc_ce_idx     <= (others => '0');
-        rc_cn_index   <= (others => '1');
-        rc_stall      <= (others => '1');
-        rc_ci_enable  <= '0';
-        rc_ci_mask    <= (others => '0');
-        rc_ci_dest    <= (others => (others => '0'));
-        
-        rc_valid_count    <= (others => (others => '0'));
-        rc_late_count     <= (others => (others => '0'));
-        rc_conflict_count <= (others => (others => '0'));
-        
-        c_slave_o.DAT <= (others => '0');
-        c_slave_o.ACK <= '0';
-      else
-        c_slave_o.DAT <= (others => '0');
-        c_slave_o.ACK <= c_slave_i.CYC and c_slave_i.STB and not rc_stall(0);
-        rc_stall <= '0' & rc_stall(rc_stall'length-1 downto 1);
-        
-        if c_slave_i.CYC = '1' and c_slave_i.STB = '1' then
-          rc_cn_index <= f_eca_add(rc_cn_index, -1);
-        end if;
-        
-        case to_integer(unsigned(c_slave_i.ADR(6 downto 2))) is
-          when  0 => c_slave_o.DAT(31 downto 24) <= std_logic_vector(to_unsigned(g_log_table_size, 8));
-                     c_slave_o.DAT(23 downto 16) <= std_logic_vector(to_unsigned(g_log_queue_len,  8));
-                     c_slave_o.DAT(15 downto  8) <= std_logic_vector(to_unsigned(g_num_channels,   8));
-                     c_slave_o.DAT( 7 downto  0) <= rc_ce_idx;
-          when  1 => c_slave_o.DAT(24) <= f_eca_active_high(g_inspect_table);
-                     c_slave_o.DAT(25) <= f_eca_active_high(g_inspect_queue);
-                     c_slave_o.DAT(22 downto 16) <= sc_nc_eca;
-                     c_slave_o.DAT(1) <= rc_ci_enable;
-                     c_slave_o.DAT(0) <= not rc_cf_enabled;
-          when  2 => c_slave_o.DAT <= f_eca_gray_decode(rc0_time_gray(63 downto 32), 1);
-          when  3 => c_slave_o.DAT <= f_eca_gray_decode(rc0_time_gray(31 downto  0), 1);
-          when  4 => c_slave_o.DAT(31) <= rc_cs_active;
-                     c_slave_o.DAT(rc_cs_addr'range) <= rc_cs_addr;
-          when  5 => c_slave_o.DAT(31) <= rc_cs_valid;
-                     c_slave_o.DAT(rc_cs_first'range) <= rc_cs_first;
-          when  6 => c_slave_o.DAT <= rc_cs_event(63 downto 32);
-          when  7 => c_slave_o.DAT <= rc_cs_event(31 downto  0);
-          when  8 => c_slave_o.DAT(31) <= rc_cw_active;
-                     c_slave_o.DAT(rc_cw_addr'range) <= rc_cw_addr;
-          when  9 => c_slave_o.DAT(31) <= rc_cw_valid;
-                     c_slave_o.DAT(rc_cw_next'range) <= rc_cw_next;
-          when 10 => c_slave_o.DAT <= rc_cw_time(63 downto 32);
-          when 11 => c_slave_o.DAT <= rc_cw_time(31 downto  0);
-          when 12 => c_slave_o.DAT(rc_cw_tag'range) <= rc_cw_tag;
-          when 13 => c_slave_o.DAT(rc_cw_channel'range) <= rc_cw_channel;
-          when 14 => c_slave_o.DAT(31 downto  0) <= std_logic_vector(to_unsigned(g_frequency_mul, 32));
-          when 15 => c_slave_o.DAT(31 downto 24) <= std_logic_vector(to_unsigned(g_frequency_5s, 8));
-                     c_slave_o.DAT(23 downto 16) <= std_logic_vector(to_unsigned(g_frequency_2s, 8));
-                     c_slave_o.DAT(15 downto  0) <= std_logic_vector(to_unsigned(g_frequency_div, 16));
-          
-          when 16 => c_slave_o.DAT(rc_cq_channel'left+16 downto rc_cq_channel'right+16) <= rc_cq_channel;
-                     c_slave_o.DAT(rc_cq_index'range) <= rc_cq_index;
-          when 17 => c_slave_o.DAT(24) <= ra_qc_channel(channel).valid;
-                     c_slave_o.DAT(25) <= ra_qc_channel(channel).late;
-                     -- conflict is always '0' because this can only be determined on execution
-                     -- inspecting the channel happens before the action is sorted
-                     -- c_slave_o.DAT(26) <= ra_qc_channel(channel).conflict;
-                     c_slave_o.DAT(22 downto 16) <= sc_nc_channel(channel);
-                     c_slave_o.DAT(2) <= rc_ci_mask(channel);
-                     c_slave_o.DAT(1) <= rc_cq_freeze(channel);
-                     c_slave_o.DAT(0) <= rc_cq_drain(channel);
-          when 18 => c_slave_o.DAT(t_wishbone_address'range) <= rc_ci_dest(channel);
-          when 19 => null; -- reserved
-          when 20 => c_slave_o.DAT(t_queue_index'length+15 downto 16) <= rc_qc_fill(channel);
-                     c_slave_o.DAT(t_queue_index'range) <= rc_max_fill(channel);
-          when 21 => c_slave_o.DAT(t_counter'range) <= rc_valid_count(channel);
-          when 22 => c_slave_o.DAT(t_counter'range) <= rc_conflict_count(channel);
-          when 23 => c_slave_o.DAT(t_counter'range) <= rc_late_count(channel);
-          
-          -- These all cross clock domain.
-          -- However, they are held unchanging for several cycles due to freeze+stall
-          when 24 => c_slave_o.DAT <= ra_qc_channel(channel).event(63 downto 32);
-          when 25 => c_slave_o.DAT <= ra_qc_channel(channel).event(31 downto  0);
-          when 26 => c_slave_o.DAT <= ra_qc_channel(channel).param(63 downto 32);
-          when 27 => c_slave_o.DAT <= ra_qc_channel(channel).param(31 downto  0);
-          when 28 => c_slave_o.DAT <= ra_qc_channel(channel).tag;
-          when 29 => c_slave_o.DAT <= ra_qc_channel(channel).tef;
-          when 30 => c_slave_o.DAT <= ra_qc_channel(channel).time(63 downto 32);
-          when 31 => c_slave_o.DAT <= ra_qc_channel(channel).time(31 downto  0);
-          
-          when others => null; -- No other cases
-        end case;
-        
-        rc_cs_wen <= '0';
-        rc_cw_wen <= '0';
-        
-        if g_inspect_table then
-          rc_cs_valid <= sc_sc_valid;
-          rc_cs_first <= sc_sc_first;
-          rc_cs_event <= sc_sc_event;
-          
-          rc_cw_valid   <= sc_wc_valid;
-          rc_cw_next    <= sc_wc_next;
-          rc_cw_time    <= sc_wc_time;
-          rc_cw_tag     <= sc_wc_tag;
-          rc_cw_channel <= sc_wc_channel;
-        end if;
-        
-        -- Only allow the next pointer to be valid if it is topologically sorted
-        -- This ensures that there is never a loop in the walker chain.
-        if rc_cw_wen = '1' and rc_cw_valid = '1' and 
-           unsigned(rc_cw_next) >= unsigned(rc_cw_addr) then
-          rc_cw_valid <= '0';
-          rc_cw_wen   <= '1';
-        end if;
-        
-        -- If the channel is out-of-range, zero it.
-        if to_integer(unsigned(rc_cw_channel)) >= g_num_channels then
-          rc_cw_channel <= (others => '0');
-          rc_cw_wen <= '1';
-        end if;
-        
-        -- Update counter crossings
-        for channel_idx in 0 to g_num_channels-1 loop
-          if unsigned(rc_max_fill(channel_idx)) < unsigned(rc_qc_fill(channel_idx)) then
-            rc_max_fill(channel_idx) <= rc_qc_fill(channel_idx);
-          end if;
-          rc_valid_count(channel_idx) <= 
-            f_eca_delta(rc_valid_count(channel_idx), 
-                        rc_qc_valid_done(channel_idx), 
-                        rc_qc_valid_cross(channel_idx));
-          rc_late_count(channel_idx) <= 
-            f_eca_delta(rc_late_count(channel_idx), 
-                        rc_qc_late_done(channel_idx), 
-                        rc_qc_late_cross(channel_idx));
-          rc_conflict_count(channel_idx) <= 
-            f_eca_delta(rc_conflict_count(channel_idx), 
-                        rc_qc_conflict_done(channel_idx), 
-                        rc_qc_conflict_cross(channel_idx));
-        end loop;
-        
-        if c_slave_i.CYC = '1' and c_slave_i.STB = '1' and c_slave_i.WE = '1' and rc_stall(0) = '0' then
-          case to_integer(unsigned(c_slave_i.ADR(6 downto 2))) is
-            when  0 => rc_ce_idx <= update(rc_ce_idx);
-            when  1 => 
-              rc_cs_page <= rc_cs_page xor (c_slave_i.DAT(2) and c_slave_i.SEL(0));
-              rc_cf_enabled <= not toggle(not rc_cf_enabled,  0);
-              rc_ci_enable <= toggle(rc_ci_enable, 1);
-            when  2 => null; -- Cannot write to Time1
-            when  3 => null; -- Cannot write to Time0
-            when  4 => if c_slave_i.SEL(3) = '1' then rc_cs_active <= c_slave_i.DAT(31); end if;
-                       rc_cs_addr <= update(rc_cs_addr);
-                       rc_stall(2 downto 0) <= (others => '1'); -- wait for rc_cs_* to fill
-            when  5 => if c_slave_i.SEL(3) = '1' then rc_cs_valid  <= c_slave_i.DAT(31); end if;
-                       rc_cs_first <= update(rc_cs_first); 
-                       rc_cs_wen <= not rc_cs_active;
-                       rc_stall(2 downto 0) <= (others => '1'); -- prevent reading old data
-            when  6 => rc_cs_event(63 downto 32) <= update(rc_cs_event(63 downto 32));
-                       rc_cs_wen <= not rc_cs_active;
-                       rc_stall(2 downto 0) <= (others => '1');
-            when  7 => rc_cs_event(31 downto 0) <= update(rc_cs_event(31 downto 0));
-                       rc_cs_wen <= not rc_cs_active;
-                       rc_stall(2 downto 0) <= (others => '1');
-            when  8 => if c_slave_i.SEL(3) = '1' then rc_cw_active <= c_slave_i.DAT(31); end if; 
-                       rc_cw_addr <= update(rc_cw_addr);
-                       rc_stall(2 downto 0) <= (others => '1'); -- wait for rc_cw_* to fill
-            when  9 => if c_slave_i.SEL(3) = '1' then rc_cw_valid <= c_slave_i.DAT(31); end if;
-                       rc_cw_next <= update(rc_cw_next);
-                       rc_cw_wen <= not rc_cw_active;
-                       rc_stall(3 downto 0) <= (others => '1'); -- extra cycle for validity check
-            when 10 => rc_cw_time(63 downto 32) <= update(rc_cw_time(63 downto 32));
-                       rc_cw_wen <= not rc_cw_active;
-                       rc_stall(2 downto 0) <= (others => '1');
-            when 11 => rc_cw_time(31 downto 0) <= update(rc_cw_time(31 downto  0));
-                       rc_cw_wen <= not rc_cw_active;
-                       rc_stall(2 downto 0) <= (others => '1');
-            when 12 => rc_cw_tag <= update(rc_cw_tag);
-                       rc_cw_wen <= not rc_cw_active;
-                       rc_stall(2 downto 0) <= (others => '1');
-            when 13 => rc_cw_channel <= update(rc_cw_channel);
-                       rc_cw_wen <= not rc_cw_active;
-                       rc_stall(3 downto 0) <= (others => '1'); -- extra cycle for validity check
-            when 14 => null; -- Freq1
-            when 15 => null; -- Freq0
-            
-            when 16 => 
-              if c_slave_i.SEL(2) = '1' then
-                rc_cq_channel <= c_slave_i.DAT(rc_cq_channel'left+16 downto rc_cq_channel'right+16);
-              end if;
-              rc_cq_index <= update(rc_cq_index);
-              
-              -- Wait a reallly long time.
-              -- It takes time for rc_cq_index to stabilize as input in a_clk_i
-              -- It takes time for the M9K to spit out the result
-              -- It takes time for the result to stabilize back into c_clk_i
-              rc_stall <= (others => '1');
-              
-            when 17 => 
-              for channel_idx in 0 to g_num_channels-1 loop
-                if channel_idx = channel then
-                  rc_ci_mask  (channel_idx) <= toggle(rc_ci_mask  (channel_idx), 2);
-                  rc_cq_freeze(channel_idx) <= toggle(rc_cq_freeze(channel_idx), 1);
-                  rc_cq_drain (channel_idx) <= toggle(rc_cq_drain (channel_idx), 0);
-                end if;
-              end loop;
-            
-            when 18 =>
-              for channel_idx in 0 to g_num_channels-1 loop
-                if channel_idx = channel then
-                  rc_ci_dest(channel_idx) <= update(rc_ci_dest(channel_idx));
-                end if;
-              end loop;
-              
-            when 19 => -- reserved
-              
-            when 20 => 
-              for channel_idx in 0 to g_num_channels-1 loop
-                if channel_idx = channel then
-                  rc_max_fill(channel_idx) <= update(rc_max_fill(channel_idx));
-                end if;
-              end loop;
-            
-            when 21 =>
-              for channel_idx in 0 to g_num_channels-1 loop
-                if channel_idx = channel then
-                  rc_valid_count(channel_idx) <= update(rc_valid_count(channel_idx));
-                end if;
-              end loop;
-              
-            when 22 =>
-              for channel_idx in 0 to g_num_channels-1 loop
-                if channel_idx = channel then
-                  rc_conflict_count(channel_idx) <= update(rc_conflict_count(channel_idx));
-                end if;
-              end loop;
-            
-            when 23 =>
-              for channel_idx in 0 to g_num_channels-1 loop
-                if channel_idx = channel then
-                  rc_late_count(channel_idx) <= update(rc_late_count(channel_idx));
-                end if;
-              end loop;
-            
-            when 24 => null; -- Event1
-            when 25 => null; -- Event0
-            when 26 => null; -- Param1
-            when 27 => null; -- Param0
-            when 28 => null; -- Tag
-            when 29 => null; -- Tef
-            when 30 => null; -- Time1
-            when 31 => null; -- Time0
-            
-            when others => null; -- No other cases
-          end case;
-        end if; -- cyc+stb+we+!stall
-      end if; -- reset
-    end if;
-  end process;
-  
-  a_a2c : process(a_clk_i) is
-  begin
-    if rising_edge(a_clk_i) then
-      -- No reset; logic is acyclic
-      ra1_cs_page    <= rc_cs_page;
-      ra1_cf_enabled <= rc_cf_enabled;
-      ra1_cq_drain   <= rc_cq_drain;
-      ra1_cq_freeze  <= rc_cq_freeze;
-      ra0_cs_page    <= ra1_cs_page;
-      ra0_cf_enabled <= ra1_cf_enabled;
-      ra0_cq_drain   <= ra1_cq_drain;
-      ra0_cq_freeze  <= ra1_cq_freeze;
-      
-      for channel_idx in 0 to g_num_channels-1 loop
-        ra_qc_fill_gray(channel_idx) <= f_eca_gray_encode(sa_qc_fill(channel_idx));
-      end loop;
-      
-      ra_time_gray(63 downto 32) <= f_eca_gray_encode(a_time_i(63 downto 32));
-      ra_time_gray(31 downto  0) <= f_eca_gray_encode(a_time_i(31 downto  0));
-      
-      for channel_idx in 0 to g_num_channels-1 loop
-        ra_qc_channel(channel_idx).valid <= 
-          f_eca_active_high(g_inspect_queue) and
-          ra0_cq_freeze(channel_idx) and
-          sa_qc_inspect(channel_idx).valid;
-        ra_qc_channel(channel_idx).conflict <= 
-          f_eca_active_high(g_inspect_queue) and
-          ra0_cq_freeze(channel_idx) and
-          sa_qc_inspect(channel_idx).conflict;
-        ra_qc_channel(channel_idx).late <= 
-          f_eca_active_high(g_inspect_queue) and
-          ra0_cq_freeze(channel_idx) and
-          sa_qc_inspect(channel_idx).late;
-          
-        if g_inspect_queue then
-          ra_qc_channel(channel_idx).event <= sa_qc_inspect(channel_idx).event;
-          ra_qc_channel(channel_idx).param <= sa_qc_inspect(channel_idx).param;
-          ra_qc_channel(channel_idx).tag   <= sa_qc_inspect(channel_idx).tag;
-          ra_qc_channel(channel_idx).tef   <= sa_qc_inspect(channel_idx).tef;
-          ra_qc_channel(channel_idx).time  <= sa_qc_inspect(channel_idx).time;
-        else
-          ra_qc_channel(channel_idx).valid <= '0';
-          ra_qc_channel(channel_idx).event <= (others => '0');
-          ra_qc_channel(channel_idx).param <= (others => '0');
-          ra_qc_channel(channel_idx).tag   <= (others => '0');
-          ra_qc_channel(channel_idx).tef   <= (others => '0');
-          ra_qc_channel(channel_idx).time  <= (others => '0');
-        end if;
-        
-        ra_qc_valid(channel_idx)    <= sa_qc_channel(channel_idx).valid;
-        ra_qc_conflict(channel_idx) <= sa_qc_channel(channel_idx).valid and sa_qc_channel(channel_idx).conflict;
-        ra_qc_late(channel_idx)     <= sa_qc_channel(channel_idx).valid and sa_qc_channel(channel_idx).late;
-      
-        if ra_qc_valid(channel_idx) = '1' then
-          ra_qc_valid_cross(channel_idx) <= f_eca_add(ra_qc_valid_cross(channel_idx), 1);
-        end if;
-        if ra_qc_conflict(channel_idx) = '1' then
-          ra_qc_conflict_cross(channel_idx)  <= f_eca_add(ra_qc_conflict_cross(channel_idx), 1);
-        end if;
-        if ra_qc_late(channel_idx) = '1' then
-          ra_qc_late_cross(channel_idx)  <= f_eca_add(ra_qc_late_cross(channel_idx), 1);
-        end if;
-        
-        ra_qc_valid_cross_gray(channel_idx)    <= f_eca_gray_encode(ra_qc_valid_cross(channel_idx));
-        ra_qc_conflict_cross_gray(channel_idx) <= f_eca_gray_encode(ra_qc_conflict_cross(channel_idx));
-        ra_qc_late_cross_gray(channel_idx)     <= f_eca_gray_encode(ra_qc_late_cross(channel_idx));
-      end loop;
-    end if;
-  end process;
-  
-  c_a2c : process(c_clk_i) is
-  begin
-    if rising_edge(c_clk_i) then
-      rc1_qc_fill_gray <= ra_qc_fill_gray;
-      rc0_qc_fill_gray <= rc1_qc_fill_gray;
-      for channel_idx in 0 to g_num_channels-1 loop
-        rc_qc_fill(channel_idx) <= f_eca_gray_decode(rc0_qc_fill_gray(channel_idx), 1);
-      end loop;
-      
-      rc1_time_gray <= ra_time_gray;
-      rc0_time_gray <= rc1_time_gray;
-      
-      rc1_qc_valid_cross_gray <= ra_qc_valid_cross_gray;
-      rc0_qc_valid_cross_gray <= rc1_qc_valid_cross_gray;
-      rc1_qc_conflict_cross_gray <= ra_qc_conflict_cross_gray;
-      rc0_qc_conflict_cross_gray <= rc1_qc_conflict_cross_gray;
-      rc1_qc_late_cross_gray <= ra_qc_late_cross_gray;
-      rc0_qc_late_cross_gray <= rc1_qc_late_cross_gray;
-      
-      for channel_idx in 0 to g_num_channels-1 loop
-        rc_qc_valid_cross(channel_idx)    <= f_eca_gray_decode(rc0_qc_valid_cross_gray(channel_idx), 1);
-        rc_qc_conflict_cross(channel_idx) <= f_eca_gray_decode(rc0_qc_conflict_cross_gray(channel_idx), 1);
-        rc_qc_late_cross(channel_idx)     <= f_eca_gray_decode(rc0_qc_late_cross_gray(channel_idx), 1);
-      end loop;
-      
-      -- We use the difference between done and cross to increase the counter in process 'wb'
-      
-      rc_qc_valid_done <= rc_qc_valid_cross;
-      rc_qc_conflict_done <= rc_qc_conflict_cross;
-      rc_qc_late_done <= rc_qc_late_cross;
-    end if;
-  end process;
-  
-  interrupts : for channel_idx in 0 to g_num_channels-1 generate
-  
-    gen : process(c_clk_i) is
-    begin
-      if rising_edge(c_clk_i) then
-        if rc_qc_late_cross    (channel_idx) /= rc_qc_late_done    (channel_idx) or
-           rc_qc_conflict_cross(channel_idx) /= rc_qc_conflict_done(channel_idx) then
-          rc_ci_ready(channel_idx) <= rc_ci_enable and rc_ci_mask(channel_idx);
-        end if;
-        
-        if sc_ci_send(channel_idx) = '1' then
-          rc_ci_ready(channel_idx) <= '0';
-        end if;
-      end if;
-    end process;
-    
-    sc_ci_send(channel_idx) <= rc_ci_ready(channel_idx) and sc_ci_clear(channel_idx);
-    
-    sync : gc_pulse_synchronizer2
-      port map(
-        clk_in_i    => c_clk_i,
-        rst_in_n_i  => c_rst_n_i,
-        clk_out_i   => i_clk_i,
-        rst_out_n_i => i_rst_n_i,
-        d_ready_o   => sc_ci_clear(channel_idx),
-        d_p_i       => sc_ci_send (channel_idx),
-        q_p_o       => si_interrupt(channel_idx));
-  
-  end generate;
-  
-  irq : irqm_core
+  INST_eca_auto : eca_auto
     generic map(
-      g_channels => g_num_channels)
-    port map(
-      clk_i         => i_clk_i,
-      rst_n_i       => i_rst_n_i,
-      irq_master_o  => i_master_o,
-      irq_master_i  => i_master_i,
-      msi_dst_array => rc_ci_dest, -- guarded by rc_ci_mask
-      msi_msg_array => (others => (others => '0')),
-      en_i          => '1',
-      mask_i        => (others => '1'),
-      irq_i         => si_interrupt);
+      g_channels        => c_num_channels+1,
+      g_search_capacity => 2**(g_log_table_size+1),
+      g_walker_capacity => 2**g_log_table_size,
+      g_latency         => 2**g_log_latency,
+      g_offset_bits     => g_log_max_delay)
+    port map (
+      clk_sys_i                     => c_clk_i,
+      rst_sys_n_i                   => c_rst_n_i,
+      stall_i                       => s_slave_stall_i,
+      error_i                       => "0",
+      flip_active_o                 => s_slave_flip_active_o,
+      time_hi_V_i                   => "1",
+      time_hi_i                     => rc_time(63 downto 32),
+      time_lo_V_i                   => "1",
+      time_lo_i                     => rc_time(31 downto 0),
+      search_select_WR_o            => s_slave_search_select_WR_o,
+      search_select_RD_o            => open,
+      search_select_o               => s_slave_search_select_o,
+      search_ro_first_V_i           => r_search_valid(0 downto 0),
+      search_ro_first_i             => s_slave_search_ro_first_i,
+      search_ro_event_hi_V_i        => r_search_valid(0 downto 0),
+      search_ro_event_hi_i          => s_slave_search_ro_event_hi_i,
+      search_ro_event_lo_V_i        => r_search_valid(0 downto 0),
+      search_ro_event_lo_i          => s_slave_search_ro_event_lo_i,
+      search_write_o                => s_slave_search_write_o,
+      search_rw_first_o             => s_slave_search_rw_first_o,
+      search_rw_event_hi_o          => s_slave_search_rw_event_hi_o,
+      search_rw_event_lo_o          => s_slave_search_rw_event_lo_o,
+      walker_select_WR_o            => s_slave_walker_select_WR_o,
+      walker_select_RD_o            => open,
+      walker_select_o               => s_slave_walker_select_o,
+      walker_ro_next_V_i            => r_walker_valid(0 downto 0),  
+      walker_ro_next_i              => s_slave_walker_ro_next_i,
+      walker_ro_offset_hi_V_i       => r_walker_valid(0 downto 0),
+      walker_ro_offset_hi_i         => s_slave_walker_ro_offset_hi_i,
+      walker_ro_offset_lo_V_i       => r_walker_valid(0 downto 0),
+      walker_ro_offset_lo_i         => s_slave_walker_ro_offset_lo_i,
+      walker_ro_tag_V_i             => r_walker_valid(0 downto 0),
+      walker_ro_tag_i               => s_slave_walker_ro_tag_i,
+      walker_ro_flags_V_i           => r_walker_valid(0 downto 0),
+      walker_ro_flags_i             => s_slave_walker_ro_flags_i,
+      walker_ro_channel_V_i         => r_walker_valid(0 downto 0),
+      walker_ro_channel_i           => s_slave_walker_ro_channel_i,
+      walker_ro_num_V_i             => r_walker_valid(0 downto 0),
+      walker_ro_num_i               => s_slave_walker_ro_num_i,
+      walker_write_o                => s_slave_walker_write_o,
+      walker_rw_next_o              => s_slave_walker_rw_next_o,
+      walker_rw_offset_hi_o         => s_slave_walker_rw_offset_hi_o,
+      walker_rw_offset_lo_o         => s_slave_walker_rw_offset_lo_o,
+      walker_rw_tag_o               => s_slave_walker_rw_tag_o,
+      walker_rw_flags_o             => s_slave_walker_rw_flags_o,
+      walker_rw_channel_o           => s_slave_walker_rw_channel_o,
+      walker_rw_num_o               => s_slave_walker_rw_num_o,
+      channel_select_WR_o           => s_slave_channel_select_WR_o,
+      channel_select_RD_o           => open,
+      channel_select_o              => s_slave_channel_select_o,
+      channel_num_select_o          => s_slave_channel_num_select_o,
+      channel_code_select_o         => s_slave_channel_code_select_o,
+      channel_type_V_i              => r_channel_valid(0 downto 0),
+      channel_type_i                => s_slave_channel_type_i,
+      channel_max_num_V_i           => r_channel_valid(0 downto 0),
+      channel_max_num_i             => s_slave_channel_max_num_i,
+      channel_capacity_V_i          => r_channel_valid(0 downto 0),
+      channel_capacity_i            => s_slave_channel_capacity_i,
+      channel_msi_set_enable_WR_o   => s_slave_channel_msi_set_enable_WR_o,
+      channel_msi_set_enable_o      => s_slave_channel_msi_set_enable_o,
+      channel_msi_get_enable_V_i    => r_channel_valid(0 downto 0),
+      channel_msi_get_enable_i      => s_slave_channel_msi_get_enable_i,
+      channel_msi_set_target_WR_o   => s_slave_channel_msi_set_target_WR_o,
+      channel_msi_set_target_o      => s_slave_channel_msi_set_target_o,
+      channel_msi_get_target_V_i    => r_channel_valid(0 downto 0),
+      channel_msi_get_target_i      => s_slave_channel_msi_get_target_i,
+      channel_overflow_count_RD_o   => s_slave_channel_overflow_count_RD_o,
+      channel_overflow_count_V_i(0) => s_req_ack,
+      channel_overflow_count_i      => s_req_dat,
+      channel_mostfull_ack_RD_o     => s_slave_channel_mostfull_ack_RD_o,
+      channel_mostfull_ack_V_i(0)   => s_req_ack,
+      channel_mostfull_ack_i        => s_req_dat,
+      channel_mostfull_clear_RD_o   => s_slave_channel_mostfull_clear_RD_o,
+      channel_mostfull_clear_V_i(0) => s_req_ack,
+      channel_mostfull_clear_i      => s_req_dat,
+      channel_valid_count_RD_o      => s_slave_channel_valid_count_RD_o,
+      channel_valid_count_V_i(0)    => s_req_ack,
+      channel_valid_count_i         => s_req_dat,
+      channel_failed_count_RD_o     => s_slave_channel_failed_count_RD_o,
+      channel_failed_count_V_i(0)   => s_req_ack,
+      channel_failed_count_i        => s_req_dat,
+      channel_event_id_hi_RD_o      => s_slave_channel_event_id_hi_RD_o,
+      channel_event_id_hi_V_i(0)    => s_req_ack,
+      channel_event_id_hi_i         => s_req_dat,
+      channel_event_id_lo_RD_o      => s_slave_channel_event_id_lo_RD_o,
+      channel_event_id_lo_V_i(0)    => s_req_ack,
+      channel_event_id_lo_i         => s_req_dat,
+      channel_param_hi_RD_o         => s_slave_channel_param_hi_RD_o,
+      channel_param_hi_V_i(0)       => s_req_ack,
+      channel_param_hi_i            => s_req_dat,
+      channel_param_lo_RD_o         => s_slave_channel_param_lo_RD_o,
+      channel_param_lo_V_i(0)       => s_req_ack,
+      channel_param_lo_i            => s_req_dat,
+      channel_tag_RD_o              => s_slave_channel_tag_RD_o,
+      channel_tag_V_i(0)            => s_req_ack,
+      channel_tag_i                 => s_req_dat,
+      channel_tef_RD_o              => s_slave_channel_tef_RD_o,
+      channel_tef_V_i(0)            => s_req_ack,
+      channel_tef_i                 => s_req_dat,
+      channel_deadline_hi_RD_o      => s_slave_channel_deadline_hi_RD_o,
+      channel_deadline_hi_V_i(0)    => s_req_ack,
+      channel_deadline_hi_i         => s_req_dat,
+      channel_deadline_lo_RD_o      => s_slave_channel_deadline_lo_RD_o,
+      channel_deadline_lo_V_i(0)    => s_req_ack,
+      channel_deadline_lo_i         => s_req_dat,
+      channel_executed_hi_RD_o      => s_slave_channel_executed_hi_RD_o,
+      channel_executed_hi_V_i(0)    => s_req_ack,
+      channel_executed_hi_i         => s_req_dat,
+      channel_executed_lo_RD_o      => s_slave_channel_executed_lo_RD_o,
+      channel_executed_lo_V_i(0)    => s_req_ack,
+      channel_executed_lo_i         => s_req_dat,
+      slave_i                       => c_slave_i,
+      slave_o                       => c_slave_o);
+  
+  -- Simple fields
+  s_slave_channel_capacity_i <= std_logic_vector(to_unsigned(2**g_log_queue_size, 16));
+  
+  s_slave_channel_type_i <=
+    c_type_table(to_integer(unsigned(s_slave_channel_select_o)))
+    when f_eca_safe(s_slave_channel_select_o) = '1' else
+    (others => 'X');
+    
+  s_slave_channel_max_num_i <=
+    c_num_table(to_integer(unsigned(s_slave_channel_select_o)))
+    when f_eca_safe(s_slave_channel_select_o) = '1' else
+    (others => 'X');
+  
+  -- Arbitrate inputs, priority access goes to #0
+  sa_streams(g_num_streams).stb   <= '0';
+  sa_streams(g_num_streams).event <= (others => '-');
+  sa_streams(g_num_streams).param <= (others => '-');
+  sa_streams(g_num_streams).tef   <= (others => '-');
+  sa_streams(g_num_streams).time  <= (others => '-');
+  Sx : for s in 0 to g_num_streams-1 generate
+    sa_stalls(s+1)      <= a_stream_i(s).stb   or                              sa_stalls(s);
+    sa_streams(s).stb   <= a_stream_i(s).stb   or                              sa_streams(s+1).stb;
+    sa_streams(s).event <= a_stream_i(s).event when a_stream_i(s).stb='1' else sa_streams(s+1).event;
+    sa_streams(s).param <= a_stream_i(s).param when a_stream_i(s).stb='1' else sa_streams(s+1).param;
+    sa_streams(s).tef   <= a_stream_i(s).tef   when a_stream_i(s).stb='1' else sa_streams(s+1).tef;
+    sa_streams(s).time  <= a_stream_i(s).time  when a_stream_i(s).stb='1' else sa_streams(s+1).time;
+  end generate;
+  a_stall_o <= sa_stalls(a_stall_o'range);
   
   search : eca_search
     generic map(
       g_log_table_size => g_log_table_size)
     port map(
       clk_i      => a_clk_i,
-      rst_n_i    => ra0_cf_enabled,
-      
-      e_stb_i    => e_stb_i,
-      e_stall_o  => e_stall_o,
-      e_page_i   => ra0_cs_page,
-      e_event_i  => e_event_i,
-      e_param_i  => e_param_i,
-      e_tef_i    => e_tef_i,
-      e_time_i   => e_time_i,
-      
-      w_stb_o    => sa_sw_stb,
-      w_stall_i  => sa_ws_stall,
-      w_page_o   => sa_sw_page,
-      w_first_o  => sa_sw_first,
-      w1_event_o => sa_sw_event,
-      w1_param_o => sa_sw_param,
-      w1_tef_o   => sa_sw_tef,
-      w1_time_o  => sa_sw_time,
-      
-      t_clk_i    =>  c_clk_i,
-      t_page_i   => sc_cs_program_page,
-      t_addr_i   => rc_cs_addr,
-      tw_en_i    => rc_cs_wen,
-      tw_valid_i => rc_cs_valid,
-      tw_first_i => rc_cs_first,
-      tw_event_i => rc_cs_event,
-      tr_valid_o => sc_sc_valid,
-      tr_first_o => sc_sc_first,
-      tr_event_o => sc_sc_event);
+      rst_n_i    => a_rst_n_i,
+      e_stb_i    => sa_streams(0).stb,
+      e_stall_o  => sa_stalls(0),
+      e_page_i   => "not"(ra_page(0)),
+      e_event_i  => sa_streams(0).event,
+      e_param_i  => sa_streams(0).param,
+      e_tef_i    => sa_streams(0).tef,
+      e_time_i   => sa_streams(0).time,
+      w_stb_o    => s_sw_stb,
+      w_stall_i  => s_ws_stall,
+      w_page_o   => s_sw_page,
+      w_first_o  => s_sw_first,
+      w1_event_o => s_sw_event,
+      w1_param_o => s_sw_param,
+      w1_tef_o   => s_sw_tef,
+      w1_time_o  => s_sw_time,
+      t_clk_i    => c_clk_i,
+      t_page_i   => rc_page,
+      t_addr_i   => s_slave_search_select_o(g_log_table_size downto 0),
+      tw_en_i    => s_slave_search_write_o(0),
+      tw_valid_i => s_s_rw_valid,
+      tw_first_i => s_slave_search_rw_first_o(g_log_table_size-1 downto 0),
+      tw_event_i(63 downto 32) => s_slave_search_rw_event_hi_o,
+      tw_event_i(31 downto  0) => s_slave_search_rw_event_lo_o,
+      tr_valid_o => s_s_ro_valid,
+      tr_first_o => s_slave_search_ro_first_i(g_log_table_size-1 downto 0),
+      tr_event_o(63 downto 32) => s_slave_search_ro_event_hi_i,
+      tr_event_o(31 downto  0) => s_slave_search_ro_event_lo_i);
+  
+  s_s_rw_valid <= not s_slave_search_rw_first_o(s_slave_search_rw_first_o'high);
+  s_slave_search_ro_first_i(s_slave_search_ro_first_i'high downto g_log_table_size) <= (others => not s_s_ro_valid);
   
   walker : eca_walker
     generic map(
       g_log_table_size => g_log_table_size,
-      g_num_channels   => g_num_channels)
+      g_num_channels   => c_num_channels+1)
     port map(
-      clk_i        => a_clk_i,
-      rst_n_i      => ra0_cf_enabled,
-      time_Q_i     => ra_aq_time_Q,
-      
-      b_stb_i      => sa_sw_stb,
-      b_stall_o    => sa_ws_stall,
-      b_page_i     => sa_sw_page,
-      b_first_i    => sa_sw_first,
-      b1_event_i   => sa_sw_event,
-      b1_param_i   => sa_sw_param,
-      b1_tef_i     => sa_sw_tef,
-      b1_time_i    => sa_sw_time,
-      
-      q_channel_o  => sa_wq_channel,
-      q_full_i     => sa_qw_full,
-      q_freeze_i   => ra0_cq_freeze,
-      
-      t_clk_i      =>  c_clk_i,
-      t_page_i     => sc_cw_program_page,
-      t_addr_i     => rc_cw_addr,
-      tw_en_i      => rc_cw_wen,
-      tw_valid_i   => rc_cw_valid,
-      tw_next_i    => rc_cw_next,
-      tw_time_i    => rc_cw_time,
-      tw_tag_i     => rc_cw_tag,
-      tw_channel_i => rc_cw_channel,
-      tr_valid_o   => sc_wc_valid,
-      tr_next_o    => sc_wc_next,
-      tr_time_o    => sc_wc_time,
-      tr_tag_o     => sc_wc_tag,
-      tr_channel_o => sc_wc_channel);
+      clk_i         => a_clk_i,
+      rst_n_i       => a_rst_n_i,
+      b_stb_i       => s_sw_stb,
+      b_stall_o     => s_ws_stall,
+      b_page_i      => s_sw_page,
+      b_first_i     => s_sw_first,
+      b1_event_i    => s_sw_event,
+      b1_param_i    => s_sw_param,
+      b1_tef_i      => s_sw_tef,
+      b1_time_i     => s_sw_time,
+      q_channel_o   => s_wc_channels,
+      t_clk_i       => c_clk_i,
+      t_page_i      => rc_page,
+      t_addr_i      => s_slave_walker_select_o(g_log_table_size-1 downto 0),
+      tw_en_i       => s_slave_walker_write_o(0),
+      tw_valid_i    => s_w_rw_valid,
+      tw_delayed_i  => s_slave_walker_rw_flags_o(3),
+      tw_conflict_i => s_slave_walker_rw_flags_o(2),
+      tw_late_i     => s_slave_walker_rw_flags_o(0),
+      tw_early_i    => s_slave_walker_rw_flags_o(1),
+      tw_next_i     => s_slave_walker_rw_next_o(g_log_table_size-1 downto 0),
+      tw_time_i(63 downto 32) => s_slave_walker_rw_offset_hi_o,
+      tw_time_i(31 downto  0) => s_slave_walker_rw_offset_lo_o,
+      tw_tag_i      => s_slave_walker_rw_tag_o,
+      tw_num_i      => s_slave_walker_rw_num_o,
+      tw_channel_i  => s_slave_walker_rw_channel_o(c_channel_bits-1 downto 0),
+      tr_valid_o    => s_w_ro_valid,
+      tr_delayed_o  => s_slave_walker_ro_flags_i(3),
+      tr_conflict_o => s_slave_walker_ro_flags_i(2),
+      tr_late_o     => s_slave_walker_ro_flags_i(0),
+      tr_early_o    => s_slave_walker_ro_flags_i(1),
+      tr_next_o     => s_slave_walker_ro_next_i(g_log_table_size-1 downto 0),
+      tr_time_o(63 downto 32) => s_slave_walker_ro_offset_hi_i,
+      tr_time_o(31 downto  0) => s_slave_walker_ro_offset_lo_i,
+      tr_tag_o      => s_slave_walker_ro_tag_i,
+      tr_num_o      => s_slave_walker_ro_num_i,
+      tr_channel_o  => s_slave_walker_ro_channel_i(c_channel_bits-1 downto 0));
 
-  timeX : process(a_clk_i) is
+  s_w_rw_valid <= not s_slave_walker_rw_next_o(s_slave_walker_rw_next_o'high);
+  s_slave_walker_ro_next_i(s_slave_walker_ro_next_i'high downto g_log_table_size) <= (others => not s_w_ro_valid);
+  s_slave_walker_ro_channel_i(s_slave_walker_ro_channel_i'high downto c_channel_bits) <= (others => '0');
+  
+  -- Mapping corresponds to eca_channel.vhd description
+  s_req_fields( 0) <= s_slave_channel_event_id_hi_RD_o(0);
+  s_req_fields( 1) <= s_slave_channel_event_id_lo_RD_o(0);
+  s_req_fields( 2) <= s_slave_channel_param_hi_RD_o(0);
+  s_req_fields( 3) <= s_slave_channel_param_lo_RD_o(0);
+  s_req_fields( 4) <= s_slave_channel_tag_RD_o(0);
+  s_req_fields( 5) <= s_slave_channel_tef_RD_o(0);
+  s_req_fields( 6) <= s_slave_channel_deadline_hi_RD_o(0);
+  s_req_fields( 7) <= s_slave_channel_deadline_lo_RD_o(0);
+  s_req_fields( 8) <= s_slave_channel_executed_hi_RD_o(0);
+  s_req_fields( 9) <= s_slave_channel_executed_lo_RD_o(0);
+  s_req_fields(10) <= '0'; -- reserved
+  s_req_fields(11) <= s_slave_channel_failed_count_RD_o(0);
+  s_req_fields(12) <= s_slave_channel_valid_count_RD_o(0);
+  s_req_fields(13) <= s_slave_channel_overflow_count_RD_o(0);
+  s_req_fields(14) <= s_slave_channel_mostfull_ack_RD_o(0);
+  s_req_fields(15) <= s_slave_channel_mostfull_clear_RD_o(0);
+  
+  -- Did a channel request arrive channel?
+  s_req_field  <= f_eca_1hot_decode(s_req_fields);
+  s_req_stb    <= f_eca_or(s_req_fields);
+  
+  -- Combine results
+  s_req_ack <= f_eca_or(s_req_acks) or r_bad_ack;
+  s_req_dat <= s_req_dats(to_integer(unsigned(s_slave_channel_select_o))) when s_req_stb='1' else (others => 'X');
+  
+  -- Select correct channel
+  chan_select : for i in 0 to c_num_channels generate
+    s_req_stbs(i) <= f_eca_active_high(unsigned(s_slave_channel_select_o) = i) when s_req_stb='1' else '0';
+  end generate;
+  
+  io_channel : eca_channel
+    generic map(
+      g_support_io     => true,
+      g_never_delayed  => true,
+      g_num_channels   => g_num_ios,
+      g_log_size       => g_log_queue_size,
+      g_log_multiplier => g_log_multiplier,
+      g_log_max_delay  => g_log_max_delay,
+      g_log_latency    => g_log_latency,
+      g_log_counter    => g_log_counter)
+    port map(
+      clk_i       => a_clk_i,
+      rst_n_i     => a_rst_n_i,
+      time_i      => a_time_i,
+      overflow_o  => open,
+      channel_i   => s_wc_channels(0),
+      clr_i       => s_wc_channels(0).tag(0),
+      set_i       => s_wc_channels(0).tag(1),
+      stall_i     => '0',
+      channel_o   => open,
+      io_o        => a_io_o,
+      req_clk_i   => c_clk_i,
+      req_rst_n_i => c_rst_n_i,
+      req_stb_i   => s_req_stbs(0),
+      req_num_i   => s_slave_channel_num_select_o,
+      req_type_i  => s_slave_channel_code_select_o,
+      req_field_i => s_req_field,
+      req_valid_o => s_req_acks(0),
+      req_data_o  => s_req_dats(0),
+      msi_clk_i   => i_clk_i,
+      msi_rst_n_i => i_rst_n_i,
+      msi_ack_i   => s_msi_acks(0),
+      msi_stb_o   => s_msi_stbs(0),
+      msi_code_o  => s_msi_codes(0),
+      msi_num_o   => s_msi_nums(0));
+  
+  channels : for i in 1 to c_num_channels generate
+    tag_channel : eca_channel
+      generic map(
+        g_support_io     => false,
+        g_never_delayed  => false,
+        g_num_channels   => f_num(i-1),
+        g_log_size       => g_log_queue_size,
+        g_log_multiplier => g_log_multiplier,
+        g_log_max_delay  => g_log_max_delay,
+        g_log_latency    => g_log_latency,
+        g_log_counter    => g_log_counter)
+      port map(
+        clk_i       => a_clk_i,
+        rst_n_i     => a_rst_n_i,
+        time_i      => a_time_i,
+        overflow_o  => open,
+        channel_i   => s_wc_channels(i),
+        clr_i       => '0',
+        set_i       => '0',
+        stall_i     => a_stall_i  (f_i(i-1)),
+        channel_o   => a_channel_o(f_i(i-1)),
+        io_o        => open,
+        req_clk_i   => c_clk_i,
+        req_rst_n_i => c_rst_n_i,
+        req_stb_i   => s_req_stbs(i),
+        req_num_i   => s_slave_channel_num_select_o,
+        req_type_i  => s_slave_channel_code_select_o,
+        req_field_i => s_req_field,
+        req_valid_o => s_req_acks(i),
+        req_data_o  => s_req_dats(i),
+        msi_clk_i   => i_clk_i,
+        msi_rst_n_i => i_rst_n_i,
+        msi_ack_i   => s_msi_acks(i),
+        msi_stb_o   => s_msi_stbs(i),
+        msi_code_o  => s_msi_codes(i),
+        msi_num_o   => s_msi_nums(i));
+  end generate;
+  
+  msi : eca_msi
+    generic map(
+      g_num_channels => c_num_channels+1)
+    port map(
+      c_clk_i        => c_clk_i,
+      c_rst_n_i      => c_rst_n_i,
+      c_chan_i       => s_slave_channel_select_o,
+      c_enable_stb_i => s_slave_channel_msi_set_enable_WR_o(0),
+      c_enable_i     => s_slave_channel_msi_set_enable_o(0),
+      c_enable_o     => s_slave_channel_msi_get_enable_i(0),
+      c_target_stb_i => s_slave_channel_msi_set_target_WR_o(0),
+      c_target_i     => s_slave_channel_msi_set_target_o,
+      c_target_o     => s_slave_channel_msi_get_target_i,
+      c_stall_o      => s_slave_stall_i(0),
+      i_clk_i        => i_clk_i,
+      i_rst_n_i      => i_rst_n_i,
+      i_ack_o        => s_msi_acks,
+      i_stb_i        => s_msi_stbs,
+      i_code_i       => s_msi_codes,
+      i_num_i        => s_msi_nums,
+      i_master_i     => i_master_i,
+      i_master_o     => i_master_o);
+  
+  main : process(c_clk_i, c_rst_n_i) is
+  begin
+    if c_rst_n_i = '0' then
+      rc_page   <= '0';
+      r_bad_ack <= '0';
+      r_search_valid  <= (others => '0');
+      r_walker_valid  <= (others => '0');
+      r_channel_valid <= (others => '0');
+    elsif rising_edge(c_clk_i) then
+      rc_page   <= rc_page xor s_slave_flip_active_o(0);
+      r_bad_ack <= s_req_stb and f_eca_active_high(unsigned(s_slave_channel_select_o) > c_num_channels);
+      
+      -- Delay visibility of search_ro_* fields
+      if (s_slave_flip_active_o or s_slave_search_write_o or s_slave_search_select_WR_o) = "1" then
+        r_search_valid <= (others => '0');
+      else
+        r_search_valid <= '1' & r_search_valid(r_search_valid'high downto 1);
+      end if;
+    
+      -- Delay visibility of walker_ro_* fields
+      if (s_slave_flip_active_o or s_slave_walker_write_o or s_slave_walker_select_WR_o) = "1" then
+        r_walker_valid <= (others => '0');
+      else
+        r_walker_valid <= '1' & r_walker_valid(r_walker_valid'high downto 1);
+      end if;
+      
+      -- Delay visibility of channel status fields
+      if s_slave_channel_select_WR_o = "1" then
+        r_channel_valid <= (others => '0');
+      else
+        r_channel_valid <= '1' & r_channel_valid(r_channel_valid'high downto 1);
+      end if;
+    end if;
+  end process;
+  
+  bulk : process(c_clk_i) is
+  begin
+    if rising_edge(c_clk_i) then
+      rc_time_gray0 <= ra_time_gray;
+      rc_time_gray1 <= rc_time_gray0;
+      rc_time       <= f_eca_gray_decode(rc_time_gray1, 1);
+    end if;
+  end process;
+  
+  time : process(a_clk_i) is
   begin
     if rising_edge(a_clk_i) then
-      -- No reset; logic is acyclic
-      ra_aq_time_Q <= sa_aq_time_off;
+      ra_time      <= a_time_i;
+      ra_time_gray <= f_eca_gray_encode(ra_time);
+      ra_page      <= rc_page & ra_page(ra_page'high downto 1);
     end if;
   end process;
 
-  timeQ : eca_offset
-    generic map(
-      g_data_bits => 64,
-      g_parts     => 4,
-      g_offset    => 2**(g_log_queue_len+1))
-    port map(
-      clk_i  => a_clk_i,
-      a_i    => a_time_i,
-      c1_o   => open,
-      x2_o   => sa_aq_time_off,
-      c2_o   => open);
-  
-  channels : for channel_idx in 0 to g_num_channels-1 generate
-    channel : eca_channel
-      generic map(
-        g_channel_idx     => channel_idx,
-        g_log_table_size  => g_log_queue_len,
-        g_log_latency     => g_log_queue_len,
-        g_log_queue_depth => g_log_queue_len+1)
-      port map(
-        clk_i     =>  a_clk_i,
-        rst_n_i   =>  a_rst_n_i,
-        drain_i   => ra0_cq_drain (channel_idx),
-        freeze_i  => ra0_cq_freeze(channel_idx),
-        eca_idx_i => rc_ce_idx,   -- crosses clock domains, but held stable
-        addr_i    => rc_cq_index, -- crosses clock domains, but held stable
-        fill_o    => sa_qc_fill   (channel_idx),
-        full_o    => sa_qw_full   (channel_idx),
-        time_i    =>  a_time_i,
-        time_Q_i  => ra_aq_time_Q,
-        channel_i => sa_wq_channel(channel_idx),
-        channel_o => sa_qc_channel(channel_idx),
-        inspect_o => sa_qc_inspect(channel_idx));
-  end generate;
-  
-  a_channel_o <= sa_qc_channel;
-  
 end rtl;

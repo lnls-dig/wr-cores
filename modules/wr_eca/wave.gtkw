@@ -1,0 +1,127 @@
+[*]
+[*] GTKWave Analyzer v3.3.62 (w)1999-2014 BSI
+[*] Thu Mar 24 17:19:11 2016
+[*]
+[dumpfile] "/home/terpstra/bel_projects/ip_cores/wr-cores/modules/wr_eca/testbench.ghw"
+[dumpfile_mtime] "Thu Mar 24 17:17:25 2016"
+[dumpfile_size] 220998351
+[savefile] "/home/terpstra/bel_projects/ip_cores/wr-cores/modules/wr_eca/wave.gtkw"
+[timestart] 11187000000
+[size] 2560 1384
+[pos] 0 313
+*-27.850761 12368000000 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+[treeopen] top.
+[treeopen] top.eca_tb.
+[treeopen] top.eca_tb.chan2.
+[treeopen] top.eca_tb.chan2.channel.
+[treeopen] top.eca_tb.chan2.channel.channel.channel_o.
+[treeopen] top.eca_tb.chan2.channel.channel.snoop_o.
+[treeopen] top.eca_tb.chan2.channel.channel_i.
+[treeopen] top.eca_tb.chan2.channel.channel_o.
+[treeopen] top.eca_tb.chan2.channel.s_snoop.
+[treeopen] top.eca_tb.chan2.channel.valid.
+[treeopen] top.eca_tb.comp1.sort.
+[treeopen] top.eca_tb.compf.sort.
+[treeopen] top.eca_tb.piso2.fifo.
+[treeopen] top.eca_tb.piso2.fifo.[0].bank.
+[treeopen] top.eca_tb.piso2.fifo.[1].bank.
+[treeopen] top.eca_tb.piso2.fifo.[2].bank.
+[treeopen] top.eca_tb.piso2.fifo.[3].bank.
+[treeopen] top.eca_tb.rmw2.rmw.
+[treeopen] top.eca_tb.tag3.channel.
+[treeopen] top.eca_tb.tag3.channel.[0].
+[treeopen] top.eca_tb.tag3.channel.[1].
+[treeopen] top.eca_tb.tag3.channel.[2].
+[treeopen] top.eca_tb.tag3.channel.[3].bl.
+[treeopen] top.eca_tb.tag3.channel.channel_o.
+[treeopen] top.eca_tb.tag3.channel.snoop_o.
+[sst_width] 261
+[signals_width] 306
+[sst_expanded] 1
+[sst_vpaned_height] 823
+@28
+top.eca_tb.rstn
+top.eca_tb.clk
+top.eca_tb.chan2.channel.overflow_o
+top.eca_tb.chan2.channel.channel_i.valid
+@22
+#{top.eca_tb.chan2.channel.s_snoop.event[63:0]} top.eca_tb.chan2.channel.s_snoop.event[63] top.eca_tb.chan2.channel.s_snoop.event[62] top.eca_tb.chan2.channel.s_snoop.event[61] top.eca_tb.chan2.channel.s_snoop.event[60] top.eca_tb.chan2.channel.s_snoop.event[59] top.eca_tb.chan2.channel.s_snoop.event[58] top.eca_tb.chan2.channel.s_snoop.event[57] top.eca_tb.chan2.channel.s_snoop.event[56] top.eca_tb.chan2.channel.s_snoop.event[55] top.eca_tb.chan2.channel.s_snoop.event[54] top.eca_tb.chan2.channel.s_snoop.event[53] top.eca_tb.chan2.channel.s_snoop.event[52] top.eca_tb.chan2.channel.s_snoop.event[51] top.eca_tb.chan2.channel.s_snoop.event[50] top.eca_tb.chan2.channel.s_snoop.event[49] top.eca_tb.chan2.channel.s_snoop.event[48] top.eca_tb.chan2.channel.s_snoop.event[47] top.eca_tb.chan2.channel.s_snoop.event[46] top.eca_tb.chan2.channel.s_snoop.event[45] top.eca_tb.chan2.channel.s_snoop.event[44] top.eca_tb.chan2.channel.s_snoop.event[43] top.eca_tb.chan2.channel.s_snoop.event[42] top.eca_tb.chan2.channel.s_snoop.event[41] top.eca_tb.chan2.channel.s_snoop.event[40] top.eca_tb.chan2.channel.s_snoop.event[39] top.eca_tb.chan2.channel.s_snoop.event[38] top.eca_tb.chan2.channel.s_snoop.event[37] top.eca_tb.chan2.channel.s_snoop.event[36] top.eca_tb.chan2.channel.s_snoop.event[35] top.eca_tb.chan2.channel.s_snoop.event[34] top.eca_tb.chan2.channel.s_snoop.event[33] top.eca_tb.chan2.channel.s_snoop.event[32] top.eca_tb.chan2.channel.s_snoop.event[31] top.eca_tb.chan2.channel.s_snoop.event[30] top.eca_tb.chan2.channel.s_snoop.event[29] top.eca_tb.chan2.channel.s_snoop.event[28] top.eca_tb.chan2.channel.s_snoop.event[27] top.eca_tb.chan2.channel.s_snoop.event[26] top.eca_tb.chan2.channel.s_snoop.event[25] top.eca_tb.chan2.channel.s_snoop.event[24] top.eca_tb.chan2.channel.s_snoop.event[23] top.eca_tb.chan2.channel.s_snoop.event[22] top.eca_tb.chan2.channel.s_snoop.event[21] top.eca_tb.chan2.channel.s_snoop.event[20] top.eca_tb.chan2.channel.s_snoop.event[19] top.eca_tb.chan2.channel.s_snoop.event[18] top.eca_tb.chan2.channel.s_snoop.event[17] top.eca_tb.chan2.channel.s_snoop.event[16] top.eca_tb.chan2.channel.s_snoop.event[15] top.eca_tb.chan2.channel.s_snoop.event[14] top.eca_tb.chan2.channel.s_snoop.event[13] top.eca_tb.chan2.channel.s_snoop.event[12] top.eca_tb.chan2.channel.s_snoop.event[11] top.eca_tb.chan2.channel.s_snoop.event[10] top.eca_tb.chan2.channel.s_snoop.event[9] top.eca_tb.chan2.channel.s_snoop.event[8] top.eca_tb.chan2.channel.s_snoop.event[7] top.eca_tb.chan2.channel.s_snoop.event[6] top.eca_tb.chan2.channel.s_snoop.event[5] top.eca_tb.chan2.channel.s_snoop.event[4] top.eca_tb.chan2.channel.s_snoop.event[3] top.eca_tb.chan2.channel.s_snoop.event[2] top.eca_tb.chan2.channel.s_snoop.event[1] top.eca_tb.chan2.channel.s_snoop.event[0]
+#{top.eca_tb.chan2.channel.channel_o.param[63:0]} top.eca_tb.chan2.channel.channel_o.param[63] top.eca_tb.chan2.channel.channel_o.param[62] top.eca_tb.chan2.channel.channel_o.param[61] top.eca_tb.chan2.channel.channel_o.param[60] top.eca_tb.chan2.channel.channel_o.param[59] top.eca_tb.chan2.channel.channel_o.param[58] top.eca_tb.chan2.channel.channel_o.param[57] top.eca_tb.chan2.channel.channel_o.param[56] top.eca_tb.chan2.channel.channel_o.param[55] top.eca_tb.chan2.channel.channel_o.param[54] top.eca_tb.chan2.channel.channel_o.param[53] top.eca_tb.chan2.channel.channel_o.param[52] top.eca_tb.chan2.channel.channel_o.param[51] top.eca_tb.chan2.channel.channel_o.param[50] top.eca_tb.chan2.channel.channel_o.param[49] top.eca_tb.chan2.channel.channel_o.param[48] top.eca_tb.chan2.channel.channel_o.param[47] top.eca_tb.chan2.channel.channel_o.param[46] top.eca_tb.chan2.channel.channel_o.param[45] top.eca_tb.chan2.channel.channel_o.param[44] top.eca_tb.chan2.channel.channel_o.param[43] top.eca_tb.chan2.channel.channel_o.param[42] top.eca_tb.chan2.channel.channel_o.param[41] top.eca_tb.chan2.channel.channel_o.param[40] top.eca_tb.chan2.channel.channel_o.param[39] top.eca_tb.chan2.channel.channel_o.param[38] top.eca_tb.chan2.channel.channel_o.param[37] top.eca_tb.chan2.channel.channel_o.param[36] top.eca_tb.chan2.channel.channel_o.param[35] top.eca_tb.chan2.channel.channel_o.param[34] top.eca_tb.chan2.channel.channel_o.param[33] top.eca_tb.chan2.channel.channel_o.param[32] top.eca_tb.chan2.channel.channel_o.param[31] top.eca_tb.chan2.channel.channel_o.param[30] top.eca_tb.chan2.channel.channel_o.param[29] top.eca_tb.chan2.channel.channel_o.param[28] top.eca_tb.chan2.channel.channel_o.param[27] top.eca_tb.chan2.channel.channel_o.param[26] top.eca_tb.chan2.channel.channel_o.param[25] top.eca_tb.chan2.channel.channel_o.param[24] top.eca_tb.chan2.channel.channel_o.param[23] top.eca_tb.chan2.channel.channel_o.param[22] top.eca_tb.chan2.channel.channel_o.param[21] top.eca_tb.chan2.channel.channel_o.param[20] top.eca_tb.chan2.channel.channel_o.param[19] top.eca_tb.chan2.channel.channel_o.param[18] top.eca_tb.chan2.channel.channel_o.param[17] top.eca_tb.chan2.channel.channel_o.param[16] top.eca_tb.chan2.channel.channel_o.param[15] top.eca_tb.chan2.channel.channel_o.param[14] top.eca_tb.chan2.channel.channel_o.param[13] top.eca_tb.chan2.channel.channel_o.param[12] top.eca_tb.chan2.channel.channel_o.param[11] top.eca_tb.chan2.channel.channel_o.param[10] top.eca_tb.chan2.channel.channel_o.param[9] top.eca_tb.chan2.channel.channel_o.param[8] top.eca_tb.chan2.channel.channel_o.param[7] top.eca_tb.chan2.channel.channel_o.param[6] top.eca_tb.chan2.channel.channel_o.param[5] top.eca_tb.chan2.channel.channel_o.param[4] top.eca_tb.chan2.channel.channel_o.param[3] top.eca_tb.chan2.channel.channel_o.param[2] top.eca_tb.chan2.channel.channel_o.param[1] top.eca_tb.chan2.channel.channel_o.param[0]
+@c00022
+#{top.eca_tb.chan2.channel.channel_o.tag[31:0]} top.eca_tb.chan2.channel.channel_o.tag[31] top.eca_tb.chan2.channel.channel_o.tag[30] top.eca_tb.chan2.channel.channel_o.tag[29] top.eca_tb.chan2.channel.channel_o.tag[28] top.eca_tb.chan2.channel.channel_o.tag[27] top.eca_tb.chan2.channel.channel_o.tag[26] top.eca_tb.chan2.channel.channel_o.tag[25] top.eca_tb.chan2.channel.channel_o.tag[24] top.eca_tb.chan2.channel.channel_o.tag[23] top.eca_tb.chan2.channel.channel_o.tag[22] top.eca_tb.chan2.channel.channel_o.tag[21] top.eca_tb.chan2.channel.channel_o.tag[20] top.eca_tb.chan2.channel.channel_o.tag[19] top.eca_tb.chan2.channel.channel_o.tag[18] top.eca_tb.chan2.channel.channel_o.tag[17] top.eca_tb.chan2.channel.channel_o.tag[16] top.eca_tb.chan2.channel.channel_o.tag[15] top.eca_tb.chan2.channel.channel_o.tag[14] top.eca_tb.chan2.channel.channel_o.tag[13] top.eca_tb.chan2.channel.channel_o.tag[12] top.eca_tb.chan2.channel.channel_o.tag[11] top.eca_tb.chan2.channel.channel_o.tag[10] top.eca_tb.chan2.channel.channel_o.tag[9] top.eca_tb.chan2.channel.channel_o.tag[8] top.eca_tb.chan2.channel.channel_o.tag[7] top.eca_tb.chan2.channel.channel_o.tag[6] top.eca_tb.chan2.channel.channel_o.tag[5] top.eca_tb.chan2.channel.channel_o.tag[4] top.eca_tb.chan2.channel.channel_o.tag[3] top.eca_tb.chan2.channel.channel_o.tag[2] top.eca_tb.chan2.channel.channel_o.tag[1] top.eca_tb.chan2.channel.channel_o.tag[0]
+@28
+top.eca_tb.chan2.channel.channel_o.tag[31]
+top.eca_tb.chan2.channel.channel_o.tag[30]
+top.eca_tb.chan2.channel.channel_o.tag[29]
+top.eca_tb.chan2.channel.channel_o.tag[28]
+top.eca_tb.chan2.channel.channel_o.tag[27]
+top.eca_tb.chan2.channel.channel_o.tag[26]
+top.eca_tb.chan2.channel.channel_o.tag[25]
+top.eca_tb.chan2.channel.channel_o.tag[24]
+top.eca_tb.chan2.channel.channel_o.tag[23]
+top.eca_tb.chan2.channel.channel_o.tag[22]
+top.eca_tb.chan2.channel.channel_o.tag[21]
+top.eca_tb.chan2.channel.channel_o.tag[20]
+top.eca_tb.chan2.channel.channel_o.tag[19]
+top.eca_tb.chan2.channel.channel_o.tag[18]
+top.eca_tb.chan2.channel.channel_o.tag[17]
+top.eca_tb.chan2.channel.channel_o.tag[16]
+top.eca_tb.chan2.channel.channel_o.tag[15]
+top.eca_tb.chan2.channel.channel_o.tag[14]
+top.eca_tb.chan2.channel.channel_o.tag[13]
+top.eca_tb.chan2.channel.channel_o.tag[12]
+top.eca_tb.chan2.channel.channel_o.tag[11]
+top.eca_tb.chan2.channel.channel_o.tag[10]
+top.eca_tb.chan2.channel.channel_o.tag[9]
+top.eca_tb.chan2.channel.channel_o.tag[8]
+top.eca_tb.chan2.channel.channel_o.tag[7]
+top.eca_tb.chan2.channel.channel_o.tag[6]
+top.eca_tb.chan2.channel.channel_o.tag[5]
+top.eca_tb.chan2.channel.channel_o.tag[4]
+top.eca_tb.chan2.channel.channel_o.tag[3]
+top.eca_tb.chan2.channel.channel_o.tag[2]
+top.eca_tb.chan2.channel.channel_o.tag[1]
+top.eca_tb.chan2.channel.channel_o.tag[0]
+@1401200
+-group_end
+@22
+#{top.eca_tb.chan2.channel.channel_o.tef[31:0]} top.eca_tb.chan2.channel.channel_o.tef[31] top.eca_tb.chan2.channel.channel_o.tef[30] top.eca_tb.chan2.channel.channel_o.tef[29] top.eca_tb.chan2.channel.channel_o.tef[28] top.eca_tb.chan2.channel.channel_o.tef[27] top.eca_tb.chan2.channel.channel_o.tef[26] top.eca_tb.chan2.channel.channel_o.tef[25] top.eca_tb.chan2.channel.channel_o.tef[24] top.eca_tb.chan2.channel.channel_o.tef[23] top.eca_tb.chan2.channel.channel_o.tef[22] top.eca_tb.chan2.channel.channel_o.tef[21] top.eca_tb.chan2.channel.channel_o.tef[20] top.eca_tb.chan2.channel.channel_o.tef[19] top.eca_tb.chan2.channel.channel_o.tef[18] top.eca_tb.chan2.channel.channel_o.tef[17] top.eca_tb.chan2.channel.channel_o.tef[16] top.eca_tb.chan2.channel.channel_o.tef[15] top.eca_tb.chan2.channel.channel_o.tef[14] top.eca_tb.chan2.channel.channel_o.tef[13] top.eca_tb.chan2.channel.channel_o.tef[12] top.eca_tb.chan2.channel.channel_o.tef[11] top.eca_tb.chan2.channel.channel_o.tef[10] top.eca_tb.chan2.channel.channel_o.tef[9] top.eca_tb.chan2.channel.channel_o.tef[8] top.eca_tb.chan2.channel.channel_o.tef[7] top.eca_tb.chan2.channel.channel_o.tef[6] top.eca_tb.chan2.channel.channel_o.tef[5] top.eca_tb.chan2.channel.channel_o.tef[4] top.eca_tb.chan2.channel.channel_o.tef[3] top.eca_tb.chan2.channel.channel_o.tef[2] top.eca_tb.chan2.channel.channel_o.tef[1] top.eca_tb.chan2.channel.channel_o.tef[0]
+#{top.eca_tb.chan2.channel.channel_o.time[63:0]} top.eca_tb.chan2.channel.channel_o.time[63] top.eca_tb.chan2.channel.channel_o.time[62] top.eca_tb.chan2.channel.channel_o.time[61] top.eca_tb.chan2.channel.channel_o.time[60] top.eca_tb.chan2.channel.channel_o.time[59] top.eca_tb.chan2.channel.channel_o.time[58] top.eca_tb.chan2.channel.channel_o.time[57] top.eca_tb.chan2.channel.channel_o.time[56] top.eca_tb.chan2.channel.channel_o.time[55] top.eca_tb.chan2.channel.channel_o.time[54] top.eca_tb.chan2.channel.channel_o.time[53] top.eca_tb.chan2.channel.channel_o.time[52] top.eca_tb.chan2.channel.channel_o.time[51] top.eca_tb.chan2.channel.channel_o.time[50] top.eca_tb.chan2.channel.channel_o.time[49] top.eca_tb.chan2.channel.channel_o.time[48] top.eca_tb.chan2.channel.channel_o.time[47] top.eca_tb.chan2.channel.channel_o.time[46] top.eca_tb.chan2.channel.channel_o.time[45] top.eca_tb.chan2.channel.channel_o.time[44] top.eca_tb.chan2.channel.channel_o.time[43] top.eca_tb.chan2.channel.channel_o.time[42] top.eca_tb.chan2.channel.channel_o.time[41] top.eca_tb.chan2.channel.channel_o.time[40] top.eca_tb.chan2.channel.channel_o.time[39] top.eca_tb.chan2.channel.channel_o.time[38] top.eca_tb.chan2.channel.channel_o.time[37] top.eca_tb.chan2.channel.channel_o.time[36] top.eca_tb.chan2.channel.channel_o.time[35] top.eca_tb.chan2.channel.channel_o.time[34] top.eca_tb.chan2.channel.channel_o.time[33] top.eca_tb.chan2.channel.channel_o.time[32] top.eca_tb.chan2.channel.channel_o.time[31] top.eca_tb.chan2.channel.channel_o.time[30] top.eca_tb.chan2.channel.channel_o.time[29] top.eca_tb.chan2.channel.channel_o.time[28] top.eca_tb.chan2.channel.channel_o.time[27] top.eca_tb.chan2.channel.channel_o.time[26] top.eca_tb.chan2.channel.channel_o.time[25] top.eca_tb.chan2.channel.channel_o.time[24] top.eca_tb.chan2.channel.channel_o.time[23] top.eca_tb.chan2.channel.channel_o.time[22] top.eca_tb.chan2.channel.channel_o.time[21] top.eca_tb.chan2.channel.channel_o.time[20] top.eca_tb.chan2.channel.channel_o.time[19] top.eca_tb.chan2.channel.channel_o.time[18] top.eca_tb.chan2.channel.channel_o.time[17] top.eca_tb.chan2.channel.channel_o.time[16] top.eca_tb.chan2.channel.channel_o.time[15] top.eca_tb.chan2.channel.channel_o.time[14] top.eca_tb.chan2.channel.channel_o.time[13] top.eca_tb.chan2.channel.channel_o.time[12] top.eca_tb.chan2.channel.channel_o.time[11] top.eca_tb.chan2.channel.channel_o.time[10] top.eca_tb.chan2.channel.channel_o.time[9] top.eca_tb.chan2.channel.channel_o.time[8] top.eca_tb.chan2.channel.channel_o.time[7] top.eca_tb.chan2.channel.channel_o.time[6] top.eca_tb.chan2.channel.channel_o.time[5] top.eca_tb.chan2.channel.channel_o.time[4] top.eca_tb.chan2.channel.channel_o.time[3] top.eca_tb.chan2.channel.channel_o.time[2] top.eca_tb.chan2.channel.channel_o.time[1] top.eca_tb.chan2.channel.channel_o.time[0]
+#{top.eca_tb.chan2.channel.channel.index_o[3:0]} top.eca_tb.chan2.channel.channel.index_o[3] top.eca_tb.chan2.channel.channel.index_o[2] top.eca_tb.chan2.channel.channel.index_o[1] top.eca_tb.chan2.channel.channel.index_o[0]
+@28
+[color] 2
+top.eca_tb.chan2.channel.channel_o.early
+[color] 2
+top.eca_tb.chan2.channel.channel_o.late
+[color] 2
+top.eca_tb.chan2.channel.channel_o.conflict
+[color] 2
+top.eca_tb.chan2.channel.channel_o.delayed
+[color] 3
+top.eca_tb.chan2.channel.channel_o.valid
+top.eca_tb.chan2.channel.req_stb_i
+top.eca_tb.chan2.channel.req_num_i[0]
+#{top.eca_tb.chan2.channel.req_type_i[1:0]} top.eca_tb.chan2.channel.req_type_i[1] top.eca_tb.chan2.channel.req_type_i[0]
+@c00022
+#{top.eca_tb.chan2.channel.req_field_i[3:0]} top.eca_tb.chan2.channel.req_field_i[3] top.eca_tb.chan2.channel.req_field_i[2] top.eca_tb.chan2.channel.req_field_i[1] top.eca_tb.chan2.channel.req_field_i[0]
+@28
+top.eca_tb.chan2.channel.req_field_i[3]
+top.eca_tb.chan2.channel.req_field_i[2]
+top.eca_tb.chan2.channel.req_field_i[1]
+top.eca_tb.chan2.channel.req_field_i[0]
+@1401200
+-group_end
+@28
+top.eca_tb.chan2.channel.req_clear_i
+top.eca_tb.chan2.channel.req_final_i
+top.eca_tb.chan2.channel.req_valid_o
+@22
+#{top.eca_tb.chan2.channel.req_data_o[31:0]} top.eca_tb.chan2.channel.req_data_o[31] top.eca_tb.chan2.channel.req_data_o[30] top.eca_tb.chan2.channel.req_data_o[29] top.eca_tb.chan2.channel.req_data_o[28] top.eca_tb.chan2.channel.req_data_o[27] top.eca_tb.chan2.channel.req_data_o[26] top.eca_tb.chan2.channel.req_data_o[25] top.eca_tb.chan2.channel.req_data_o[24] top.eca_tb.chan2.channel.req_data_o[23] top.eca_tb.chan2.channel.req_data_o[22] top.eca_tb.chan2.channel.req_data_o[21] top.eca_tb.chan2.channel.req_data_o[20] top.eca_tb.chan2.channel.req_data_o[19] top.eca_tb.chan2.channel.req_data_o[18] top.eca_tb.chan2.channel.req_data_o[17] top.eca_tb.chan2.channel.req_data_o[16] top.eca_tb.chan2.channel.req_data_o[15] top.eca_tb.chan2.channel.req_data_o[14] top.eca_tb.chan2.channel.req_data_o[13] top.eca_tb.chan2.channel.req_data_o[12] top.eca_tb.chan2.channel.req_data_o[11] top.eca_tb.chan2.channel.req_data_o[10] top.eca_tb.chan2.channel.req_data_o[9] top.eca_tb.chan2.channel.req_data_o[8] top.eca_tb.chan2.channel.req_data_o[7] top.eca_tb.chan2.channel.req_data_o[6] top.eca_tb.chan2.channel.req_data_o[5] top.eca_tb.chan2.channel.req_data_o[4] top.eca_tb.chan2.channel.req_data_o[3] top.eca_tb.chan2.channel.req_data_o[2] top.eca_tb.chan2.channel.req_data_o[1] top.eca_tb.chan2.channel.req_data_o[0]
+@28
+top.eca_tb.chan2.channel.msi_stb_o
+@22
+#{top.eca_tb.chan2.channel.msi_dat_o[15:0]} top.eca_tb.chan2.channel.msi_dat_o[15] top.eca_tb.chan2.channel.msi_dat_o[14] top.eca_tb.chan2.channel.msi_dat_o[13] top.eca_tb.chan2.channel.msi_dat_o[12] top.eca_tb.chan2.channel.msi_dat_o[11] top.eca_tb.chan2.channel.msi_dat_o[10] top.eca_tb.chan2.channel.msi_dat_o[9] top.eca_tb.chan2.channel.msi_dat_o[8] top.eca_tb.chan2.channel.msi_dat_o[7] top.eca_tb.chan2.channel.msi_dat_o[6] top.eca_tb.chan2.channel.msi_dat_o[5] top.eca_tb.chan2.channel.msi_dat_o[4] top.eca_tb.chan2.channel.msi_dat_o[3] top.eca_tb.chan2.channel.msi_dat_o[2] top.eca_tb.chan2.channel.msi_dat_o[1] top.eca_tb.chan2.channel.msi_dat_o[0]
+@28
+top.eca_tb.chan2.channel.msi_ack_i
+[pattern_trace] 1
+[pattern_trace] 0
