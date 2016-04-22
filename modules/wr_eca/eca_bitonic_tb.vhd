@@ -36,6 +36,9 @@ entity eca_bitonic_tb is
 end eca_bitonic_tb;
 
 architecture rtl of eca_bitonic_tb is
+  -- Out of principle, tell quartus to leave my design alone.
+  attribute altera_attribute : string; 
+  attribute altera_attribute of rtl : architecture is "-name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
 
   constant c_size : natural := g_case;
   constant c_full : natural := 2**c_size;

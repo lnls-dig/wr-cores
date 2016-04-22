@@ -42,6 +42,9 @@ entity eca_data is
 end eca_data;
 
 architecture rtl of eca_data is
+  -- Quartus 11+ goes crazy and infers 7 M9Ks in an altshift_taps! Stop it.
+  attribute altera_attribute : string; 
+  attribute altera_attribute of rtl : architecture is "-name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
 
   constant c_conflict : natural := 0;
   constant c_late     : natural := c_conflict+1;

@@ -46,6 +46,9 @@ entity eca_tlu_fsm is
 end eca_tlu_fsm;
 
 architecture rtl of eca_tlu_fsm is
+  -- Quartus 11+ goes crazy and infers 7 M9Ks in an altshift_taps! Stop it.
+  attribute altera_attribute : string; 
+  attribute altera_attribute of rtl : architecture is "-name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
 
   constant c_increment_bits : natural := f_eca_log2(g_serdes+1);
   constant c_history_bits   : natural := f_eca_log2(g_history);

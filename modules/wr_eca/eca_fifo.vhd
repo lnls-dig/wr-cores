@@ -46,6 +46,9 @@ entity eca_fifo is
 end eca_fifo;
 
 architecture rtl of eca_fifo is
+  -- Quartus 11+ goes crazy and infers 7 M9Ks in an altshift_taps! Stop it.
+  attribute altera_attribute : string; 
+  attribute altera_attribute of rtl : architecture is "-name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
 
   constant c_low  : unsigned(g_log_size-1 downto 0) := (others => '0');
   constant c_high : unsigned(g_log_size   downto 0) := '1' & c_low;

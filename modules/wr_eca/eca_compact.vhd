@@ -44,6 +44,9 @@ entity eca_compact is
 end eca_compact;
 
 architecture rtl of eca_compact is
+  -- Quartus 11+ goes crazy and infers 7 M9Ks in an altshift_taps! Stop it.
+  attribute altera_attribute : string; 
+  attribute altera_attribute of rtl : architecture is "-name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
 
   -- result(i) := xor_{j in 0 to i} x(j)
   -- latency O(log n), area = O(n)

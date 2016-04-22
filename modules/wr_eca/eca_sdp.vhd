@@ -49,6 +49,9 @@ entity eca_sdp is
 end eca_sdp;
 
 architecture rtl of eca_sdp is
+  -- Quartus 11+ goes crazy and infers 7 M9Ks in an altshift_taps! Stop it.
+  attribute altera_attribute : string; 
+  attribute altera_attribute of rtl : architecture is "-name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
 
   constant c_depth : natural := 2**g_addr_bits;
   

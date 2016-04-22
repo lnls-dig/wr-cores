@@ -45,6 +45,9 @@ entity eca_piso_fifo is
 end eca_piso_fifo;
 
 architecture rtl of eca_piso_fifo is
+  -- Quartus 11+ goes crazy and infers 7 M9Ks in an altshift_taps! Stop it.
+  attribute altera_attribute : string; 
+  attribute altera_attribute of rtl : architecture is "-name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
 
   -- Deal with a fifo smaller than it is wide by rounding up
   function f_sub_min1(x, y : natural) return natural is

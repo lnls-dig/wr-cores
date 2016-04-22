@@ -42,6 +42,10 @@ entity eca_bitonic_helper is
 end eca_bitonic_helper;
 
 architecture rtl of eca_bitonic_helper is
+  -- Quartus 11+ goes crazy and infers 7 M9Ks in an altshift_taps! Stop it.
+  attribute altera_attribute : string; 
+  attribute altera_attribute of rtl : architecture is "-name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
+  
   constant c_log_size1 : natural := g_log_size - 1;
   constant c_full      : natural := 2**g_log_size;
   constant c_half      : natural := 2**c_log_size1;

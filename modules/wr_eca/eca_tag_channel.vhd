@@ -63,6 +63,9 @@ entity eca_tag_channel is
 end eca_tag_channel;
 
 architecture rtl of eca_tag_channel is
+  -- Quartus 11+ goes crazy and infers 7 M9Ks in an altshift_taps! Stop it.
+  attribute altera_attribute : string; 
+  attribute altera_attribute of rtl : architecture is "-name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
 
   constant c_log_channels  : natural := f_eca_log2(g_num_channels);
   constant c_log_cal_size  : natural := g_log_latency - g_log_multiplier;

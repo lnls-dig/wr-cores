@@ -62,6 +62,9 @@ end eca_rmw;
 --   A0-read, A0-write, B0-read, B0-write, B1-read, B1-write
 
 architecture rtl of eca_rmw is
+  -- Quartus 11+ goes crazy and infers 7 M9Ks in an altshift_taps! Stop it.
+  attribute altera_attribute : string; 
+  attribute altera_attribute of rtl : architecture is "-name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
 
   signal s_q0_addr : std_logic_vector(g_addr_bits-1 downto 0);
   signal s_q1_addr : std_logic_vector(g_addr_bits-1 downto 0);

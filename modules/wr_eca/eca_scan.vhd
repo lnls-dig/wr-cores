@@ -59,6 +59,9 @@ entity eca_scan is
 end eca_scan;
 
 architecture rtl of eca_scan is
+  -- Quartus 11+ goes crazy and infers 7 M9Ks in an altshift_taps! Stop it.
+  attribute altera_attribute : string; 
+  attribute altera_attribute of rtl : architecture is "-name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
 
   constant c_log_count : natural := g_log_max_delay - g_log_latency;
   constant c_multiplier1_bits : std_logic_vector(g_log_multiplier downto 0) := (others => '0');

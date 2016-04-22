@@ -43,6 +43,9 @@ entity eca_free is
 end eca_free;
 
 architecture rtl of eca_free is
+  -- Quartus 11+ goes crazy and infers 7 M9Ks in an altshift_taps! Stop it.
+  attribute altera_attribute : string; 
+  attribute altera_attribute of rtl : architecture is "-name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
 
   constant c_zero : std_logic_vector(g_log_size-1 downto 0) := (others => '0');
 

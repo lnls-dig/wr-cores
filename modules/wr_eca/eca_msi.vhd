@@ -55,6 +55,9 @@ entity eca_msi is
 end eca_msi;
 
 architecture rtl of eca_msi is
+  -- Quartus 11+ goes crazy and infers 7 M9Ks in an altshift_taps! Stop it.
+  attribute altera_attribute : string; 
+  attribute altera_attribute of rtl : architecture is "-name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
 
   constant c_chan_bits : natural := f_eca_log2(g_num_channels);
   constant c_zero      : std_logic_vector(g_num_channels-1 downto 0) := (others => '0');

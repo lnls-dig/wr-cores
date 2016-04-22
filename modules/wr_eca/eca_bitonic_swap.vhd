@@ -43,6 +43,9 @@ entity eca_bitonic_swap is
 end eca_bitonic_swap;
 
 architecture rtl of eca_bitonic_swap is
+  -- Quartus 11+ goes crazy and infers 7 M9Ks in an altshift_taps! Stop it.
+  attribute altera_attribute : string; 
+  attribute altera_attribute of rtl : architecture is "-name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
 
   signal r_a, r_b : std_logic_vector(g_wide-1 downto 0) := (others => '0');
   signal s_flip : boolean;

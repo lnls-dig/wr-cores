@@ -66,6 +66,9 @@ entity wr_eca is
 end wr_eca;
 
 architecture rtl of wr_eca is
+  -- Quartus 11+ goes crazy and infers 7 M9Ks in an altshift_taps! Stop it.
+  attribute altera_attribute : string; 
+  attribute altera_attribute of rtl : architecture is "-name AUTO_SHIFT_REGISTER_RECOGNITION OFF";
 
   signal sa_time : t_time;
   signal sa_io   : t_eca_matrix(g_num_ios-1 downto 0, 7 downto 0);
