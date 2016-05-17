@@ -535,7 +535,6 @@ begin  -- rtl
   aligner_sample_valid(g_num_outputs-1 downto 0) <= (others => '0');
   
   gen_without_ext_clock_input : if(not g_with_ext_clock_input) generate
-    tags_p(g_num_ref_inputs + g_num_outputs) <= '0';
     regs_out.eccr_ext_supported_i            <= '0';
     regs_out.eccr_ext_ref_locked_i           <= '0';
     regs_out.eccr_ext_ref_stopped_i          <= '0';
@@ -632,9 +631,9 @@ begin  -- rtl
           end if;
         end loop;  -- i
 
-        if(tags_p(f_num_total_channels-1) = '1') then
+        if(g_with_ext_clock_input and tags_p(f_num_total_channels-1) = '1') then
           tags_req(f_num_total_channels-1) <= regs_in.eccr_ext_en_o;
-        elsif(tags_grant(f_num_total_channels-1) = '1') then
+        elsif(g_with_ext_clock_input and tags_grant(f_num_total_channels-1) = '1') then
           tags_req(f_num_total_channels-1) <= '0';
         end if;
         
