@@ -223,7 +223,7 @@ begin
     port map (
       rst_n_i      => rst_n_i,
       clk_sys_i    => clk_sys_i,
-      wb_adr_i     => wb_slave_i.adr(1 downto 0),
+      wb_adr_i     => wb_slave_i.adr(3 downto 2),
       wb_dat_i     => wb_slave_i.dat,
       wb_dat_o     => wb_slave_o.dat,
       wb_cyc_i     => wb_slave_i.cyc,
@@ -252,7 +252,9 @@ begin
       end if;
     end if;
   end process;
-
+  -- statistics ideas:
+  -- * note the timestamp of reset (tai) or number of set frames since reset
+  --   to make good statistics
 
   regs_to_wb.rx_stat_rx_loss_cnt_i <=x"DEADBEEF";
 
