@@ -1,0 +1,74 @@
+-- -*- Mode: LUA; tab-width: 2 -*-
+
+peripheral {
+  name = "WR Transmission control and debug";
+  description ="dd";
+  prefix = "wr_transmission";
+  hdl_entity = "wr_transmission_wb";
+
+  reg {
+    name = "Rx statistics ctrl";
+    prefix = "RxCTRL";
+
+    field {
+      name = "Reset loss count";
+      prefix = "RST_CNT";
+      description = "Resets count of lost frames to zero";
+      type = MONOSTABLE;
+    };
+   
+    field {
+      name = "Reset latency statistics";
+      prefix = "RX_RST_LATENCY_STATS";
+      description = "Resets to zero staticstis of latency measurement, i.e. max, min, avg";
+      type = MONOSTABLE;
+    };
+  };
+  reg {
+    name = "Rx statistics: loss count";
+    prefix = "RX_STAT";
+    field {
+         name = "WR Streamer frame loss count";
+         description = "Number of lost wr streamer frames since reset";
+         prefix = "RX_LOSS_CNT";
+         type = SLV;
+         size = 32;
+         access_bus = READ_ONLY;
+         access_dev = WRITE_ONLY;
+      };
+
+  };
+
+  reg {
+    name = "DBG Control register";
+    prefix = "DBG_CTRL";
+    field {
+      name = "Debug Tx or Rx";
+      prefix = "MUX";
+      type = BIT;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+    };
+    field {
+      name = "Debug Start byte";
+      prefix = "START_BYTE";
+      type = SLV;
+      align =8;
+      size = 8;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+    };
+   };
+  reg {
+    name = "DBG Data";
+    prefix = "DBG_DATA";
+    field {
+      name = "Debug content";
+      size = 32;
+      type =SLV;
+      access_bus = READ_ONLY;
+      access_dev = WRITE_ONLY;
+    };
+   };
+
+};
