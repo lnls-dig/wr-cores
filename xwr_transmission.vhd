@@ -149,7 +149,8 @@ architecture rtl of xwr_transmission is
   signal regs_from_wb            : t_wr_transmission_out_registers;
   signal start_bit               : std_logic_vector(regs_from_wb.dbg_ctrl_start_byte_o'length-1+3 downto 0);
   signal rx_data                 : std_logic_vector(g_data_width-1 downto 0);
-  
+  signal wb_regs_slave_in        : t_wishbone_slave_in;
+  signal wb_regs_slave_out       : t_wishbone_slave_out;  
   function f_dbg_word_starting_at_byte(data_in, start_bit : std_logic_vector) return std_logic_vector is
     variable sb     : integer := 0;
     variable result : std_logic_vector(31 downto 0);
@@ -218,20 +219,36 @@ begin
       cfg_accept_broadcasts_i  => '1');
 
   rx_data_o <= rx_data;
+  
+  U_WB_ADAPTER : wb_slave_adapter
+    generic map (
+      g_master_use_struct  => true,
+      g_master_mode        => CLASSIC,
+      g_master_granularity => WORD,
+      g_slave_use_struct   => true,
+      g_slave_mode         => CLASSIC,
+      g_slave_granularity  => BYTE)
+    port map (
+      clk_sys_i  => clk_sys_i,
+      rst_n_i    => rst_n_i,
+      slave_i    => wb_slave_i,
+      slave_o    => wb_slave_o,
+      master_i   => wb_regs_slave_out,
+      master_o   => wb_regs_slave_in);
 
   U_WB:  wr_transmission_wb
     port map (
       rst_n_i      => rst_n_i,
       clk_sys_i    => clk_sys_i,
-      wb_adr_i     => wb_slave_i.adr(3 downto 2),
-      wb_dat_i     => wb_slave_i.dat,
-      wb_dat_o     => wb_slave_o.dat,
-      wb_cyc_i     => wb_slave_i.cyc,
-      wb_sel_i     => wb_slave_i.sel(3 downto 0),
-      wb_stb_i     => wb_slave_i.stb,
-      wb_we_i      => wb_slave_i.we,
-      wb_ack_o     => wb_slave_o.ack,
-      wb_stall_o   => wb_slave_o.stall,
+      wb_adr_i     => wb_regs_slave_in.adr(1 downto 0),
+      wb_dat_i     => wb_regs_slave_in.dat,
+      wb_dat_o     => wb_regs_slave_out.dat,
+      wb_cyc_i     => wb_regs_slave_in.cyc,
+      wb_sel_i     => wb_regs_slave_in.sel(3 downto 0),
+      wb_stb_i     => wb_regs_slave_in.stb,
+      wb_we_i      => wb_regs_slave_in.we,
+      wb_ack_o     => wb_regs_slave_out.ack,
+      wb_stall_o   => wb_regs_slave_out.stall,
       regs_i       => regs_to_wb,
       regs_o       => regs_from_wb
     );
