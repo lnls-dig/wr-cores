@@ -108,6 +108,8 @@ entity xrx_streamer is
     rx_latency_o       : out std_logic_vector(27 downto 0);
     -- 1 when the latency on rx_latency_o is valid.
     rx_latency_valid_o : out std_logic;
+    -- received streamer frame (counts all frames, corrupted and not)
+    rx_frame_o         : out std_logic;
 
     -- MAC address
     cfg_mac_local_i         : in std_logic_vector(47 downto 0);
@@ -351,6 +353,7 @@ begin  -- rtl
         ser_count              <= (others => '0');
         word_count             <= (others => '0');
         sync_seq_no            <= '1';
+        rx_frame_o             <= '0';
       else
         case state is
           when IDLE =>
@@ -368,6 +371,7 @@ begin  -- rtl
             word_count         <= (others => '0');
             rx_latency_valid_o <= '0';
             tx_tag_valid       <= '0';
+            rx_frame_o         <= '0';
 
             if(fsm_in.sof = '1') then
               state            <= HEADER;
@@ -423,11 +427,13 @@ begin  -- rtl
                   crc_en                     <= '1';
                   detect_escapes             <= '1';
                   state                      <= FRAME_SEQ_ID;
+                  rx_frame_o                 <= '1';
                 when others => null;
               end case;
             end if;
 
           when FRAME_SEQ_ID =>
+            rx_frame_o            <= '0';
             if(fsm_in.eof = '1') then
               state <= IDLE;
             elsif(fsm_in.dvalid = '1') then

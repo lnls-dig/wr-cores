@@ -26,6 +26,7 @@ package streamers_pkg is
       tx_last_i        : in  std_logic                     := '1';
       tx_flush_i       : in  std_logic                     := '0';
       tx_reset_seq_i   : in  std_logic                     := '0';
+      tx_frame_o       : out std_logic;
       cfg_mac_local_i  : in  std_logic_vector(47 downto 0) := x"000000000000";
       cfg_mac_target_i : in  std_logic_vector(47 downto 0);
       cfg_ethertype_i  : in  std_logic_vector(15 downto 0) := x"dbff");
@@ -55,10 +56,41 @@ package streamers_pkg is
       rx_lost_o               : out std_logic                     := '0';
       rx_latency_o            : out std_logic_vector(27 downto 0);
       rx_latency_valid_o      : out std_logic;
+      rx_frame_o              : out std_logic;
       cfg_mac_local_i         : in  std_logic_vector(47 downto 0) := x"000000000000";
       cfg_mac_remote_i        : in  std_logic_vector(47 downto 0) := x"000000000000";
       cfg_ethertype_i         : in  std_logic_vector(15 downto 0) := x"dbff";
       cfg_accept_broadcasts_i : in  std_logic                     := '1');
   end component;
   
+  component xrtx_streamers_stats is
+    generic (
+      g_cnt_width            : integer := 32;
+      g_acc_width            : integer := 64
+      );
+    port (
+      clk_i                  : in std_logic;
+      rst_n_i                : in std_logic;
+      sent_frame_i           : in std_logic;
+      rcvd_frame_i           : in std_logic;
+      lost_frame_i           : in std_logic;
+      rcvd_latency_i         : in  std_logic_vector(27 downto 0);
+      rcvd_latency_valid_i   : in  std_logic;
+      tm_time_valid_i        : in std_logic := '0';
+      tm_tai_i               : in std_logic_vector(39 downto 0) := x"0000000000";
+      tm_cycles_i            : in std_logic_vector(27 downto 0) := x"0000000";
+      reset_stats_i          : in std_logic;
+      reset_time_tai_o       : out std_logic_vector(39 downto 0) := x"0000000000";
+      reset_time_cycles_o    : out std_logic_vector(27 downto 0) := x"0000000";
+      sent_frame_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
+      rcvd_frame_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
+      lost_frame_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
+      latency_cnt_o          : out std_logic_vector(g_cnt_width-1 downto 0);
+      latency_acc_overflow_o : out std_logic;
+      latency_acc_o          : out std_logic_vector(g_acc_width-1  downto 0);
+      latency_max_o          : out std_logic_vector(27  downto 0);
+      latency_min_o          : out std_logic_vector(27  downto 0)
+      );
+  end component;
+
 end streamers_pkg;

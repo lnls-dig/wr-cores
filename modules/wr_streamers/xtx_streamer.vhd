@@ -111,7 +111,8 @@ entity xtx_streamer is
     -- Reset sequence number. When asserted, the internal sequence number
     -- generator used to detect loss of frames is reset to 0. Advanced feature.
     tx_reset_seq_i : in std_logic := '0';
-
+    -- successfully sent streamer frame
+    tx_frame_o : out std_logic;
     ---------------------------------------------------------------------------
     -- Configuration
     ---------------------------------------------------------------------------
@@ -421,6 +422,7 @@ begin  -- rtl
         seq_no         <= (others => '0');
         word_count     <= (others => '0');
         crc_reset      <= '1';
+        tx_frame_o     <= '0';
       else
         if(tx_reset_seq_i = '1') then
           seq_no <= (others => '0');
@@ -431,6 +433,7 @@ begin  -- rtl
             crc_en      <= '0';
             crc_reset   <= '0';
             fsm_out.eof <= '0';
+            tx_frame_o  <= '0';
 
             if(fsm_out.dreq = '1' and (tx_flush_latched = '1' or tx_flush_i = '1' or tx_threshold_hit = '1')) then
               state       <= SOF;
@@ -575,6 +578,7 @@ begin  -- rtl
             fsm_out.dvalid <= '0';
             if(fsm_out.dreq = '1') then
               fsm_out.eof <= '1';
+              tx_frame_o  <= '1';
               state       <= IDLE;
             end if;
         end case;
