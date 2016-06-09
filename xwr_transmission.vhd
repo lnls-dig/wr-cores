@@ -129,7 +129,7 @@ architecture rtl of xwr_transmission is
     port (
       rst_n_i                                  : in     std_logic;
       clk_sys_i                                : in     std_logic;
-      wb_adr_i                                 : in     std_logic_vector(1 downto 0);
+      wb_adr_i                                 : in     std_logic_vector(3 downto 0);
       wb_dat_i                                 : in     std_logic_vector(31 downto 0);
       wb_dat_o                                 : out    std_logic_vector(31 downto 0);
       wb_cyc_i                                 : in     std_logic;
@@ -147,10 +147,19 @@ architecture rtl of xwr_transmission is
   constant c_STREAMER_ETHERTYPE  : std_logic_vector(15 downto 0) := x"dbff";	
   signal regs_to_wb              : t_wr_transmission_in_registers;
   signal regs_from_wb            : t_wr_transmission_out_registers;
+  signal dbg_word                : std_logic_vector(31 downto 0);
   signal start_bit               : std_logic_vector(regs_from_wb.dbg_ctrl_start_byte_o'length-1+3 downto 0);
   signal rx_data                 : std_logic_vector(g_data_width-1 downto 0);
   signal wb_regs_slave_in        : t_wishbone_slave_in;
   signal wb_regs_slave_out       : t_wishbone_slave_out;  
+  signal rx_latency_valid        : std_logic;
+  signal rx_latency              : std_logic_vector(27 downto 0);
+  signal rx_lost                 : std_logic;
+  signal rx_frame                : std_logic;
+  signal tx_frame                : std_logic;
+  signal reset_time_tai          : std_logic_vector(39 downto 0);
+  signal latency_acc             : std_logic_vector(63 downto 0);
+  signal rx_valid                : std_logic;
   function f_dbg_word_starting_at_byte(data_in, start_bit : std_logic_vector) return std_logic_vector is
     variable sb     : integer := 0;
     variable result : std_logic_vector(31 downto 0);
@@ -188,6 +197,7 @@ begin
       tx_last_i                => tx_last_i,
       tx_flush_i               => tx_flush_i,
       tx_reset_seq_i           => '0',
+      tx_frame_o               => tx_frame,
       cfg_mac_local_i          => x"000000000000",
       cfg_mac_target_i         => x"ffffffffffff",
       cfg_ethertype_i          => c_STREAMER_ETHERTYPE);
@@ -208,18 +218,54 @@ begin
       rx_first_o               => rx_first_o,
       rx_last_o                => rx_last_o,
       rx_data_o                => rx_data,
-      rx_valid_o               => rx_valid_o,
+      rx_valid_o               => rx_valid,
       rx_dreq_i                => rx_dreq_i,
-      rx_lost_o                => open,
-      rx_latency_o             => open,
-      rx_latency_valid_o       => open,
+      rx_lost_o                => rx_lost,
+      rx_latency_o             => rx_latency,
+      rx_latency_valid_o       => rx_latency_valid,
+      rx_frame_o               => rx_frame,
       cfg_mac_local_i          => x"000000000000",
       cfg_mac_remote_i         => x"000000000000",
       cfg_ethertype_i          => c_STREAMER_ETHERTYPE,
       cfg_accept_broadcasts_i  => '1');
 
-  rx_data_o <= rx_data;
+  rx_data_o  <= rx_data;
+  rx_valid_o <= rx_valid;
   
+  U_STATS: xrtx_streamers_stats
+    generic map(
+      g_cnt_width              => 32,
+      g_acc_width              => 64
+      )
+    port map(
+      clk_i                    => clk_sys_i,
+      rst_n_i                  => rst_n_i,
+      sent_frame_i             => tx_frame,
+      rcvd_frame_i             => rx_frame,
+      lost_frame_i             => rx_lost,
+      rcvd_latency_i           => rx_latency,
+      rcvd_latency_valid_i     => rx_latency_valid,
+      tm_time_valid_i          => tm_time_valid_i,
+      tm_tai_i                 => tm_tai_i,
+      tm_cycles_i              => tm_cycles_i,
+      reset_stats_i            => regs_from_wb.sscr1_rst_stats_o,
+      reset_time_tai_o         => reset_time_tai,
+      reset_time_cycles_o      => regs_to_wb.sscr1_rst_ts_cyc_i,
+      sent_frame_cnt_o         => regs_to_wb.tx_stat_tx_sent_cnt_i,
+      rcvd_frame_cnt_o         => regs_to_wb.rx_stat1_rx_rcvd_cnt_i,
+      lost_frame_cnt_o         => regs_to_wb.rx_stat2_rx_loss_cnt_i,
+      latency_cnt_o            => regs_to_wb.rx_stat7_rx_latency_acc_cnt_i,
+      latency_acc_o            => latency_acc,
+      latency_max_o            => regs_to_wb.rx_stat3_rx_latency_max_i,
+      latency_min_o            => regs_to_wb.rx_stat4_rx_latency_min_i,
+      latency_acc_overflow_o   => regs_to_wb.sscr1_rx_latency_acc_overflow_i
+      );
+
+  regs_to_wb.sscr2_rst_ts_tai_lsb_i        <= reset_time_tai(31 downto 0);
+  regs_to_wb.rx_stat5_rx_latency_acc_lsb_i <= latency_acc(31 downto 0);
+  regs_to_wb.rx_stat6_rx_latency_acc_msb_i <= latency_acc(63 downto 32);
+  
+
   U_WB_ADAPTER : wb_slave_adapter
     generic map (
       g_master_use_struct  => true,
@@ -240,7 +286,7 @@ begin
     port map (
       rst_n_i      => rst_n_i,
       clk_sys_i    => clk_sys_i,
-      wb_adr_i     => wb_regs_slave_in.adr(1 downto 0),
+      wb_adr_i     => wb_regs_slave_in.adr(3 downto 0),
       wb_dat_i     => wb_regs_slave_in.dat,
       wb_dat_o     => wb_regs_slave_out.dat,
       wb_cyc_i     => wb_regs_slave_in.cyc,
@@ -259,12 +305,16 @@ begin
   begin
     if rising_edge(clk_sys_i) then
       if rst_n_i = '0' then
-        regs_to_wb.dbg_data_i <= (others =>'0');
+        dbg_word <= (others =>'0');
       else
         if(regs_from_wb.dbg_ctrl_mux_o = '1') then --rx
-          regs_to_wb.dbg_data_i <= f_dbg_word_starting_at_byte(rx_data,start_bit);
+          if(rx_valid = '1') then
+            dbg_word <= f_dbg_word_starting_at_byte(rx_data,start_bit);
+          end if;
         else -- tx
-          regs_to_wb.dbg_data_i <= f_dbg_word_starting_at_byte(tx_data_i,start_bit);
+          if(tx_valid_i = '1') then
+            dbg_word <= f_dbg_word_starting_at_byte(tx_data_i,start_bit);
+          end if;
         end if;
       end if;
     end if;
@@ -272,7 +322,7 @@ begin
   -- statistics ideas:
   -- * note the timestamp of reset (tai) or number of set frames since reset
   --   to make good statistics
-
-  regs_to_wb.rx_stat_rx_loss_cnt_i <=x"DEADBEEF";
+  regs_to_wb.dbg_data_i    <= dbg_word;
+  regs_to_wb.dummy_dummy_i <=x"DEADBEEF";
 
 end rtl;
