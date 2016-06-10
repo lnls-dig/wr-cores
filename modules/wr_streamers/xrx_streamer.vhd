@@ -383,6 +383,7 @@ begin  -- rtl
             rx_frame_o         <= '0';
             rx_lost_frames_cnt_o <= (others => '0');
             frames_lost          <= '0';
+            blocks_lost          <= '0';
 
             if(fsm_in.sof = '1') then
               state            <= HEADER;

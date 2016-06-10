@@ -61,6 +61,7 @@ entity xrtx_streamers_stats is
     -- input signals from streamers
     sent_frame_i           : in std_logic;
     rcvd_frame_i           : in std_logic;
+    lost_block_i           : in std_logic;
     lost_frame_i           : in std_logic;
     lost_frames_cnt_i      : in std_logic_vector(14 downto 0);
     rcvd_latency_i         : in  std_logic_vector(27 downto 0);
@@ -79,6 +80,7 @@ entity xrtx_streamers_stats is
     sent_frame_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
     rcvd_frame_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
     lost_frame_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
+    lost_block_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
     -- output statistics: latency
     latency_cnt_o          : out std_logic_vector(g_cnt_width-1 downto 0);
     latency_acc_overflow_o : out std_logic;
@@ -93,8 +95,9 @@ architecture rtl of xrtx_streamers_stats is
   signal sent_frame_cnt    : unsigned(g_cnt_width-1  downto 0);
   signal rcvd_frame_cnt    : unsigned(g_cnt_width-1  downto 0);
   signal lost_frame_cnt    : unsigned(g_cnt_width-1  downto 0);
+  signal lost_block_cnt    : unsigned(g_cnt_width-1  downto 0);
   signal latency_cnt       : unsigned(g_cnt_width-1  downto 0);
-  
+
   signal latency_max       : std_logic_vector(27  downto 0);
   signal latency_min       : std_logic_vector(27  downto 0);
   signal latency_acc       : unsigned(g_acc_width-1+1  downto 0);
@@ -124,6 +127,7 @@ begin
         sent_frame_cnt        <= (others => '0');
         rcvd_frame_cnt        <= (others => '0');
         lost_frame_cnt        <= (others => '0');
+        lost_block_cnt        <= (others => '0');
       else
         -- count sent frames
         if(sent_frame_i = '1') then
@@ -137,12 +141,18 @@ begin
         if(lost_frame_i = '1') then
           lost_frame_cnt <= lost_frame_cnt + resize(unsigned(lost_frames_cnt_i),lost_frame_cnt'length);
         end if;
+        -- count lost blocks
+        if(lost_block_i = '1') then
+          lost_block_cnt <= lost_block_cnt + 1;
+        end if;
       end if;
     end if;
   end process;
+
   sent_frame_cnt_o       <= std_logic_vector(sent_frame_cnt);
   rcvd_frame_cnt_o       <= std_logic_vector(rcvd_frame_cnt);
   lost_frame_cnt_o       <= std_logic_vector(lost_frame_cnt);
+  lost_block_cnt_o       <= std_logic_vector(lost_block_cnt);
 
   p_latency_stats: process(clk_i)
   begin

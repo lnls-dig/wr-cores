@@ -76,6 +76,7 @@ package streamers_pkg is
       rst_n_i                : in std_logic;
       sent_frame_i           : in std_logic;
       rcvd_frame_i           : in std_logic;
+      lost_block_i           : in std_logic;
       lost_frame_i           : in std_logic;
       lost_frames_cnt_i      : in std_logic_vector(14 downto 0);
       rcvd_latency_i         : in  std_logic_vector(27 downto 0);
@@ -89,6 +90,7 @@ package streamers_pkg is
       sent_frame_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
       rcvd_frame_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
       lost_frame_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
+      lost_block_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
       latency_cnt_o          : out std_logic_vector(g_cnt_width-1 downto 0);
       latency_acc_overflow_o : out std_logic;
       latency_acc_o          : out std_logic_vector(g_acc_width-1  downto 0);
