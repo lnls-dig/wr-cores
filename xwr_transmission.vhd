@@ -154,12 +154,14 @@ architecture rtl of xwr_transmission is
   signal wb_regs_slave_out       : t_wishbone_slave_out;  
   signal rx_latency_valid        : std_logic;
   signal rx_latency              : std_logic_vector(27 downto 0);
-  signal rx_lost                 : std_logic;
+  signal rx_lost_frames          : std_logic;
+  signal rx_lost_blocks          : std_logic;
   signal rx_frame                : std_logic;
   signal tx_frame                : std_logic;
   signal reset_time_tai          : std_logic_vector(39 downto 0);
   signal latency_acc             : std_logic_vector(63 downto 0);
   signal rx_valid                : std_logic;
+  signal rx_lost_frames_cnt      : std_logic_vector(14 downto 0);
   function f_dbg_word_starting_at_byte(data_in, start_bit : std_logic_vector) return std_logic_vector is
     variable sb     : integer := 0;
     variable result : std_logic_vector(31 downto 0);
@@ -220,7 +222,9 @@ begin
       rx_data_o                => rx_data,
       rx_valid_o               => rx_valid,
       rx_dreq_i                => rx_dreq_i,
-      rx_lost_o                => rx_lost,
+      rx_lost_o                => rx_lost_blocks,
+      rx_lost_frames_o         => rx_lost_frames,
+      rx_lost_frames_cnt_o     => rx_lost_frames_cnt,
       rx_latency_o             => rx_latency,
       rx_latency_valid_o       => rx_latency_valid,
       rx_frame_o               => rx_frame,
@@ -242,7 +246,9 @@ begin
       rst_n_i                  => rst_n_i,
       sent_frame_i             => tx_frame,
       rcvd_frame_i             => rx_frame,
-      lost_frame_i             => rx_lost,
+      lost_frame_i             => rx_lost_frames,
+      lost_block_i             => rx_lost_blocks,
+      lost_frames_cnt_i        => rx_lost_frames_cnt,
       rcvd_latency_i           => rx_latency,
       rcvd_latency_valid_i     => rx_latency_valid,
       tm_time_valid_i          => tm_time_valid_i,
@@ -254,6 +260,7 @@ begin
       sent_frame_cnt_o         => regs_to_wb.tx_stat_tx_sent_cnt_i,
       rcvd_frame_cnt_o         => regs_to_wb.rx_stat1_rx_rcvd_cnt_i,
       lost_frame_cnt_o         => regs_to_wb.rx_stat2_rx_loss_cnt_i,
+      lost_block_cnt_o         => regs_to_wb.rx_stat8_rx_lost_block_cnt_i,
       latency_cnt_o            => regs_to_wb.rx_stat7_rx_latency_acc_cnt_i,
       latency_acc_o            => latency_acc,
       latency_max_o            => regs_to_wb.rx_stat3_rx_latency_max_i,

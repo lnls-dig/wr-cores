@@ -154,6 +154,20 @@ peripheral {
       };
   };
   reg {
+    name = "Rx statistics";
+    prefix = "RX_STAT8";
+    field {
+      name = "WR Streamer block loss count";
+      description = "Number of indications that one or more blocks in a frame were lost (probably CRC\
+                     error, since reset";
+      prefix = "RX_LOST_BLOCK_CNT";
+      type = SLV;
+      size = 32;
+      access_bus = READ_ONLY;
+      access_dev = WRITE_ONLY;
+      };
+  };
+  reg {
     name = "DBG Control register";
     prefix = "DBG_CTRL";
     field {
