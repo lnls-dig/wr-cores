@@ -53,7 +53,10 @@ package streamers_pkg is
       rx_data_o               : out std_logic_vector(g_data_width-1 downto 0);
       rx_valid_o              : out std_logic;
       rx_dreq_i               : in  std_logic;
-      rx_lost_o               : out std_logic                     := '0';
+      rx_lost_o               : out std_logic := '0';
+      rx_lost_blocks_o        : out std_logic := '0';
+      rx_lost_frames_o        : out std_logic := '0';
+      rx_lost_frames_cnt_o    : out std_logic_vector(14 downto 0);
       rx_latency_o            : out std_logic_vector(27 downto 0);
       rx_latency_valid_o      : out std_logic;
       rx_frame_o              : out std_logic;
@@ -74,6 +77,7 @@ package streamers_pkg is
       sent_frame_i           : in std_logic;
       rcvd_frame_i           : in std_logic;
       lost_frame_i           : in std_logic;
+      lost_frames_cnt_i      : in std_logic_vector(14 downto 0);
       rcvd_latency_i         : in  std_logic_vector(27 downto 0);
       rcvd_latency_valid_i   : in  std_logic;
       tm_time_valid_i        : in std_logic := '0';

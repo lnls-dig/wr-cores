@@ -101,8 +101,15 @@ entity xrx_streamer is
     -- Synchronous data request input: when 1, the streamer may output another
     -- data word in the subsequent clock cycle.
     rx_dreq_i          : in  std_logic;
-    -- Lost output: 1 indicates that one or more of frames have been lost.
+    -- Lost output: 1 indicates that one or more frames or blocks have been lost
+    -- (left for backward compatibility).
     rx_lost_o          : out std_logic := '0';
+    -- indicates that one or more blocks within frame are missing
+    rx_lost_blocks_o    :  out std_logic := '0';
+    -- indicates that one or more frames are missing, the number of frames is provied
+    rx_lost_frames_o    :  out std_logic := '0';
+    --number of lost frames, the 0xF...F means that counter overflew
+    rx_lost_frames_cnt_o : out std_logic_vector(14 downto 0);
     -- Latency measurement output: indicates the transport latency (between the
     -- TX streamer in remote device and this streamer), in clk_ref_i clock cycles.
     rx_latency_o       : out std_logic_vector(27 downto 0);
@@ -216,7 +223,7 @@ architecture rtl of xrx_streamer is
   signal pack_data, fifo_data : std_logic_vector(g_data_width-1 downto 0);
 
   signal fifo_drop, fifo_accept, fifo_accept_d0, fifo_dvalid : std_logic;
-  signal fifo_sync, fifo_last, fifo_lost                     : std_logic;
+  signal fifo_sync, fifo_last, frames_lost, blocks_lost      : std_logic;
   signal fifo_dout, fifo_din                                 : std_logic_vector(g_data_width + 1 downto 0);
 
   signal pending_write, fab_dvalid_pre : std_logic;
@@ -338,7 +345,7 @@ begin  -- rtl
       if rst_n_i = '0' then
         state                  <= IDLE;
         count                  <= (others => '0');
-        seq_no                 <= (others => '0');
+        seq_no                 <= (others => '1');
         detect_escapes         <= '0';
         crc_en                 <= '0';
         fifo_accept            <= '0';
@@ -354,6 +361,8 @@ begin  -- rtl
         word_count             <= (others => '0');
         sync_seq_no            <= '1';
         rx_frame_o             <= '0';
+        rx_lost_frames_cnt_o   <= (others => '0');
+        frames_lost            <= '0';
       else
         case state is
           when IDLE =>
@@ -372,6 +381,8 @@ begin  -- rtl
             rx_latency_valid_o <= '0';
             tx_tag_valid       <= '0';
             rx_frame_o         <= '0';
+            rx_lost_frames_cnt_o <= (others => '0');
+            frames_lost          <= '0';
 
             if(fsm_in.sof = '1') then
               state            <= HEADER;
@@ -460,12 +471,16 @@ begin  -- rtl
                 seq_no    <= unsigned(fsm_in.data(14 downto 0))+1;
                 if (sync_seq_no = '1') then -- sync to the first received seq_no
                   sync_seq_no <= '0';
+                  frames_lost   <= '0';
+                  rx_lost_frames_cnt_o <= (others => '0');
                 else
-                  fifo_lost <= '1';
+                  rx_lost_frames_cnt_o <= std_logic_vector(unsigned(fsm_in.data(14 downto 0)) - seq_no);
+                  frames_lost     <= '1';
                 end if;
               else
                 seq_no    <= unsigned(seq_no + 1);
-                fifo_lost <= '0';
+                frames_lost <= '0';
+                rx_lost_frames_cnt_o <= (others => '0');
               end if;
             end if;
 
@@ -477,20 +492,23 @@ begin  -- rtl
             if(fsm_in.eof = '1') then
               state <= IDLE;
               got_next_subframe <= '0';
+              blocks_lost <= '0';
             elsif (fsm_in.dvalid = '1' and is_escape = '1') then
               got_next_subframe <= '1';
 
               if(std_logic_vector(count) /= fsm_in.data(14 downto 0)) then
                 count     <= unsigned(fsm_in.data(14 downto 0))+1;
-                fifo_lost <= '1';
+                blocks_lost <= '1';
               else
                 count    <= count + 1;
-                fifo_lost <= '0';
+                blocks_lost <= '0';
               end if;
               state <= PAYLOAD;
             end if;
 
           when PAYLOAD =>
+            frames_lost <= '0';
+            rx_lost_frames_cnt_o <= (others => '0');
             rx_latency_valid_o <= '0';
             fifo_sync <= got_next_subframe;
 
@@ -514,10 +532,10 @@ begin  -- rtl
                   
                   if(std_logic_vector(count) /= fsm_in.data(14 downto 0)) then
                     count     <= unsigned(fsm_in.data(14 downto 0));
-                    fifo_lost <= '1';
+                    blocks_lost <= '1';
                   else
                     count     <= unsigned(count + 1);
-                    fifo_lost <= '0';
+                    blocks_lost <= '0';
                   end if;
                   
                   state <= PAYLOAD;
@@ -528,13 +546,13 @@ begin  -- rtl
                   pending_write <= '0';
                   
                 elsif fsm_in.data = x"0bad" then
-                  
+                  blocks_lost   <= '0';
                   state       <= EOF;
                   fifo_accept <= crc_match;      --_latched;
                   fifo_drop   <= not crc_match;  --_latched;
                   fifo_dvalid <= pending_write and not fifo_dvalid;
                 else
-                  
+                  blocks_lost   <= '0';
                   state       <= EOF;
                   fifo_drop   <= '1';
                   fifo_accept <= '0';
@@ -546,6 +564,7 @@ begin  -- rtl
                 fifo_last   <= '0';
                 fifo_accept <= '0';
                 fifo_drop   <= '0';
+                blocks_lost   <= '0';
 
                 pack_data(to_integer(ser_count) * 16 + 15 downto to_integer(ser_count) * 16) <= fsm_in.data;
 
@@ -612,8 +631,9 @@ begin  -- rtl
   end process;
 
 --  fifo_data <= pack_data;
-  rx_lost_o   <= fifo_lost;
-
+  rx_lost_o        <= frames_lost or blocks_lost;
+  rx_lost_blocks_o <= blocks_lost;
+  rx_lost_frames_o <= frames_lost;
   crc_restart <= '1' when (state = FRAME_SEQ_ID or (is_escape = '1' and fsm_in.data(15) = '1')) else not rst_n_i;
   
   

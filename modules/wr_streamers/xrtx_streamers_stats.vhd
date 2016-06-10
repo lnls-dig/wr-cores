@@ -51,7 +51,7 @@ entity xrtx_streamers_stats is
   
   generic (
     -- Width of frame counters
-    g_cnt_width            : integer := 32;
+    g_cnt_width            : integer := 32; -- minimum 15 bits
     g_acc_width            : integer := 64
     );
   port (
@@ -62,6 +62,7 @@ entity xrtx_streamers_stats is
     sent_frame_i           : in std_logic;
     rcvd_frame_i           : in std_logic;
     lost_frame_i           : in std_logic;
+    lost_frames_cnt_i      : in std_logic_vector(14 downto 0);
     rcvd_latency_i         : in  std_logic_vector(27 downto 0);
     rcvd_latency_valid_i   : in  std_logic;
     tm_time_valid_i        : in std_logic := '0';
@@ -134,7 +135,7 @@ begin
         end if;
         -- count lost frames
         if(lost_frame_i = '1') then
-          lost_frame_cnt <= lost_frame_cnt + 1;
+          lost_frame_cnt <= lost_frame_cnt + resize(unsigned(lost_frames_cnt_i),lost_frame_cnt'length);
         end if;
       end if;
     end if;
