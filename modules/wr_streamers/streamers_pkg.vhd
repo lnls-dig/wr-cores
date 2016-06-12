@@ -85,6 +85,7 @@ package streamers_pkg is
       lost_frames_cnt_i      : in std_logic_vector(14 downto 0);
       rcvd_latency_i         : in  std_logic_vector(27 downto 0);
       rcvd_latency_valid_i   : in  std_logic;
+      clk_ref_i              : in std_logic;
       tm_time_valid_i        : in std_logic := '0';
       tm_tai_i               : in std_logic_vector(39 downto 0) := x"0000000000";
       tm_cycles_i            : in std_logic_vector(27 downto 0) := x"0000000";

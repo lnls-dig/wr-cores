@@ -68,6 +68,8 @@ entity xrtx_streamers_stats is
     lost_frames_cnt_i      : in std_logic_vector(14 downto 0);
     rcvd_latency_i         : in  std_logic_vector(27 downto 0);
     rcvd_latency_valid_i   : in  std_logic;
+
+    clk_ref_i              : in std_logic;
     tm_time_valid_i        : in std_logic := '0';
     tm_tai_i               : in std_logic_vector(39 downto 0) := x"0000000000";
     tm_cycles_i            : in std_logic_vector(27 downto 0) := x"0000000";
@@ -97,7 +99,21 @@ entity xrtx_streamers_stats is
 end xrtx_streamers_stats;
   
 architecture rtl of xrtx_streamers_stats is
-  
+
+  component pulse_stamper
+    port (
+      clk_ref_i       : in  std_logic;
+      clk_sys_i       : in  std_logic;
+      rst_n_i         : in  std_logic;
+      pulse_a_i       : in  std_logic;
+      tm_time_valid_i : in  std_logic;
+      tm_tai_i        : in  std_logic_vector(39 downto 0);
+      tm_cycles_i     : in  std_logic_vector(27 downto 0);
+      tag_tai_o       : out std_logic_vector(39 downto 0);
+      tag_cycles_o    : out std_logic_vector(27 downto 0);
+      tag_valid_o     : out std_logic);
+  end component;
+
   signal reset_time_tai    : std_logic_vector(39 downto 0);
   signal reset_time_cycles : std_logic_vector(27 downto 0);
 
@@ -119,23 +135,17 @@ architecture rtl of xrtx_streamers_stats is
 begin
 
   -- process that timestamps the reset so that we can make statistics over time
-  p_timestamp_reset: process(clk_i)
-  begin
-    if rising_edge(clk_i) then
-      if (rst_n_i = '0') then
-        reset_time_tai       <= (others => '0');
-        reset_time_cycles    <= (others => '0');
-      else
-        if(reset_stats_i = '1'   and tm_time_valid_i = '1') then -- initial timestamp after restart
-          reset_time_tai     <= tm_tai_i;
-          reset_time_cycles  <= tm_cycles_i;
-        end if;
-      end if;
-    end if;
-  end process;
-
-  reset_time_tai_o    <= reset_time_tai;
-  reset_time_cycles_o <= reset_time_cycles;
+  U_Reset_Timestamper : pulse_stamper
+    port map (
+      clk_ref_i       => clk_ref_i,
+      clk_sys_i       => clk_i,
+      rst_n_i         => rst_n_i,
+      pulse_a_i       => reset_stats_i,
+      tm_time_valid_i => tm_time_valid_i,
+      tm_tai_i        => tm_tai_i,
+      tm_cycles_i     => tm_cycles_i,
+      tag_tai_o       => reset_time_tai_o,
+      tag_cycles_o    => reset_time_cycles_o);
 
   -- process that counts stuff: receved/send/lost frames
   p_cnts: process(clk_i)
