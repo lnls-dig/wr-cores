@@ -258,6 +258,7 @@ begin
       lost_frames_cnt_i        => rx_lost_frames_cnt,
       rcvd_latency_i           => rx_latency,
       rcvd_latency_valid_i     => rx_latency_valid,
+      clk_ref_i                => clk_ref_i,
       tm_time_valid_i          => tm_time_valid_i,
       tm_tai_i                 => tm_tai_i,
       tm_cycles_i              => tm_cycles_i,
