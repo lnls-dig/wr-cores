@@ -6,7 +6,7 @@
 -- Author     : Maciej Lipinski
 -- Company    : CERN
 -- Created    : 2016-06-08
--- Last update: 2016-06-08
+-- Last update: 2016-06-12
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -36,6 +36,7 @@
 -- Revisions  :
 -- Date        Version  Author          Description
 -- 2016-06-08  1.0      mlipinsk        created
+-- 2016-06-12  1.1      mlipinsk        added generic word arrays for SNMP
 ---------------------------------------------------------------------------------
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
@@ -45,14 +46,15 @@ library work;
 use work.wishbone_pkg.all;  -- needed for t_wishbone_slave_in, etc
 use work.streamers_pkg.all; -- needed for streamers
 use work.wr_fabric_pkg.all; -- neede for :t_wrf_source_in, etc
+use work.wrcore_pkg.all;    -- needed for t_generic_word_array
 use work.wr_transmission_wbgen2_pkg.all;
 
 entity xrtx_streamers_stats is
   
   generic (
     -- Width of frame counters
-    g_cnt_width            : integer := 32; -- minimum 15 bits
-    g_acc_width            : integer := 64
+    g_cnt_width            : integer := 32; -- minimum 15 bits, max 32
+    g_acc_width            : integer := 64  -- max value 64
     );
   port (
     clk_i                  : in std_logic;
@@ -86,12 +88,19 @@ entity xrtx_streamers_stats is
     latency_acc_overflow_o : out std_logic;
     latency_acc_o          : out std_logic_vector(g_acc_width-1  downto 0);
     latency_max_o          : out std_logic_vector(27  downto 0);
-    latency_min_o          : out std_logic_vector(27  downto 0)
+    latency_min_o          : out std_logic_vector(27  downto 0);
+
+    snmp_array_o           : out t_generic_word_array(c_STREAMERS_ARR_SIZE_OUT-1 downto 0);
+    snmp_array_i           : in  t_generic_word_array(c_STREAMERS_ARR_SIZE_IN -1 downto 0)
     );
 
 end xrtx_streamers_stats;
   
 architecture rtl of xrtx_streamers_stats is
+  
+  signal reset_time_tai    : std_logic_vector(39 downto 0);
+  signal reset_time_cycles : std_logic_vector(27 downto 0);
+
   signal sent_frame_cnt    : unsigned(g_cnt_width-1  downto 0);
   signal rcvd_frame_cnt    : unsigned(g_cnt_width-1  downto 0);
   signal lost_frame_cnt    : unsigned(g_cnt_width-1  downto 0);
@@ -101,6 +110,12 @@ architecture rtl of xrtx_streamers_stats is
   signal latency_max       : std_logic_vector(27  downto 0);
   signal latency_min       : std_logic_vector(27  downto 0);
   signal latency_acc       : unsigned(g_acc_width-1+1  downto 0);
+  signal latency_acc_overflow: std_logic;
+
+  signal reset_stats_remote: std_logic;
+  -- for code cleanness
+  constant cw              : integer := g_cnt_width;
+  constant aw              : integer := g_acc_width;
 begin
 
   -- process that timestamps the reset so that we can make statistics over time
@@ -108,16 +123,19 @@ begin
   begin
     if rising_edge(clk_i) then
       if (rst_n_i = '0') then
-        reset_time_tai_o      <= (others => '0');
-        reset_time_cycles_o   <= (others => '0');
+        reset_time_tai       <= (others => '0');
+        reset_time_cycles    <= (others => '0');
       else
         if(reset_stats_i = '1'   and tm_time_valid_i = '1') then -- initial timestamp after restart
-          reset_time_tai_o    <= tm_tai_i;
-          reset_time_cycles_o <= tm_cycles_i;
+          reset_time_tai     <= tm_tai_i;
+          reset_time_cycles  <= tm_cycles_i;
         end if;
       end if;
     end if;
   end process;
+
+  reset_time_tai_o    <= reset_time_tai;
+  reset_time_cycles_o <= reset_time_cycles;
 
   -- process that counts stuff: receved/send/lost frames
   p_cnts: process(clk_i)
@@ -162,7 +180,7 @@ begin
         latency_min            <= (others => '1');
         latency_acc            <= (others => '0');
         latency_cnt            <= (others => '0');
-        latency_acc_overflow_o <= '0';
+        latency_acc_overflow   <= '0';
       else
         if(rcvd_latency_valid_i = '1' and tm_time_valid_i = '1') then
           if(latency_max < rcvd_latency_i) then
@@ -172,7 +190,7 @@ begin
             latency_min <= rcvd_latency_i;
           end if;
           if(latency_acc(g_acc_width) ='1') then
-            latency_acc_overflow_o <= '1';
+            latency_acc_overflow   <= '1';
           end if;
           latency_cnt <= latency_cnt + 1;
           latency_acc <= latency_acc + resize(unsigned(rcvd_latency_i),latency_acc'length);
@@ -185,4 +203,45 @@ begin
   latency_min_o      <= latency_min;
   latency_acc_o      <= std_logic_vector(latency_acc(g_acc_width-1 downto 0));
   latency_cnt_o      <= std_logic_vector(latency_cnt);
+  latency_acc_overflow_o <= latency_acc_overflow;
+
+  -- Generic communication with WRPC that allows SNMP access via generic array of 32-bits 
+  -- std_logic_vectors
+  assert (cw <= 32) 
+    report "g_cnt_width value not suppported by f_pack_streamers_statistics" severity error;
+  assert (aw <= 64) 
+    report "g_cnt_width value not suppported by f_pack_streamers_statistics" severity error;
+
+  reset_stats_remote                <= snmp_array_i(0)(0);
+
+  snmp_array_o(0)(             0)   <= latency_acc_overflow;          -- status bit
+  snmp_array_o(0)(   31 downto 1)   <= (others => '0');
+  snmp_array_o(1)(   31 downto 0)   <= x"0" & reset_time_cycles( 27 downto 0);
+  snmp_array_o(2)(   31 downto 0)   <= reset_time_tai(    31 downto 0);
+  snmp_array_o(3)(   31 downto 0)   <= x"000000" & reset_time_tai(    39 downto 32);
+
+  snmp_array_o(4 )(cw-1 downto 0)   <= std_logic_vector(sent_frame_cnt(cw-1 downto 0));
+  snmp_array_o(4 )(31   downto cw)  <= (others => '0');
+  snmp_array_o(5 )(cw-1 downto 0)   <= std_logic_vector(rcvd_frame_cnt(cw-1 downto 0));
+  snmp_array_o(4 )(31   downto cw)  <= (others => '0');
+  snmp_array_o(6 )(cw-1 downto 0)   <= std_logic_vector(lost_frame_cnt(cw-1 downto 0));
+  snmp_array_o(4 )(31   downto cw)  <= (others => '0');
+  snmp_array_o(7 )(cw-1 downto 0)   <= std_logic_vector(lost_block_cnt(cw-1 downto 0));
+  snmp_array_o(4 )(31   downto cw)  <= (others => '0');
+  snmp_array_o(8 )(cw-1 downto 0)   <= std_logic_vector(latency_cnt(   cw-1 downto 0));
+  snmp_array_o(4 )(31   downto cw)  <= (others => '0');
+  
+  snmp_array_o(9 )(31 downto 0)     <= x"0" & latency_max(27 downto 0);
+  snmp_array_o(10)(31 downto 0)     <= x"0" & latency_min(27 downto 0);
+ 
+  CNT_SINGLE_WORD_gen: if(aw < 33) generate
+    snmp_array_o(11)(aw-1    downto  0) <= std_logic_vector(latency_acc(aw-1 downto 0));
+    snmp_array_o(11)(31      downto aw) <= std_logic_vector(latency_acc(aw-1 downto 0));
+  end generate;
+  CNT_TWO_WORDs_gen:   if(aw > 32) generate
+    snmp_array_o(11)(31      downto 0)     <= std_logic_vector(latency_acc(31    downto 0));
+    snmp_array_o(12)(aw-32-1 downto 0)     <= std_logic_vector(latency_acc(aw-1 downto 32));
+    snmp_array_o(12)(31      downto aw-32) <= (others => '0'); 
+  end generate;
+
 end rtl;

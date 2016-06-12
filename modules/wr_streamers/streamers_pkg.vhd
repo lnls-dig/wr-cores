@@ -1,6 +1,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use work.wr_fabric_pkg.all;
+use work.wrcore_pkg.all;
 
 package streamers_pkg is
 
@@ -65,7 +66,10 @@ package streamers_pkg is
       cfg_ethertype_i         : in  std_logic_vector(15 downto 0) := x"dbff";
       cfg_accept_broadcasts_i : in  std_logic                     := '1');
   end component;
-  
+
+  constant c_STREAMERS_ARR_SIZE_OUT : integer := 13;
+  constant c_STREAMERS_ARR_SIZE_IN  : integer := 1;
+
   component xrtx_streamers_stats is
     generic (
       g_cnt_width            : integer := 32;
@@ -95,7 +99,9 @@ package streamers_pkg is
       latency_acc_overflow_o : out std_logic;
       latency_acc_o          : out std_logic_vector(g_acc_width-1  downto 0);
       latency_max_o          : out std_logic_vector(27  downto 0);
-      latency_min_o          : out std_logic_vector(27  downto 0)
+      latency_min_o          : out std_logic_vector(27  downto 0);
+      snmp_array_o           : out t_generic_word_array(c_STREAMERS_ARR_SIZE_OUT-1 downto 0);
+      snmp_array_i           : in  t_generic_word_array(c_STREAMERS_ARR_SIZE_IN -1 downto 0) := (others => (others=>'0'))
       );
   end component;
 

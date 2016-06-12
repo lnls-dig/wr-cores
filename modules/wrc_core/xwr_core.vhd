@@ -81,6 +81,8 @@ entity xwr_core is
     g_aux_sdb                   : t_sdb_device                   := c_wrc_periph3_sdb;
     g_softpll_enable_debugger   : boolean                        := false;
     g_vuart_fifo_size           : integer                        := 1024;
+    g_snmp_array_in             : integer                        := 0;
+    g_snmp_array_out            : integer                        := 0;
     g_pcs_16bit                 : boolean                        := false);
   port(
     ---------------------------------------------------------------------------
@@ -230,6 +232,9 @@ entity xwr_core is
 
     dio_o       : out std_logic_vector(3 downto 0);
     rst_aux_n_o : out std_logic;
+
+    snmp_word_array_i    : in  t_generic_word_array(g_snmp_array_in-1 downto 0) := (others =>(others=>'0'));
+    snmp_word_array_o    : out t_generic_word_array(g_snmp_array_out-1 downto 0);
 
     link_ok_o : out std_logic
     );
