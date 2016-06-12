@@ -6,11 +6,14 @@
 -- Author     : Maciej Lipinski
 -- Company    : CERN
 -- Created    : 2016-05-30
--- Last update: 2016-05-31
+-- Last update: 2016-06-12
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
--- Description:
+-- Description: This module wraps WR_Streamers-related stuff (i.e. rx,tx and 
+-- statistics) and provides wishbone access to the statistics and streamer's
+-- control/status registers.
+-- 
 -- 
 -------------------------------------------------------------------------------
 --
@@ -106,7 +109,6 @@ entity xwr_transmission is
 
     ---------------------------------------------------------------------------
     -- WRC Timing interface, used for latency measurement
-    -- Caution: uses clk_ref_i clock domain!
     ---------------------------------------------------------------------------
 
     -- White Rabbit reference clock
@@ -203,7 +205,7 @@ begin
       tx_dreq_o                => tx_dreq_o,
       tx_last_i                => tx_last_i,
       tx_flush_i               => tx_flush_i,
-      tx_reset_seq_i           => '0',
+      tx_reset_seq_i           => regs_from_wb.sscr1_rst_seq_id_o,
       tx_frame_o               => tx_frame,
       cfg_mac_local_i          => x"000000000000",
       cfg_mac_target_i         => x"ffffffffffff",

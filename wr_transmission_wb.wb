@@ -2,7 +2,7 @@
 
 peripheral {
   name = "WR Transmission control and debug";
-  description ="dd";
+  description ="This WB registers allow to diagnose transmission and reception of data using WR streamers";
   prefix = "wr_transmission";
   hdl_entity = "wr_transmission_wb";
 
@@ -13,7 +13,13 @@ peripheral {
     field {
       name = "Reset statistics";
       prefix = "RST_STATS";
-      description = "Reset";
+      description = "Writing 1 reset counters, latency acc/max/min. This reset is timestamped";
+      type = MONOSTABLE;
+    };
+    field {
+      name = "Reset tx seq id";
+      prefix = "RST_SEQ_ID";
+      description = "Writing 1 reset sequence ID of transmitted frames";
       type = MONOSTABLE;
     };
     field {
@@ -28,7 +34,7 @@ peripheral {
     field {
       name = "Reset timestamp cycles";
       prefix = "RST_TS_CYC";
-      description = "Timestamp of the last reset of stats (RST_STAT) -- count of cycles";
+      description = "Timestamp of the last reset of stats (RST_STAT) -- count of clock cycles";
       type = SLV;
       size = 28;
       align = 4;
@@ -159,7 +165,7 @@ peripheral {
     field {
       name = "WR Streamer block loss count";
       description = "Number of indications that one or more blocks in a frame were lost (probably CRC\
-                     error, since reset";
+                     error) since reset";
       prefix = "RX_LOST_BLOCK_CNT";
       type = SLV;
       size = 32;
@@ -170,8 +176,10 @@ peripheral {
   reg {
     name = "DBG Control register";
     prefix = "DBG_CTRL";
+    description = "This register is meant to control simple debugging of transmitted or received data.\
+    It allows to sniff a 32-bit word at a configurable offset from received or transmitted data.";
     field {
-      name = "Debug Tx or Rx";
+      name = "Debug Tx (0) or Rx (1)";
       prefix = "MUX";
       type = BIT;
       access_bus = READ_WRITE;
@@ -180,6 +188,7 @@ peripheral {
     field {
       name = "Debug Start byte";
       prefix = "START_BYTE";
+      description ="The offset, in bytes, from which the 32-bit word is read.";
       type = SLV;
       align =8;
       size = 8;

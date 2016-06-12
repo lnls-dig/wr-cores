@@ -10,7 +10,10 @@
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
--- Description:
+-- Description: package to be called where xwr_transmission is used. Important 
+-- part of the package are the two constants that provide information about the
+-- generic array size - this array is used to provide information about statistics
+-- to the WRPC
 --
 -------------------------------------------------------------------------------
 --
@@ -35,7 +38,7 @@
 -------------------------------------------------------------------------------
 -- Revisions  :
 -- Date        Version  Author          Description
--- 2016-05-30  1.0     mlipinsk  Created
+-- 2016-05-30  1.0     mlipinsk         Created
 
 library ieee;
 use ieee.std_logic_1164.all;
