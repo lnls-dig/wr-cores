@@ -42,9 +42,13 @@ use ieee.std_logic_1164.all;
 use work.wishbone_pkg.all;  -- needed for t_wishbone_slave_in, etc
 use work.streamers_pkg.all; -- needed for streamers
 use work.wr_fabric_pkg.all; -- neede for :t_wrf_source_in, etc
+use work.wrcore_pkg.all;    -- needed for t_generic_word_array
 use work.wr_transmission_wbgen2_pkg.all;
 
 package wr_transmission_pkg is
+
+  constant c_WR_TRANS_ARR_SIZE_OUT : integer := c_STREAMERS_ARR_SIZE_OUT;
+  constant c_WR_TRANS_ARR_SIZE_IN  : integer := c_STREAMERS_ARR_SIZE_IN;
   
   component xwr_transmission is
     generic (
@@ -72,7 +76,9 @@ package wr_transmission_pkg is
       tm_tai_i : in std_logic_vector(39 downto 0) := x"0000000000";
       tm_cycles_i : in std_logic_vector(27 downto 0) := x"0000000";
       wb_slave_i               : in  t_wishbone_slave_in := cc_dummy_slave_in;
-      wb_slave_o               : out t_wishbone_slave_out
+      wb_slave_o               : out t_wishbone_slave_out;
+      snmp_array_o           : out t_generic_word_array(c_WR_TRANS_ARR_SIZE_OUT-1 downto 0);
+      snmp_array_i           : in  t_generic_word_array(c_WR_TRANS_ARR_SIZE_IN -1 downto 0)
 
       );
 

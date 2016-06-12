@@ -44,8 +44,11 @@ use IEEE.NUMERIC_STD.ALL;
 library work;
 use work.wishbone_pkg.all;  -- needed for t_wishbone_slave_in, etc
 use work.streamers_pkg.all; -- needed for streamers
-use work.wr_fabric_pkg.all; -- neede for :t_wrf_source_in, etc
+use work.wr_fabric_pkg.all; -- needed for :t_wrf_source_in, etc
+use work.WRBtrain_pkg.all;  -- needed for c_STREAMER_DATA_WIDTH
+use work.wrcore_pkg.all;    -- needed for t_generic_word_array
 use work.wr_transmission_wbgen2_pkg.all;
+use work.wr_transmission_pkg.all; -- needed for c_WR_TRANS_ARR_SIZE_*
 
 entity xwr_transmission is
   
@@ -117,8 +120,10 @@ entity xwr_transmission is
 
     -- wishbone interface 
     wb_slave_i               : in  t_wishbone_slave_in := cc_dummy_slave_in;
-    wb_slave_o               : out t_wishbone_slave_out
+    wb_slave_o               : out t_wishbone_slave_out;
 
+    snmp_array_o           : out t_generic_word_array(c_WR_TRANS_ARR_SIZE_OUT-1 downto 0);
+    snmp_array_i           : in  t_generic_word_array(c_WR_TRANS_ARR_SIZE_IN -1 downto 0)
     );
 
 end xwr_transmission;
@@ -143,7 +148,7 @@ architecture rtl of xwr_transmission is
     );
   end component;
 
-  constant c_STREAMER_DATA_WIDTH : integer :=208;
+--   constant c_STREAMER_DATA_WIDTH : integer :=208;
   constant c_STREAMER_ETHERTYPE  : std_logic_vector(15 downto 0) := x"dbff";	
   signal regs_to_wb              : t_wr_transmission_in_registers;
   signal regs_from_wb            : t_wr_transmission_out_registers;
@@ -265,7 +270,9 @@ begin
       latency_acc_o            => latency_acc,
       latency_max_o            => regs_to_wb.rx_stat3_rx_latency_max_i,
       latency_min_o            => regs_to_wb.rx_stat4_rx_latency_min_i,
-      latency_acc_overflow_o   => regs_to_wb.sscr1_rx_latency_acc_overflow_i
+      latency_acc_overflow_o   => regs_to_wb.sscr1_rx_latency_acc_overflow_i,
+      snmp_array_o             => snmp_array_o,
+      snmp_array_i             => snmp_array_i
       );
 
   regs_to_wb.sscr2_rst_ts_tai_lsb_i        <= reset_time_tai(31 downto 0);
