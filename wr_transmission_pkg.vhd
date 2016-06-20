@@ -5,15 +5,15 @@
 -- File       : BtrainFMC_pkg.vhd
 -- Author     : Maciej Lipinski
 -- Company    : CERN
--- Created    : 2016-05-31
--- Last update: 2016-05-31
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
--- Description: package to be called where xwr_transmission is used. Important 
--- part of the package are the two constants that provide information about the
--- generic array size - this array is used to provide information about statistics
--- to the WRPC
+-- Description:
+--
+-- package to be called where xwr_transmission is used. Important
+-- part of the package are the two constants that provide information about 
+-- the generic array size - this array is used to provide information about 
+-- statistics to the WRPC
 --
 -------------------------------------------------------------------------------
 --

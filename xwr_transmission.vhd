@@ -5,34 +5,38 @@
 -- File       : xwr_transmission.vhd
 -- Author     : Maciej Lipinski
 -- Company    : CERN
--- Created    : 2016-05-30
--- Last update: 2016-06-12
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
--- Description: This module wraps WR_Streamers-related stuff (i.e. rx,tx and 
--- statistics) and provides wishbone access to the statistics and streamer's
--- control/status registers.
--- 
--- 
+-- Description:
+--
+-- This module wraps WR_Streamers-related stuff: i.e.
+-- 1) IP core modules provided in wr-cores: xtx_streamer, xrx_streamer, 
+--    xrtx_streamers_stats
+-- 2) wishbone registers that provide access to the statistics and streamer's
+--    control/status registers.
+--
+-- This module interfaces:
+-- 1) WR PTP Core for transmission/reception of raw ethernet frames
+-- 2) Application-specific module for transmission/reception of data
 -------------------------------------------------------------------------------
 --
 -- Copyright (c) 2016 CERN/BE-CO-HT
 --
--- This source file is free software; you can redistribute it   
--- and/or modify it under the terms of the GNU Lesser General   
--- Public License as published by the Free Software Foundation; 
--- either version 2.1 of the License, or (at your option) any   
--- later version.                                               
+-- This source file is free software; you can redistribute it
+-- and/or modify it under the terms of the GNU Lesser General
+-- Public License as published by the Free Software Foundation;
+-- either version 2.1 of the License, or (at your option) any
+-- later version.
 --
--- This source is distributed in the hope that it will be       
--- useful, but WITHOUT ANY WARRANTY; without even the implied   
--- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      
--- PURPOSE.  See the GNU Lesser General Public License for more 
--- details.                                                     
+-- This source is distributed in the hope that it will be
+-- useful, but WITHOUT ANY WARRANTY; without even the implied
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+-- PURPOSE.  See the GNU Lesser General Public License for more
+-- details.
 --
--- You should have received a copy of the GNU Lesser General    
--- Public License along with this source; if not, download it   
+-- You should have received a copy of the GNU Lesser General
+-- Public License along with this source; if not, download it
 -- from http://www.gnu.org/licenses/lgpl-2.1.html
 --
 -------------------------------------------------------------------------------
@@ -40,6 +44,7 @@
 -- Date        Version  Author          Description
 -- 2016-05-30  1.0      mlipinsk        created
 ---------------------------------------------------------------------------------
+
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
@@ -54,7 +59,7 @@ use work.wr_transmission_wbgen2_pkg.all;
 use work.wr_transmission_pkg.all; -- needed for c_WR_TRANS_ARR_SIZE_*
 
 entity xwr_transmission is
-  
+
   generic (
     -- Width of data words on tx_data_i.
     g_data_width : integer := 32
@@ -129,7 +134,7 @@ entity xwr_transmission is
     );
 
 end xwr_transmission;
-  
+
 architecture rtl of xwr_transmission is
 
   component  wr_transmission_wb is
@@ -150,7 +155,7 @@ architecture rtl of xwr_transmission is
     );
   end component;
 
---   constant c_STREAMER_DATA_WIDTH : integer :=208;
+  constant c_STREAMER_DATA_WIDTH : integer :=208;
   constant c_STREAMER_ETHERTYPE  : std_logic_vector(15 downto 0) := x"dbff";	
   signal regs_to_wb              : t_wr_transmission_in_registers;
   signal regs_from_wb            : t_wr_transmission_out_registers;
@@ -183,7 +188,7 @@ architecture rtl of xwr_transmission is
     end loop;
     return result;
   end f_dbg_word_starting_at_byte;
- 
+
 begin
 
   U_TX: xtx_streamer
@@ -281,7 +286,7 @@ begin
   regs_to_wb.sscr2_rst_ts_tai_lsb_i        <= reset_time_tai(31 downto 0);
   regs_to_wb.rx_stat5_rx_latency_acc_lsb_i <= latency_acc(31 downto 0);
   regs_to_wb.rx_stat6_rx_latency_acc_msb_i <= latency_acc(63 downto 32);
-  
+
 
   U_WB_ADAPTER : wb_slave_adapter
     generic map (
