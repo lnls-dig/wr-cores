@@ -97,7 +97,11 @@ entity wr_core is
     g_softpll_channels_config   : t_softpll_channel_config_array := c_softpll_default_channel_config;
     g_softpll_enable_debugger   : boolean                        := false;
     g_vuart_fifo_size           : integer                        := 1024;
-    g_pcs_16bit                 : boolean                        := false);
+    g_pcs_16bit                 : boolean                        := false;
+    g_diag_id                   : integer                        := 0;
+    g_diag_ver                  : integer                        := 0;
+    g_diag_ro_size              : integer                        := 0;
+    g_diag_rw_size              : integer                        := 0);
   port(
     ---------------------------------------------------------------------------
     -- Clocks/resets
@@ -286,7 +290,13 @@ entity wr_core is
     dio_o       : out std_logic_vector(3 downto 0);
     rst_aux_n_o : out std_logic;
 
-    link_ok_o : out std_logic
+    link_ok_o : out std_logic;
+
+    -------------------------------------
+    -- DIAG to/from external modules
+    -------------------------------------
+    aux_diag_i : in  t_generic_word_array(g_diag_ro_size-1 downto 0) := (others=>(others=>'0'));
+    aux_diag_o : out t_generic_word_array(g_diag_rw_size-1 downto 0)
     );
 end wr_core;
 
@@ -774,7 +784,11 @@ begin
       g_phys_uart       => g_phys_uart,
       g_virtual_uart    => g_virtual_uart,
       g_mem_words       => g_dpram_size,
-      g_vuart_fifo_size => g_vuart_fifo_size)
+      g_vuart_fifo_size => g_vuart_fifo_size,
+      g_diag_id         => g_diag_id,
+      g_diag_ver        => g_diag_ver,
+      g_diag_ro_size    => g_diag_ro_size,
+      g_diag_rw_size    => g_diag_rw_size)
     port map(
       clk_sys_i   => clk_sys_i,
       rst_n_i     => rst_n_i,
@@ -808,7 +822,10 @@ begin
 
       owr_pwren_o => owr_pwren_o,
       owr_en_o    => owr_en_o,
-      owr_i       => owr_i
+      owr_i       => owr_i,
+
+      diag_array_in  => aux_diag_i,
+      diag_array_out => aux_diag_o
       );
 
   U_Adapter : wb_slave_adapter

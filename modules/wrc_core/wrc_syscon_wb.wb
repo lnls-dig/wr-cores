@@ -311,4 +311,88 @@ peripheral {
    };
 
 
+  reg {
+    name = "User Diag: version register";
+    prefix = "DIAG_INFO";
+
+    field {
+      name = "Ver";
+      prefix = "VER";
+      size = 16;
+      type = SLV;
+      access_bus = READ_ONLY;
+      access_dev = WRITE_ONLY;
+    };
+
+    field {
+      name = "Id";
+      prefix = "ID";
+      size = 16;
+      type = SLV;
+      access_bus = READ_ONLY;
+      access_dev = WRITE_ONLY;
+    };
+  };
+
+  reg {
+    name = "User Diag: number of words";
+    prefix = "DIAG_NW";
+
+    field {
+      name = "Read/write words";
+      prefix = "RW";
+      size = 16;
+      type = SLV;
+      access_bus = READ_ONLY;
+      access_dev = WRITE_ONLY;
+    };
+    field {
+      name = "Read-only words";
+      prefix = "RO";
+      size = 16;
+      type = SLV;
+      access_bus = READ_ONLY;
+      access_dev = WRITE_ONLY;
+    };
+  };
+
+  reg {
+    name = "User Diag: Control Register";
+    prefix = "DIAG_CR";
+
+    field {
+      name = "Address";
+      prefix = "ADR";
+      size = 16;
+      type = SLV;
+      access_bus = READ_WRITE;
+      access_dev = READ_WRITE;
+      load = LOAD_EXT;
+    };
+
+    field {
+      name = "R/W";
+      prefix = "RW";
+      size = 1;
+      type = BIT;
+      align = 31;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+    };
+  };
+
+  reg {
+    name = "User Diag: data to read/write";
+    prefix = "DIAG_DAT";
+    field {
+      name = "Data";
+      size = 32;
+      type = SLV;
+      access_bus = READ_WRITE;
+      access_dev = READ_WRITE;
+      load = LOAD_EXT;
+    };
+  };
+
+
 };

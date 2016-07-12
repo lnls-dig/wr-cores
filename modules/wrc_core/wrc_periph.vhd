@@ -37,7 +37,11 @@ entity wrc_periph is
     g_virtual_uart    : boolean := false;
     g_cntr_period     : integer := 62500;
     g_mem_words       : integer := 16384;   --in 32-bit words
-    g_vuart_fifo_size : integer := 1024
+    g_vuart_fifo_size : integer := 1024;
+    g_diag_id         : integer := 0;
+    g_diag_ver        : integer := 0;
+    g_diag_ro_size    : integer := 0;
+    g_diag_rw_size    : integer := 0
     );
   port(
     clk_sys_i : in std_logic;
@@ -74,7 +78,11 @@ entity wrc_periph is
     -- 1-Wire
     owr_pwren_o: out std_logic_vector(1 downto 0);
     owr_en_o : out std_logic_vector(1 downto 0);
-    owr_i    : in  std_logic_vector(1 downto 0)
+    owr_i    : in  std_logic_vector(1 downto 0);
+
+    -- optional diagnostics from external HDL modules
+    diag_array_in  : in  t_generic_word_array(g_diag_ro_size-1 downto 0) := (others=>(others=>'0'));
+    diag_array_out : out t_generic_word_array(g_diag_rw_size-1 downto 0)
     );
 end wrc_periph;
 
@@ -96,6 +104,10 @@ architecture struct of wrc_periph is
   signal cntr_overflow : std_logic;
   
   signal rst_wrc_n_o_reg : std_logic := '1';
+  signal diag_adr : unsigned(15 downto 0);
+  signal diag_dat : std_logic_vector(31 downto 0);
+  signal diag_out_regs : t_generic_word_array(g_diag_rw_size - 1 downto 0);
+  signal diag_in       : t_generic_word_array(g_diag_ro_size + g_diag_rw_size-1 downto 0);
 
 
 begin
@@ -278,6 +290,69 @@ begin
   sysc_regs_i.gpsr_spi_mosi_i <= '0';
   sysc_regs_i.gpsr_spi_miso_i <= spi_miso_i;
 
+
+  -------------------------------------
+  -- DIAG to/from external modules
+  -------------------------------------
+  -- first, provide all the constants
+  sysc_regs_i.diag_info_id_i  <= std_logic_vector(to_unsigned(g_diag_id, 16));
+  sysc_regs_i.diag_info_ver_i <= std_logic_vector(to_unsigned(g_diag_ver, 16));
+  sysc_regs_i.diag_nw_ro_i  <= std_logic_vector(to_unsigned(g_diag_ro_size, 16));
+  sysc_regs_i.diag_nw_rw_i <= std_logic_vector(to_unsigned(g_diag_rw_size, 16));
+
+  diag_array_out <= diag_out_regs;
+  -- r/w registers can be also read
+  diag_in(g_diag_rw_size - 1 downto 0) <= diag_out_regs;
+  -- r/o array after r/w registers for reading
+  diag_in(g_diag_ro_size + g_diag_rw_size-1 downto g_diag_rw_size) <= diag_array_in;
+
+  p_diag_rw: process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if rst_n_i = '0' then
+        diag_adr <= (others=>'0');
+        diag_dat <= (others=>'0');
+      else
+        if sysc_regs_o.diag_cr_adr_load_o = '1' then
+          diag_adr <= unsigned(sysc_regs_o.diag_cr_adr_o);
+        end if;
+        if sysc_regs_o.diag_dat_load_o = '1' then
+          diag_dat <= sysc_regs_o.diag_dat_o;
+        end if;
+      end if;
+    end if;
+  end process;
+
+  sysc_regs_i.diag_cr_adr_i    <= std_logic_vector(diag_adr);
+  GEN_DIAG_NODAT: if g_diag_rw_size = 0 and g_diag_ro_size = 0 generate
+    sysc_regs_i.diag_dat_i <= (others=>'0');
+  end generate;
+  GEN_DIAG_DAT: if g_diag_rw_size /= 0 or g_diag_ro_size /= 0 generate
+    sysc_regs_i.diag_dat_i <= diag_in(to_integer(diag_adr));
+  end generate;
+
+  -- Write request for each r/w register
+  GEN_DIAG_W: if g_diag_rw_size > 0 generate
+    GEN_LOOP: for I in 0 to g_diag_rw_size-1 generate
+
+      process(clk_sys_i)
+      begin
+        if rising_edge(clk_sys_i) then
+          if rst_n_i = '0' then
+            diag_out_regs(I) <= (others=>'0');
+          elsif sysc_regs_o.diag_cr_adr_load_o = '1' and sysc_regs_o.diag_cr_rw_o = '1' and
+            to_integer(unsigned(sysc_regs_o.diag_cr_adr_o)) = I then
+              diag_out_regs(I) <= diag_dat;
+          end if;
+        end if;
+      end process;
+
+    end generate;
+  end generate;
+
+  GEN_NODIAG_W: if g_diag_rw_size = 0 generate
+    diag_array_out <= (others=>(others=>'0'));
+  end generate;
 
   ----------------------------------------
   -- SYSCON

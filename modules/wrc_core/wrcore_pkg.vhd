@@ -13,6 +13,8 @@ package wrcore_pkg is
 
   function f_refclk_rate(pcs_16 : boolean) return integer;
 
+  type t_generic_word_array is array (natural range <>) of std_logic_vector(31 downto 0);
+
   ----------------------------------------------------------------------------- 
   --PPS generator
   -----------------------------------------------------------------------------
@@ -195,7 +197,11 @@ package wrcore_pkg is
       g_virtual_uart    : boolean := false;
       g_cntr_period     : integer := 62500;
       g_mem_words       : integer := 16384;
-      g_vuart_fifo_size : integer := 1024
+      g_vuart_fifo_size : integer := 1024;
+      g_diag_id         : integer := 0;
+      g_diag_ver        : integer := 0;
+      g_diag_ro_size    : integer := 0;
+      g_diag_rw_size    : integer := 0
       );
     port(
       clk_sys_i   : in  std_logic;
@@ -226,7 +232,9 @@ package wrcore_pkg is
       uart_txd_o  : out std_logic;
       owr_pwren_o : out std_logic_vector(1 downto 0);
       owr_en_o    : out std_logic_vector(1 downto 0);
-      owr_i       : in  std_logic_vector(1 downto 0)
+      owr_i       : in  std_logic_vector(1 downto 0);
+      diag_array_in  : in  t_generic_word_array(g_diag_ro_size-1 downto 0);
+      diag_array_out : out t_generic_word_array(g_diag_rw_size-1 downto 0)
       );
   end component;
 
@@ -292,7 +300,6 @@ package wrcore_pkg is
   constant cc_unused_master_in : t_wishbone_master_in :=
     ('1', '0', '0', '0', '0', cc_dummy_data);
 
-  type t_generic_word_array is array (natural range <>) of std_logic_vector(31 downto 0);
   -----------------------------------------------------------------------------
   -- Public WR component definitions
   -----------------------------------------------------------------------------
@@ -314,7 +321,11 @@ package wrcore_pkg is
       g_vuart_fifo_size           : integer                        := 1024;
       g_snmp_array_in             : integer                        := 0;
       g_snmp_array_out            : integer                        := 0;
-      g_pcs_16bit                 : boolean                        := false);
+      g_pcs_16bit                 : boolean                        := false;
+      g_diag_id                   : integer                        := 0;
+      g_diag_ver                  : integer                        := 0;
+      g_diag_ro_size              : integer                        := 0;
+      g_diag_rw_size              : integer                        := 0);
     port(
       clk_sys_i            : in std_logic;
       clk_dmtd_i           : in std_logic := '0';
@@ -409,10 +420,10 @@ package wrcore_pkg is
       dio_o       : out std_logic_vector(3 downto 0);
       rst_aux_n_o : out std_logic;
 
-      snmp_word_array_i    : in  t_generic_word_array(g_snmp_array_in-1 downto 0) := (others =>(others=>'0'));
-      snmp_word_array_o    : out t_generic_word_array(g_snmp_array_out-1 downto 0);
+      link_ok_o : out std_logic;
 
-      link_ok_o : out std_logic
+      aux_diag_i : in  t_generic_word_array(g_diag_ro_size-1 downto 0) := (others=>(others=>'0'));
+      aux_diag_o : out t_generic_word_array(g_diag_rw_size-1 downto 0)
       );
   end component;
 
@@ -435,7 +446,11 @@ package wrcore_pkg is
       g_aux_sdb                   : t_sdb_device                   := c_wrc_periph3_sdb;
       g_softpll_enable_debugger   : boolean                        := false;
       g_vuart_fifo_size           : integer                        := 1024;
-      g_pcs_16bit                 : boolean                        := false);
+      g_pcs_16bit                 : boolean                        := false;
+      g_diag_id                   : integer                        := 0;
+      g_diag_ver                  : integer                        := 0;
+      g_diag_ro_size              : integer                        := 0;
+      g_diag_rw_size              : integer                        := 0);
     port(
       ---------------------------------------------------------------------------
       -- Clocks/resets
@@ -622,7 +637,13 @@ package wrcore_pkg is
       dio_o       : out std_logic_vector(3 downto 0);
       rst_aux_n_o : out std_logic;
 
-      link_ok_o : out std_logic
+      link_ok_o : out std_logic;
+
+      -------------------------------------
+      -- DIAG to/from external modules
+      -------------------------------------
+      aux_diag_i : in  t_generic_word_array(g_diag_ro_size-1 downto 0) := (others=>(others=>'0'));
+      aux_diag_o : out t_generic_word_array(g_diag_rw_size-1 downto 0)
       );
   end component;
 

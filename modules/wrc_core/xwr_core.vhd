@@ -83,7 +83,11 @@ entity xwr_core is
     g_vuart_fifo_size           : integer                        := 1024;
     g_snmp_array_in             : integer                        := 0;
     g_snmp_array_out            : integer                        := 0;
-    g_pcs_16bit                 : boolean                        := false);
+    g_pcs_16bit                 : boolean                        := false;
+    g_diag_id                   : integer                        := 0;
+    g_diag_ver                  : integer                        := 0;
+    g_diag_ro_size              : integer                        := 0;
+    g_diag_rw_size              : integer                        := 0);
   port(
     ---------------------------------------------------------------------------
     -- Clocks/resets
@@ -233,8 +237,8 @@ entity xwr_core is
     dio_o       : out std_logic_vector(3 downto 0);
     rst_aux_n_o : out std_logic;
 
-    snmp_word_array_i    : in  t_generic_word_array(g_snmp_array_in-1 downto 0) := (others =>(others=>'0'));
-    snmp_word_array_o    : out t_generic_word_array(g_snmp_array_out-1 downto 0);
+    aux_diag_i    : in  t_generic_word_array(g_diag_ro_size-1 downto 0) := (others =>(others=>'0'));
+    aux_diag_o    : out t_generic_word_array(g_diag_rw_size-1 downto 0);
 
     link_ok_o : out std_logic
     );
@@ -259,7 +263,12 @@ begin
       g_aux_sdb                   => g_aux_sdb,
       g_softpll_enable_debugger   => g_softpll_enable_debugger,
       g_vuart_fifo_size           => g_vuart_fifo_size,
-      g_pcs_16bit                 => g_pcs_16bit)
+      g_pcs_16bit                 => g_pcs_16bit,
+      g_diag_id                   => g_diag_id,
+      g_diag_ver                  => g_diag_ver,
+      g_diag_ro_size              => g_diag_ro_size,
+      g_diag_rw_size              => g_diag_rw_size
+      )
     port map(
       clk_sys_i     => clk_sys_i,
       clk_dmtd_i    => clk_dmtd_i,
@@ -388,7 +397,10 @@ begin
       dio_o       => dio_o,
       rst_aux_n_o => rst_aux_n_o,
 
-      link_ok_o => link_ok_o
+      link_ok_o => link_ok_o,
+
+      aux_diag_i => aux_diag_i,
+      aux_diag_o => aux_diag_o
       );
 
   timestamps_o.port_id(5) <= '0';

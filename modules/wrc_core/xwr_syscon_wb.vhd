@@ -50,7 +50,7 @@ architecture syn of xwr_syscon_wb is
     port (
       rst_n_i                                  : in     std_logic;
       clk_sys_i                                : in     std_logic;
-      wb_adr_i                                 : in     std_logic_vector(2 downto 0);
+      wb_adr_i                                 : in     std_logic_vector(3 downto 0);
       wb_dat_i                                 : in     std_logic_vector(31 downto 0);
       wb_dat_o                                 : out    std_logic_vector(31 downto 0);
       wb_cyc_i                                 : in     std_logic;
@@ -96,7 +96,7 @@ begin
     port map(
       rst_n_i    => rst_n_i,
       clk_sys_i  => clk_sys_i,
-      wb_adr_i   => wb_in.adr(2 downto 0),
+      wb_adr_i   => wb_in.adr(3 downto 0),
       wb_dat_i   => wb_in.dat,
       wb_dat_o   => wb_out.dat,
       wb_cyc_i   => wb_in.cyc,
