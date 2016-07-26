@@ -160,6 +160,8 @@ architecture rtl of xwr_transmission is
   signal regs_to_wb              : t_wr_transmission_in_registers;
   signal regs_from_wb            : t_wr_transmission_out_registers;
   signal dbg_word                : std_logic_vector(31 downto 0);
+  signal dbg_tx_bfield           : std_logic_vector(31 downto 0);
+  signal dbg_rx_bfield           : std_logic_vector(31 downto 0);
   signal start_bit               : std_logic_vector(regs_from_wb.dbg_ctrl_start_byte_o'length-1+3 downto 0);
   signal rx_data                 : std_logic_vector(g_data_width-1 downto 0);
   signal wb_regs_slave_in        : t_wishbone_slave_in;
@@ -279,7 +281,7 @@ begin
       latency_max_o            => regs_to_wb.rx_stat3_rx_latency_max_i,
       latency_min_o            => regs_to_wb.rx_stat4_rx_latency_min_i,
       latency_acc_overflow_o   => regs_to_wb.sscr1_rx_latency_acc_overflow_i,
-      snmp_array_o             => snmp_array_o,
+      snmp_array_o             => snmp_array_o(c_STREAMERS_ARR_SIZE_OUT-1 downto 0),
       snmp_array_i             => snmp_array_i
       );
 
@@ -346,5 +348,25 @@ begin
   --   to make good statistics
   regs_to_wb.dbg_data_i    <= dbg_word;
   regs_to_wb.dummy_dummy_i <=x"DEADBEEF";
+
+  p_bfield_for_SNMP: process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if rst_n_i = '0' then
+        dbg_tx_bfield <= (others =>'0');
+        dbg_rx_bfield <= (others =>'0');
+      else
+        if(rx_valid = '1') then
+          dbg_rx_bfield <= rx_data(31+16 downto 16);
+        end if;
+        if(tx_valid_i = '1') then
+          dbg_tx_bfield <= tx_data_i(31+16 downto 16);
+        end if;
+      end if;
+    end if;
+  end process;  
+
+  snmp_array_o(c_STREAMERS_ARR_SIZE_OUT)   <= dbg_rx_bfield;
+  snmp_array_o(c_STREAMERS_ARR_SIZE_OUT+1) <= dbg_tx_bfield;
 
 end rtl;
