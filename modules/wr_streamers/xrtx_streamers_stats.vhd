@@ -128,11 +128,37 @@ architecture rtl of xrtx_streamers_stats is
   signal latency_acc       : unsigned(g_acc_width-1+1  downto 0);
   signal latency_acc_overflow: std_logic;
 
+  --- statistics resets:
   signal reset_stats_remote: std_logic;
+  signal reset_stats       : std_logic;
+  signal reset_stats_d1    : std_logic;
+  signal reset_stats_p     : std_logic;
   -- for code cleanness
   constant cw              : integer := g_cnt_width;
   constant aw              : integer := g_acc_width;
 begin
+
+  -- reset statistics when receiving signal from SNMP or Wishbone
+  reset_stats <= reset_stats_remote or reset_stats_i;
+
+  -- when exiting the reset, produce pulse for the timestamper
+  p_stats_reset: process(clk_i)
+  begin
+    if rising_edge(clk_i) then
+      if (rst_n_i = '0') then
+         reset_stats_p  <= '0';
+         reset_stats_d1 <= '0';
+      else
+        -- pulse is on falling edge of the reset signal (reset when signal HIGH)
+        if(reset_stats = '0' and reset_stats_d1 = '1') then
+          reset_stats_p <='1':
+        else
+          reset_stats_p <='0':
+        end if;
+        reset_stats_d1 <= reset_stats;
+      end if;
+    end if;
+  end process;
 
   -- process that timestamps the reset so that we can make statistics over time
   U_Reset_Timestamper : pulse_stamper
@@ -140,18 +166,21 @@ begin
       clk_ref_i       => clk_ref_i,
       clk_sys_i       => clk_i,
       rst_n_i         => rst_n_i,
-      pulse_a_i       => reset_stats_i,
+      pulse_a_i       => reset_stats_p,
       tm_time_valid_i => tm_time_valid_i,
       tm_tai_i        => tm_tai_i,
       tm_cycles_i     => tm_cycles_i,
-      tag_tai_o       => reset_time_tai_o,
-      tag_cycles_o    => reset_time_cycles_o);
+      tag_tai_o       => reset_time_tai,
+      tag_cycles_o    => reset_time_cycles);
+
+  reset_time_tai_o    <= reset_time_tai;
+  reset_time_cycles_o <= reset_time_cycles;
 
   -- process that counts stuff: receved/send/lost frames
   p_cnts: process(clk_i)
   begin
     if rising_edge(clk_i) then
-      if (rst_n_i = '0' or reset_stats_i = '1') then
+      if (rst_n_i = '0' or reset_stats = '1') then
         sent_frame_cnt        <= (others => '0');
         rcvd_frame_cnt        <= (others => '0');
         lost_frame_cnt        <= (others => '0');
@@ -185,7 +214,7 @@ begin
   p_latency_stats: process(clk_i)
   begin
     if rising_edge(clk_i) then
-      if (rst_n_i = '0' or reset_stats_i = '1') then
+      if (rst_n_i = '0' or reset_stats = '1') then
         latency_max            <= (others => '0');
         latency_min            <= (others => '1');
         latency_acc            <= (others => '0');
@@ -224,8 +253,9 @@ begin
 
   reset_stats_remote                <= snmp_array_i(0)(0);
 
-  snmp_array_o(0)(             0)   <= latency_acc_overflow;          -- status bit
-  snmp_array_o(0)(   31 downto 1)   <= (others => '0');
+  snmp_array_o(0)(             0)   <= reset_stats;                   -- loop back for diagnostics
+  snmp_array_o(0)(             1)   <= latency_acc_overflow;          -- status bit
+  snmp_array_o(0)(   31 downto 2)   <= (others => '0');
   snmp_array_o(1)(   31 downto 0)   <= x"0" & reset_time_cycles( 27 downto 0);
   snmp_array_o(2)(   31 downto 0)   <= reset_time_tai(    31 downto 0);
   snmp_array_o(3)(   31 downto 0)   <= x"000000" & reset_time_tai(    39 downto 32);
@@ -233,13 +263,13 @@ begin
   snmp_array_o(4 )(cw-1 downto 0)   <= std_logic_vector(sent_frame_cnt(cw-1 downto 0));
   snmp_array_o(4 )(31   downto cw)  <= (others => '0');
   snmp_array_o(5 )(cw-1 downto 0)   <= std_logic_vector(rcvd_frame_cnt(cw-1 downto 0));
-  snmp_array_o(4 )(31   downto cw)  <= (others => '0');
+  snmp_array_o(5 )(31   downto cw)  <= (others => '0');
   snmp_array_o(6 )(cw-1 downto 0)   <= std_logic_vector(lost_frame_cnt(cw-1 downto 0));
-  snmp_array_o(4 )(31   downto cw)  <= (others => '0');
+  snmp_array_o(6 )(31   downto cw)  <= (others => '0');
   snmp_array_o(7 )(cw-1 downto 0)   <= std_logic_vector(lost_block_cnt(cw-1 downto 0));
-  snmp_array_o(4 )(31   downto cw)  <= (others => '0');
+  snmp_array_o(7 )(31   downto cw)  <= (others => '0');
   snmp_array_o(8 )(cw-1 downto 0)   <= std_logic_vector(latency_cnt(   cw-1 downto 0));
-  snmp_array_o(4 )(31   downto cw)  <= (others => '0');
+  snmp_array_o(8 )(31   downto cw)  <= (others => '0');
   
   snmp_array_o(9 )(31 downto 0)     <= x"0" & latency_max(27 downto 0);
   snmp_array_o(10)(31 downto 0)     <= x"0" & latency_min(27 downto 0);
@@ -253,5 +283,8 @@ begin
     snmp_array_o(12)(aw-32-1 downto 0)     <= std_logic_vector(latency_acc(aw-1 downto 32));
     snmp_array_o(12)(31      downto aw-32) <= (others => '0'); 
   end generate;
+
+  -- tmp debug
+   snmp_array_o(13)(31 downto 0) <= snmp_array_i(0)(31 downto 0);
 
 end rtl;

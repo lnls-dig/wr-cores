@@ -67,7 +67,7 @@ package streamers_pkg is
       cfg_accept_broadcasts_i : in  std_logic                     := '1');
   end component;
 
-  constant c_STREAMERS_ARR_SIZE_OUT : integer := 13;
+  constant c_STREAMERS_ARR_SIZE_OUT : integer := 14;
   constant c_STREAMERS_ARR_SIZE_IN  : integer := 1;
 
   component xrtx_streamers_stats is
