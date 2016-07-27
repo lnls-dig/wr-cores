@@ -47,6 +47,17 @@ peripheral {
       type = MONOSTABLE;
     };
     field {
+      name = "Snapshot statistics";
+      prefix = "SNAPSHOT_STATS";
+      description = "Writing 1 snapshots statistics for reading, it means that all the counters \
+                    are copied at the same instant to registers and this registers can be read\
+                    via wishbone/snmp while the counters are still running in the background. \
+                    this allows to read coherent data";
+      type = BIT;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY; 
+    };
+    field {
       name = "Latency accumulator overflow";
       prefix = "RX_LATENCY_ACC_OVERFLOW";
       description = "Latency accumulator overflow - the lateny accumulator value is invalid";

@@ -270,6 +270,7 @@ begin
       tm_tai_i                 => tm_tai_i,
       tm_cycles_i              => tm_cycles_i,
       reset_stats_i            => regs_from_wb.sscr1_rst_stats_o,
+      snapshot_ena_i           => regs_from_wb.sscr1_snapshot_stats_o,
       reset_time_tai_o         => reset_time_tai,
       reset_time_cycles_o      => regs_to_wb.sscr1_rst_ts_cyc_i,
       sent_frame_cnt_o         => regs_to_wb.tx_stat_tx_sent_cnt_i,
@@ -366,7 +367,7 @@ begin
     end if;
   end process;  
 
-  snmp_array_o(c_STREAMERS_ARR_SIZE_OUT)   <= dbg_word
+  snmp_array_o(c_STREAMERS_ARR_SIZE_OUT)   <= dbg_word;
   snmp_array_o(c_STREAMERS_ARR_SIZE_OUT+1) <= f_bigEndianess(dbg_rx_bfield);
   snmp_array_o(c_STREAMERS_ARR_SIZE_OUT+2) <= f_bigEndianess(dbg_tx_bfield);
 
