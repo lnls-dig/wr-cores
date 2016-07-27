@@ -50,7 +50,7 @@ use work.wr_transmission_wbgen2_pkg.all;
 
 package wr_transmission_pkg is
 
-  constant c_WR_TRANS_ARR_SIZE_OUT : integer := c_STREAMERS_ARR_SIZE_OUT+2;
+  constant c_WR_TRANS_ARR_SIZE_OUT : integer := c_STREAMERS_ARR_SIZE_OUT+3;
   constant c_WR_TRANS_ARR_SIZE_IN  : integer := c_STREAMERS_ARR_SIZE_IN;
   
   component xwr_transmission is

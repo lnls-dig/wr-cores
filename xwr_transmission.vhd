@@ -366,7 +366,9 @@ begin
     end if;
   end process;  
 
-  snmp_array_o(c_STREAMERS_ARR_SIZE_OUT)   <= dbg_rx_bfield;
-  snmp_array_o(c_STREAMERS_ARR_SIZE_OUT+1) <= dbg_tx_bfield;
+  snmp_array_o(c_STREAMERS_ARR_SIZE_OUT)   <= dbg_word
+  snmp_array_o(c_STREAMERS_ARR_SIZE_OUT+1) <= f_bigEndianess(dbg_rx_bfield);
+  snmp_array_o(c_STREAMERS_ARR_SIZE_OUT+2) <= f_bigEndianess(dbg_tx_bfield);
+
 
 end rtl;
