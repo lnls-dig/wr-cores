@@ -76,6 +76,7 @@ entity xrtx_streamers_stats is
 
     -- statistic control
     reset_stats_i          : in std_logic;
+    snapshot_ena_i         : in std_logic := '0';
     ----------------------- statistics ----------------------------------------
     -- output statistics: time of last reset of statistics
     reset_time_tai_o       : out std_logic_vector(39 downto 0) := x"0000000000";
@@ -128,11 +129,37 @@ architecture rtl of xrtx_streamers_stats is
   signal latency_acc       : unsigned(g_acc_width-1+1  downto 0);
   signal latency_acc_overflow: std_logic;
 
+  -- snaphsot
+  signal sent_frame_cnt_d1    : unsigned(g_cnt_width-1  downto 0);
+  signal rcvd_frame_cnt_d1    : unsigned(g_cnt_width-1  downto 0);
+  signal lost_frame_cnt_d1    : unsigned(g_cnt_width-1  downto 0);
+  signal lost_block_cnt_d1    : unsigned(g_cnt_width-1  downto 0);
+  signal latency_cnt_d1       : unsigned(g_cnt_width-1  downto 0);
+
+  signal latency_max_d1       : std_logic_vector(27  downto 0);
+  signal latency_min_d1       : std_logic_vector(27  downto 0);
+  signal latency_acc_d1       : unsigned(g_acc_width-1+1  downto 0);
+  signal latency_acc_overflow_d1: std_logic;
+
+  signal sent_frame_cnt_out       : std_logic_vector(g_cnt_width-1 downto 0);
+  signal rcvd_frame_cnt_out       : std_logic_vector(g_cnt_width-1 downto 0);
+  signal lost_frame_cnt_out       : std_logic_vector(g_cnt_width-1 downto 0);
+  signal lost_block_cnt_out       : std_logic_vector(g_cnt_width-1 downto 0);
+  signal latency_cnt_out          : std_logic_vector(g_cnt_width-1 downto 0);
+  signal latency_acc_overflow_out : std_logic;
+  signal latency_acc_out          : std_logic_vector(g_acc_width-1  downto 0);
+  signal latency_max_out          : std_logic_vector(27  downto 0);
+  signal latency_min_out          : std_logic_vector(27  downto 0);
+
   --- statistics resets:
   signal reset_stats_remote: std_logic;
   signal reset_stats       : std_logic;
   signal reset_stats_d1    : std_logic;
   signal reset_stats_p     : std_logic;
+  signal snapshot_remote_ena  : std_logic;
+  signal snapshot_ena      : std_logic;
+  signal snapshot_ena_d1   : std_logic;
+  
   -- for code cleanness
   constant cw              : integer := g_cnt_width;
   constant aw              : integer := g_acc_width;
@@ -140,7 +167,16 @@ begin
 
   -- reset statistics when receiving signal from SNMP or Wishbone
   reset_stats <= reset_stats_remote or reset_stats_i;
-
+  -------------------------------------------------------------------------------------------
+  -- produce pulse of reset input signal, this pulse produces timesstamp to be timestamped
+  -------------------------------------------------------------------------------------------
+  -- pulse is on falling and rising edge of the reset signal (reset when signal HIGH)
+  -- in this way, one can 
+  -- 1. read the timestamp of the start of statistics acquisition
+  -- 2. reset HIGH
+  -- 3. read the timestamp of the end of statistics acquisition
+  -- 4. start acqusition
+  -------------------------------------------------------------------------------------------
   -- when exiting the reset, produce pulse for the timestamper
   p_stats_reset: process(clk_i)
   begin
@@ -149,12 +185,6 @@ begin
          reset_stats_p  <= '0';
          reset_stats_d1 <= '0';
       else
-        -- pulse is on falling and rising edge of the reset signal (reset when signal HIGH)
-        -- in this way, one can 
-        -- 1. read the timestamp of the start of statistics acquisition
-        -- 2. reset HIGH
-        -- 3. read the timestamp of the end of statistics acquisition
-        -- 4. start acqusition
         if(reset_stats = '0' and reset_stats_d1 = '1') then
           reset_stats_p <='1';
         elsif(reset_stats = '1' and reset_stats_d1 = '0') then
@@ -167,6 +197,9 @@ begin
     end if;
   end process;
 
+  -------------------------------------------------------------------------------------------
+  -- Timestamp of reset
+  -------------------------------------------------------------------------------------------
   -- process that timestamps the reset so that we can make statistics over time
   U_Reset_Timestamper : pulse_stamper
     port map (
@@ -183,6 +216,9 @@ begin
   reset_time_tai_o    <= reset_time_tai;
   reset_time_cycles_o <= reset_time_cycles;
 
+  -------------------------------------------------------------------------------------------
+  -- frame/block statistics, i.e. lost, sent, received
+  -------------------------------------------------------------------------------------------
   -- process that counts stuff: receved/send/lost frames
   p_cnts: process(clk_i)
   begin
@@ -213,11 +249,9 @@ begin
     end if;
   end process;
 
-  sent_frame_cnt_o       <= std_logic_vector(sent_frame_cnt);
-  rcvd_frame_cnt_o       <= std_logic_vector(rcvd_frame_cnt);
-  lost_frame_cnt_o       <= std_logic_vector(lost_frame_cnt);
-  lost_block_cnt_o       <= std_logic_vector(lost_block_cnt);
-
+  -------------------------------------------------------------------------------------------
+  -- latency statistics
+  -------------------------------------------------------------------------------------------
   p_latency_stats: process(clk_i)
   begin
     if rising_edge(clk_i) then
@@ -244,12 +278,87 @@ begin
       end if;
     end if;
   end process;
-  
-  latency_max_o      <= latency_max;
-  latency_min_o      <= latency_min;
-  latency_acc_o      <= std_logic_vector(latency_acc(g_acc_width-1 downto 0));
-  latency_cnt_o      <= std_logic_vector(latency_cnt);
-  latency_acc_overflow_o <= latency_acc_overflow;
+
+  -------------------------------------------------------------------------------------------
+  -- snapshot 
+  -------------------------------------------------------------------------------------------
+  -- snapshot is used to expose to user coherent value, so that the count for accumulated
+  -- latency is coherent with the accumulated latency and the average can be accurately 
+  -- calculated
+  -------------------------------------------------------------------------------------------
+  snapshot_ena <= snapshot_ena_i or snapshot_remote_ena;
+  -- snapshot
+  p_stats_snapshot: process(clk_i)
+  begin
+    if rising_edge(clk_i) then
+      if (rst_n_i = '0') then
+         snapshot_ena_d1         <= '0';
+         sent_frame_cnt_d1       <= (others=>'0');
+         rcvd_frame_cnt_d1       <= (others=>'0');
+         lost_frame_cnt_d1       <= (others=>'0');
+         lost_block_cnt_d1       <= (others=>'0');
+         latency_cnt_d1          <= (others=>'0');
+
+         latency_max_d1          <= (others=>'0');
+         latency_min_d1          <= (others=>'0');
+         latency_acc_d1          <= (others=>'0');
+         latency_acc_overflow_d1 <= '0';
+      else
+        if(snapshot_ena = '1' and snapshot_ena_d1 = '0') then
+         sent_frame_cnt_d1       <= sent_frame_cnt;
+         rcvd_frame_cnt_d1       <= rcvd_frame_cnt;
+         lost_frame_cnt_d1       <= lost_frame_cnt;
+         lost_block_cnt_d1       <= lost_block_cnt;
+         latency_cnt_d1          <= latency_cnt;
+
+         latency_max_d1          <= latency_max;
+         latency_min_d1          <= latency_min;
+         latency_acc_d1          <= latency_acc;
+         latency_acc_overflow_d1 <= latency_acc_overflow;
+        end if;
+        snapshot_ena_d1 <= snapshot_ena;
+      end if;
+    end if;
+  end process;
+
+  -------------------------------------------------------------------------------------------
+  -- snapshot or current value
+  -------------------------------------------------------------------------------------------
+  sent_frame_cnt_out       <= std_logic_vector(sent_frame_cnt_d1) when (snapshot_ena_d1 = '1') else
+                              std_logic_vector(sent_frame_cnt);
+  rcvd_frame_cnt_out       <= std_logic_vector(rcvd_frame_cnt_d1) when (snapshot_ena_d1 = '1') else
+                              std_logic_vector(rcvd_frame_cnt);
+  lost_frame_cnt_out       <= std_logic_vector(lost_frame_cnt_d1) when (snapshot_ena_d1 = '1') else
+                              std_logic_vector(lost_frame_cnt);
+  lost_block_cnt_out       <= std_logic_vector(lost_block_cnt_d1) when (snapshot_ena_d1 = '1') else
+                              std_logic_vector(lost_block_cnt);
+  latency_max_out          <= latency_max_d1 when (snapshot_ena_d1 = '1') else
+                              latency_max;
+  latency_min_out          <= latency_min_d1 when (snapshot_ena_d1 = '1') else
+                              latency_min;
+  latency_acc_out          <= std_logic_vector(latency_acc_d1(g_acc_width-1 downto 0)) when (snapshot_ena_d1 = '1') else
+                              std_logic_vector(latency_acc(g_acc_width-1 downto 0));
+  latency_cnt_out          <= std_logic_vector(latency_cnt_d1) when (snapshot_ena_d1 = '1') else
+                              std_logic_vector(latency_cnt);
+  latency_acc_overflow_out <= latency_acc_overflow_d1  when (snapshot_ena_d1 = '1') else
+                              latency_acc_overflow;
+
+  -------------------------------------------------------------------------------------------
+  -- wishbone local output
+  -------------------------------------------------------------------------------------------
+  sent_frame_cnt_o         <= sent_frame_cnt_out;
+  rcvd_frame_cnt_o         <= rcvd_frame_cnt_out;
+  lost_frame_cnt_o         <= lost_frame_cnt_out;
+  lost_block_cnt_o         <= lost_block_cnt_out;
+  latency_max_o            <= latency_max_out;
+  latency_min_o            <= latency_min_out;
+  latency_acc_o            <= latency_acc_out;
+  latency_cnt_o            <= latency_cnt_out;
+  latency_acc_overflow_o   <= latency_acc_overflow_out;
+
+  -------------------------------------------------------------------------------------------
+  -- SNMP remote output
+  -------------------------------------------------------------------------------------------
 
   -- Generic communication with WRPC that allows SNMP access via generic array of 32-bits 
   -- std_logic_vectors
@@ -259,35 +368,37 @@ begin
     report "g_cnt_width value not suppported by f_pack_streamers_statistics" severity error;
 
   reset_stats_remote                <= snmp_array_i(0)(0);
+  snapshot_remote_ena               <= snmp_array_i(0)(1);
 
   snmp_array_o(0)(             0)   <= reset_stats;                   -- loop back for diagnostics
-  snmp_array_o(0)(             1)   <= latency_acc_overflow;          -- status bit
-  snmp_array_o(0)(   31 downto 2)   <= (others => '0');
+  snmp_array_o(0)(             1)   <= latency_acc_overflow_out;
   snmp_array_o(1)(   31 downto 0)   <= x"0" & reset_time_cycles( 27 downto 0);
   snmp_array_o(2)(   31 downto 0)   <= reset_time_tai(    31 downto 0);
   snmp_array_o(3)(   31 downto 0)   <= x"000000" & reset_time_tai(    39 downto 32);
 
-  snmp_array_o(4 )(cw-1 downto 0)   <= std_logic_vector(sent_frame_cnt(cw-1 downto 0));
+  -- output to the 
+  snmp_array_o(4 )(cw-1 downto 0)   <= sent_frame_cnt_out;
+  snmp_array_o(5 )(cw-1 downto 0)   <= rcvd_frame_cnt_out;
+  snmp_array_o(6 )(cw-1 downto 0)   <= lost_frame_cnt_out;
+  snmp_array_o(7 )(cw-1 downto 0)   <= lost_block_cnt_out;
+  snmp_array_o(8 )(cw-1 downto 0)   <= latency_cnt_out;
+  snmp_array_o(9 )(31   downto 0)   <= x"0" & latency_max_out(27 downto 0);
+  snmp_array_o(10)(31   downto 0)   <= x"0" & latency_min_out(27 downto 0); 
+
+  snmp_array_o(0) (31   downto 2)   <= (others => '0');
   snmp_array_o(4 )(31   downto cw)  <= (others => '0');
-  snmp_array_o(5 )(cw-1 downto 0)   <= std_logic_vector(rcvd_frame_cnt(cw-1 downto 0));
   snmp_array_o(5 )(31   downto cw)  <= (others => '0');
-  snmp_array_o(6 )(cw-1 downto 0)   <= std_logic_vector(lost_frame_cnt(cw-1 downto 0));
   snmp_array_o(6 )(31   downto cw)  <= (others => '0');
-  snmp_array_o(7 )(cw-1 downto 0)   <= std_logic_vector(lost_block_cnt(cw-1 downto 0));
   snmp_array_o(7 )(31   downto cw)  <= (others => '0');
-  snmp_array_o(8 )(cw-1 downto 0)   <= std_logic_vector(latency_cnt(   cw-1 downto 0));
   snmp_array_o(8 )(31   downto cw)  <= (others => '0');
-  
-  snmp_array_o(9 )(31 downto 0)     <= x"0" & latency_max(27 downto 0);
-  snmp_array_o(10)(31 downto 0)     <= x"0" & latency_min(27 downto 0);
- 
+
   CNT_SINGLE_WORD_gen: if(aw < 33) generate
-    snmp_array_o(11)(aw-1    downto  0) <= std_logic_vector(latency_acc(aw-1 downto 0));
-    snmp_array_o(11)(31      downto aw) <= std_logic_vector(latency_acc(aw-1 downto 0));
+    snmp_array_o(11)(aw-1    downto  0) <= latency_acc_out;
+    snmp_array_o(11)(31      downto aw) <= (others => '0');
   end generate;
   CNT_TWO_WORDs_gen:   if(aw > 32) generate
-    snmp_array_o(11)(31      downto 0)     <= std_logic_vector(latency_acc(31    downto 0));
-    snmp_array_o(12)(aw-32-1 downto 0)     <= std_logic_vector(latency_acc(aw-1 downto 32));
+    snmp_array_o(11)(31      downto 0)     <= latency_acc_out(31    downto 0);
+    snmp_array_o(12)(aw-32-1 downto 0)     <= latency_acc_out(aw-1 downto 32) ;
     snmp_array_o(12)(31      downto aw-32) <= (others => '0'); 
   end generate;
 

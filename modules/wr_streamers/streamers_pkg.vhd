@@ -90,6 +90,7 @@ package streamers_pkg is
       tm_tai_i               : in std_logic_vector(39 downto 0) := x"0000000000";
       tm_cycles_i            : in std_logic_vector(27 downto 0) := x"0000000";
       reset_stats_i          : in std_logic;
+      snapshot_ena_i         : in std_logic := '0';
       reset_time_tai_o       : out std_logic_vector(39 downto 0) := x"0000000000";
       reset_time_cycles_o    : out std_logic_vector(27 downto 0) := x"0000000";
       sent_frame_cnt_o       : out std_logic_vector(g_cnt_width-1 downto 0);
