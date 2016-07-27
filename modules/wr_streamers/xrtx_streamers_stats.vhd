@@ -149,11 +149,18 @@ begin
          reset_stats_p  <= '0';
          reset_stats_d1 <= '0';
       else
-        -- pulse is on falling edge of the reset signal (reset when signal HIGH)
+        -- pulse is on falling and rising edge of the reset signal (reset when signal HIGH)
+        -- in this way, one can 
+        -- 1. read the timestamp of the start of statistics acquisition
+        -- 2. reset HIGH
+        -- 3. read the timestamp of the end of statistics acquisition
+        -- 4. start acqusition
         if(reset_stats = '0' and reset_stats_d1 = '1') then
-          reset_stats_p <='1':
+          reset_stats_p <='1';
+        elsif(reset_stats = '1' and reset_stats_d1 = '0') then
+          reset_stats_p <='1';
         else
-          reset_stats_p <='0':
+          reset_stats_p <='0';
         end if;
         reset_stats_d1 <= reset_stats;
       end if;
