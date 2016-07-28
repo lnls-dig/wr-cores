@@ -344,11 +344,7 @@ begin
       end if;
     end if;
   end process;
-  -- statistics ideas:
-  -- * note the timestamp of reset (tai) or number of set frames since reset
-  --   to make good statistics
-  regs_to_wb.dbg_data_i    <= dbg_word;
-  regs_to_wb.dummy_dummy_i <=x"DEADBEEF";
+
 
   p_bfield_for_SNMP: process(clk_sys_i)
   begin
@@ -371,5 +367,10 @@ begin
   snmp_array_o(c_STREAMERS_ARR_SIZE_OUT+1) <= f_bigEndianess(dbg_rx_bfield);
   snmp_array_o(c_STREAMERS_ARR_SIZE_OUT+2) <= f_bigEndianess(dbg_tx_bfield);
 
+  regs_to_wb.dbg_data_i      <= dbg_word;
+  regs_to_wb.dbg_rx_bvalue_i <= f_bigEndianess(dbg_rx_bfield);
+  regs_to_wb.dbg_tx_bvalue_i <= f_bigEndianess(dbg_tx_bfield);
+  regs_to_wb.dummy_dummy_i   <= x"DEADBEEF";
+  
 
 end rtl;
