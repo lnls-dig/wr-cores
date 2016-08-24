@@ -81,4 +81,13 @@ package wr_xilinx_pkg is
       pad_rxp_i      : in  std_logic := '0');
   end component;
 
+  component ext_pll_10_to_125m
+    port (
+      clk_ext_i     : in  std_logic;
+      clk_ext_mul_o : out std_logic;
+      rst_a_i       : in  std_logic;
+      clk_in_stopped_o: out  std_logic;
+      locked_o      : out std_logic);
+  end component ext_pll_10_to_125m;
+
 end wr_xilinx_pkg;
