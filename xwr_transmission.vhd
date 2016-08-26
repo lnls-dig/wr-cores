@@ -92,18 +92,18 @@ entity xwr_transmission is
     tx_dreq_o : out std_logic;
     -- Last signal. Can be used to indicate the last data word in a larger
     -- block of samples (see documentation for more details).
-    tx_last_i : in std_logic := '1';
+    tx_last_p1_i : in std_logic := '1';
     -- Flush input. When asserted, the streamer will immediatly send out all
     -- the data that is stored in its TX buffer, ignoring g_tx_timeout.
-    tx_flush_i : in std_logic := '0';
+    tx_flush_p1_i : in std_logic := '0';
 
     ---------------------------------------------------------------------------
     -- User rx interface
     ---------------------------------------------------------------------------
     -- 1 indicates the 1st word of the data block on rx_data_o.
-    rx_first_o         : out std_logic;
+    rx_first_p1_o      : out std_logic;
     -- 1 indicates the last word of the data block on rx_data_o.
-    rx_last_o          : out std_logic;
+    rx_last_p1_o       : out std_logic;
     -- Received data.
     rx_data_o          : out std_logic_vector(g_data_width-1 downto 0);
     -- 1 indicted that rx_data_o is outputting a valid data word.
@@ -210,8 +210,8 @@ begin
       tx_data_i                => tx_data_i,
       tx_valid_i               => tx_valid_i,
       tx_dreq_o                => tx_dreq_o,
-      tx_last_i                => tx_last_i,
-      tx_flush_i               => tx_flush_i,
+      tx_last_i                => tx_last_p1_i,
+      tx_flush_i               => tx_flush_p1_i,
       tx_reset_seq_i           => regs_from_wb.sscr1_rst_seq_id_o,
       tx_frame_o               => tx_frame,
       cfg_mac_local_i          => x"000000000000",
@@ -231,8 +231,8 @@ begin
       tm_time_valid_i          => tm_time_valid_i,
       tm_tai_i                 => tm_tai_i,
       tm_cycles_i              => tm_cycles_i,
-      rx_first_o               => rx_first_o,
-      rx_last_o                => rx_last_o,
+      rx_first_o               => rx_first_p1_o,
+      rx_last_o                => rx_last_p1_o,
       rx_data_o                => rx_data,
       rx_valid_o               => rx_valid,
       rx_dreq_i                => rx_dreq_i,

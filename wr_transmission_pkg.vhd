@@ -67,10 +67,10 @@ package wr_transmission_pkg is
       tx_data_i : in std_logic_vector(g_data_width-1 downto 0);
       tx_valid_i : in std_logic;
       tx_dreq_o : out std_logic;
-      tx_last_i : in std_logic := '1';
-      tx_flush_i : in std_logic := '0';
-      rx_first_o         : out std_logic;
-      rx_last_o          : out std_logic;
+      tx_last_p1_i : in std_logic := '1';
+      tx_flush_p1_i : in std_logic := '0';
+      rx_first_p1_o         : out std_logic;
+      rx_last_p1_o          : out std_logic;
       rx_data_o          : out std_logic_vector(g_data_width-1 downto 0);
       rx_valid_o         : out std_logic;
       rx_dreq_i          : in  std_logic;
