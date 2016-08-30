@@ -91,9 +91,9 @@ entity xrx_streamer is
     ---------------------------------------------------------------------------
 
     -- 1 indicates the 1st word of the data block on rx_data_o.
-    rx_first_o         : out std_logic;
+    rx_first_p1_o         : out std_logic;
     -- 1 indicates the last word of the data block on rx_data_o.
-    rx_last_o          : out std_logic;
+    rx_last_p1_o          : out std_logic;
     -- Received data.
     rx_data_o          : out std_logic_vector(g_data_width-1 downto 0);
     -- 1 indicted that rx_data_o is outputting a valid data word.
@@ -103,11 +103,11 @@ entity xrx_streamer is
     rx_dreq_i          : in  std_logic;
     -- Lost output: 1 indicates that one or more frames or blocks have been lost
     -- (left for backward compatibility).
-    rx_lost_o          : out std_logic := '0';
+    rx_lost_p1_o          : out std_logic := '0';
     -- indicates that one or more blocks within frame are missing
-    rx_lost_blocks_o    :  out std_logic := '0';
+    rx_lost_blocks_p1_o    :  out std_logic := '0';
     -- indicates that one or more frames are missing, the number of frames is provied
-    rx_lost_frames_o    :  out std_logic := '0';
+    rx_lost_frames_p1_o    :  out std_logic := '0';
     --number of lost frames, the 0xF...F means that counter overflew
     rx_lost_frames_cnt_o : out std_logic_vector(14 downto 0);
     -- Latency measurement output: indicates the transport latency (between the
@@ -116,7 +116,7 @@ entity xrx_streamer is
     -- 1 when the latency on rx_latency_o is valid.
     rx_latency_valid_o : out std_logic;
     -- received streamer frame (counts all frames, corrupted and not)
-    rx_frame_o         : out std_logic;
+    rx_frame_p1_o         : out std_logic;
 
     -- MAC address
     cfg_mac_local_i         : in std_logic_vector(47 downto 0);
@@ -325,8 +325,8 @@ begin  -- rtl
   fifo_din(g_data_width-1 downto 0) <= fifo_data;
 
   rx_data_o  <= fifo_dout(g_data_width-1 downto 0);
-  rx_first_o <= fifo_dout(g_data_width+1);
-  rx_last_o  <= fifo_dout(g_data_width);
+  rx_first_p1_o <= fifo_dout(g_data_width+1);
+  rx_last_p1_o  <= fifo_dout(g_data_width);
 
   U_RX_Timestamper : pulse_stamper
     port map (
@@ -360,7 +360,7 @@ begin  -- rtl
         ser_count              <= (others => '0');
         word_count             <= (others => '0');
         sync_seq_no            <= '1';
-        rx_frame_o             <= '0';
+        rx_frame_p1_o             <= '0';
         rx_lost_frames_cnt_o   <= (others => '0');
         frames_lost            <= '0';
       else
@@ -380,7 +380,7 @@ begin  -- rtl
             word_count         <= (others => '0');
             rx_latency_valid_o <= '0';
             tx_tag_valid       <= '0';
-            rx_frame_o         <= '0';
+            rx_frame_p1_o      <= '0';
             rx_lost_frames_cnt_o <= (others => '0');
             frames_lost          <= '0';
             blocks_lost          <= '0';
@@ -439,13 +439,13 @@ begin  -- rtl
                   crc_en                     <= '1';
                   detect_escapes             <= '1';
                   state                      <= FRAME_SEQ_ID;
-                  rx_frame_o                 <= '1';
+                  rx_frame_p1_o                 <= '1';
                 when others => null;
               end case;
             end if;
 
           when FRAME_SEQ_ID =>
-            rx_frame_o            <= '0';
+            rx_frame_p1_o            <= '0';
             if(fsm_in.eof = '1') then
               state <= IDLE;
             elsif(fsm_in.dvalid = '1') then
@@ -632,9 +632,9 @@ begin  -- rtl
   end process;
 
 --  fifo_data <= pack_data;
-  rx_lost_o        <= frames_lost or blocks_lost;
-  rx_lost_blocks_o <= blocks_lost;
-  rx_lost_frames_o <= frames_lost;
+  rx_lost_p1_o        <= frames_lost or blocks_lost;
+  rx_lost_blocks_p1_o <= blocks_lost;
+  rx_lost_frames_p1_o <= frames_lost;
   crc_restart <= '1' when (state = FRAME_SEQ_ID or (is_escape = '1' and fsm_in.data(15) = '1')) else not rst_n_i;
   
   

@@ -47,7 +47,7 @@ use work.wishbone_pkg.all;  -- needed for t_wishbone_slave_in, etc
 use work.streamers_pkg.all; -- needed for streamers
 use work.wr_fabric_pkg.all; -- neede for :t_wrf_source_in, etc
 use work.wrcore_pkg.all;    -- needed for t_generic_word_array
-use work.wr_transmission_wbgen2_pkg.all;
+-- use work.wr_transmission_wbgen2_pkg.all;
 
 entity xrtx_streamers_stats is
   

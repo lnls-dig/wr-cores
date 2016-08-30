@@ -102,17 +102,17 @@ entity xtx_streamer is
 
     -- Last signal. Can be used to indicate the last data word in a larger
     -- block of samples (see documentation for more details).
-    tx_last_i : in std_logic := '1';
+    tx_last_p1_i : in std_logic := '1';
 
     -- Flush input. When asserted, the streamer will immediatly send out all
     -- the data that is stored in its TX buffer, ignoring g_tx_timeout.
-    tx_flush_i : in std_logic := '0';
+    tx_flush_p1_i : in std_logic := '0';
 
     -- Reset sequence number. When asserted, the internal sequence number
     -- generator used to detect loss of frames is reset to 0. Advanced feature.
     tx_reset_seq_i : in std_logic := '0';
     -- successfully sent streamer frame
-    tx_frame_o : out std_logic;
+    tx_frame_p1_o : out std_logic;
     ---------------------------------------------------------------------------
     -- Configuration
     ---------------------------------------------------------------------------
@@ -295,7 +295,7 @@ begin  -- rtl
 
 
   tx_fifo_we <= tx_valid_i and not tx_fifo_full;
-  tx_fifo_d  <= tx_last_i & tx_data_i;
+  tx_fifo_d  <= tx_last_p1_i & tx_data_i;
 
   U_TX_Buffer : generic_sync_fifo
     generic map (
@@ -352,9 +352,9 @@ begin  -- rtl
       if rst_n_i = '0' then
         buf_frame_count <= (others => '0');
       else
-        if(tx_fifo_we = '1' and tx_last_i = '1' and (tx_fifo_rd = '0' or tx_fifo_last = '0')) then
+        if(tx_fifo_we = '1' and tx_last_p1_i = '1' and (tx_fifo_rd = '0' or tx_fifo_last = '0')) then
           buf_frame_count <= buf_frame_count+ 1;
-        elsif((tx_fifo_we = '0' or tx_last_i = '0') and (tx_fifo_rd = '1' and tx_fifo_last = '1')) then
+        elsif((tx_fifo_we = '0' or tx_last_p1_i = '0') and (tx_fifo_rd = '1' and tx_fifo_last = '1')) then
           buf_frame_count <= buf_frame_count - 1;
         end if;
       end if;
@@ -402,7 +402,7 @@ begin  -- rtl
         tx_flush_latched <= '0';
       else
         if(state = IDLE) then
-          tx_flush_latched <= tx_flush_i or tx_timeout_hit;
+          tx_flush_latched <= tx_flush_p1_i or tx_timeout_hit;
         else
           tx_flush_latched <= '0';
         end if;
@@ -422,7 +422,7 @@ begin  -- rtl
         seq_no         <= (others => '0');
         word_count     <= (others => '0');
         crc_reset      <= '1';
-        tx_frame_o     <= '0';
+        tx_frame_p1_o     <= '0';
       else
         if(tx_reset_seq_i = '1') then
           seq_no <= (others => '0');
@@ -430,12 +430,12 @@ begin  -- rtl
 
         case state is
           when IDLE =>
-            crc_en      <= '0';
-            crc_reset   <= '0';
-            fsm_out.eof <= '0';
-            tx_frame_o  <= '0';
+            crc_en         <= '0';
+            crc_reset      <= '0';
+            fsm_out.eof    <= '0';
+            tx_frame_p1_o  <= '0';
 
-            if(fsm_out.dreq = '1' and (tx_flush_latched = '1' or tx_flush_i = '1' or tx_threshold_hit = '1')) then
+            if(fsm_out.dreq = '1' and (tx_flush_latched = '1' or tx_flush_p1_i = '1' or tx_threshold_hit = '1')) then
               state       <= SOF;
               fsm_out.sof <= '1';
             end if;
@@ -578,7 +578,7 @@ begin  -- rtl
             fsm_out.dvalid <= '0';
             if(fsm_out.dreq = '1') then
               fsm_out.eof <= '1';
-              tx_frame_o  <= '1';
+              tx_frame_p1_o  <= '1';
               state       <= IDLE;
             end if;
         end case;
