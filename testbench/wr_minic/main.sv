@@ -3,8 +3,8 @@
 `include "wb_packet_source.svh"
 `include "wb_packet_sink.svh"
 
-`include "simdrv_minic.svh"
-`include "ep2ep_wrapper.svh"
+`include "drivers/simdrv_minic.svh"
+//`include "ep2ep_wrapper.svh"
 
 
 module main;
@@ -49,18 +49,6 @@ module main;
       );
 
 
-   IWishboneMaster 
-     #(
-       .g_data_width(32),
-       .g_addr_width(16))
-   U_pmem_bus_master
-     (
-      .clk_i(clk_sys),
-      .rst_n_i(rst_n)
-      );
-
-
-
    wire minic_irq;
    wire [31:0] pmem_wr_data, pmem_rd_data;
    wire [13:0] pmem_addr;
@@ -71,10 +59,10 @@ module main;
       .clk_sys_i (clk_sys),
       .rst_n_i   (rst_n),
 
-      .mem_data_o (pmem_wr_data),
-      .mem_addr_o (pmem_addr),
-      .mem_data_i (pmem_rd_data),
-      .mem_wr_o   (pmem_wr),
+      .mem_data_o (),
+      .mem_addr_o (),
+      .mem_data_i (32'h0),
+      .mem_wr_o   (p),
 
       .src_dat_o  (U_wrf_sink.dat_i),
       .src_adr_o  (U_wrf_sink.adr),
@@ -115,28 +103,7 @@ module main;
       .wb_irq_o   (minic_irq)
       );
 
-   minic_packet_buffer PBUF
-     (
-      .clk_sys_i (clk_sys),
-      .rst_n_i  (rst_n),
-
-      .minic_addr_i (pmem_addr),
-      .minic_data_i (pmem_wr_data),
-      .minic_wr_i   (pmem_wr),
-      .minic_data_o (pmem_rd_data),
-      
-      .wb_cyc_i   (U_pmem_bus_master.cyc),
-      .wb_stb_i   (U_pmem_bus_master.stb),
-      .wb_we_i    (U_pmem_bus_master.we),
-      .wb_addr_i   (U_pmem_bus_master.adr[13:0]),
-      .wb_data_i   (U_pmem_bus_master.dat_o),
-      .wb_data_o   (U_pmem_bus_master.dat_i),
-      .wb_ack_o   (U_pmem_bus_master.ack)
-    );
-
-   
    CSimDrv_Minic minic;
-
 
 
    task test_tx_path(int n_packets, CSimDrv_Minic minic, WBPacketSink sink);
@@ -192,7 +159,7 @@ module main;
    
    
    initial begin
-      CWishboneAccessor sys_bus, pmem_bus;     
+      CWishboneAccessor sys_bus;     
       WBPacketSource src  = new(U_wrf_source.get_accessor());
       WBPacketSink sink   = new(U_wrf_sink.get_accessor()); 
       EthPacketGenerator gen = new;
@@ -200,26 +167,17 @@ module main;
       EthPacket txed[$];
       int i;
 
-    
-      
-
-   
-      
       
       @(posedge rst_n);
       @(posedge clk_sys);
  
-      sys_bus                                 = U_sys_bus_master.get_accessor();
+      sys_bus  = U_sys_bus_master.get_accessor();
       sys_bus.set_mode(CLASSIC);
-      pmem_bus                                 = U_pmem_bus_master.get_accessor();
-      pmem_bus.set_mode(CLASSIC);
 
-      minic  = new('h10000, sys_bus, 0, pmem_bus, 0);
+      minic  = new(sys_bus, 0);
       minic.init();
       
-
-     
-         tmpl           = new;
+      tmpl           = new;
       tmpl.src       = '{1,2,3,4,5,6};
       tmpl.dst       = '{10,11,12,13,14,15};
       tmpl.has_smac  = 1;
@@ -270,15 +228,6 @@ module main;
               
            end
          
-    //          #1;
-              
-  //         end // forever begin
-
-         
-         
-         
-              
-
       join      
 
          
