@@ -11,6 +11,13 @@ peripheral {
 			prefix = "MCR";
 			
 			field {
+				 name = "TX DMA start";
+				 prefix = "TX_START";
+				 description = "write 1: starts the DMA transmission of TX descriptors placed in the DMA buffer, write 0: no effect";
+				 type = MONOSTABLE;
+			};
+
+			field {
 				 name = "TX DMA idle";
 				 prefix = "TX_IDLE";
 				 description = "1: TX DMA engine is idle.\n0: TX DMA engine is busy, don't touch the buffer";
@@ -96,10 +103,9 @@ peripheral {
         name = "Data to send";
         prefix = "DAT";
         size = 16;
-        type = SLV;
-        access_bus = READ_WRITE;
-        access_dev = READ_WRITE;
-        load = LOAD_EXT;
+        type = PASS_THROUGH;
+        access_bus = WRITE_ONLY;
+        access_dev = READ_ONLY;
       };
 
       field {
@@ -109,10 +115,9 @@ peripheral {
         10: First word of a new frame";
         prefix = "TYPE";
         size = 2;
-        type = SLV;
-        access_bus = READ_WRITE;
-        access_dev = READ_WRITE;
-        load = LOAD_EXT;
+        type = PASS_THROUGH;
+        access_bus = WRITE_ONLY;
+        access_dev = READ_ONLY;
       };
 
       field {

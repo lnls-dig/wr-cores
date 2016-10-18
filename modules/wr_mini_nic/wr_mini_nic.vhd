@@ -33,6 +33,7 @@ use ieee.numeric_std.all;
 
 use work.wr_fabric_pkg.all;
 use work.wishbone_pkg.all;
+use work.genram_pkg.all;
 use work.minic_wbgen2_pkg.all;
 
 
@@ -115,6 +116,7 @@ end wr_mini_nic;
 architecture behavioral of wr_mini_nic is
 
   constant c_NTX_TIMEOUT : integer := 100;
+  constant c_WRF_BYTESEL : std_logic_vector(1 downto 0) := "11";
 
   component minic_wb_slave
     port (
@@ -203,7 +205,7 @@ architecture behavioral of wr_mini_nic is
 -- TX FSM stuff
 -------------------------------------------------------------------------------
 
-  type t_tx_fsm_state is (TX_IDLE, TX_PACKET, TX_OOB, TX_END_PACKET);
+  type t_tx_fsm_state is (TX_IDLE, TX_STATUS, TX_PACKET, TX_FLUSH, TX_OOB, TX_END_PACKET);
 
   alias ntx_desc_size is ntx_mem_d(11 downto 0);
   alias ntx_desc_oob is ntx_mem_d(27 downto 12);
@@ -227,6 +229,9 @@ architecture behavioral of wr_mini_nic is
 
   signal ntx_state         : t_tx_fsm_state;
   signal ntx_rst_ts_ready  : std_logic;
+
+  signal ntx_stored_dat : std_logic_vector(15 downto 0);
+  signal ntx_stored_type : std_logic_vector(1 downto 0);
 
 -------------------------------------------------------------------------------
 -- RX FSM stuff
@@ -311,7 +316,8 @@ begin  -- behavioral
       g_size       => g_fifo_size,
       g_with_almost_empty => false,
       g_with_almost_full  => false,
-      g_with_count        => false)
+      g_with_count        => false,
+      g_show_ahead        => true)
     port map (
       rst_n_i => rst_n_i,
       clk_i   => clk_sys_i,
@@ -339,6 +345,8 @@ begin  -- behavioral
       empty_o => rx_fifo_empty,
       full_o  => rx_fifo_full);
 
+  tx_fifo_d  <= regs_out.tx_fifo_type_o & regs_out.tx_fifo_dat_o;
+  tx_fifo_we <= regs_out.tx_fifo_dat_wr_o and regs_out.tx_fifo_type_wr_o;
   regs_in.tx_fifo_empty_i <= tx_fifo_empty;
   regs_in.tx_fifo_full_i  <= tx_fifo_full;
   regs_in.rx_fifo_empty_i <= rx_fifo_empty;
@@ -380,63 +388,120 @@ begin  -- behavioral
       if (rst_n_i = '0') then
         src_cyc_int <= '0';
         src_stb_int <= '0';
+        src_sel_o   <= "11";
         src_adr_o   <= c_WRF_DATA;
         tx_fifo_rd  <= '0';
         ntx_rst_ts_ready <= '0';
         ntx_state   <= TX_IDLE;
+        ntx_stored_dat <= (others=>'0');
+        ntx_stored_type <= (others=>'0');
       else
         case ntx_state is
           when TX_IDLE =>
-            regs_in.mcr_tx_idle_i  <= '1';
             regs_in.mcr_tx_error_i <= '0';
             src_cyc_int <= '0';
             src_stb_int <= '0';
+            src_sel_o   <= "11";
             src_adr_o   <= txf_type;
             ntx_timeout <= to_unsigned(c_NTX_TIMEOUT, ntx_timeout'length);
             if (tx_fifo_empty = '0' and txf_fnew = '0') then
               -- if there is something in the fifo but it's not a status word,
-              -- we read until we find a valid status
+              -- we read until we find a valid status. In this case we indicate
+              -- that Minic is busy by driving wbreg bit tx_idle to 0.
               tx_fifo_rd <= '1';
               ntx_rst_ts_ready <= '0';
-            elsif (tx_fifo_empty = '0' and tx_fnew = '1') then
+              regs_in.mcr_tx_idle_i  <= '0';
+            elsif (tx_fifo_empty = '0' and txf_fnew = '1' and regs_out.mcr_tx_start_o = '1') then
               -- we have a new frame to be sent, proceed..
-              tx_fifo_rd <= '0';
+              src_cyc_int <= '1';
+              tx_fifo_rd <= '1';
               ntx_rst_ts_ready <= '1';
-              ntx_state  <= TX_PACKET;
+              regs_in.mcr_tx_idle_i  <= '0';
+              ntx_state  <= TX_STATUS;
             else
               -- wait quietly for something to be written to FIFO
               tx_fifo_rd <= '0';
               ntx_rst_ts_ready <= '0';
+              regs_in.mcr_tx_idle_i  <= '1';
             end if;
+
+          when TX_STATUS =>
+            -- read first word of the frame from fifo and start transmission
+            regs_in.mcr_tx_idle_i <= '0';
+            ntx_rst_ts_ready      <= '0';
+            src_cyc_int <= '1';
+            src_stb_int <= '1';
+            src_sel_o   <= "11";
+            src_adr_o   <= c_WRF_STATUS;
+            src_dat_o   <= txf_data;
+            tx_fifo_rd <= '1';
+            ntx_state <= TX_PACKET;
 
           when TX_PACKET =>
             regs_in.mcr_tx_idle_i <= '0';
             ntx_rst_ts_ready      <= '0';
             src_cyc_int <= '1';
-            if (txf_fifo_empty = '0' and src_stall_i = '0' and txf_type /= c_WRF_OOB and txf_ferror = '0') then
+            if (tx_fifo_empty = '0' and src_stall_i = '0' and txf_ferror = '0' and txf_type = c_WRF_DATA) then
               -- normal situation, we send the payload of a frame
-              src_adr_o   <= txf_type;
+              src_adr_o   <= c_WRF_DATA;
               src_dat_o   <= txf_data;
+              src_sel_o   <= "11";
               src_stb_int <= '1';
               tx_fifo_rd  <= '1';
-            elsif (txf_fifo_empty = '0' and src_stall_i = '0' and txf_type = c_WRF_OOB) then
+            elsif (tx_fifo_empty = '0' and src_stall_i = '0' and txf_ferror = '0' and txf_type = c_WRF_BYTESEL) then
+              -- almost normal situation, only one byte of data is valid
+              src_adr_o   <= c_WRF_DATA;
+              src_dat_o   <= txf_data;
+              src_sel_o   <= "10";
+              src_stb_int <= '1';
+              tx_fifo_rd  <= '1';
+            elsif (tx_fifo_empty = '0' and src_stall_i = '0' and txf_type = c_WRF_OOB) then
               -- we got OOB in TXed frame, let's send it
               src_adr_o   <= c_WRF_OOB;
               src_dat_o   <= c_WRF_OOB_TYPE_TX & x"000";
               src_stb_int <= '1';
+              src_sel_o   <= "11";
               tx_fifo_rd  <= '0';
+              ntx_stored_dat <= txf_data;
               ntx_state   <= TX_OOB;
-            elsif (txf_fifo_empty = '1' or txf_fnew = '1') then
+            elsif (tx_fifo_empty = '1' or txf_fnew = '1') then
               -- we done with this frame
-              src_adr_o   <= txf_type;
+              src_adr_o   <= c_WRF_DATA;
               src_dat_o   <= txf_data;
               src_stb_int <= '0';
+              src_sel_o   <= "11";
               tx_fifo_rd  <= '0';
               ntx_state   <= TX_END_PACKET;
             else
               -- e.g. snk is stalling, we wait
               tx_fifo_rd  <= '0';
-              src_stb_int <= '0';
+              src_stb_int <= '1';
+              ntx_stored_dat <= txf_data;
+              ntx_stored_type <= txf_type;
+              ntx_state   <= TX_FLUSH;
+            end if;
+
+          when TX_FLUSH =>
+            regs_in.mcr_tx_idle_i <= '0';
+            ntx_rst_ts_ready      <= '0';
+            src_cyc_int <= '1';
+            if (src_stall_i = '0' and ntx_stored_type = c_WRF_DATA) then
+              src_adr_o   <= c_WRF_DATA;
+              src_dat_o   <= ntx_stored_dat;
+              src_sel_o   <= "11";
+              src_stb_int <= '1';
+              tx_fifo_rd  <= '1';
+              ntx_state <= TX_PACKET;
+            elsif (src_stall_i = '0' and ntx_stored_type = c_WRF_BYTESEL) then
+              src_adr_o   <= c_WRF_DATA;
+              src_dat_o   <= ntx_stored_dat;
+              src_sel_o   <= "10";
+              src_stb_int <= '1';
+              tx_fifo_rd  <= '1';
+              ntx_state <= TX_PACKET;
+            else
+              src_stb_int <= '1';
+              tx_fifo_rd  <= '0';
             end if;
 
           when TX_OOB =>
@@ -444,14 +509,14 @@ begin  -- behavioral
             ntx_rst_ts_ready      <= '0';
             src_cyc_int <= '1';
             src_adr_o   <= c_WRF_OOB;
-            src_dat_o   <= txf_data;
+            src_dat_o   <= ntx_stored_dat;
+            tx_fifo_rd  <= '0';
+            src_stb_int <= '1';
             if (src_stall_i = '0') then
-              src_stb_int <= '1';
-              tx_fifo_rd  <= '1';
+              src_sel_o   <= "11";
               ntx_state   <= TX_IDLE;
             else
-              src_stb_int <= '0';
-              tx_fifo_rd  <= '0';
+              src_sel_o   <= "11";
             end if;
 
           when TX_END_PACKET =>
@@ -463,6 +528,7 @@ begin  -- behavioral
               regs_in.mcr_tx_error_i <= ntx_timeout_is_zero;
               src_cyc_int <= '0';
               src_stb_int <= '0';
+              src_sel_o   <= "11";
               tx_fifo_rd  <= '0';
               ntx_state   <= TX_IDLE;
             end if;
@@ -728,7 +794,7 @@ begin  -- behavioral
 --  end process;
 
 -- these are never used:
-  src_sel_o <= "11";
+  --src_sel_o <= "11";
   src_we_o  <= '1';
   src_stb_o <= src_stb_int;
   src_cyc_o <= src_cyc_int;
@@ -784,7 +850,7 @@ begin  -- behavioral
         nrx_has_oob    <= '0';
 
         nrx_mem_a_saved        <= (others => '0');
-        regs_in.rx_addr_i      <= (others => '0');
+        --regs_in.rx_addr_i      <= (others => '0');
         regs_in.mcr_rx_ready_i <= '0';
         regs_in.mcr_rx_full_i  <= '0';
         nrx_newpacket          <= '0';
@@ -795,341 +861,341 @@ begin  -- behavioral
 -- (MCR_RX_EN = 0)
 
 
-        if(regs_out.mcr_rx_en_o = '0') then
-          
-          nrx_newpacket <= '0';
-
-          -- mask out the data request line on the fabric I/F, so the endpoint
-          -- can cut the traffic using 802.1 flow control
-          nrx_stall_mask         <= '0';
-          nrx_state              <= RX_WAIT_SOF;
-          regs_in.mcr_rx_ready_i <= '0';
-
-          -- handle writes to RX_ADDR and RX_AVAIL
-          if(regs_out.rx_addr_load_o = '1') then
-            nrx_mem_a_saved   <= unsigned(regs_out.rx_addr_o(g_memsize_log2+1 downto 2));
-            nrx_bufstart      <= unsigned(regs_out.rx_addr_o(g_memsize_log2+1 downto 2));
-            regs_in.rx_addr_i <= (others => '0');
-            --      nrx_mem_a <= unsigned(minic_rx_addr_new(g_memsize_log2+1 downto 2));
-          end if;
-
-          if(regs_out.rx_size_load_o = '1') then
-            nrx_buf_full          <= '0';
-            regs_in.mcr_rx_full_i <= '0';
-            nrx_avail             <= unsigned(regs_out.rx_size_o(nrx_avail'high downto 0));
-            nrx_bufsize           <= unsigned(regs_out.rx_size_o(nrx_bufsize'high downto 0));
-          end if;
-        else
-          if(regs_out.rx_avail_load_o = '1') then
-            nrx_buf_full          <= '0';
-            regs_in.mcr_rx_full_i <= '0';
-            nrx_avail             <= nrx_avail + unsigned(regs_out.rx_avail_o(nrx_avail'high downto 0));
-          end if;
-
-          -- main RX FSM
-          case nrx_state is
-
--------------------------------------------------------------------------------
--- State "Wait for start of frame". We wait until there's a start-of-frame condition
--- on the RX fabric and then we commence reception of the packet.
--------------------------------------------------------------------------------
-
-            --when RX_BUFFER_FULL =>
-            --  if(nrx_buf_full = '0') then
-            --    nrx_stall_mask <= '0';
-            --    nrx_state <= RX_WAIT_SOF;
-            --  else
-            --    nrx_stall_mask <= '1';
-            --  end if;
-            
-            when RX_WAIT_SOF =>
-
-              nrx_newpacket <= '0';
-              nrx_done      <= '0';
-              nrx_mem_wr    <= '0';
-              nrx_has_oob   <= '0';
-              nrx_bytesel   <= '0';
-              nrx_error     <= '0';
-              nrx_size      <= (others => '0');
-              nrx_mem_a     <= nrx_mem_a_saved;
-              nrx_toggle    <= '0';
-
-              regs_in.mcr_rx_full_i <= nrx_buf_full;
-              snk_err_o             <= nrx_buf_full;
-
-              if(snk_cyc_i = '1' and nrx_buf_full = '0') then  -- got start-of-frame?
-                nrx_stall_mask <= '1';
-                nrx_state      <= RX_ALLOCATE_DESCRIPTOR;
-              else
-                nrx_stall_mask <= '0';  --nrx_buf_full;
-              end if;
--------------------------------------------------------------------------------
--- State "Allocate RX descriptor": puts an empty (invalid) RX descriptor at the
--- current location in the RX buffer and then starts receiving the data
--------------------------------------------------------------------------------              
-              
-            when RX_ALLOCATE_DESCRIPTOR =>
-
--- wait until we have memory access
-              if(mem_arb_rx = '0') then
-
--- make sure the bit 31 is 0 (RX descriptor is invalid)
-                nrx_mem_d       <= (others => '0');
-                nrx_mem_a_saved <= nrx_mem_a;
-                if(nrx_avail /= to_unsigned(0, nrx_avail'length)) then
-                  nrx_avail  <= nrx_avail - 1;
-                  nrx_mem_wr <= '1';
-                end if;
-
-
--- allow the fabric to receive the data
-                nrx_stall_mask <= '0';
-
-                nrx_state <= RX_DATA;
-              end if;
-
--------------------------------------------------------------------------------
--- State "Receive data". Receive data, write it into the DMA memory
--------------------------------------------------------------------------------              
-              
-            when RX_DATA =>
-
-              nrx_mem_wr <= '0';
-
-              if(snk_stb_i = '1' and snk_cyc_i = '1' and snk_stall_int = '0' and snk_we_i = '1' and snk_adr_i = c_WRF_STATUS) then
-                nrx_class <= nrx_status_reg.match_class;
-              end if;
-
-              -- check if we have enough space in the buffer
-              if(nrx_avail = to_unsigned(0, nrx_avail'length)) then
-                nrx_buf_full <= '1';
-              end if;
-
-              -- we've got a valid data word or end-of-frame/error condition
-              if(nrx_valid = '1' or nrx_stat_error = '1' or snk_cyc_i = '0') then
-
-                -- latch the bytesel signal to support frames having odd lengths
-                if(snk_sel_i = "10") then
-                  nrx_bytesel <= '1';
-                end if;
-
-                -- abort/error/end-of-frame?
-                if(nrx_stat_error = '1' or snk_cyc_i = '0' or nrx_avail = to_unsigned(0, nrx_avail'length)) then
-
-                  if(nrx_stat_error = '1' or nrx_avail = to_unsigned(0, nrx_avail'length)) then
-                    nrx_error <= '1';
-                  else
-                    nrx_error <= '0';
-                  end if;
-                  --nrx_error <= '1' when nrx_stat_error='1' or nrx_avail=to_unsigned(0, nrx_avail'length) else '0';
-                  nrx_done <= '1';
-
-                  -- flush the remaining packet data into the DMA buffer if needed
-                  if(nrx_toggle='1') then
-                    nrx_state <= RX_MEM_FLUSH;
-                  else
-                    nrx_state <= RX_UPDATE_DESC;
-                  end if;
-
-                  if(nrx_valid = '1' or nrx_toggle = '1') then
-                    if nrx_mem_a + 1 >= nrx_bufstart + nrx_bufsize then
-                      nrx_mem_a <= nrx_bufstart;
-                    else
-                      nrx_mem_a <= nrx_mem_a + 1;
-                    end if;
-                  end if;
-
-                  -- disable the RX fabric reception, so we won't get another
-                  -- packet before we are done with the RX descriptor update
-                  nrx_stall_mask <= '1';
-                end if;
-
-                if(nrx_valid = '1') then
-                  nrx_size <= nrx_size + 1;
-
-                  -- pack two 16-bit words received from the fabric I/F into one
-                  -- 32-bit DMA memory word
-
-                  if(g_buffer_little_endian = false) then
-                    -- big endian RX buffer
-                    if(nrx_toggle = '0') then
-                      nrx_mem_d(31 downto 16) <= snk_dat_i;
-                    else
-                      nrx_mem_d(15 downto 0) <= snk_dat_i;
-                    end if;
-                  else
-                    -- little endian RX buffer
-                    if(nrx_toggle = '0') then
-                      nrx_mem_d(15 downto 8) <= snk_dat_i(7 downto 0);
-                      nrx_mem_d(7 downto 0)  <= snk_dat_i(15 downto 8);
-                    else
-                      nrx_mem_d(31 downto 24) <= snk_dat_i(7 downto 0);
-                      nrx_mem_d(23 downto 16) <= snk_dat_i(15 downto 8);
-                    end if;
-                  end if;
-
-                  -- we've got RX OOB tag? Remember it and later put it in the
-                  -- descriptor header
-                  if(snk_adr_i = c_WRF_OOB) then
-                    nrx_has_oob <= '1';
-                  end if;
-
-
-                  nrx_toggle <= not nrx_toggle;
-                end if;
-              end if;
-
-              -- we've got the second valid word of the payload, write it to the
-              -- memory
-              if(nrx_toggle = '1' and nrx_valid = '1' and snk_cyc_i = '1' and nrx_stat_error = '0') then
-                if nrx_mem_a + 1 >= nrx_bufstart + nrx_bufsize then
-                  nrx_mem_a <= nrx_bufstart;
-                else
-                  nrx_mem_a <= nrx_mem_a + 1;
-                end if;
-                nrx_mem_wr <= '1';
-                nrx_avail  <= nrx_avail - 1;
-
-                -- check if we are synchronized with the memory write arbiter.
-                if(mem_arb_rx = '1') then
-                  nrx_state <= RX_MEM_RESYNC;
-                end if;
-              else
-                -- nothing to write
-                nrx_mem_wr <= '0';
-              end if;
-
--------------------------------------------------------------------------------
--- State "Memory resync": a "wait state" entered when the miNIC tries to write the RX
--- payload, but the memory access is given for the TX path at the moment.
--------------------------------------------------------------------------------
-              
-            when RX_MEM_RESYNC =>
-
-              -- check for error/abort conditions, they may appear even when
-              -- the fabric is not accepting the data (tx_dreq_o = 0)
-              if(nrx_stat_error = '1') then
-                nrx_error <= '1';
-                nrx_done  <= '1';
-                nrx_state <= RX_MEM_FLUSH;
-                if nrx_mem_a + 1 >= nrx_bufstart + nrx_bufsize then
-                  nrx_mem_a <= nrx_bufstart;
-                else
-                  nrx_mem_a <= nrx_mem_a + 1;
-                end if;
-                nrx_stall_mask <= '1';
-                nrx_size       <= nrx_size + 2;
-              else
-                nrx_state <= RX_DATA;
-              end if;
-
--------------------------------------------------------------------------------
--- State "Memory flush": flushes the remaining contents of RX data register
--- into the DMA buffer after end-of-packet/error/abort
--------------------------------------------------------------------------------
-              
-            when RX_MEM_FLUSH =>
-              nrx_stall_mask <= '1';
-
-              if(nrx_buf_full = '0') then
-                nrx_mem_wr <= '1';
-              end if;
-
-              if(mem_arb_rx = '0') then
-                if(nrx_buf_full = '0') then
-                  nrx_avail <= nrx_avail - 1;
-                else
-                	nrx_size <= nrx_size - 1;  --the buffer is full, last word was not written
-                	nrx_mem_a <= nrx_mem_a - 1;
-                end if;
-                nrx_state <= RX_UPDATE_DESC;
-              end if;
-
--------------------------------------------------------------------------------
--- State "Update RX descriptor": writes the frame size, OOB presence and error
--- flags into the empty RX descriptor allocated at the beginning of the reception
--- of the frame, and marks the descriptor as valid. Also triggers the RX ready
--- interrupt.
--------------------------------------------------------------------------------
-              
-            when RX_UPDATE_DESC =>
-              nrx_stall_mask <= '1';
-
-              if(nrx_avail = to_unsigned(0, nrx_avail'length)) then
-                nrx_buf_full <= '1';
-              end if;
-
-              if(mem_arb_rx = '0') then
-
-
-                -- store the current write pointer as a readback value of RX_ADDR register, so
--- the host can determine the RX descriptor we're actually working on
-                regs_in.rx_addr_i(g_memsize_log2+1 downto 0)                      <= std_logic_vector(nrx_mem_a_saved) & "00";
-                regs_in.rx_addr_i(regs_in.rx_addr_i'high downto g_memsize_log2+2) <= (others => '0');
-
-                nrx_mem_a <= nrx_mem_a_saved;
-                if nrx_mem_a + 1 >= nrx_bufstart + nrx_bufsize then
-                  nrx_mem_a_saved <= nrx_bufstart;
-                else
-                  nrx_mem_a_saved <= nrx_mem_a + 1;
-                end if;
-
--- compose the RX descriptor
-                nrx_mem_d(31)                      <= '1';
-                nrx_mem_d(30)                      <= nrx_error;
-                nrx_mem_d(29)                      <= nrx_has_oob;
---                nrx_mem_d(28 downto g_memsize_log2+1) <= (others => '0');
-                nrx_mem_d(28 downto 21)            <= nrx_class;
-                nrx_mem_d(g_memsize_log2 downto 1) <= std_logic_vector(nrx_size);
-                nrx_mem_d(0)                       <= nrx_bytesel;
-
-                nrx_mem_wr <= '1';
-
-
-                -- wait for another packet
-                if(snk_cyc_i = '1') then
-                  nrx_state <= RX_IGNORE;
-                elsif(nrx_buf_full = '1') then
-                  nrx_state      <= RX_BUF_FULL;
-                  nrx_stall_mask <= '1';
-                else
-                  -- trigger the RX interrupt and assert RX_READY flag to inform
-                  -- the host that we've received something
-                  nrx_newpacket          <= '1';
-                  regs_in.mcr_rx_ready_i <= '1';
-                  nrx_state <= RX_WAIT_SOF;
-                end if;
-              else
-                nrx_mem_wr <= '0';
-              end if;
-              
-            when RX_IGNORE =>
-              nrx_mem_wr <= '0';
-              --drop the rest of the packet
-              nrx_stall_mask <= '0';
-              if(snk_cyc_i = '0') then
-                if(nrx_buf_full = '1') then
-                  nrx_stall_mask <= '1';
-                  nrx_state      <= RX_BUF_FULL;
-                else
-                  nrx_state <= RX_WAIT_SOF;
-                end if;
-              end if;
-
-            when RX_BUF_FULL =>
-                nrx_mem_wr 						 <= '0';
-                regs_in.mcr_rx_full_i  <= nrx_buf_full;
-                nrx_newpacket          <= '1';
-                regs_in.mcr_rx_ready_i <= '1';
-              if(nrx_buf_full = '0') then
-                nrx_stall_mask <= '0';
-                nrx_state      <= RX_WAIT_SOF;
-              else
-                nrx_stall_mask <= '1';
-              end if;
-              
-          end case;
-        end if;
+--        if(regs_out.mcr_rx_en_o = '0') then
+--          
+--          nrx_newpacket <= '0';
+--
+--          -- mask out the data request line on the fabric I/F, so the endpoint
+--          -- can cut the traffic using 802.1 flow control
+--          nrx_stall_mask         <= '0';
+--          nrx_state              <= RX_WAIT_SOF;
+--          regs_in.mcr_rx_ready_i <= '0';
+--
+--          -- handle writes to RX_ADDR and RX_AVAIL
+--          --if(regs_out.rx_addr_load_o = '1') then
+--          --  nrx_mem_a_saved   <= unsigned(regs_out.rx_addr_o(g_memsize_log2+1 downto 2));
+--          --  nrx_bufstart      <= unsigned(regs_out.rx_addr_o(g_memsize_log2+1 downto 2));
+--          --  regs_in.rx_addr_i <= (others => '0');
+--          --  --      nrx_mem_a <= unsigned(minic_rx_addr_new(g_memsize_log2+1 downto 2));
+--          --end if;
+--
+--          if(regs_out.rx_size_load_o = '1') then
+--            nrx_buf_full          <= '0';
+--            regs_in.mcr_rx_full_i <= '0';
+--            nrx_avail             <= unsigned(regs_out.rx_size_o(nrx_avail'high downto 0));
+--            nrx_bufsize           <= unsigned(regs_out.rx_size_o(nrx_bufsize'high downto 0));
+--          end if;
+--        else
+--          if(regs_out.rx_avail_load_o = '1') then
+--            nrx_buf_full          <= '0';
+--            regs_in.mcr_rx_full_i <= '0';
+--            nrx_avail             <= nrx_avail + unsigned(regs_out.rx_avail_o(nrx_avail'high downto 0));
+--          end if;
+--
+--          -- main RX FSM
+--          case nrx_state is
+--
+---------------------------------------------------------------------------------
+---- State "Wait for start of frame". We wait until there's a start-of-frame condition
+---- on the RX fabric and then we commence reception of the packet.
+---------------------------------------------------------------------------------
+--
+--            --when RX_BUFFER_FULL =>
+--            --  if(nrx_buf_full = '0') then
+--            --    nrx_stall_mask <= '0';
+--            --    nrx_state <= RX_WAIT_SOF;
+--            --  else
+--            --    nrx_stall_mask <= '1';
+--            --  end if;
+--            
+--            when RX_WAIT_SOF =>
+--
+--              nrx_newpacket <= '0';
+--              nrx_done      <= '0';
+--              nrx_mem_wr    <= '0';
+--              nrx_has_oob   <= '0';
+--              nrx_bytesel   <= '0';
+--              nrx_error     <= '0';
+--              nrx_size      <= (others => '0');
+--              nrx_mem_a     <= nrx_mem_a_saved;
+--              nrx_toggle    <= '0';
+--
+--              regs_in.mcr_rx_full_i <= nrx_buf_full;
+--              snk_err_o             <= nrx_buf_full;
+--
+--              if(snk_cyc_i = '1' and nrx_buf_full = '0') then  -- got start-of-frame?
+--                nrx_stall_mask <= '1';
+--                nrx_state      <= RX_ALLOCATE_DESCRIPTOR;
+--              else
+--                nrx_stall_mask <= '0';  --nrx_buf_full;
+--              end if;
+---------------------------------------------------------------------------------
+---- State "Allocate RX descriptor": puts an empty (invalid) RX descriptor at the
+---- current location in the RX buffer and then starts receiving the data
+---------------------------------------------------------------------------------              
+--              
+--            when RX_ALLOCATE_DESCRIPTOR =>
+--
+---- wait until we have memory access
+--              if(mem_arb_rx = '0') then
+--
+---- make sure the bit 31 is 0 (RX descriptor is invalid)
+--                nrx_mem_d       <= (others => '0');
+--                nrx_mem_a_saved <= nrx_mem_a;
+--                if(nrx_avail /= to_unsigned(0, nrx_avail'length)) then
+--                  nrx_avail  <= nrx_avail - 1;
+--                  nrx_mem_wr <= '1';
+--                end if;
+--
+--
+---- allow the fabric to receive the data
+--                nrx_stall_mask <= '0';
+--
+--                nrx_state <= RX_DATA;
+--              end if;
+--
+---------------------------------------------------------------------------------
+---- State "Receive data". Receive data, write it into the DMA memory
+---------------------------------------------------------------------------------              
+--              
+--            when RX_DATA =>
+--
+--              nrx_mem_wr <= '0';
+--
+--              if(snk_stb_i = '1' and snk_cyc_i = '1' and snk_stall_int = '0' and snk_we_i = '1' and snk_adr_i = c_WRF_STATUS) then
+--                nrx_class <= nrx_status_reg.match_class;
+--              end if;
+--
+--              -- check if we have enough space in the buffer
+--              if(nrx_avail = to_unsigned(0, nrx_avail'length)) then
+--                nrx_buf_full <= '1';
+--              end if;
+--
+--              -- we've got a valid data word or end-of-frame/error condition
+--              if(nrx_valid = '1' or nrx_stat_error = '1' or snk_cyc_i = '0') then
+--
+--                -- latch the bytesel signal to support frames having odd lengths
+--                if(snk_sel_i = "10") then
+--                  nrx_bytesel <= '1';
+--                end if;
+--
+--                -- abort/error/end-of-frame?
+--                if(nrx_stat_error = '1' or snk_cyc_i = '0' or nrx_avail = to_unsigned(0, nrx_avail'length)) then
+--
+--                  if(nrx_stat_error = '1' or nrx_avail = to_unsigned(0, nrx_avail'length)) then
+--                    nrx_error <= '1';
+--                  else
+--                    nrx_error <= '0';
+--                  end if;
+--                  --nrx_error <= '1' when nrx_stat_error='1' or nrx_avail=to_unsigned(0, nrx_avail'length) else '0';
+--                  nrx_done <= '1';
+--
+--                  -- flush the remaining packet data into the DMA buffer if needed
+--                  if(nrx_toggle='1') then
+--                    nrx_state <= RX_MEM_FLUSH;
+--                  else
+--                    nrx_state <= RX_UPDATE_DESC;
+--                  end if;
+--
+--                  if(nrx_valid = '1' or nrx_toggle = '1') then
+--                    if nrx_mem_a + 1 >= nrx_bufstart + nrx_bufsize then
+--                      nrx_mem_a <= nrx_bufstart;
+--                    else
+--                      nrx_mem_a <= nrx_mem_a + 1;
+--                    end if;
+--                  end if;
+--
+--                  -- disable the RX fabric reception, so we won't get another
+--                  -- packet before we are done with the RX descriptor update
+--                  nrx_stall_mask <= '1';
+--                end if;
+--
+--                if(nrx_valid = '1') then
+--                  nrx_size <= nrx_size + 1;
+--
+--                  -- pack two 16-bit words received from the fabric I/F into one
+--                  -- 32-bit DMA memory word
+--
+--                  if(g_buffer_little_endian = false) then
+--                    -- big endian RX buffer
+--                    if(nrx_toggle = '0') then
+--                      nrx_mem_d(31 downto 16) <= snk_dat_i;
+--                    else
+--                      nrx_mem_d(15 downto 0) <= snk_dat_i;
+--                    end if;
+--                  else
+--                    -- little endian RX buffer
+--                    if(nrx_toggle = '0') then
+--                      nrx_mem_d(15 downto 8) <= snk_dat_i(7 downto 0);
+--                      nrx_mem_d(7 downto 0)  <= snk_dat_i(15 downto 8);
+--                    else
+--                      nrx_mem_d(31 downto 24) <= snk_dat_i(7 downto 0);
+--                      nrx_mem_d(23 downto 16) <= snk_dat_i(15 downto 8);
+--                    end if;
+--                  end if;
+--
+--                  -- we've got RX OOB tag? Remember it and later put it in the
+--                  -- descriptor header
+--                  if(snk_adr_i = c_WRF_OOB) then
+--                    nrx_has_oob <= '1';
+--                  end if;
+--
+--
+--                  nrx_toggle <= not nrx_toggle;
+--                end if;
+--              end if;
+--
+--              -- we've got the second valid word of the payload, write it to the
+--              -- memory
+--              if(nrx_toggle = '1' and nrx_valid = '1' and snk_cyc_i = '1' and nrx_stat_error = '0') then
+--                if nrx_mem_a + 1 >= nrx_bufstart + nrx_bufsize then
+--                  nrx_mem_a <= nrx_bufstart;
+--                else
+--                  nrx_mem_a <= nrx_mem_a + 1;
+--                end if;
+--                nrx_mem_wr <= '1';
+--                nrx_avail  <= nrx_avail - 1;
+--
+--                -- check if we are synchronized with the memory write arbiter.
+--                if(mem_arb_rx = '1') then
+--                  nrx_state <= RX_MEM_RESYNC;
+--                end if;
+--              else
+--                -- nothing to write
+--                nrx_mem_wr <= '0';
+--              end if;
+--
+---------------------------------------------------------------------------------
+---- State "Memory resync": a "wait state" entered when the miNIC tries to write the RX
+---- payload, but the memory access is given for the TX path at the moment.
+---------------------------------------------------------------------------------
+--              
+--            when RX_MEM_RESYNC =>
+--
+--              -- check for error/abort conditions, they may appear even when
+--              -- the fabric is not accepting the data (tx_dreq_o = 0)
+--              if(nrx_stat_error = '1') then
+--                nrx_error <= '1';
+--                nrx_done  <= '1';
+--                nrx_state <= RX_MEM_FLUSH;
+--                if nrx_mem_a + 1 >= nrx_bufstart + nrx_bufsize then
+--                  nrx_mem_a <= nrx_bufstart;
+--                else
+--                  nrx_mem_a <= nrx_mem_a + 1;
+--                end if;
+--                nrx_stall_mask <= '1';
+--                nrx_size       <= nrx_size + 2;
+--              else
+--                nrx_state <= RX_DATA;
+--              end if;
+--
+---------------------------------------------------------------------------------
+---- State "Memory flush": flushes the remaining contents of RX data register
+---- into the DMA buffer after end-of-packet/error/abort
+---------------------------------------------------------------------------------
+--              
+--            when RX_MEM_FLUSH =>
+--              nrx_stall_mask <= '1';
+--
+--              if(nrx_buf_full = '0') then
+--                nrx_mem_wr <= '1';
+--              end if;
+--
+--              if(mem_arb_rx = '0') then
+--                if(nrx_buf_full = '0') then
+--                  nrx_avail <= nrx_avail - 1;
+--                else
+--                	nrx_size <= nrx_size - 1;  --the buffer is full, last word was not written
+--                	nrx_mem_a <= nrx_mem_a - 1;
+--                end if;
+--                nrx_state <= RX_UPDATE_DESC;
+--              end if;
+--
+---------------------------------------------------------------------------------
+---- State "Update RX descriptor": writes the frame size, OOB presence and error
+---- flags into the empty RX descriptor allocated at the beginning of the reception
+---- of the frame, and marks the descriptor as valid. Also triggers the RX ready
+---- interrupt.
+---------------------------------------------------------------------------------
+--              
+--            when RX_UPDATE_DESC =>
+--              nrx_stall_mask <= '1';
+--
+--              if(nrx_avail = to_unsigned(0, nrx_avail'length)) then
+--                nrx_buf_full <= '1';
+--              end if;
+--
+--              if(mem_arb_rx = '0') then
+--
+--
+--                -- store the current write pointer as a readback value of RX_ADDR register, so
+---- the host can determine the RX descriptor we're actually working on
+--                --regs_in.rx_addr_i(g_memsize_log2+1 downto 0)                      <= std_logic_vector(nrx_mem_a_saved) & "00";
+--                --regs_in.rx_addr_i(regs_in.rx_addr_i'high downto g_memsize_log2+2) <= (others => '0');
+--
+--                nrx_mem_a <= nrx_mem_a_saved;
+--                if nrx_mem_a + 1 >= nrx_bufstart + nrx_bufsize then
+--                  nrx_mem_a_saved <= nrx_bufstart;
+--                else
+--                  nrx_mem_a_saved <= nrx_mem_a + 1;
+--                end if;
+--
+---- compose the RX descriptor
+--                nrx_mem_d(31)                      <= '1';
+--                nrx_mem_d(30)                      <= nrx_error;
+--                nrx_mem_d(29)                      <= nrx_has_oob;
+----                nrx_mem_d(28 downto g_memsize_log2+1) <= (others => '0');
+--                nrx_mem_d(28 downto 21)            <= nrx_class;
+--                nrx_mem_d(g_memsize_log2 downto 1) <= std_logic_vector(nrx_size);
+--                nrx_mem_d(0)                       <= nrx_bytesel;
+--
+--                nrx_mem_wr <= '1';
+--
+--
+--                -- wait for another packet
+--                if(snk_cyc_i = '1') then
+--                  nrx_state <= RX_IGNORE;
+--                elsif(nrx_buf_full = '1') then
+--                  nrx_state      <= RX_BUF_FULL;
+--                  nrx_stall_mask <= '1';
+--                else
+--                  -- trigger the RX interrupt and assert RX_READY flag to inform
+--                  -- the host that we've received something
+--                  nrx_newpacket          <= '1';
+--                  regs_in.mcr_rx_ready_i <= '1';
+--                  nrx_state <= RX_WAIT_SOF;
+--                end if;
+--              else
+--                nrx_mem_wr <= '0';
+--              end if;
+--              
+--            when RX_IGNORE =>
+--              nrx_mem_wr <= '0';
+--              --drop the rest of the packet
+--              nrx_stall_mask <= '0';
+--              if(snk_cyc_i = '0') then
+--                if(nrx_buf_full = '1') then
+--                  nrx_stall_mask <= '1';
+--                  nrx_state      <= RX_BUF_FULL;
+--                else
+--                  nrx_state <= RX_WAIT_SOF;
+--                end if;
+--              end if;
+--
+--            when RX_BUF_FULL =>
+--                nrx_mem_wr 						 <= '0';
+--                regs_in.mcr_rx_full_i  <= nrx_buf_full;
+--                nrx_newpacket          <= '1';
+--                regs_in.mcr_rx_ready_i <= '1';
+--              if(nrx_buf_full = '0') then
+--                nrx_stall_mask <= '0';
+--                nrx_state      <= RX_WAIT_SOF;
+--              else
+--                nrx_stall_mask <= '1';
+--              end if;
+--              
+--          end case;
+--        end if;
       end if;
     end if;
   end process;
@@ -1272,9 +1338,9 @@ begin  -- behavioral
       irq_txts_i       => irq_txts);
 
 
-  regs_in.rx_avail_i(nrx_avail'high downto 0)                         <= std_logic_vector(nrx_avail);
-  regs_in.rx_avail_i(regs_in.rx_avail_i'high downto nrx_avail'high+1) <= (others => '0');
-  regs_in.rx_size_i(nrx_size'high downto 0)                           <= std_logic_vector(nrx_bufsize);
-  regs_in.rx_size_i(regs_in.rx_size_i'high downto nrx_size'high+1)    <= (others => '0');
+  --regs_in.rx_avail_i(nrx_avail'high downto 0)                         <= std_logic_vector(nrx_avail);
+  --regs_in.rx_avail_i(regs_in.rx_avail_i'high downto nrx_avail'high+1) <= (others => '0');
+  --regs_in.rx_size_i(nrx_size'high downto 0)                           <= std_logic_vector(nrx_bufsize);
+  --regs_in.rx_size_i(regs_in.rx_size_i'high downto nrx_size'high+1)    <= (others => '0');
 
 end behavioral;
