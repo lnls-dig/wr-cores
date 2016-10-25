@@ -43,7 +43,7 @@ entity wr_mini_nic is
     g_interface_mode       : t_wishbone_interface_mode      := CLASSIC;
     g_address_granularity  : t_wishbone_address_granularity := WORD;
     g_memsize_log2         : integer                        := 14;
-    g_fifo_size            : integer                        := 512;
+    g_fifo_size            : integer                        := 2048;
     g_buffer_little_endian : boolean                        := false);
 
   port (
@@ -205,7 +205,7 @@ architecture behavioral of wr_mini_nic is
 -- TX FSM stuff
 -------------------------------------------------------------------------------
 
-  type t_tx_fsm_state is (TX_IDLE, TX_STATUS, TX_PACKET, TX_FLUSH, TX_OOB, TX_END_PACKET);
+  type t_tx_fsm_state is (TX_IDLE, TX_STATUS, TX_PACKET, TX_FLUSH, TX_END_PACKET);
 
   alias ntx_desc_size is ntx_mem_d(11 downto 0);
   alias ntx_desc_oob is ntx_mem_d(27 downto 12);
@@ -232,6 +232,7 @@ architecture behavioral of wr_mini_nic is
 
   signal ntx_stored_dat : std_logic_vector(15 downto 0);
   signal ntx_stored_type : std_logic_vector(1 downto 0);
+  signal ntx_flush_last  : std_logic;
 
 -------------------------------------------------------------------------------
 -- RX FSM stuff
@@ -377,9 +378,9 @@ begin  -- behavioral
   tx_status_word <= f_unmarshall_wrf_status(tx_fifo_q(15 downto 0));
   -- signals error in transmitted frame (set by software
   -- by writing again status register to TX Fifo
-  txf_ferror <= '1' when (txf_type = c_WRF_STATUS and tx_status_word.error = '1') else
+  txf_ferror <= '1' when (tx_fifo_empty = '0' and txf_type = c_WRF_STATUS and tx_status_word.error = '1') else
                 '0';
-  txf_fnew   <= '1' when (txf_type = c_WRF_STATUS and tx_status_word.error = '0') else
+  txf_fnew   <= '1' when (tx_fifo_empty = '0' and txf_type = c_WRF_STATUS and tx_status_word.error = '0') else
                 '0';
 
   p_tx_fsm: process(clk_sys_i)
@@ -395,6 +396,7 @@ begin  -- behavioral
         ntx_state   <= TX_IDLE;
         ntx_stored_dat <= (others=>'0');
         ntx_stored_type <= (others=>'0');
+        ntx_flush_last <= '0';
       else
         case ntx_state is
           when TX_IDLE =>
@@ -404,6 +406,7 @@ begin  -- behavioral
             src_sel_o   <= "11";
             src_adr_o   <= txf_type;
             ntx_timeout <= to_unsigned(c_NTX_TIMEOUT, ntx_timeout'length);
+            ntx_flush_last <= '0';
             if (tx_fifo_empty = '0' and txf_fnew = '0') then
               -- if there is something in the fifo but it's not a status word,
               -- we read until we find a valid status. In this case we indicate
@@ -435,6 +438,7 @@ begin  -- behavioral
             src_adr_o   <= c_WRF_STATUS;
             src_dat_o   <= txf_data;
             tx_fifo_rd <= '1';
+            ntx_flush_last <= '0';
             ntx_state <= TX_PACKET;
 
           when TX_PACKET =>
@@ -448,6 +452,7 @@ begin  -- behavioral
               src_sel_o   <= "11";
               src_stb_int <= '1';
               tx_fifo_rd  <= '1';
+              ntx_flush_last <= '0';
             elsif (tx_fifo_empty = '0' and src_stall_i = '0' and txf_ferror = '0' and txf_type = c_WRF_BYTESEL) then
               -- almost normal situation, only one byte of data is valid
               src_adr_o   <= c_WRF_DATA;
@@ -455,22 +460,23 @@ begin  -- behavioral
               src_sel_o   <= "10";
               src_stb_int <= '1';
               tx_fifo_rd  <= '1';
-            elsif (tx_fifo_empty = '0' and src_stall_i = '0' and txf_type = c_WRF_OOB) then
+              ntx_flush_last <= '0';
+            elsif (tx_fifo_empty = '0' and src_stall_i = '0' and txf_ferror = '0' and txf_type = c_WRF_OOB) then
               -- we got OOB in TXed frame, let's send it
               src_adr_o   <= c_WRF_OOB;
-              src_dat_o   <= c_WRF_OOB_TYPE_TX & x"000";
-              src_stb_int <= '1';
+              src_dat_o   <= txf_data;
               src_sel_o   <= "11";
-              tx_fifo_rd  <= '0';
-              ntx_stored_dat <= txf_data;
-              ntx_state   <= TX_OOB;
-            elsif (tx_fifo_empty = '1' or txf_fnew = '1') then
+              src_stb_int <= '1';
+              tx_fifo_rd  <= '1';
+              ntx_flush_last <= '0';
+            elsif ((tx_fifo_empty = '1' or txf_fnew = '1') and src_stall_i = '0') then
               -- we done with this frame
               src_adr_o   <= c_WRF_DATA;
               src_dat_o   <= txf_data;
               src_stb_int <= '0';
               src_sel_o   <= "11";
               tx_fifo_rd  <= '0';
+              ntx_flush_last <= '0';
               ntx_state   <= TX_END_PACKET;
             else
               -- e.g. snk is stalling, we wait
@@ -478,6 +484,11 @@ begin  -- behavioral
               src_stb_int <= '1';
               ntx_stored_dat <= txf_data;
               ntx_stored_type <= txf_type;
+              if (tx_fifo_empty = '1') then
+                ntx_flush_last <= '1';
+              else
+                ntx_flush_last <= '0';
+              end if;
               ntx_state   <= TX_FLUSH;
             end if;
 
@@ -485,49 +496,57 @@ begin  -- behavioral
             regs_in.mcr_tx_idle_i <= '0';
             ntx_rst_ts_ready      <= '0';
             src_cyc_int <= '1';
-            if (src_stall_i = '0' and ntx_stored_type = c_WRF_DATA) then
-              src_adr_o   <= c_WRF_DATA;
+            if (src_stall_i = '0' and (ntx_stored_type = c_WRF_DATA or ntx_stored_type = c_WRF_OOB)) then
+              src_adr_o   <= ntx_stored_type;
               src_dat_o   <= ntx_stored_dat;
               src_sel_o   <= "11";
-              src_stb_int <= '1';
-              tx_fifo_rd  <= '1';
-              ntx_state <= TX_PACKET;
             elsif (src_stall_i = '0' and ntx_stored_type = c_WRF_BYTESEL) then
               src_adr_o   <= c_WRF_DATA;
               src_dat_o   <= ntx_stored_dat;
               src_sel_o   <= "10";
-              src_stb_int <= '1';
-              tx_fifo_rd  <= '1';
-              ntx_state <= TX_PACKET;
             else
               src_stb_int <= '1';
               tx_fifo_rd  <= '0';
             end if;
 
-          when TX_OOB =>
-            regs_in.mcr_tx_idle_i <= '0';
-            ntx_rst_ts_ready      <= '0';
-            src_cyc_int <= '1';
-            src_adr_o   <= c_WRF_OOB;
-            src_dat_o   <= ntx_stored_dat;
-            tx_fifo_rd  <= '0';
-            src_stb_int <= '1';
-            if (src_stall_i = '0') then
-              src_sel_o   <= "11";
-              ntx_state   <= TX_IDLE;
+            if (ntx_flush_last = '0' and src_stall_i = '0') then
+              src_stb_int <= '1';
+              tx_fifo_rd  <= '1';
+              ntx_state   <= TX_PACKET;
+            elsif (ntx_flush_last = '1' and src_stall_i = '0') then
+              src_stb_int <= '0';
+              tx_fifo_rd  <= '0';
+              ntx_state   <= TX_END_PACKET;
             else
-              src_sel_o   <= "11";
+              src_stb_int <= '1';
+              tx_fifo_rd  <= '0';
+              ntx_state   <= TX_FLUSH;
             end if;
+
+          --when TX_OOB =>
+          --  regs_in.mcr_tx_idle_i <= '0';
+          --  ntx_rst_ts_ready      <= '0';
+          --  src_cyc_int <= '1';
+          --  src_adr_o   <= c_WRF_OOB;
+          --  src_dat_o   <= ntx_stored_dat;
+          --  tx_fifo_rd  <= '0';
+          --  src_stb_int <= '1';
+          --  if (src_stall_i = '0') then
+          --    src_sel_o   <= "11";
+          --    ntx_state   <= TX_IDLE;
+          --  else
+          --    src_sel_o   <= "11";
+          --  end if;
 
           when TX_END_PACKET =>
             regs_in.mcr_tx_idle_i <= '0';
             ntx_rst_ts_ready      <= '0';
+            src_stb_int <= '0';
             -- timeout counter in case we never get all ACKs.
             ntx_timeout <= ntx_timeout - 1;
             if (ntx_ack_count = 0 or ntx_timeout_is_zero = '1') then
               regs_in.mcr_tx_error_i <= ntx_timeout_is_zero;
               src_cyc_int <= '0';
-              src_stb_int <= '0';
               src_sel_o   <= "11";
               tx_fifo_rd  <= '0';
               ntx_state   <= TX_IDLE;
