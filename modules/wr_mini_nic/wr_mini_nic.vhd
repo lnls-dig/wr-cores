@@ -144,15 +144,6 @@ architecture behavioral of wr_mini_nic is
     );
   end component;
 
-  --type t_wrf_status_reg is record
-  --  is_hp       : std_logic;
-  --  has_smac    : std_logic;
-  --  has_crc     : std_logic;
-  --  error       : std_logic;
-  --  tag_me      : std_logic;
-  --  match_class : std_logic_vector(7 downto 0);
-  --end record;
-
   function f_buf_swap_endian_32
     (
       data : std_logic_vector(31 downto 0)
@@ -175,14 +166,11 @@ architecture behavioral of wr_mini_nic is
 -- memory interface signals
 -----------------------------------------------------------------------------
 
-  signal ntx_mem_d  : std_logic_vector(31 downto 0);
-  signal ntx_mem_a  : unsigned(g_memsize_log2-1 downto 0);
   signal nrx_mem_d  : std_logic_vector(31 downto 0);
   signal nrx_mux_d  : std_logic;
   signal nrx_mem_a  : unsigned(g_memsize_log2-1 downto 0);
   signal nrx_mem_wr : std_logic;
   signal mem_arb_rx : std_logic;
-  signal mem_arb_tx : std_logic;
 
 
   signal tx_fifo_d : std_logic_vector(17 downto 0);
@@ -207,25 +195,10 @@ architecture behavioral of wr_mini_nic is
 
   type t_tx_fsm_state is (TX_IDLE, TX_STATUS, TX_PACKET, TX_FLUSH, TX_END_PACKET);
 
-  alias ntx_desc_size is ntx_mem_d(11 downto 0);
-  alias ntx_desc_oob is ntx_mem_d(27 downto 12);
-  alias ntx_desc_valid is ntx_mem_d(31);
-  alias ntx_desc_with_oob is ntx_mem_d(30);
-  alias ntx_desc_802_1q is ntx_mem_d(29);
-  alias ntx_desc_has_src_mac is ntx_mem_d(28);
-
-  signal ntx_status_reg : t_wrf_status_reg;
-
-  signal ntx_data_reg : std_logic_vector(31 downto 0);
-
   signal ntx_timeout_is_zero : std_logic;
-  signal ntx_cntr            : unsigned(11 downto 0);
   signal ntx_timeout         : unsigned(7 downto 0);
 
   signal ntx_ack_count     : unsigned(2 downto 0);
-  signal ntx_has_oob       : std_logic;
-  signal ntx_size_odd      : std_logic;
-  signal ntx_oob_reg       : std_logic_vector(15 downto 0);
 
   signal ntx_state         : t_tx_fsm_state;
   signal ntx_rst_ts_ready  : std_logic;
@@ -286,9 +259,6 @@ architecture behavioral of wr_mini_nic is
   signal irq_tx_mask : std_logic;
 
   signal txtsu_ack_int : std_logic;
-  signal mem_addr_int  : std_logic_vector(g_memsize_log2-1 downto 0);
-  signal mem_wr_int    : std_logic;
-  signal bad_addr      : std_logic;
 
 
 begin  -- behavioral
@@ -523,21 +493,6 @@ begin  -- behavioral
               ntx_state   <= TX_FLUSH;
             end if;
 
-          --when TX_OOB =>
-          --  regs_in.mcr_tx_idle_i <= '0';
-          --  ntx_rst_ts_ready      <= '0';
-          --  src_cyc_int <= '1';
-          --  src_adr_o   <= c_WRF_OOB;
-          --  src_dat_o   <= ntx_stored_dat;
-          --  tx_fifo_rd  <= '0';
-          --  src_stb_int <= '1';
-          --  if (src_stall_i = '0') then
-          --    src_sel_o   <= "11";
-          --    ntx_state   <= TX_IDLE;
-          --  else
-          --    src_sel_o   <= "11";
-          --  end if;
-
           when TX_END_PACKET =>
             regs_in.mcr_tx_idle_i <= '0';
             ntx_rst_ts_ready      <= '0';
@@ -556,264 +511,7 @@ begin  -- behavioral
     end if;
   end process;
 
---  p_tx_fsm : process(clk_sys_i, rst_n_i)
---  begin
---    if rising_edge(clk_sys_i) then
---      if rst_n_i = '0' then
---        src_dat_o         <= (others => '0');
---        src_adr_o         <= (others => '0');
---        src_cyc_int       <= '0';
---        src_stb_int       <= '0';
---        irq_tx            <= '0';
---        ntx_has_oob       <= '0';
---        ntx_mem_a         <= (others => '0');
---        ntx_cntr          <= (others => '0');
---        ntx_data_reg      <= (others => '0');
---        ntx_state         <= TX_IDLE;
---
---        regs_in.mcr_tx_error_i <= '0';
---        regs_in.mcr_tx_idle_i  <= '0';
---
---        tx_fifo_rd <= '0';
---
---      else
---        case ntx_state is
---
----------------------------------------------------------------------------------
----- Idle state: we wait until the host starts the DMA transfer
----------------------------------------------------------------------------------
---          when TX_IDLE =>
---            src_cyc_int <= '0';
---            src_stb_int <= '0';
---
---            -- TX interrupt is disabled. Just assert the TX_IDLE.
---            if(irq_tx_mask = '0') then
---              regs_in.mcr_tx_idle_i <= '1';
---            elsif(irq_tx_ack = '1') then
---              irq_tx                <= '0';
---              regs_in.mcr_tx_idle_i <= '1';
---            end if;
---
---            -- initialize timeout of TX_END_PACKET
---            ntx_timeout <= to_unsigned(100, ntx_timeout'length);
---
---            -- the host started the DMA xfer (and we are "phased" with the arbiter)
---            if(tx_fifo_empty = '0') then
---              ntx_state  <= TX_PACKET;
---              tx_fifo_rd <= '1';
---              -- clear the TX flags
---              regs_in.mcr_tx_error_i <= '0';
---              regs_in.mcr_tx_idle_i  <= '0';
---            end if;
---
---          when TX_PACKET =>
---            src_cyc_int <= '1';
---
---            if (src_stall_i = '0') then
---              src_stb_int <= '1';
---
---            end if;
---
---
----------------------------------------------------------------------------------
----- Read descriptor header state: check if there's another descriptor in the buffer
----- and eventually, start transmitting it
----------------------------------------------------------------------------------
---          when TX_READ_DESC =>
---
---            if(mem_arb_tx = '0') then   -- memory is ready?
---              -- feed the current TX DMA address as the readback value of TX_ADDR Wishbone
---              -- register
---              regs_in.tx_addr_i(g_memsize_log2+1 downto 0)                      <= std_logic_vector(ntx_mem_a) & "00";
---              regs_in.tx_addr_i(regs_in.tx_addr_i'high downto g_memsize_log2+2) <= (others => '0');
---
---              -- if we have no more valid TX descriptors, trigger an interrupt and wait for
---              -- another DMA transfer
---              if(ntx_desc_valid = '0') then
---                ntx_state <= TX_IDLE;
---                irq_tx    <= '1';
---              else
---                -- read the descriptor contents (size, 802.1q/OOB enables)
---                ntx_cntr                   <= unsigned(ntx_desc_size);
---                ntx_oob_reg                <= ntx_desc_oob;
---                ntx_has_oob                <= ntx_desc_with_oob;
---                ntx_status_reg.is_hp       <= '0';
---                ntx_status_reg.has_smac    <= ntx_desc_has_src_mac;
---                ntx_status_reg.has_crc     <= '0';
---                ntx_status_reg.error       <= '0';
---                ntx_status_reg.tag_me      <= '0';
---                ntx_status_reg.match_class <= (others => '0');
---                ntx_state                  <= TX_STATUS;
---                ntx_mem_a                  <= ntx_mem_a + 1;
---              end if;
---            end if;
---
----------------------------------------------------------------------------------
----- State status: send status word
----------------------------------------------------------------------------------
---          when TX_STATUS =>
---
---            src_cyc_int <= '1';
---            src_adr_o   <= c_WRF_STATUS;
---
---            if(src_stall_i = '0') then
---              src_stb_int <= '1';
---              src_dat_o   <= f_marshall_wrf_status(ntx_status_reg);
---              ntx_state   <= TX_START_PACKET;
---            end if;
---
---
----------------------------------------------------------------------------------
----- Start packet state: asserts CYC signal and reads first word to transmit
----------------------------------------------------------------------------------            
---          when TX_START_PACKET =>
---
---            src_cyc_int <= '1';
---            src_stb_int <= '0';
---            -- check if the memory is ready, read the 1st word of the payload
---            if(src_stall_i = '0' and mem_arb_tx = '0') then
---              ntx_data_reg <= f_buf_swap_endian_32(ntx_mem_d);
---              src_cyc_int  <= '1';
---              ntx_state    <= TX_HWORD;
---              ntx_mem_a    <= ntx_mem_a + 1;
---            end if;
---
---
---
-----------------------------------------------------------------------------------
----- State "Transmit HI word" - transmit the most significant word of the packet
----------------------------------------------------------------------------------
---          when TX_HWORD =>
---
---
---            src_cyc_int <= '1';
---            src_adr_o   <= c_WRF_DATA;
---
---            if(src_err_i = '1') then
---              regs_in.mcr_tx_error_i <= '1';
---              irq_tx                 <= '1';
---              ntx_state              <= TX_IDLE;
---            else
---              if(src_stall_i = '0') then
---                src_dat_o   <= ntx_data_reg(31 downto 16);
---                src_stb_int <= '1';
---
---                if(ntx_cntr_is_zero = '1') then
---                  src_stb_int <= '0';
---                  ntx_state   <= TX_OOB1;
---                  --  ntx_mem_a <= ntx_mem_a + 1;
---                else
---                  ntx_cntr  <= ntx_cntr - 1;
---                  ntx_state <= TX_LWORD;
---                end if;
---              end if;
---            end if;
---
---
-----------------------------------------------------------------------------------
----- State "Transmit LO word" - transmit the least significant word of the packet
----------------------------------------------------------------------------------
---          when TX_LWORD =>
---
---            src_cyc_int <= '1';
---            src_adr_o   <= c_WRF_DATA;
---
---            if(src_err_i = '1') then
---              regs_in.mcr_tx_error_i <= '1';
---              irq_tx                 <= '1';
---              ntx_state              <= TX_IDLE;
---            end if;
---
---
---            -- the TX fabric is ready, the memory is ready and we haven't reached the end
---            -- of the packet yet:
---
---            if(src_stall_i = '0') then
---              src_stb_int <= '1';
---
---              src_dat_o <= ntx_data_reg (15 downto 0);
---
---              if(mem_arb_tx = '0' and ntx_cntr_is_zero = '0') then
---                ntx_data_reg <= f_buf_swap_endian_32(ntx_mem_d);
---                ntx_cntr     <= ntx_cntr - 1;
---                if(ntx_cntr_is_one = '0') then
---                  ntx_mem_a <= ntx_mem_a + 1;
---                end if;
---                ntx_state <= TX_HWORD;
---
---              elsif(ntx_cntr_is_zero = '1') then
---                -- We're at the end of the packet
---                src_stb_int <= '0';
---                ntx_state   <= TX_OOB1;
---              else
---                src_stb_int <= '0';
---              end if;
---            elsif(src_stall_i = '1' and ntx_cntr_is_one = '1' and ntx_size_odd = '1') then
---              src_dat_o <= ntx_data_reg(15 downto 0);
---              ntx_state <= TX_OOB1;
---            else
---              ntx_state <= TX_LWORD;
---            end if;
---
---          when TX_OOB1 =>
---
---            if(ntx_has_oob = '1')then
---              src_dat_o   <= c_WRF_OOB_TYPE_TX & x"000";
---              src_adr_o   <= c_WRF_OOB;
---              src_stb_int <= '1';
---              ntx_state   <= TX_OOB2;
---            elsif(src_stall_i = '0') then
---              src_stb_int <= '0';
---              ntx_state   <= TX_END_PACKET;
---            end if;
---            
---            
---          when TX_OOB2 =>
---            
---            if(src_stall_i = '0') then
---              src_stb_int <= '1';
---              src_adr_o   <= c_WRF_OOB;
---              src_dat_o   <= ntx_oob_reg;
---              ntx_state   <= TX_END_PACKET;
---            end if;
---
---
----------------------------------------------------------------------------------
----- State end-of-packet: wait for ACKs and generate an inter-packet gap
----------------------------------------------------------------------------------
---          when TX_END_PACKET =>
---
---
---            if(src_stall_i = '0') then
---              src_stb_int <= '0';
---
---              --disable CYC if all ACKs received
---              if(ntx_ack_count = 0) then
---                src_cyc_int <= '0';
---              end if;
---
---              --timeout in case something went wrong and we won't ever
---              --get those ACKs
---
---              if(ntx_timeout_is_zero = '1') then
---                regs_in.mcr_tx_error_i <= '1';
---              else
---                ntx_timeout <= ntx_timeout - 1;
---              end if;
---
---              --finish when gap generated and all ACKs received or timeout expired
---              if((ntx_ack_count = 0 or regs_in.mcr_tx_error_i = '1')) then
---                ntx_state <= TX_READ_DESC;
---              end if;
---            end if;
---          when others => null;
---        end case;
---      end if;
---    end if;
---  end process;
-
 -- these are never used:
-  --src_sel_o <= "11";
   src_we_o  <= '1';
   src_stb_o <= src_stb_int;
   src_cyc_o <= src_cyc_int;
