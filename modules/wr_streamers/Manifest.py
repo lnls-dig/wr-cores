@@ -9,5 +9,4 @@ files = ["streamers_pkg.vhd",
          "dropping_buffer.vhd",
          "wr_transmission_wbgen2_pkg.vhd", 
          "xwr_transmission.vhd", 
-         "wr_transmission_pkg.vhd",
          "wr_transmission_wb.vhd"]

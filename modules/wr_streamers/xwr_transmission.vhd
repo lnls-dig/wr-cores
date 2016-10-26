@@ -51,12 +51,11 @@ use IEEE.NUMERIC_STD.ALL;
 
 library work;
 use work.wishbone_pkg.all;  -- needed for t_wishbone_slave_in, etc
-use work.streamers_pkg.all; -- needed for streamers
+use work.streamers_pkg.all; -- needed for streamers and  c_WR_TRANS_ARR_SIZE_*
 use work.wr_fabric_pkg.all; -- needed for :t_wrf_source_in, etc
 use work.WRBtrain_pkg.all;  -- needed for c_STREAMER_DATA_WIDTH
 use work.wrcore_pkg.all;    -- needed for t_generic_word_array
 use work.wr_transmission_wbgen2_pkg.all;
-use work.wr_transmission_pkg.all; -- needed for c_WR_TRANS_ARR_SIZE_*
 
 entity xwr_transmission is
 
