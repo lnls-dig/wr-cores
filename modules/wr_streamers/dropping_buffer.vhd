@@ -89,6 +89,7 @@ begin  -- behavioral
         d_o       <= mem(to_integer(rd_ptr));
         d_valid_o <= '1';
       else
+        d_o       <= (others => '0');
         d_valid_o <= '0';
       end if;
     end if;
