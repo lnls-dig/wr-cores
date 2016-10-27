@@ -43,7 +43,8 @@ entity wr_mini_nic is
     g_interface_mode       : t_wishbone_interface_mode      := CLASSIC;
     g_address_granularity  : t_wishbone_address_granularity := WORD;
     g_memsize_log2         : integer                        := 14;
-    g_fifo_size            : integer                        := 2048;
+    g_tx_fifo_size         : integer                        := 1024;
+    g_rx_fifo_size         : integer                        := 2048;
     g_buffer_little_endian : boolean                        := false);
 
   port (
@@ -183,6 +184,7 @@ architecture behavioral of wr_mini_nic is
   signal rx_fifo_q : std_logic_vector(17 downto 0);
   signal rx_fifo_we, rx_fifo_rd : std_logic;
   signal rx_fifo_empty, rx_fifo_full : std_logic;
+  signal rx_fifo_afull : std_logic;
 
   signal txf_ferror : std_logic;
   signal txf_fnew   : std_logic;
@@ -211,7 +213,15 @@ architecture behavioral of wr_mini_nic is
 -- RX FSM stuff
 -------------------------------------------------------------------------------  
 
-  type t_rx_fsm_state is (RX_WAIT_SOF, RX_MEM_RESYNC, RX_MEM_FLUSH, RX_ALLOCATE_DESCRIPTOR, RX_DATA, RX_UPDATE_DESC, RX_IGNORE, RX_BUF_FULL);
+  signal nrx_in_frame : std_logic;
+  signal snk_cyc_d0 : std_logic;
+  signal nrx_sof : std_logic;
+  signal nrx_eof : std_logic;
+  alias rxf_type is rx_fifo_d(17 downto 16);
+  alias rxf_data is rx_fifo_d(15 downto 0);
+
+  --type t_rx_fsm_state is (RX_WAIT_SOF, RX_MEM_RESYNC, RX_MEM_FLUSH, RX_ALLOCATE_DESCRIPTOR, RX_DATA, RX_UPDATE_DESC, RX_IGNORE, RX_BUF_FULL);
+  type t_rx_fsm_state is (RX_WAIT_FRAME, RX_FRAME, RX_FULL);
 
   signal nrx_state    : t_rx_fsm_state;
   signal nrx_avail    : unsigned(g_memsize_log2-1 downto 0);
@@ -284,7 +294,7 @@ begin  -- behavioral
   TX_FIFO: generic_sync_fifo
     generic map(
       g_data_width => 18, 
-      g_size       => g_fifo_size,
+      g_size       => g_tx_fifo_size,
       g_with_almost_empty => false,
       g_with_almost_full  => false,
       g_with_count        => false,
@@ -302,10 +312,12 @@ begin  -- behavioral
   RX_FIFO: generic_sync_fifo
     generic map(
       g_data_width => 18, 
-      g_size       => g_fifo_size,
+      g_size       => g_rx_fifo_size,
       g_with_almost_empty => false,
-      g_with_almost_full  => false,
-      g_with_count        => false)
+      g_with_almost_full  => true,
+      g_with_count        => false,
+      g_almost_full_threshold => g_rx_fifo_size/2,
+      g_show_ahead        => true)
     port map (
       rst_n_i => rst_n_i,
       clk_i   => clk_sys_i,
@@ -314,14 +326,25 @@ begin  -- behavioral
       q_o     => rx_fifo_q,
       rd_i    => rx_fifo_rd,
       empty_o => rx_fifo_empty,
-      full_o  => rx_fifo_full);
+      full_o  => rx_fifo_full,
+      almost_full_o => rx_fifo_afull);
 
   tx_fifo_d  <= regs_out.tx_fifo_type_o & regs_out.tx_fifo_dat_o;
   tx_fifo_we <= regs_out.tx_fifo_dat_wr_o and regs_out.tx_fifo_type_wr_o;
-  regs_in.tx_fifo_empty_i <= tx_fifo_empty;
-  regs_in.tx_fifo_full_i  <= tx_fifo_full;
+  regs_in.mcr_tx_empty_i <= tx_fifo_empty;
+  regs_in.mcr_tx_full_i  <= tx_fifo_full;
+
+  regs_in.mcr_rx_empty_i  <= rx_fifo_empty;
   regs_in.rx_fifo_empty_i <= rx_fifo_empty;
+  regs_in.mcr_rx_full_i   <= rx_fifo_full;
   regs_in.rx_fifo_full_i  <= rx_fifo_full;
+  regs_in.rx_fifo_type_i  <= rx_fifo_q(17 downto 16);
+  regs_in.rx_fifo_dat_i   <= rx_fifo_q(15 downto 0);
+
+  -- sniff wb access to generate rx_fifo_rd every time the RX_FIFO register is
+  -- read
+  rx_fifo_rd <= '1' when(wb_out.cyc='1' and wb_out.stb='1' and wb_out.adr=x"00000002" and wb_in.ack='1') else
+                '0';
 
 -------------------------------------------------------------------------------
 -- TX Path  (Host -> Fabric)
@@ -546,38 +569,130 @@ begin  -- behavioral
 
   end process;
 
-  p_rx_fsm : process(clk_sys_i, rst_n_i)
+
+  --------------------------------------------------------
+  -- RX path
+  --------------------------------------------------------
+  nrx_sof <= '1' when(snk_cyc_d0 = '0' and snk_cyc_i = '1') else
+             '0';
+  nrx_eof <= '1' when(snk_cyc_d0 = '1' and snk_cyc_i = '0') else
+             '0';
+
+  process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
-      if rst_n_i = '0' then
-        nrx_state      <= RX_WAIT_SOF;
-        nrx_mem_a      <= (others => '0');
-        nrx_mem_wr     <= '0';
-        nrx_avail      <= (others => '0');
-        nrx_bufstart   <= (others => '0');
-        nrx_bufsize    <= (others => '0');
-        nrx_rdreg      <= (others => '0');
-        nrx_toggle     <= '0';
-        nrx_stall_mask <= '0';
-        nrx_bytesel    <= '0';
-        nrx_size       <= (others => '0');
-        nrx_buf_full   <= '0';
-        nrx_error      <= '0';
-        nrx_done       <= '0';
-        nrx_has_oob    <= '0';
-
-        nrx_mem_a_saved        <= (others => '0');
-        --regs_in.rx_addr_i      <= (others => '0');
+      if (rst_n_i = '0') then
+        snk_cyc_d0 <= '0';
+        rx_fifo_we <= '0';
+        rxf_type   <= (others=>'0');
+        rxf_data   <= (others=>'0');
+        snk_stall_int <= '0';
         regs_in.mcr_rx_ready_i <= '0';
-        regs_in.mcr_rx_full_i  <= '0';
-        nrx_newpacket          <= '0';
-        snk_err_o              <= '0';
+
+        nrx_state  <= RX_WAIT_FRAME;
+
       else
+        snk_cyc_d0 <= snk_cyc_i;
 
--- Host can modify the RX DMA registers only when the DMA engine is disabled
--- (MCR_RX_EN = 0)
+        case nrx_state is
+          when RX_WAIT_FRAME =>
+            rx_fifo_we <= '0';
+            rxf_type   <= (others=>'0');
+            rxf_data   <= (others=>'0');
+            regs_in.mcr_rx_full_i  <= '0';
+            if (regs_out.mcr_rx_en_o = '1') then
+              snk_stall_int <= not nrx_sof;
+            else
+              -- RX path is disabled, don't stall any traffic
+              snk_stall_int <= '0';
+            end if;
 
+            -- wait for software to enable RX path and a start of new frame
+            if (regs_out.mcr_rx_en_o = '1' and nrx_sof = '1' and rx_fifo_full = '0') then
+              nrx_state <= RX_FRAME;
+            end if;
 
+          when RX_FRAME =>
+            snk_stall_int <= '0';
+            -- receive frame, write it to FIFO
+            if (snk_stb_i = '1' and snk_sel_i = "11") then
+              rxf_type   <= snk_adr_i;
+              rxf_data   <= snk_dat_i;
+              rx_fifo_we <= '1';
+            elsif (snk_stb_i = '1' and snk_sel_i = "10") then
+              rxf_type   <= c_WRF_BYTESEL;
+              rxf_data   <= snk_dat_i;
+              rx_fifo_we <= '1';
+            else
+              rxf_type   <= (others=>'0');
+              rxf_data   <= (others=>'0');
+              rx_fifo_we <= '0';
+            end if;
+
+            if (regs_out.mcr_rx_en_o = '0' or nrx_eof = '1') then
+              -- stop writing FIFO if sw disables RX path
+              -- or if we're done with current frame
+              regs_in.mcr_rx_ready_i <= '1';
+              nrx_state              <= RX_WAIT_FRAME;
+            elsif (rx_fifo_full = '1') then
+              -- error if fifo gets full needs to be recovered
+              regs_in.mcr_rx_ready_i <= '1';
+              regs_in.mcr_rx_full_i  <= '1';
+              nrx_state <= RX_FULL;
+            end if;
+
+          when RX_FULL =>
+            snk_stall_int <= '0';
+            rx_fifo_we <= '0';
+            rxf_type   <= (others=>'0');
+            rxf_data   <= (others=>'0');
+            regs_in.mcr_rx_full_i <= '1';
+
+            -- recovering means disabling RX path and reading everything from
+            -- the FIFO
+            --if (regs_out.mcr_rx_en_o = '0' and rx_fifo_empty = '1') then
+            --  nrx_state <= RX_WAIT_FRAME;
+            --end if;
+            if (snk_cyc_i = '0' and rx_fifo_afull = '0') then
+              nrx_state <= RX_WAIT_FRAME;
+            end if;
+        end case;
+      end if;
+    end if;
+  end process;
+
+--  p_rx_fsm : process(clk_sys_i, rst_n_i)
+--  begin
+--    if rising_edge(clk_sys_i) then
+--      if rst_n_i = '0' then
+--        nrx_state      <= RX_WAIT_SOF;
+--        nrx_mem_a      <= (others => '0');
+--        nrx_mem_wr     <= '0';
+--        nrx_avail      <= (others => '0');
+--        nrx_bufstart   <= (others => '0');
+--        nrx_bufsize    <= (others => '0');
+--        nrx_rdreg      <= (others => '0');
+--        nrx_toggle     <= '0';
+--        nrx_stall_mask <= '0';
+--        nrx_bytesel    <= '0';
+--        nrx_size       <= (others => '0');
+--        nrx_buf_full   <= '0';
+--        nrx_error      <= '0';
+--        nrx_done       <= '0';
+--        nrx_has_oob    <= '0';
+--
+--        nrx_mem_a_saved        <= (others => '0');
+--        --regs_in.rx_addr_i      <= (others => '0');
+--        regs_in.mcr_rx_ready_i <= '0';
+--        regs_in.mcr_rx_full_i  <= '0';
+--        nrx_newpacket          <= '0';
+--        snk_err_o              <= '0';
+--      else
+--
+---- Host can modify the RX DMA registers only when the DMA engine is disabled
+---- (MCR_RX_EN = 0)
+--
+--
 --        if(regs_out.mcr_rx_en_o = '0') then
 --          
 --          nrx_newpacket <= '0';
@@ -913,37 +1028,38 @@ begin  -- behavioral
 --              
 --          end case;
 --        end if;
-      end if;
-    end if;
-  end process;
+--      end if;
+--    end if;
+--  end process;
 
 
 
 -------------------------------------------------------------------------------
 -- helper process for producing the RX fabric data request signal (combinatorial)
 -------------------------------------------------------------------------------  
-  gen_rx_dreq : process(nrx_stall_mask, nrx_state, mem_arb_rx, nrx_toggle, regs_out.mcr_rx_en_o, snk_cyc_i)
-  begin
-    -- make sure we don't have any incoming data when the reception is masked (e.g.
-    -- the miNIC is updating the descriptors of finishing the memory write. 
-    if(snk_cyc_i = '1' and nrx_state = RX_WAIT_SOF) then
-      snk_stall_int <= '1';
-    elsif(regs_out.mcr_rx_en_o = '0' or nrx_state = RX_ALLOCATE_DESCRIPTOR or nrx_state = RX_UPDATE_DESC or nrx_state = RX_MEM_FLUSH) then
-      snk_stall_int <= '1';
-      -- the condition below forces the RX FSM to go into RX_MEM_RESYNC state. Don't
-      -- receive anything during this time
-    elsif(nrx_state = RX_IGNORE or nrx_state = RX_BUF_FULL) then
-      snk_stall_int <= nrx_stall_mask;
-    elsif(nrx_toggle = '1' and mem_arb_rx = '1') then
-      snk_stall_int <= '1';
-    elsif(nrx_stall_mask = '1') then
-      snk_stall_int <= '1';
-    else
-      snk_stall_int <= '0';
-    end if;
-  end process;
+  --gen_rx_dreq : process(nrx_stall_mask, nrx_state, mem_arb_rx, nrx_toggle, regs_out.mcr_rx_en_o, snk_cyc_i)
+  --begin
+  --  -- make sure we don't have any incoming data when the reception is masked (e.g.
+  --  -- the miNIC is updating the descriptors of finishing the memory write. 
+  --  if(snk_cyc_i = '1' and nrx_state = RX_WAIT_SOF) then
+  --    snk_stall_int <= '1';
+  --  elsif(regs_out.mcr_rx_en_o = '0' or nrx_state = RX_ALLOCATE_DESCRIPTOR or nrx_state = RX_UPDATE_DESC or nrx_state = RX_MEM_FLUSH) then
+  --    snk_stall_int <= '1';
+  --    -- the condition below forces the RX FSM to go into RX_MEM_RESYNC state. Don't
+  --    -- receive anything during this time
+  --  elsif(nrx_state = RX_IGNORE or nrx_state = RX_BUF_FULL) then
+  --    snk_stall_int <= nrx_stall_mask;
+  --  elsif(nrx_toggle = '1' and mem_arb_rx = '1') then
+  --    snk_stall_int <= '1';
+  --  elsif(nrx_stall_mask = '1') then
+  --    snk_stall_int <= '1';
+  --  else
+  --    snk_stall_int <= '0';
+  --  end if;
+  --end process;
 
   snk_stall_o <= snk_stall_int;
+  snk_err_o   <= '0';
 
 
 -------------------------------------------------------------------------------
@@ -986,18 +1102,18 @@ begin  -- behavioral
       if rst_n_i = '0' then
         irq_rx           <= '0';
         nrx_newpacket_d0 <= '0';
-      else
-        nrx_newpacket_d0 <= nrx_newpacket;
+      --else
+      --  nrx_newpacket_d0 <= nrx_newpacket;
 
-        if (nrx_newpacket_d0 = '0' and nrx_newpacket = '1') then
-          irq_rx <= '1';
-        elsif (regs_in.mcr_rx_full_i = '1' and (nrx_state = RX_WAIT_SOF or nrx_state = RX_BUF_FULL)) then
-          --if buf_full occured during packet reception RX state machine will generate erronous packet
-          --so the interrupt will either be there
-          irq_rx <= '1';
-        elsif (irq_rx_ack = '1') then
-          irq_rx <= '0';
-        end if;
+      --  if (nrx_newpacket_d0 = '0' and nrx_newpacket = '1') then
+      --    irq_rx <= '1';
+      --  elsif (regs_in.mcr_rx_full_i = '1' and (nrx_state = RX_WAIT_SOF or nrx_state = RX_BUF_FULL)) then
+      --    --if buf_full occured during packet reception RX state machine will generate erronous packet
+      --    --so the interrupt will either be there
+      --    irq_rx <= '1';
+      --  elsif (irq_rx_ack = '1') then
+      --    irq_rx <= '0';
+      --  end if;
       end if;
     end if;
   end process;

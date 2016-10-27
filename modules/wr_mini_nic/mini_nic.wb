@@ -37,6 +37,26 @@ peripheral {
 				 access_dev = WRITE_ONLY;
 			};
 
+      field {
+        name = "TX_FIFO_EMPTY";
+        prefix = "TX_EMPTY";
+        size = 1;
+        align = 3;
+        type = BIT;
+        access_bus = READ_ONLY;
+        access_dev = WRITE_ONLY;
+      };
+      
+      field {
+        name = "TX_FIFO_FULL";
+        prefix = "TX_FULL";
+        size = 1;
+        align = 4;
+        type = BIT;
+        access_bus = READ_ONLY;
+        access_dev = WRITE_ONLY;
+      };
+
 		  field {
         name = "RX DMA ready";
         prefix = "RX_READY";
@@ -48,9 +68,9 @@ peripheral {
 			};
 
 			field {
-				 name = "RX DMA buffer full";
-				 prefix = "RX_FULL";
-				 description = "1: RX buffer is full";
+				 name = "RX DMA error";
+				 prefix = "RX_ERROR";
+				 description = "1: RX error, FIFO overflow";
 				 type = BIT;
 				 access_bus = READ_ONLY;
 				 access_dev = WRITE_ONLY;
@@ -69,6 +89,26 @@ peripheral {
         name = "TX TS ready";
         prefix = "TX_TS_READY";
         description = "1: the TX transfer is complete and a timestamp is available";
+        type = BIT;
+        access_bus = READ_ONLY;
+        access_dev = WRITE_ONLY;
+      };
+
+      field {
+        name = "RX_FIFO_EMPTY";
+        prefix = "RX_EMPTY";
+        size = 1;
+        align = 12;
+        type = BIT;
+        access_bus = READ_ONLY;
+        access_dev = WRITE_ONLY;
+      };
+      
+      field {
+        name = "RX_FIFO_FULL";
+        prefix = "RX_FULL";
+        size = 1;
+        align = 13;
         type = BIT;
         access_bus = READ_ONLY;
         access_dev = WRITE_ONLY;
@@ -120,25 +160,6 @@ peripheral {
         access_dev = READ_ONLY;
       };
 
-      field {
-        name = "FIFO_EMPTY";
-        prefix = "EMPTY";
-        size = 1;
-        align = 30;
-        type = BIT;
-        access_bus = READ_ONLY;
-        access_dev = WRITE_ONLY;
-      };
-      
-      field {
-        name = "FIFO_FULL";
-        prefix = "FULL";
-        size = 1;
-        align = 31;
-        type = BIT;
-        access_bus = READ_ONLY;
-        access_dev = WRITE_ONLY;
-      };
 
    };
 
@@ -169,7 +190,7 @@ peripheral {
       };
 
       field {
-        name = "FIFO_EMPTY";
+        name = "RX_FIFO_EMPTY";
         prefix = "EMPTY";
         size = 1;
         align = 30;
@@ -179,7 +200,7 @@ peripheral {
       };
       
       field {
-        name = "FIFO_FULL";
+        name = "RX_FIFO_FULL";
         prefix = "FULL";
         size = 1;
         align = 31;
