@@ -9,21 +9,13 @@ entity xwr_mini_nic is
   generic (
     g_interface_mode       : t_wishbone_interface_mode      := CLASSIC;
     g_address_granularity  : t_wishbone_address_granularity := WORD;
-    g_memsize_log2         : integer                        := 14;
+    g_tx_fifo_size         : integer                        := 1024;
+    g_rx_fifo_size         : integer                        := 2048;
     g_buffer_little_endian : boolean                        := false);
 
   port (
     clk_sys_i : in std_logic;
     rst_n_i   : in std_logic;
-
--------------------------------------------------------------------------------
--- System memory i/f
--------------------------------------------------------------------------------
-
-    mem_data_o : out std_logic_vector(31 downto 0);
-    mem_addr_o : out std_logic_vector(g_memsize_log2-1 downto 0);
-    mem_data_i : in  std_logic_vector(31 downto 0);
-    mem_wr_o   : out std_logic;
 
 -------------------------------------------------------------------------------
 -- Pipelined Wishbone interface
@@ -63,15 +55,12 @@ architecture wrapper of xwr_mini_nic is
     generic (
       g_interface_mode       : t_wishbone_interface_mode;
       g_address_granularity  : t_wishbone_address_granularity;
-      g_memsize_log2         : integer;
+      g_tx_fifo_size         : integer;
+      g_rx_fifo_size         : integer;
       g_buffer_little_endian : boolean);
     port (
       clk_sys_i           : in  std_logic;
       rst_n_i             : in  std_logic;
-      mem_data_o          : out std_logic_vector(31 downto 0);
-      mem_addr_o          : out std_logic_vector(g_memsize_log2-1 downto 0);
-      mem_data_i          : in  std_logic_vector(31 downto 0);
-      mem_wr_o            : out std_logic;
       src_dat_o           : out std_logic_vector(15 downto 0);
       src_adr_o           : out std_logic_vector(1 downto 0);
       src_sel_o           : out std_logic_vector(1 downto 0);
@@ -114,15 +103,12 @@ begin  -- wrapper
     generic map (
       g_interface_mode       => g_interface_mode,
       g_address_granularity  => g_address_granularity,
-      g_memsize_log2         => g_memsize_log2,
+      g_tx_fifo_size         => g_tx_fifo_size,
+      g_rx_fifo_size         => g_rx_fifo_size,
       g_buffer_little_endian => g_buffer_little_endian)
     port map (
       clk_sys_i           => clk_sys_i,
       rst_n_i             => rst_n_i,
-      mem_data_o          => mem_data_o,
-      mem_addr_o          => mem_addr_o,
-      mem_data_i          => mem_data_i,
-      mem_wr_o            => mem_wr_o,
       src_dat_o           => src_o.dat,
       src_adr_o           => src_o.adr,
       src_sel_o           => src_o.sel,
