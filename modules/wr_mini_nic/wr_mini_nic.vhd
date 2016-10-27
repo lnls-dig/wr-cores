@@ -263,6 +263,7 @@ architecture behavioral of wr_mini_nic is
   signal irq_rx     : std_logic;
 
   signal nrx_newpacket, nrx_newpacket_d0 : std_logic;
+  signal ntx_newpacket, ntx_newpacket_d0 : std_logic;
 
   signal irq_txts    : std_logic;
   signal irq_tx_ack  : std_logic;
@@ -390,6 +391,7 @@ begin  -- behavioral
         ntx_stored_dat <= (others=>'0');
         ntx_stored_type <= (others=>'0');
         ntx_flush_last <= '0';
+        ntx_newpacket  <= '0';
       else
         case ntx_state is
           when TX_IDLE =>
@@ -400,6 +402,7 @@ begin  -- behavioral
             src_adr_o   <= txf_type;
             ntx_timeout <= to_unsigned(c_NTX_TIMEOUT, ntx_timeout'length);
             ntx_flush_last <= '0';
+            ntx_newpacket  <= '0';
             if (tx_fifo_empty = '0' and txf_fnew = '0') then
               -- if there is something in the fifo but it's not a status word,
               -- we read until we find a valid status. In this case we indicate
@@ -432,12 +435,14 @@ begin  -- behavioral
             src_dat_o   <= f_swap_endian_16(txf_data);
             tx_fifo_rd <= '1';
             ntx_flush_last <= '0';
+            ntx_newpacket  <= '0';
             ntx_state <= TX_PACKET;
 
           when TX_PACKET =>
             regs_in.mcr_tx_idle_i <= '0';
             ntx_rst_ts_ready      <= '0';
             src_cyc_int <= '1';
+            ntx_newpacket  <= '0';
             if (tx_fifo_empty = '0' and src_stall_i = '0' and txf_ferror = '0' and txf_type = c_WRF_DATA) then
               -- normal situation, we send the payload of a frame
               src_adr_o   <= c_WRF_DATA;
@@ -489,6 +494,7 @@ begin  -- behavioral
             regs_in.mcr_tx_idle_i <= '0';
             ntx_rst_ts_ready      <= '0';
             src_cyc_int <= '1';
+            ntx_newpacket  <= '0';
             if (src_stall_i = '0' and (ntx_stored_type = c_WRF_DATA or ntx_stored_type = c_WRF_OOB)) then
               src_adr_o   <= ntx_stored_type;
               src_dat_o   <= f_swap_endian_16(ntx_stored_dat);
@@ -527,6 +533,7 @@ begin  -- behavioral
               src_cyc_int <= '0';
               src_sel_o   <= "11";
               tx_fifo_rd  <= '0';
+              ntx_newpacket <= '1';
               ntx_state   <= TX_IDLE;
             end if;
         end case;
@@ -588,7 +595,7 @@ begin  -- behavioral
         rxf_data   <= (others=>'0');
         snk_stall_int <= '0';
         regs_in.mcr_rx_ready_i <= '0';
-
+        nrx_newpacket <= '0';
         nrx_state  <= RX_WAIT_FRAME;
 
       else
@@ -600,6 +607,7 @@ begin  -- behavioral
             rxf_type   <= (others=>'0');
             rxf_data   <= (others=>'0');
             regs_in.mcr_rx_full_i  <= '0';
+            nrx_newpacket <= '0';
             if (regs_out.mcr_rx_en_o = '1') then
               snk_stall_int <= not nrx_sof;
             else
@@ -633,12 +641,20 @@ begin  -- behavioral
               -- stop writing FIFO if sw disables RX path
               -- or if we're done with current frame
               regs_in.mcr_rx_ready_i <= '1';
+              regs_in.mcr_rx_full_i  <= '0';
+              nrx_newpacket <= '1';
               nrx_state              <= RX_WAIT_FRAME;
             elsif (rx_fifo_full = '1') then
               -- error if fifo gets full needs to be recovered
               regs_in.mcr_rx_ready_i <= '1';
               regs_in.mcr_rx_full_i  <= '1';
+              nrx_newpacket <= '1';
               nrx_state <= RX_FULL;
+            else
+              regs_in.mcr_rx_ready_i <= '0';
+              regs_in.mcr_rx_full_i  <= '0';
+              nrx_newpacket <= '0';
+
             end if;
 
           when RX_FULL =>
@@ -647,6 +663,7 @@ begin  -- behavioral
             rxf_type   <= (others=>'0');
             rxf_data   <= (others=>'0');
             regs_in.mcr_rx_full_i <= '1';
+            nrx_newpacket <= '0';
 
             -- recovering means disabling RX path and reading everything from
             -- the FIFO
@@ -1096,32 +1113,34 @@ begin  -- behavioral
 
   txtsu_ack_o <= txtsu_ack_int;
 
-  handle_rx_interrupt : process(clk_sys_i, rst_n_i)
+  handle_irqs: process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
       if rst_n_i = '0' then
+        irq_tx           <= '0';
         irq_rx           <= '0';
+        ntx_newpacket_d0 <= '0';
         nrx_newpacket_d0 <= '0';
-      --else
-      --  nrx_newpacket_d0 <= nrx_newpacket;
+      else
+        ntx_newpacket_d0 <= ntx_newpacket;
+        nrx_newpacket_d0 <= nrx_newpacket;
 
-      --  if (nrx_newpacket_d0 = '0' and nrx_newpacket = '1') then
-      --    irq_rx <= '1';
-      --  elsif (regs_in.mcr_rx_full_i = '1' and (nrx_state = RX_WAIT_SOF or nrx_state = RX_BUF_FULL)) then
-      --    --if buf_full occured during packet reception RX state machine will generate erronous packet
-      --    --so the interrupt will either be there
-      --    irq_rx <= '1';
-      --  elsif (irq_rx_ack = '1') then
-      --    irq_rx <= '0';
-      --  end if;
+        if (ntx_newpacket_d0 = '0' and ntx_newpacket = '1' and irq_tx_mask = '1') then
+          irq_tx <= '1';
+        elsif (irq_tx_mask = '0' or irq_tx_ack = '1') then
+          irq_tx <= '0';
+        end if;
+
+        if (nrx_newpacket_d0 = '0' and nrx_newpacket = '1') then
+          irq_rx <= '1';
+        elsif (irq_rx_ack = '1') then
+          irq_rx <= '0';
+        end if;
       end if;
     end if;
   end process;
 
   irq_txts <= '0';
-  -- no TX IRQ for now, anyway wrpc does not use it.
-  irq_tx <= '0';
-
 
   U_Slave_Adapter : wb_slave_adapter
     generic map (
