@@ -145,17 +145,17 @@ architecture behavioral of wr_mini_nic is
     );
   end component;
 
-  function f_buf_swap_endian_32
+  function f_swap_endian_16
     (
-      data : std_logic_vector(31 downto 0)
+      data : std_logic_vector(15 downto 0)
       ) return std_logic_vector is
   begin
     if(g_buffer_little_endian = true) then
-      return data(7 downto 0) & data(15 downto 8) & data(23 downto 16) & data(31 downto 24);
+      return data(7 downto 0) & data(15 downto 8);
     else
       return data;
     end if;
-  end function f_buf_swap_endian_32;
+  end function f_swap_endian_16;
 
 
   signal src_cyc_int   : std_logic;
@@ -429,7 +429,7 @@ begin  -- behavioral
             src_stb_int <= '1';
             src_sel_o   <= "11";
             src_adr_o   <= c_WRF_STATUS;
-            src_dat_o   <= txf_data;
+            src_dat_o   <= f_swap_endian_16(txf_data);
             tx_fifo_rd <= '1';
             ntx_flush_last <= '0';
             ntx_state <= TX_PACKET;
@@ -441,7 +441,7 @@ begin  -- behavioral
             if (tx_fifo_empty = '0' and src_stall_i = '0' and txf_ferror = '0' and txf_type = c_WRF_DATA) then
               -- normal situation, we send the payload of a frame
               src_adr_o   <= c_WRF_DATA;
-              src_dat_o   <= txf_data;
+              src_dat_o   <= f_swap_endian_16(txf_data);
               src_sel_o   <= "11";
               src_stb_int <= '1';
               tx_fifo_rd  <= '1';
@@ -449,7 +449,7 @@ begin  -- behavioral
             elsif (tx_fifo_empty = '0' and src_stall_i = '0' and txf_ferror = '0' and txf_type = c_WRF_BYTESEL) then
               -- almost normal situation, only one byte of data is valid
               src_adr_o   <= c_WRF_DATA;
-              src_dat_o   <= txf_data;
+              src_dat_o   <= f_swap_endian_16(txf_data);
               src_sel_o   <= "10";
               src_stb_int <= '1';
               tx_fifo_rd  <= '1';
@@ -457,7 +457,7 @@ begin  -- behavioral
             elsif (tx_fifo_empty = '0' and src_stall_i = '0' and txf_ferror = '0' and txf_type = c_WRF_OOB) then
               -- we got OOB in TXed frame, let's send it
               src_adr_o   <= c_WRF_OOB;
-              src_dat_o   <= txf_data;
+              src_dat_o   <= f_swap_endian_16(txf_data);
               src_sel_o   <= "11";
               src_stb_int <= '1';
               tx_fifo_rd  <= '1';
@@ -465,7 +465,7 @@ begin  -- behavioral
             elsif ((tx_fifo_empty = '1' or txf_fnew = '1') and src_stall_i = '0') then
               -- we done with this frame
               src_adr_o   <= c_WRF_DATA;
-              src_dat_o   <= txf_data;
+              src_dat_o   <= f_swap_endian_16(txf_data);
               src_stb_int <= '0';
               src_sel_o   <= "11";
               tx_fifo_rd  <= '0';
@@ -491,11 +491,11 @@ begin  -- behavioral
             src_cyc_int <= '1';
             if (src_stall_i = '0' and (ntx_stored_type = c_WRF_DATA or ntx_stored_type = c_WRF_OOB)) then
               src_adr_o   <= ntx_stored_type;
-              src_dat_o   <= ntx_stored_dat;
+              src_dat_o   <= f_swap_endian_16(ntx_stored_dat);
               src_sel_o   <= "11";
             elsif (src_stall_i = '0' and ntx_stored_type = c_WRF_BYTESEL) then
               src_adr_o   <= c_WRF_DATA;
-              src_dat_o   <= ntx_stored_dat;
+              src_dat_o   <= f_swap_endian_16(ntx_stored_dat);
               src_sel_o   <= "10";
             else
               src_stb_int <= '1';
@@ -617,11 +617,11 @@ begin  -- behavioral
             -- receive frame, write it to FIFO
             if (snk_stb_i = '1' and snk_sel_i = "11") then
               rxf_type   <= snk_adr_i;
-              rxf_data   <= snk_dat_i;
+              rxf_data   <= f_swap_endian_16(snk_dat_i);
               rx_fifo_we <= '1';
             elsif (snk_stb_i = '1' and snk_sel_i = "10") then
               rxf_type   <= c_WRF_BYTESEL;
-              rxf_data   <= snk_dat_i;
+              rxf_data   <= f_swap_endian_16(snk_dat_i);
               rx_fifo_we <= '1';
             else
               rxf_type   <= (others=>'0');
