@@ -305,7 +305,7 @@ begin
         ch1_tx_disparity_o         => phy_o.tx_disparity,
         ch1_tx_enc_err_o           => phy_o.tx_enc_err,
         ch1_rx_data_o              => phy_o.rx_data,
-        ch1_rx_rbclk_o             => phy_o.rx_rbclk,
+        ch1_rx_rbclk_o             => phy_o.rx_clk, 
         ch1_rx_k_o                 => phy_o.rx_k(0),
         ch1_rx_enc_err_o           => phy_o.rx_enc_err,
         ch1_rx_bitslide_o          => phy_o.rx_bitslide,

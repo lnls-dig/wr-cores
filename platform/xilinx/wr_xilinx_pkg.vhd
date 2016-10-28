@@ -35,7 +35,7 @@ package wr_xilinx_pkg is
     tx_disparity   : std_logic;
     tx_enc_err     : std_logic;
     rx_data        : std_logic_vector(7 downto 0);
-    rx_rbclk       : std_logic;
+    rx_clk         : std_logic;
     rx_k           : std_logic_vector(0 downto 0);
     rx_enc_err     : std_logic;
     rx_bitslide    : std_logic_vector(3 downto 0);
@@ -44,10 +44,12 @@ package wr_xilinx_pkg is
     sfp_los        : std_logic;
   end record;
   type t_phy_8bits_from_wrc is record
-    tx_data        : std_logic_vector(7 downto 0);
-    tx_k           : std_logic_vector(0 downto 0);
     rst            : std_logic;
     loopen         : std_logic;
+    enable         : std_logic;
+    syncen         : std_logic;
+    tx_data        : std_logic_vector(7 downto 0);
+    tx_k           : std_logic_vector(0 downto 0);
     loopen_vec     : std_logic_vector(2 downto 0);
     tx_prbs_sel    : std_logic_vector(2 downto 0);
     sfp_tx_disable : std_logic;
