@@ -265,6 +265,8 @@ entity wr_core is
     txtsu_ts_incorrect_o : out std_logic;
     txtsu_stb_o          : out std_logic;
     txtsu_ack_i          : in  std_logic := '1';
+    txts_o               : out std_logic;
+    rxts_o               : out std_logic;
 
     -----------------------------------------
     -- Pause Frame Control
@@ -776,6 +778,8 @@ begin
       wb_i                 => ep_wb_in,
       wb_o                 => ep_wb_out,
       rmon_events_o        => open,
+      txts_o               => txts_o,
+      rxts_o               => rxts_o,
       fc_tx_pause_req_i    => fc_tx_pause_req_i,
       fc_tx_pause_delay_i  => fc_tx_pause_delay_i,
       fc_tx_pause_ready_o  => fc_tx_pause_ready_o,
