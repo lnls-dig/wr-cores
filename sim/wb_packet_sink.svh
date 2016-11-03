@@ -48,13 +48,18 @@ class WBPacketSink extends EthPacketSink;
            pkt.oob_type     = TX_FID;
            pkt.ts.frame_id  = oob & 'hffff;
         end 
-      else if (size == 3 && (oob >> 46) == WRF_OOB_RX_TIMESTAMP)
+      else if (size == 3 && (oob >> 44) == WRF_OOB_RX_TIMESTAMP)
         begin
 //            $display("GotRXOOB");
-           
-        end else begin
-           $error("Invalid OOB!");
-           $stop;
+          pkt.oob_type = RX_TIMESTAMP;
+          pkt.ts.port_id = (oob >> 32) & 'h1F;
+          pkt.ts.ts_f    = (oob >> 28) & 'h0F;
+          pkt.ts.ts_r    = oob & 'h0FFFFFFF;
+        end
+      else begin
+           $display("Invalid OOB!");
+           //$error("Invalid OOB!");
+           //$stop;
         end
       
       

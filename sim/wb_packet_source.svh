@@ -43,6 +43,12 @@ class WBPacketSource extends EthPacketSource;
            oob[0]  = {WRF_OOB_TX_FID, 12'b0};
            oob[1]  = pkt.ts.frame_id;
         end
+        RX_TIMESTAMP: begin
+          oob = new[3];
+          oob[0] = {WRF_OOB_RX_TIMESTAMP, 1'b1, 6'b0, pkt.ts.port_id[4:0]};
+          oob[1] = {pkt.ts.ts_f, pkt.ts.ts_r[27:16]};
+          oob[2] = pkt.ts.ts_r[15:0];
+        end
       endcase // case (pkt.oob_type)
       return oob;
       
