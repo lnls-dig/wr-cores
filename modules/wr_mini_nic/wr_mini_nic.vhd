@@ -227,6 +227,29 @@ architecture behavioral of wr_mini_nic is
   signal irq_tx_ack  : std_logic;
   signal irq_tx_mask : std_logic;
 
+
+  component chipscope_ila
+    port (
+      CONTROL : inout std_logic_vector(35 downto 0);
+      CLK     : in    std_logic;
+      TRIG0   : in    std_logic_vector(31 downto 0);
+      TRIG1   : in    std_logic_vector(31 downto 0);
+      TRIG2   : in    std_logic_vector(31 downto 0);
+      TRIG3   : in    std_logic_vector(31 downto 0));
+  end component;
+
+  signal CONTROL : std_logic_vector(35 downto 0);
+  signal CLK     : std_logic;
+  signal TRIG0   : std_logic_vector(31 downto 0);
+  signal TRIG1   : std_logic_vector(31 downto 0);
+  signal TRIG2   : std_logic_vector(31 downto 0);
+  signal TRIG3   : std_logic_vector(31 downto 0);
+
+  component chipscope_icon
+    port (
+      CONTROL0 : inout std_logic_vector (35 downto 0));
+  end component;
+
 begin  -- behavioral
 
   --chipscope_ila_1 : chipscope_ila
@@ -299,7 +322,7 @@ begin  -- behavioral
 
   -- sniff wb access to generate rx_fifo_rd every time the RX_FIFO register is
   -- read
-  rx_fifo_rd <= '1' when(wb_out.cyc='1' and wb_out.stb='1' and wb_out.adr=x"00000002" and wb_in.ack='1') else
+  rx_fifo_rd <= '1' when(wb_out.cyc='1' and wb_out.stb='1' and wb_out.adr(7 downto 0)=x"02" and wb_in.ack='1') else
                 '0';
 
 -------------------------------------------------------------------------------
@@ -547,7 +570,7 @@ begin  -- behavioral
             rx_fifo_we <= '0';
             rxf_type   <= (others=>'0');
             rxf_data   <= (others=>'0');
-            regs_in.mcr_rx_full_i  <= '0';
+            regs_in.mcr_rx_error_i  <= '0';
             nrx_newpacket <= '0';
             if (regs_out.mcr_rx_en_o = '1') then
               snk_stall_int <= not nrx_sof;
@@ -578,22 +601,32 @@ begin  -- behavioral
               rx_fifo_we <= '0';
             end if;
 
-            if (regs_out.mcr_rx_en_o = '0' or nrx_eof = '1') then
+            if ((regs_out.mcr_rx_en_o = '0' or nrx_eof = '1') and rx_fifo_full = '0') then
               -- stop writing FIFO if sw disables RX path
               -- or if we're done with current frame
               regs_in.mcr_rx_ready_i <= '1';
-              regs_in.mcr_rx_full_i  <= '0';
+              regs_in.mcr_rx_error_i  <= '0';
               nrx_newpacket <= '1';
               nrx_state              <= RX_WAIT_FRAME;
+            elsif ((regs_out.mcr_rx_en_o = '0' or nrx_eof = '1') and rx_fifo_full = '1') then
+              -- the difference with the previous condition is that if the fifo
+              -- is full on the last word, we don't set rx_error, because the
+              -- frame was not cut (it fits in the FIFO). Besides that, we have
+              -- to go to RX_FULL state to wait for the FIFO to be half-empty
+              -- and receive more frames.
+              regs_in.mcr_rx_ready_i <= '1';
+              regs_in.mcr_rx_error_i  <= '0';
+              nrx_newpacket <= '1';
+              nrx_state              <= RX_FULL;
             elsif (rx_fifo_full = '1') then
               -- error if fifo gets full needs to be recovered
               regs_in.mcr_rx_ready_i <= '1';
-              regs_in.mcr_rx_full_i  <= '1';
+              regs_in.mcr_rx_error_i  <= '1';
               nrx_newpacket <= '1';
               nrx_state <= RX_FULL;
             else
               regs_in.mcr_rx_ready_i <= '0';
-              regs_in.mcr_rx_full_i  <= '0';
+              regs_in.mcr_rx_error_i  <= '0';
               nrx_newpacket <= '0';
 
             end if;
@@ -603,7 +636,6 @@ begin  -- behavioral
             rx_fifo_we <= '0';
             rxf_type   <= (others=>'0');
             rxf_data   <= (others=>'0');
-            regs_in.mcr_rx_full_i <= '1';
             nrx_newpacket <= '0';
 
             -- recovering means disabling RX path and reading everything from
@@ -730,5 +762,32 @@ begin  -- behavioral
       irq_rx_i         => irq_rx,
       irq_rx_ack_o     => irq_rx_ack,
       irq_txts_i       => irq_txts);
+
+  TRIG0(0) <= regs_out.mcr_rx_en_o;
+  TRIG0(1) <= rx_fifo_empty;
+  TRIG0(2) <= rx_fifo_full;
+  TRIG0(3) <= rx_fifo_rd;
+  TRIG0(4) <= rx_fifo_we;
+  TRIG0(6 downto 5)  <= rx_fifo_q(17 downto 16);
+  TRIG0(22 downto 7) <= rx_fifo_q(15 downto 0);
+  TRIG0(24 downto 23) <= "00" when(nrx_state = RX_WAIT_FRAME) else
+                         "01" when(nrx_state = RX_FRAME) else
+                         "10" when(nrx_state = RX_FULL) else
+                         "11";
+  TRIG0(25) <= nrx_sof;
+  TRIG0(26) <= nrx_eof;
+  TRIG0(27) <= snk_cyc_i;
+  TRIG0(28) <= snk_stb_i;
+  TRIG0(29) <= snk_stall_int;
+  TRIG0(31 downto 30) <= snk_adr_i;
+
+  TRIG1(15 downto 0) <= snk_dat_i;
+  TRIG1(16) <= rx_fifo_afull;
+  TRIG1(17) <= wb_out.cyc;
+  TRIG1(18) <= wb_out.stb;
+  TRIG1(19) <= wb_in.ack;
+  TRIG1(20) <= irq_rx;
+
+  TRIG2(31 downto 0) <= wb_out.adr;
 
 end behavioral;
