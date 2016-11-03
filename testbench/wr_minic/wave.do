@@ -6,118 +6,67 @@ add wave -noupdate /main/DUT/g_memsize_log2
 add wave -noupdate /main/DUT/g_buffer_little_endian
 add wave -noupdate /main/DUT/clk_sys_i
 add wave -noupdate /main/DUT/rst_n_i
-add wave -noupdate /main/DUT/mem_data_o
-add wave -noupdate /main/DUT/mem_addr_o
-add wave -noupdate /main/DUT/mem_data_i
-add wave -noupdate /main/DUT/mem_wr_o
-add wave -noupdate /main/DUT/src_dat_o
-add wave -noupdate /main/DUT/src_adr_o
-add wave -noupdate /main/DUT/src_sel_o
-add wave -noupdate /main/DUT/src_cyc_o
-add wave -noupdate /main/DUT/src_stb_o
-add wave -noupdate /main/DUT/src_we_o
-add wave -noupdate /main/DUT/src_stall_i
-add wave -noupdate /main/DUT/src_err_i
-add wave -noupdate /main/DUT/src_ack_i
-add wave -noupdate /main/DUT/snk_dat_i
-add wave -noupdate /main/DUT/snk_adr_i
-add wave -noupdate /main/DUT/snk_sel_i
-add wave -noupdate /main/DUT/snk_cyc_i
-add wave -noupdate /main/DUT/snk_stb_i
-add wave -noupdate /main/DUT/snk_we_i
-add wave -noupdate /main/DUT/snk_stall_o
-add wave -noupdate /main/DUT/snk_err_o
-add wave -noupdate /main/DUT/snk_ack_o
-add wave -noupdate /main/DUT/txtsu_port_id_i
-add wave -noupdate /main/DUT/txtsu_frame_id_i
-add wave -noupdate /main/DUT/txtsu_tsval_i
-add wave -noupdate /main/DUT/txtsu_valid_i
-add wave -noupdate /main/DUT/txtsu_ack_o
-add wave -noupdate /main/DUT/wb_cyc_i
-add wave -noupdate /main/DUT/wb_stb_i
-add wave -noupdate /main/DUT/wb_we_i
-add wave -noupdate /main/DUT/wb_sel_i
-add wave -noupdate /main/DUT/wb_adr_i
-add wave -noupdate /main/DUT/wb_dat_i
-add wave -noupdate /main/DUT/wb_dat_o
-add wave -noupdate /main/DUT/wb_ack_o
-add wave -noupdate /main/DUT/wb_stall_o
-add wave -noupdate /main/DUT/wb_irq_o
-add wave -noupdate /main/DUT/src_cyc_int
-add wave -noupdate /main/DUT/src_stb_int
-add wave -noupdate /main/DUT/snk_stall_int
-add wave -noupdate /main/DUT/ntx_mem_d
-add wave -noupdate /main/DUT/ntx_mem_a
-add wave -noupdate /main/DUT/nrx_mem_d
-add wave -noupdate /main/DUT/nrx_mux_d
-add wave -noupdate /main/DUT/nrx_mem_a
-add wave -noupdate /main/DUT/nrx_mem_wr
-add wave -noupdate /main/DUT/mem_arb_rx
-add wave -noupdate /main/DUT/mem_arb_tx
-add wave -noupdate /main/DUT/ntx_status_reg
-add wave -noupdate /main/DUT/ntx_data_reg
-add wave -noupdate /main/DUT/ntx_cntr_is_zero
-add wave -noupdate /main/DUT/ntx_cntr_is_one
-add wave -noupdate /main/DUT/ntx_timeout_is_zero
-add wave -noupdate /main/DUT/ntx_cntr
-add wave -noupdate /main/DUT/ntx_timeout
-add wave -noupdate /main/DUT/ntx_ack_count
-add wave -noupdate /main/DUT/ntx_has_oob
-add wave -noupdate /main/DUT/ntx_state
-add wave -noupdate /main/DUT/ntx_start_delayed
-add wave -noupdate /main/DUT/ntx_size_odd
-add wave -noupdate /main/DUT/ntx_oob_reg
-add wave -noupdate /main/DUT/nrx_state
-add wave -noupdate /main/DUT/nrx_avail
-add wave -noupdate /main/DUT/nrx_toggle
-add wave -noupdate /main/DUT/nrx_oob_reg
-add wave -noupdate /main/DUT/nrx_status_reg
-add wave -noupdate /main/DUT/nrx_error
-add wave -noupdate /main/DUT/nrx_mem_a_saved
-add wave -noupdate /main/DUT/nrx_has_oob
-add wave -noupdate /main/DUT/nrx_bytesel
-add wave -noupdate /main/DUT/nrx_size
-add wave -noupdate /main/DUT/nrx_rdreg
-add wave -noupdate /main/DUT/nrx_buf_full
-add wave -noupdate /main/DUT/nrx_stall_mask
-add wave -noupdate /main/DUT/nrx_valid
-add wave -noupdate /main/DUT/nrx_done
-add wave -noupdate /main/DUT/nrx_drop
-add wave -noupdate /main/DUT/nrx_stat_error
-add wave -noupdate /main/DUT/regs_in
-add wave -noupdate /main/DUT/regs_out
-add wave -noupdate /main/DUT/wb_in
-add wave -noupdate /main/DUT/wb_out
-add wave -noupdate /main/DUT/irq_tx
-add wave -noupdate /main/DUT/irq_rx_ack
-add wave -noupdate /main/DUT/irq_rx
-add wave -noupdate /main/DUT/nrx_newpacket
-add wave -noupdate /main/DUT/nrx_newpacket_d0
-add wave -noupdate /main/DUT/irq_txts
-add wave -noupdate /main/DUT/irq_tx_ack
-add wave -noupdate /main/DUT/irq_tx_mask
-add wave -noupdate /main/DUT/txtsu_ack_int
-add wave -noupdate /main/DUT/nrx_status_hp
-add wave -noupdate /main/DUT/nrx_status_smac
-add wave -noupdate /main/DUT/nrx_status_crc
-add wave -noupdate /main/DUT/nrx_status_err
-add wave -noupdate /main/DUT/nrx_status_tagme
-add wave -noupdate /main/DUT/nrx_status_class
-add wave -noupdate /main/DUT/ntx_status_hp
-add wave -noupdate /main/DUT/ntx_status_smac
-add wave -noupdate /main/DUT/ntx_status_crc
-add wave -noupdate /main/DUT/ntx_status_err
-add wave -noupdate /main/DUT/ntx_status_tagme
-add wave -noupdate /main/DUT/ntx_status_class
-add wave -noupdate /main/DUT/ntx_desc_has_src_mac
-add wave -noupdate /main/DUT/ntx_desc_802_1q
-add wave -noupdate /main/DUT/ntx_desc_with_oob
-add wave -noupdate /main/DUT/ntx_desc_valid
-add wave -noupdate /main/DUT/ntx_desc_oob
-add wave -noupdate /main/DUT/ntx_desc_size
+add wave -noupdate -group SRC /main/DUT/src_dat_o
+add wave -noupdate -group SRC /main/DUT/src_adr_o
+add wave -noupdate -group SRC /main/DUT/src_sel_o
+add wave -noupdate -group SRC /main/DUT/src_cyc_o
+add wave -noupdate -group SRC /main/DUT/src_stb_o
+add wave -noupdate -group SRC /main/DUT/src_we_o
+add wave -noupdate -group SRC /main/DUT/src_stall_i
+add wave -noupdate -group SRC /main/DUT/src_err_i
+add wave -noupdate -group SRC /main/DUT/src_ack_i
+add wave -noupdate -expand -group SNK /main/DUT/snk_dat_i
+add wave -noupdate -expand -group SNK /main/DUT/snk_adr_i
+add wave -noupdate -expand -group SNK /main/DUT/snk_sel_i
+add wave -noupdate -expand -group SNK /main/DUT/snk_cyc_i
+add wave -noupdate -expand -group SNK /main/DUT/snk_stb_i
+add wave -noupdate -expand -group SNK /main/DUT/snk_we_i
+add wave -noupdate -expand -group SNK /main/DUT/snk_stall_o
+add wave -noupdate -expand -group SNK /main/DUT/snk_err_o
+add wave -noupdate -expand -group SNK /main/DUT/snk_ack_o
+add wave -noupdate -group TXTSU /main/DUT/txtsu_port_id_i
+add wave -noupdate -group TXTSU /main/DUT/txtsu_frame_id_i
+add wave -noupdate -group TXTSU /main/DUT/txtsu_tsval_i
+add wave -noupdate -group TXTSU /main/DUT/txtsu_ack_o
+add wave -noupdate -group WB -expand /main/DUT/wb_out
+add wave -noupdate -group WB -expand /main/DUT/wb_in
+add wave -noupdate -expand -group TX_PATH -height 16 /main/DUT/ntx_state
+add wave -noupdate -expand -group TX_PATH -radix unsigned /main/DUT/ntx_ack_count
+add wave -noupdate -expand -group TX_PATH /main/DUT/ntx_flush_last
+add wave -noupdate -expand -group TX_PATH /main/DUT/tx_fifo_d
+add wave -noupdate -expand -group TX_PATH /main/DUT/tx_fifo_q
+add wave -noupdate -expand -group TX_PATH /main/DUT/tx_fifo_we
+add wave -noupdate -expand -group TX_PATH /main/DUT/tx_fifo_rd
+add wave -noupdate -expand -group TX_PATH /main/DUT/tx_fifo_empty
+add wave -noupdate -expand -group TX_PATH /main/DUT/tx_fifo_full
+add wave -noupdate -expand -group TX_PATH /main/DUT/txf_ferror
+add wave -noupdate -expand -group TX_PATH /main/DUT/txf_fnew
+add wave -noupdate -expand -group TX_PATH /main/DUT/txf_data
+add wave -noupdate -expand -group TX_PATH /main/DUT/txf_type
+add wave -noupdate -expand -group TX_PATH /main/DUT/ntx_stored_dat
+add wave -noupdate -expand -group TX_PATH /main/DUT/ntx_stored_type
+add wave -noupdate -expand -group TX_PATH /main/DUT/irq_tx
+add wave -noupdate -expand -group TX_PATH /main/DUT/irq_tx_ack
+add wave -noupdate -expand -group TX_PATH /main/DUT/irq_tx_mask
+add wave -noupdate -expand -group TX_PATH /main/DUT/ntx_newpacket
+add wave -noupdate -expand -group RX_PATH /main/DUT/regs_out
+add wave -noupdate -expand -group RX_PATH -radix unsigned /main/DUT/RX_FIFO/count_o
+add wave -noupdate -expand -group RX_PATH -height 16 /main/DUT/nrx_state
+add wave -noupdate -expand -group RX_PATH /main/DUT/nrx_sof
+add wave -noupdate -expand -group RX_PATH /main/DUT/nrx_eof
+add wave -noupdate -expand -group RX_PATH /main/DUT/rxf_data
+add wave -noupdate -expand -group RX_PATH /main/DUT/rxf_type
+add wave -noupdate -expand -group RX_PATH /main/DUT/rx_fifo_we
+add wave -noupdate -expand -group RX_PATH /main/DUT/rx_fifo_q
+add wave -noupdate -expand -group RX_PATH /main/DUT/rx_fifo_rd
+add wave -noupdate -expand -group RX_PATH /main/DUT/rx_fifo_empty
+add wave -noupdate -expand -group RX_PATH /main/DUT/rx_fifo_full
+add wave -noupdate -expand -group RX_PATH /main/DUT/rx_fifo_afull
+add wave -noupdate -expand -group RX_PATH /main/DUT/irq_rx_ack
+add wave -noupdate -expand -group RX_PATH /main/DUT/irq_rx
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {90685000000 fs} 0}
-configure wave -namecolwidth 150
+WaveRestoreCursors {{Cursor 1} {40485000000 fs} 1} {{Cursor 2} {2056885000000 fs} 0}
+configure wave -namecolwidth 208
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
 configure wave -signalnamewidth 1
@@ -131,4 +80,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {90556826170 fs} {90813173830 fs}
+WaveRestoreZoom {0 fs} {84338283750 ps}
