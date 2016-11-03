@@ -37,7 +37,7 @@ class CSimDrv_Minic;
    function new(CBusAccessor regs_, uint32_t base_regs_);
       base_regs      = base_regs_;
       acc_regs       = regs_;
-      little_endian  = 1;
+      little_endian  = 0;
    endfunction
 
    task minic_writel(uint32_t addr, uint32_t val);
@@ -75,7 +75,7 @@ class CSimDrv_Minic;
    
 
    task init();
-      uint32_t lo, hi;
+      uint32_t val;
       
       minic_writel(`ADDR_MINIC_EIC_IDR, `MINIC_EIC_IDR_RX);
       minic_writel(`ADDR_MINIC_EIC_ISR, `MINIC_EIC_ISR_RX);
@@ -86,13 +86,10 @@ class CSimDrv_Minic;
       //rx_size     = pmem_size / 2;
       tx_oob_val  = 12345;
 
+      //enable RX
+      minic_readl(`ADDR_MINIC_MCR, val);
+      minic_writel(`ADDR_MINIC_MCR, val | `MINIC_MCR_RX_EN);
 
-      //lo = rx_base >> 2;
-      //hi = (rx_base >> 2) + (rx_size >> 2) - 1;
-
-      //minic_writel(`ADDR_MINIC_MPROT, (lo << `MINIC_MPROT_LO_OFFSET) | (hi << `MINIC_MPROT_HI_OFFSET));
-      
-      //new_rx_buffer();
       minic_writel(`ADDR_MINIC_EIC_IER, `MINIC_EIC_IER_RX);
    endtask // init
 
@@ -108,6 +105,7 @@ class CSimDrv_Minic;
       byte oob[2];
       
       //new_tx_buffer();
+      $display("TX frame: size=%d, with_oob=%d, id=%d", size, with_oob, frame_id);
       
       if(size < 60) size  = 60;
       if(size & 1) begin
@@ -125,18 +123,19 @@ class CSimDrv_Minic;
       
       //then we write the actual frame
       for(i=0;i<size_words-1; i++) begin
-        word = (frame[2*i+1] << 8) | frame[2*i];
+        word = (frame[2*i] << 8) | (frame[2*i+1] & 'h00FF);
         minic_write_txword(`c_WRF_DATA, word);
       end
       //write the last word with bytesel or normal
       if(bytesel == 1)
-        minic_write_txword(`c_WRF_BYTESEL, frame[2*size_words]);
+        minic_write_txword(`c_WRF_BYTESEL, frame[2*i] << 8);
       else begin
-        word = (frame[2*size_words+1] << 8) | frame[2*size_words];
+        word = (frame[2*i] << 8) | (frame[2*i+1] & 'h00FF);
         minic_write_txword(`c_WRF_DATA, word);
       end
 
       if (with_oob) begin
+        minic_write_txword(`c_WRF_OOB, 'h1000);
         minic_write_txword(`c_WRF_OOB, frame_id);
       end
       
@@ -151,9 +150,13 @@ class CSimDrv_Minic;
       uint32_t raw_ts;
       uint32_t rx_addr_cur, mcr, cur_avail;
       u64_array_t pbuff;
+      uint32_t val;
+      uint32_t typ, data;
+      byte tmp_payload[2000];
       
       int i;
       int n_recvd;
+      int done;
       uint32_t isr;
       
       //minic_readl(`ADDR_MINIC_EIC_ISR, isr);
@@ -161,59 +164,52 @@ class CSimDrv_Minic;
       //if(! (isr & `MINIC_EIC_ISR_RX))
       //  return;
 
-      //acc_pmem.read(rx_head, desc_hdr);
-      //
-      //if(!`RX_DESC_VALID(desc_hdr))
-      //  begin
-      //     $error("SimDRV_Minic::rx_frame: weird, invalid RX desc header");
-      //     $stop;
-      //  end
+      // if RX FIFO is empty, quit immediatelly
+      minic_readl(`ADDR_MINIC_MCR, val);
+      if ( val & `MINIC_MCR_RX_EMPTY )
+        return ;
 
-      //payload_size    = `RX_DESC_SIZE(desc_hdr);
-      //num_words       = (payload_size + 3) >> 2;
-      //pbuff           = new [num_words];
+      size = 0;
+      done = 0;
+      // get frame from FIFO
+      do begin
+        minic_readl(`ADDR_MINIC_RX_FIFO, val);
+        typ  = (val & `MINIC_RX_FIFO_TYPE) >> `MINIC_RX_FIFO_TYPE_OFFSET;
+        data = (val & `MINIC_RX_FIFO_DAT);
 
-      ////   $display("NWords %d hdr %x", num_words, desc_hdr);
-      //
-      //
+        if (typ == `c_WRF_DATA) begin
+          tmp_payload[size]   = data >> 8;
+          tmp_payload[size+1] = data & 'h00FF;
+          size = size + 2;
+        end
+        else if (typ == `c_WRF_BYTESEL) begin
+          tmp_payload[size]   = data >> 8;
+          size = size + 1;
+        end
+        else if (typ == `c_WRF_STATUS && size != 0) begin
+          // which means we got status for next frame
+          done = 1;
+        end
 
-      //if(`RX_DESC_HAS_OOB(desc_hdr))
-      //  payload_size  = payload_size - 6;
-      //
-      //
-      //if(!`RX_DESC_ERROR(desc_hdr))
-      //  begin
-      //     for(i=0; i<num_words;i++)
-      //       acc_pmem.read((rx_head + 4 + i * 4) % rx_size, pbuff[i]);
+      end while ( !(val & `MINIC_RX_FIFO_EMPTY) && typ != `c_WRF_OOB && done == 0);
 
-      //     payload  = SimUtils.unpack(pbuff, 4, payload_size);
-      //  end
-      //size          = payload_size;
-      //
+      payload = new[size](tmp_payload);
 
-      //rx_head = (rx_head + 4 + num_words * 4 - rx_base) % rx_size + rx_base;
-      //minic_writel(`ADDR_MINIC_RX_AVAIL, (num_words + 1));
+      if (typ != `c_WRF_OOB)
+        $display("!! Incomplete frame");
 
-      //minic_readl(`ADDR_MINIC_RX_AVAIL, cur_avail);
+      // now let's see if the frame has OOB
+      while (typ == `c_WRF_OOB && !(val & `MINIC_RX_FIFO_EMPTY)) begin
+        minic_readl(`ADDR_MINIC_RX_FIFO, val);
+        typ  = (val & `MINIC_RX_FIFO_TYPE) >> `MINIC_RX_FIFO_TYPE_OFFSET;
+        data = (val & `MINIC_RX_FIFO_DAT);
+      end
 
-      //acc_pmem.read(rx_head, desc_hdr);
-
-      //if( cur_avail == (rx_size>>2) || !(`RX_DESC_VALID(desc_hdr)))
-      //  begin
-      //     minic_readl(`ADDR_MINIC_MCR, mcr);
-      //     
-      //     if(mcr & `MINIC_MCR_RX_FULL)
-      //       new_rx_buffer();
-
-      //     minic_writel(`ADDR_MINIC_EIC_ISR, `MINIC_EIC_ISR_RX);
-      //  end
-
-      //
    endtask // rx_frame
    
    task do_rx();
       byte payload[];
-      uint32_t size, ts;
+      uint32_t size, psize, ts;
       bit with_ts;
 
       rx_frame(payload, size, with_ts, ts);
@@ -221,8 +217,15 @@ class CSimDrv_Minic;
       if(payload.size() > 0)
         begin
            EthPacket pkt;
+           int id;
+           psize = 0;
+           if (payload.size() > 14) begin
+             psize = payload.size() - 14; //14 for the header
+           end
            pkt  = new;
            pkt.deserialize(payload);
+           id = ((pkt.payload[1] << 8) & 'hff00) | pkt.payload[0];
+           $display("RX frame(%d): size %d (%d)", id, psize, payload.size());
            rx_queue.push_back(pkt);
         end
       
