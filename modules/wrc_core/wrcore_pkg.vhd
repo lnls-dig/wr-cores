@@ -83,15 +83,12 @@ package wrcore_pkg is
     generic (
       g_interface_mode       : t_wishbone_interface_mode;
       g_address_granularity  : t_wishbone_address_granularity;
-      g_memsize_log2         : integer;
+      g_tx_fifo_size         : integer;
+      g_rx_fifo_size         : integer;
       g_buffer_little_endian : boolean);
     port (
       clk_sys_i           : in  std_logic;
       rst_n_i             : in  std_logic;
-      mem_data_o          : out std_logic_vector(31 downto 0);
-      mem_addr_o          : out std_logic_vector(g_memsize_log2-1 downto 0);
-      mem_data_i          : in  std_logic_vector(31 downto 0);
-      mem_wr_o            : out std_logic;
       src_o               : out t_wrf_source_out;
       src_i               : in  t_wrf_source_in;
       snk_o               : out t_wrf_sink_out;

@@ -725,16 +725,12 @@ begin
     generic map (
       g_interface_mode       => PIPELINED,
       g_address_granularity  => BYTE,
-      g_memsize_log2         => f_log2_size(g_dpram_size),
+      g_tx_fifo_size         => 1024,
+      g_rx_fifo_size         => 2048,
       g_buffer_little_endian => false)
     port map (
       clk_sys_i => clk_sys_i,
       rst_n_i   => rst_net_n,
-
-      mem_data_o => mnic_mem_data_o,
-      mem_addr_o => mnic_mem_addr_o,
-      mem_data_i => mnic_mem_data_i,
-      mem_wr_o   => mnic_mem_wr_o,
 
       src_o => mux_snk_in(0),
       src_i => mux_snk_out(0),
@@ -793,12 +789,12 @@ begin
       slave2_o => dpram_wbb_o
       );
 
-  dpram_wbb_i.cyc                                 <= '1';
-  dpram_wbb_i.stb                                 <= '1';
-  dpram_wbb_i.adr(c_mnic_memsize_log2-1 downto 0) <= mnic_mem_addr_o;
+  dpram_wbb_i.cyc                                 <= '0';
+  dpram_wbb_i.stb                                 <= '0';
+  dpram_wbb_i.adr(c_mnic_memsize_log2-1 downto 0) <= (others=>'0'); --mnic_mem_addr_o;
   dpram_wbb_i.sel                                 <= "1111";
-  dpram_wbb_i.we                                  <= mnic_mem_wr_o;
-  dpram_wbb_i.dat                                 <= mnic_mem_data_o;
+  dpram_wbb_i.we                                  <= '0'; --mnic_mem_wr_o;
+  dpram_wbb_i.dat                                 <= (others=>'0'); --mnic_mem_data_o;
   mnic_mem_data_i                                 <= dpram_wbb_o.dat;
 
   -----------------------------------------------------------------------------
