@@ -36,12 +36,12 @@ entity rx_streamer is
     tm_tai_i        : in std_logic_vector(39 downto 0) := x"0000000000";
     tm_cycles_i     : in std_logic_vector(27 downto 0) := x"0000000";
 
-    rx_first_o         : out std_logic;
-    rx_last_o          : out std_logic;
+    rx_first_p1_o      : out std_logic;
+    rx_last_p1_o       : out std_logic;
     rx_data_o          : out std_logic_vector(g_data_width-1 downto 0);
     rx_valid_o         : out std_logic;
     rx_dreq_i          : in  std_logic;
-    rx_lost_o          : out std_logic := '0';
+    rx_lost_p1_o       : out std_logic := '0';
     rx_latency_o       : out std_logic_vector(27 downto 0);
     rx_latency_valid_o : out std_logic;
 
@@ -69,12 +69,12 @@ architecture wrapper of rx_streamer is
       tm_time_valid_i         : in  std_logic                     := '0';
       tm_tai_i                : in  std_logic_vector(39 downto 0) := x"0000000000";
       tm_cycles_i             : in  std_logic_vector(27 downto 0) := x"0000000";
-      rx_first_o              : out std_logic;
-      rx_last_o               : out std_logic;
+      rx_first_p1_o           : out std_logic;
+      rx_last_p1_o            : out std_logic;
       rx_data_o               : out std_logic_vector(g_data_width-1 downto 0);
       rx_valid_o              : out std_logic;
       rx_dreq_i               : in  std_logic;
-      rx_lost_o               : out std_logic                     := '0';
+      rx_lost_p1_o            : out std_logic                     := '0';
       rx_latency_o            : out std_logic_vector(27 downto 0);
       rx_latency_valid_o      : out std_logic;
       cfg_mac_local_i         : in  std_logic_vector(47 downto 0);
@@ -105,9 +105,9 @@ begin  -- rtl
       rx_data_o               => rx_data_o,
       rx_valid_o              => rx_valid_o,
       rx_dreq_i               => rx_dreq_i,
-      rx_lost_o               => rx_lost_o,
-      rx_first_o              => rx_first_o,
-      rx_last_o               => rx_last_o,
+      rx_lost_p1_o            => rx_lost_p1_o,
+      rx_first_p1_o           => rx_first_p1_o,
+      rx_last_p1_o            => rx_last_p1_o,
       rx_latency_valid_o      => rx_latency_valid_o,
       rx_latency_o            => rx_latency_o,
       cfg_mac_local_i         => cfg_mac_local_i,

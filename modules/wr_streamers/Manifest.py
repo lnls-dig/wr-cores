@@ -1,1 +1,12 @@
-files = ["streamers_pkg.vhd", "xtx_streamer.vhd", "tx_streamer.vhd", "xrx_streamer.vhd", "rx_streamer.vhd", "gc_escape_inserter.vhd", "gc_escape_detector.vhd", "dropping_buffer.vhd"]
+files = ["streamers_pkg.vhd",
+         "xrtx_streamers_stats.vhd",
+         "xtx_streamer.vhd",
+         "tx_streamer.vhd",
+         "xrx_streamer.vhd",
+         "rx_streamer.vhd",
+         "gc_escape_inserter.vhd",
+         "gc_escape_detector.vhd",
+         "dropping_buffer.vhd",
+         "wr_transmission_wbgen2_pkg.vhd", 
+         "xwr_transmission.vhd", 
+         "wr_transmission_wb.vhd"]

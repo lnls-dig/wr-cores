@@ -514,7 +514,7 @@ begin
       g_ep_rxbuf_size             => 1024,
       g_tx_runt_padding           => true,
       g_pcs_16bit                 => false,
-      g_dpram_initf               => "wrc.ram",
+      g_dpram_initf               => "wrc-simulation.ram",
 --       g_aux_sdb                   => c_etherbone_sdb, --ML
       g_dpram_size                => 131072/4,
       g_interface_mode            => PIPELINED,
@@ -724,7 +724,7 @@ begin
       tx_dreq_o  => tx_dreq,
       -- every data word we send is the last one, as a single transfer in our
       -- case contains only one 80-bit data word.
-      tx_last_i  => '1',
+      tx_last_p1_i  => '1',
 
       -- send broadcast packets, so that many receivers can use triggers sent
       -- by us.

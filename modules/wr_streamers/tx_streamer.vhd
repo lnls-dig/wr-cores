@@ -37,8 +37,8 @@ entity tx_streamer is
     tm_tai_i        : in std_logic_vector(39 downto 0) := x"0000000000";
     tm_cycles_i     : in std_logic_vector(27 downto 0) := x"0000000";
 
-    tx_flush_i     : in  std_logic := '0';
-    tx_last_i      : in  std_logic := '1';
+    tx_flush_p1_i  : in  std_logic := '0';
+    tx_last_p1_i   : in  std_logic := '1';
     tx_data_i      : in  std_logic_vector(g_data_width-1 downto 0);
     tx_reset_seq_i : in  std_logic := '0';
     tx_valid_i     : in  std_logic;
@@ -70,12 +70,12 @@ begin  -- rtl
       rst_n_i          => rst_n_i,
       src_i            => src_in,
       src_o            => src_out,
-      tx_last_i        => tx_last_i,
+      tx_last_p1_i     => tx_last_p1_i,
       tx_data_i        => tx_data_i,
       tx_reset_seq_i   => tx_reset_seq_i,
       tx_valid_i       => tx_valid_i,
       tx_dreq_o        => tx_dreq_o,
-      tx_flush_i       => tx_flush_i,
+      tx_flush_p1_i    => tx_flush_p1_i,
       clk_ref_i        => clk_ref_i,
       tm_time_valid_i  => tm_time_valid_i,
       tm_tai_i         => tm_tai_i,

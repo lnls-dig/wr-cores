@@ -189,7 +189,7 @@ module main;
       .tx_data_i      (tx_streamer_data),
       .tx_valid_i     (tx_streamer_dvalid),
       .tx_dreq_o      (tx_streamer_dreq),
-      .tx_last_i      (tx_streamer_last),
+      .tx_last_p1_i   (tx_streamer_last),
       
       .cfg_mac_local_i  (g_mac_tx),
       .cfg_mac_target_i (g_mac_rx),
@@ -223,8 +223,8 @@ module main;
       .rx_data_o  (rx_streamer_data),
       .rx_valid_o (rx_streamer_dvalid),
       .rx_dreq_i  (rx_streamer_dreq),
-      .rx_first_o (rx_streamer_first),
-      .rx_last_o (rx_streamer_last),
+      .rx_first_p1_o (rx_streamer_first),
+      .rx_last_p1_o (rx_streamer_last),
       
       .rx_latency_o (rx_latency),
       .rx_latency_valid_o(rx_latency_valid),
