@@ -8,11 +8,11 @@ NET "clk_125m_pllref_n_i" IOSTANDARD = "LVDS_25";
 NET "clk_125m_pllref_p_i" LOC = G9;
 NET "clk_125m_pllref_p_i" IOSTANDARD = "LVDS_25";
 
-NET "fpga_pll_ref_clk_101_n_i" LOC = D11;
-NET "fpga_pll_ref_clk_101_n_i" IOSTANDARD = "LVDS_25";
+NET "clk_125m_gtp_n_i" LOC = D11;
+NET "clk_125m_gtp_n_i" IOSTANDARD = "LVDS_25";
 
-NET "fpga_pll_ref_clk_101_p_i" LOC = C11;
-NET "fpga_pll_ref_clk_101_p_i" IOSTANDARD = "LVDS_25";
+NET "clk_125m_gtp_p_i" LOC = C11;
+NET "clk_125m_gtp_p_i" IOSTANDARD = "LVDS_25";
 
 
 NET "dac_cs1_n_o" LOC = A3;
@@ -45,8 +45,8 @@ NET "thermo_id" IOSTANDARD = "LVCMOS25";
 #NET "PRSNT_M2C_L" IOSTANDARD = "LVCMOS25";
 NET "SFP_MOD_DEF1_b" LOC = C17;
 NET "SFP_MOD_DEF1_b" IOSTANDARD = "LVCMOS25";
-NET "SFP_MOD_DEF0_b" LOC = G15;
-NET "SFP_MOD_DEF0_b" IOSTANDARD = "LVCMOS25";
+NET "SFP_MOD_DEF0_i" LOC = G15;
+NET "SFP_MOD_DEF0_i" IOSTANDARD = "LVCMOS25";
 NET "SFP_MOD_DEF2_b" LOC = G16;
 NET "SFP_MOD_DEF2_b" IOSTANDARD = "LVCMOS25";
 NET "SFP_RATE_SELECT_b" LOC = H14;
@@ -630,18 +630,17 @@ NET "clk_125m_pllref_p_i" TNM_NET = clk_125m_pllref_p_i;
 TIMESPEC TS_clk_125m_pllref_p_i = PERIOD "clk_125m_pllref_p_i" 8 ns HIGH 50%;
 NET "clk_125m_pllref_n_i" TNM_NET = clk_125m_pllref_n_i;
 TIMESPEC TS_clk_125m_pllref_n_i = PERIOD "clk_125m_pllref_n_i" 8 ns HIGH 50%;
-NET "fpga_pll_ref_clk_101_p_i" TNM_NET = fpga_pll_ref_clk_101_p_i;
-TIMESPEC TS_fpga_pll_ref_clk_101_p_i = PERIOD "fpga_pll_ref_clk_101_p_i" 8 ns HIGH 50%;
-NET "fpga_pll_ref_clk_101_n_i" TNM_NET = fpga_pll_ref_clk_101_n_i;
-TIMESPEC TS_fpga_pll_ref_clk_101_n_i = PERIOD "fpga_pll_ref_clk_101_n_i" 8 ns HIGH 50%;
+NET "clk_125m_gtp_p_i" TNM_NET = clk_125m_gtp_p_i;
+TIMESPEC TS_clk_125m_gtp_p_i = PERIOD "clk_125m_gtp_p_i" 8 ns HIGH 50%;
+NET "clk_125m_gtp_n_i" TNM_NET = clk_125m_gtp_n_i;
+TIMESPEC TS_clk_125m_gtp_n_i = PERIOD "clk_125m_gtp_n_i" 8 ns HIGH 50%;
 
 PIN "clk_125m_pllref_BUFG.O" CLOCK_DEDICATED_ROUTE = FALSE; 
-#Created by Constraints Editor (xc6slx45t-fgg484-3) - 2011/06/09
-NET "U_GTP/ch1_gtp_clkout_int<1>" TNM_NET = U_GTP/ch1_gtp_clkout_int<1>;
-TIMESPEC TS_U_GTP_ch1_gtp_clkout_int_1_ = PERIOD "U_GTP/ch1_gtp_clkout_int<1>" 8 ns HIGH 50%;
+#Created by Constraints Editor (xc6slx45t-fgg484-3) - 2016/11/14
+NET "WRC_PLATFORM/gen_phy_spartan6.cmp_GTP/ch1_gtp_clkout_int<1>" TNM_NET = WRC_PLATFORM/gen_phy_spartan6.cmp_GTP/ch1_gtp_clkout_int<1>;
+TIMESPEC TS_WRC_PLATFORM_gen_phy_spartan6_cmp_GTP_ch1_gtp_clkout_int_1_ = PERIOD "WRC_PLATFORM/gen_phy_spartan6.cmp_GTP/ch1_gtp_clkout_int<1>" 8 ns HIGH 50%;
 # PIN "cmp_clk_dmtd_buf.O" CLOCK_DEDICATED_ROUTE = FALSE; 
 ##Created by Constraints Editor (xc6slx45t-fgg484-3) - 2012/08/07
-
 INST "*/U_SOFTPLL/U_Wrapped_Softpll/gen_feedback_dmtds*/clk_in" TNM = skew_limit;
 INST "*/U_SOFTPLL/U_Wrapped_Softpll/gen_ref_dmtds*/clk_in" TNM = skew_limit;
 
