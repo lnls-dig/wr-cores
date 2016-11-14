@@ -325,7 +325,9 @@ begin
         pad_rxn1_i                 => sfp_rxn_i,
         pad_rxp1_i                 => sfp_rxp_i
       );
-    sfp_tx_disable_o <= '0';
+    sfp_tx_disable_o    <= phy8_i.sfp_tx_disable;
+    phy8_o.sfp_tx_fault <= sfp_tx_fault_i;
+    phy8_o.sfp_los      <= sfp_los_i;
   end generate gen_phy_spartan6;
 
   gen_phy_unknown: if(g_family /= "spartan6") generate
