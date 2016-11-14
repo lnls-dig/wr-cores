@@ -108,8 +108,10 @@ entity xwrc_platform_xilinx is
       clk_125m_pllref_o    : out std_logic;
       clk_62m5_dmtd_o      : out std_logic;
       dacs_i               : in  t_dacs_from_wrc;
-      phy_o                : out t_phy_8bits_to_wrc;
-      phy_i                : in  t_phy_8bits_from_wrc;
+      phy8_o               : out t_phy_8bits_to_wrc;
+      phy8_i               : in  t_phy_8bits_from_wrc := c_dummy_phy8_from_wrc;
+      phy16_o              : out t_phy_16bits_to_wrc;
+      phy16_i              : in  t_phy_16bits_from_wrc := c_dummy_phy16_from_wrc;
       owr_en_i             : in  std_logic_vector(1 downto 0);
       owr_o                : out std_logic_vector(1 downto 0);
       sfp_config_o         : out t_sfp_to_wrc;
@@ -244,7 +246,7 @@ begin
                                                     -- to top-level port)
       IB                   => clk_125m_pllref_n_i );-- Diff_n buffer input (connect directly
                                                     -- to top-level port)
-  phy_o.ref_clk      <= clk_125m_pllref;
+  phy8_o.ref_clk     <= clk_125m_pllref;
   clk_125m_pllref_o  <= clk_125m_pllref;
 
   -------------------------------------------------------------------------------------------
@@ -300,20 +302,20 @@ begin
         ch0_rst_i                  => '1',
         ch0_loopen_i               => '0',
         ch1_ref_clk_i              => clk_125m_pllref,
-        ch1_tx_data_i              => phy_i.tx_data,
-        ch1_tx_k_i                 => phy_i.tx_k(0),
-        ch1_tx_disparity_o         => phy_o.tx_disparity,
-        ch1_tx_enc_err_o           => phy_o.tx_enc_err,
-        ch1_rx_data_o              => phy_o.rx_data,
-        ch1_rx_rbclk_o             => phy_o.rx_clk, 
-        ch1_rx_k_o                 => phy_o.rx_k(0),
-        ch1_rx_enc_err_o           => phy_o.rx_enc_err,
-        ch1_rx_bitslide_o          => phy_o.rx_bitslide,
-        ch1_rst_i                  => phy_i.rst,
-        ch1_loopen_i               => phy_i.loopen,
-        ch1_loopen_vec_i           => phy_i.loopen_vec,
-        ch1_tx_prbs_sel_i          => phy_i.tx_prbs_sel,
-        ch1_rdy_o                  => phy_o.rdy,
+        ch1_tx_data_i              => phy8_i.tx_data,
+        ch1_tx_k_i                 => phy8_i.tx_k(0),
+        ch1_tx_disparity_o         => phy8_o.tx_disparity,
+        ch1_tx_enc_err_o           => phy8_o.tx_enc_err,
+        ch1_rx_data_o              => phy8_o.rx_data,
+        ch1_rx_rbclk_o             => phy8_o.rx_clk, 
+        ch1_rx_k_o                 => phy8_o.rx_k(0),
+        ch1_rx_enc_err_o           => phy8_o.rx_enc_err,
+        ch1_rx_bitslide_o          => phy8_o.rx_bitslide,
+        ch1_rst_i                  => phy8_i.rst,
+        ch1_loopen_i               => phy8_i.loopen,
+        ch1_loopen_vec_i           => phy8_i.loopen_vec,
+        ch1_tx_prbs_sel_i          => phy8_i.tx_prbs_sel,
+        ch1_rdy_o                  => phy8_o.rdy,
         pad_txn0_o                 => open,
         pad_txp0_o                 => open,
         pad_rxn0_i                 => '0',
