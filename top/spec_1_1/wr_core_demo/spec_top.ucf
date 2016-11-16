@@ -115,11 +115,6 @@ NET "L_WR_RDY[0]" IOSTANDARD = "SSTL18_I";
 NET "L_WR_RDY[1]" LOC = T22;
 NET "L_WR_RDY[1]" IOSTANDARD = "SSTL18_I";
 
-NET "L_CLKN" LOC = N19;
-NET "L_CLKN" IOSTANDARD = "DIFF_SSTL18_I";
-NET "L_CLKP" LOC = P20;
-NET "L_CLKP" IOSTANDARD = "DIFF_SSTL18_I";
-
 NET "P2L_CLKN" LOC = M19;
 NET "P2L_CLKN" IOSTANDARD = "DIFF_SSTL18_I";
 NET "P2L_CLKP" LOC = M20;
@@ -409,10 +404,10 @@ NET "GPIO[0]" IOSTANDARD = "LVCMOS25";
 #NET "DDR3_UDQS_P" IOSTANDARD = "LVCMOS15";
 #NET "DDR3_WE_N" LOC = H2;
 #NET "DDR3_WE_N" IOSTANDARD = "LVCMOS15";
-NET "LED_RED" LOC = D5;
-NET "LED_RED" IOSTANDARD = "LVCMOS25";
-NET "LED_GREEN" LOC = E5;
-NET "LED_GREEN" IOSTANDARD = "LVCMOS25";
+NET "led_red_o" LOC = D5;
+NET "led_red_o" IOSTANDARD = "LVCMOS25";
+NET "led_green_o" LOC = E5;
+NET "led_green_o" IOSTANDARD = "LVCMOS25";
 
 #NET "PCB_VER[0]" LOC = P5;
 #NET "PCB_VER[0]" IOSTANDARD = "LVCMOS15";
@@ -498,7 +493,6 @@ NET "LED_GREEN" IOSTANDARD = "LVCMOS25";
 #NET "DDR3_DQ14" IOSTANDARD = "LVCMOS15";
 #NET "DDR3_DQ15" LOC = Y1;
 #NET "DDR3_DQ15" IOSTANDARD = "LVCMOS15";
-NET "L_CLKp" TNM_NET = "l_clkp_grp";
 NET "P2L_CLKp" TNM_NET = "p2l_clkp_grp";
 NET "P2L_CLKn" TNM_NET = "p2l_clkn_grp";
 TIMESPEC TS_cmp_gn4124_core_cmp_clk_in_P_clk = PERIOD "cmp_gn4124_core/cmp_clk_in/P_clk" 5 ns HIGH 50%;
@@ -534,12 +528,6 @@ NET "dio_n_o[0]" LOC=  Y18;
 NET "dio_p_o[0]" IOSTANDARD=LVDS_25;
 NET "dio_n_o[0]" IOSTANDARD=LVDS_25;
 
-NET "dio_sdn_n_o" LOC=  V11;
-NET "dio_sdn_n_o" IOSTANDARD=LVCMOS25;
-
-NET "dio_sdn_ck_n_o" LOC=  Y5;
-NET "dio_sdn_ck_n_o" IOSTANDARD=LVCMOS25;
-
 # DIO output enable/termination enable
 NET "dio_oe_n_o[4]" LOC=  AA6;
 NET "dio_oe_n_o[3]" LOC=  W10;
@@ -564,9 +552,6 @@ NET "dio_term_en_o[3]"  IOSTANDARD=LVCMOS25;
 NET "dio_term_en_o[2]"  IOSTANDARD=LVCMOS25;
 NET "dio_term_en_o[1]"  IOSTANDARD=LVCMOS25;
 NET "dio_term_en_o[0]"  IOSTANDARD=LVCMOS25;
-
-NET "dio_onewire_b" LOC=AB16;
-NET "dio_onewire_b" IOSTANDARD=LVCMOS25;
 
 # DIO inputs
 NET "dio_clk_p_i" LOC=L20;

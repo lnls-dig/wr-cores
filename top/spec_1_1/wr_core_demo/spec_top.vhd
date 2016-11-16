@@ -81,7 +81,7 @@ entity spec_top is
     -- changed to non-zero in the instantiation of the top level DUT in the testbench.
     -- Its purpose is to reduce some internal counters/timeouts to speed up simulations.
     g_simulation : integer := 0
-    );
+  );
   port (
     ---------------------------------------------------------------------------
     -- Clock signals
@@ -107,10 +107,6 @@ entity spec_top is
     -- GN4124 PCIe bridge signals
     ---------------------------------------------------------------------------
     -- From GN4124 Local bus
-      -- not used, remove
-      L_CLKp  : in std_logic; -- Local bus clock (frequency set in GN4124 config registers)
-      L_CLKn  : in std_logic; -- Local bus clock (frequency set in GN4124 config registers)
-      -------------
       L_RST_N : in std_logic; -- Reset from GN4124 (RSTOUT18_N)
 
     -- General Purpose Interface
@@ -196,9 +192,9 @@ entity spec_top is
     ---------------------------------------------------------------------------
     -- Red LED next to the SFP: blinking indicates that packets are being
     -- transferred.
-      LED_RED   : out std_logic;
+      led_red_o   : out std_logic;
     -- Green LED next to the SFP: indicates if the link is up.
-      LED_GREEN : out std_logic;
+      led_green_o : out std_logic;
 
     -- Buttons on the SPEC card. In our case, button1 is used as an external
     -- reset trigger.
@@ -242,14 +238,6 @@ entity spec_top is
     -- Termination enable. When dio_term_en_o(N) is 1, connector (N+1) on the front
     -- panel is 50-ohm terminated
       dio_term_en_o : out std_logic_vector(4 downto 0);
-
-    -- 1-Wire interface to DS18B20 thermometer on the mezzanine. Not used in
-    -- this design, always 'Z'.
-      dio_onewire_b  : inout std_logic;
-
-    -- (not used, remove)
-      dio_sdn_n_o    : out   std_logic;
-      dio_sdn_ck_n_o : out   std_logic;
 
     -- Two LEDs on the mezzanine panel. Only Top one is currently used - to
     -- blink 1-PPS.
@@ -303,20 +291,16 @@ architecture rtl of spec_top is
   -- Signals declaration
   ------------------------------------------------------------------------------
 
-  -- not used, remove
-  -- LCLK from GN4124 used as system clock
-  signal l_clk : std_logic;
-
   -- WRPC: clock signals
   signal clk_125m_pllref  : std_logic;
   signal clk_62m5_sys          : std_logic;
   signal clk_dmtd         : std_logic;
 
   -- WRPC: I2C signals for EEPROM. Deprecated, now we use SPI Flash
-  signal wrc_scl_o : std_logic;
-  signal wrc_scl_i : std_logic;
-  signal wrc_sda_o : std_logic;
-  signal wrc_sda_i : std_logic;
+  signal wrc_scl_out : std_logic;
+  signal wrc_scl_in  : std_logic;
+  signal wrc_sda_out : std_logic;
+  signal wrc_sda_in  : std_logic;
 
   -- WRPC: 1-PPS signals (for the connector and blinking LED)
   signal pps     : std_logic;
@@ -339,8 +323,8 @@ architecture rtl of spec_top is
   signal wrc_slave_o : t_wishbone_slave_out;
 
   -- WRPC: 1-Wire signals for DS18B20 temperature sensor
-  signal owr_en : std_logic_vector(1 downto 0);
-  signal owr_i  : std_logic_vector(1 downto 0);
+  signal wrc_owr_en : std_logic_vector(1 downto 0);
+  signal wrc_owr_in : std_logic_vector(1 downto 0);
 
   -- Etherbone core signals
   signal etherbone_rst_n   : std_logic;
@@ -353,15 +337,6 @@ architecture rtl of spec_top is
   signal etherbone_cfg_in  : t_wishbone_slave_in;
   signal etherbone_cfg_out : t_wishbone_slave_out;
 
-  -- not used, remove
-  signal ext_pll_reset : std_logic;
-  signal clk_ext, clk_ext_mul       : std_logic;
-  signal clk_ext_mul_locked         : std_logic;
-  signal clk_ext_stopped            : std_logic;
-  signal clk_ext_rst                : std_logic;
-  signal clk_ref_div2               : std_logic;
-  ------------
-
   -- WRPC <--> WRP (WR PTP Core Platform-dependent peripherals)
   signal wrc_dacs_out  : t_dacs_from_wrc;
   signal wrc_phy_out   : t_phy_8bits_from_wrc;
@@ -370,30 +345,21 @@ architecture rtl of spec_top is
   signal wrc_sfp_in    : t_sfp_to_wrc;
   signal wrc_extref_in : t_extref_to_wrc;
   signal wrc_extref_rst: std_logic;
+
+  -- 125MHz WR clock divided by 2 and output to LEMO connector for debugging
+  signal clk_125m_div2               : std_logic;
   
 begin
 
+  ------------------------------------------------------------------------------
+  -- Reset generation
+  ------------------------------------------------------------------------------
   U_Reset_Gen : spec_reset_gen
     port map (
       clk_sys_i        => clk_62m5_sys,
       rst_pcie_n_a_i   => L_RST_N,
       rst_button_n_a_i => button1_i,
       rst_n_o          => local_reset_n);
-
-  -- not used, remove
-  ------------------------------------------------------------------------------
-  -- Local clock from gennum LCLK
-  ------------------------------------------------------------------------------
-  cmp_l_clk_buf : IBUFDS
-    generic map (
-      DIFF_TERM    => false,            -- Differential Termination
-      IBUF_LOW_PWR => true,  -- Low power (TRUE) vs. performance (FALSE) setting for referenced I/O standards
-      IOSTANDARD   => "DEFAULT")
-    port map (
-      O  => l_clk,                      -- Buffer output
-      I  => L_CLKp,  -- Diff_p buffer input (connect directly to top-level port)
-      IB => L_CLKn  -- Diff_n buffer input (connect directly to top-level port)
-      );
 
   ------------------------------------------------------------------------------
   -- GN4124, PCIe bridge core
@@ -509,7 +475,6 @@ begin
       clk_sys_i     => clk_62m5_sys,
       clk_dmtd_i    => clk_dmtd,
       clk_ref_i     => clk_125m_pllref,
-      clk_aux_i     => (others => '0'),
       rst_n_i       => local_reset_n,
 
       -- External reference (10MHz & 1-PPS)
@@ -560,8 +525,8 @@ begin
 
       -- Miscellanous pins
       --- Link and Activity LEDs
-      led_act_o  => LED_RED,
-      led_link_o => LED_GREEN,
+      led_act_o  => led_red_o,
+      led_link_o => led_green_o,
       --- UART
       uart_rxd_i => uart_rxd_i,
       uart_txd_o => uart_txd_o,
@@ -577,16 +542,16 @@ begin
       spi_mosi_o => spi_mosi_o,
       spi_miso_i => spi_miso_i,
       --- 1-Wire for DS18B20 temperature sensor
-      owr_en_o   => owr_en,
-      owr_i      => owr_i,
+      owr_en_o   => wrc_owr_en,
+      owr_i      => wrc_owr_in,
       --- Buttons available on SPEC board
       btn1_i     => button1_i,
       btn2_i     => button2_i,
       --- Deprecated I2C for FMC EEPROM
-      scl_o      => wrc_scl_o,
-      scl_i      => wrc_scl_i,
-      sda_o      => wrc_sda_o,
-      sda_i      => wrc_sda_i,
+      scl_o      => wrc_scl_out,
+      scl_i      => wrc_scl_in,
+      sda_o      => wrc_sda_out,
+      sda_i      => wrc_sda_in,
 
       -- Wishbone Slave interface to control WRPC from PCIe and Etherbone
       slave_i => wrc_slave_i,
@@ -658,8 +623,8 @@ begin
       dacs_i               => wrc_dacs_out,
       phy8_o               => wrc_phy_in,
       phy8_i               => wrc_phy_out,
-      owr_en_i             => owr_en,
-      owr_o                => owr_i,
+      owr_en_i             => wrc_owr_en,
+      owr_o                => wrc_owr_in,
       sfp_config_o         => wrc_sfp_in,
       sfp_config_i         => wrc_sfp_out,
       ext_ref_o            => wrc_extref_in,
@@ -740,11 +705,11 @@ begin
   end generate gen_dio_iobufs;
 
 
-  -- not used, remove
+  -- Debug: Reference clock to LEMO connector
   process(clk_125m_pllref)
   begin
     if rising_edge(clk_125m_pllref) then
-      clk_ref_div2 <= not clk_ref_div2;
+      clk_125m_div2 <= not clk_125m_div2;
     end if;
   end process;
 
@@ -754,17 +719,17 @@ begin
   -- Leave it here because in software this option can still be selected.
   -- However, the new, preferred method is to use SPI Flash on the carrier (SPEC
   -- board) to store configuration parameters.
-  fpga_scl_b <= '0' when wrc_scl_o = '0' else 'Z';
-  fpga_sda_b <= '0' when wrc_sda_o = '0' else 'Z';
-  wrc_scl_i  <= fpga_scl_b;
-  wrc_sda_i  <= fpga_sda_b;
+  fpga_scl_b <= '0' when wrc_scl_out = '0' else 'Z';
+  fpga_sda_b <= '0' when wrc_sda_out = '0' else 'Z';
+  wrc_scl_in  <= fpga_scl_b;
+  wrc_sda_in  <= fpga_sda_b;
   
   -----------------------------------------------------------------------------
   -- Inputs/Outputs of the Digital I/O Mezzanine
   -----------------------------------------------------------------------------
   -- Connect the PPS output to the I/O 1 of the Digital I/O mezzanine
   dio_out(0) <= pps;
-  dio_out(1) <= clk_ref_div2;
+  dio_out(1) <= clk_125m_div2;
 
   -- Configure Digital I/Os 0 to 3 as outputs
   dio_oe_n_o(2 downto 0) <= (others => '0');
@@ -774,11 +739,5 @@ begin
 
   -- All DIO connectors are not terminated
   dio_term_en_o <= (others => '0');
-
-  -- not used, remove
-  dio_onewire_b <= 'Z';
-
-  dio_sdn_ck_n_o <= '1';
-  dio_sdn_n_o    <= '1';
 
 end rtl;
