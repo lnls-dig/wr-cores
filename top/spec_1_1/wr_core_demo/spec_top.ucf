@@ -21,8 +21,6 @@ NET "dac_cs1_n_o" IOSTANDARD = "LVCMOS25";
 NET "dac_cs2_n_o" LOC = B3;
 NET "dac_cs2_n_o" IOSTANDARD = "LVCMOS25";
 
-#NET "dac_clr_n_o" LOC = F7;
-#NET "dac_clr_n_o" IOSTANDARD = "LVCMOS25";
 NET "dac_din_o" LOC = C4;
 NET "dac_din_o" IOSTANDARD = "LVCMOS25";
 

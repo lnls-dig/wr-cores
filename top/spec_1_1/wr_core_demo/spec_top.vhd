@@ -147,7 +147,6 @@ entity spec_top is
     -- the clk_ref oscillator, the second (CS2) - the clk_dmtd VCXO.
       dac_sclk_o  : out std_logic;
       dac_din_o   : out std_logic;
-      dac_clr_n_o : out std_logic;
       dac_cs1_n_o : out std_logic;
       dac_cs2_n_o : out std_logic;
 
@@ -596,7 +595,6 @@ begin
       -- I2C to control DAC
       dac_sclk_o           => dac_sclk_o,
       dac_din_o            => dac_din_o,
-      dac_clr_n_o          => dac_clr_n_o,
       dac_cs1_n_o          => dac_cs1_n_o,
       dac_cs2_n_o          => dac_cs2_n_o,
 

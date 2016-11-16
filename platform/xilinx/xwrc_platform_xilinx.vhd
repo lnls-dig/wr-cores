@@ -85,7 +85,6 @@ entity xwrc_platform_xilinx is
       ---------------------------------------------------------------------------------------
       dac_sclk_o           : out   std_logic;                      -- Serial Clock Line
       dac_din_o            : out   std_logic;                      -- Serial Data Line
-      dac_clr_n_o          : out   std_logic;                      -- ?
       dac_cs1_n_o          : out   std_logic;                      -- Chip Select
       dac_cs2_n_o          : out   std_logic;                      -- Chip Select
 
