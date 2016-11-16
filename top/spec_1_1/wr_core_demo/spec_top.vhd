@@ -255,27 +255,10 @@ architecture rtl of spec_top is
   signal wrc_phy_in    : t_phy_8bits_to_wrc;
   signal wrc_sfp_out   : t_sfp_from_wrc;
   signal wrc_sfp_in    : t_sfp_to_wrc;
+  signal wrc_extref_in : t_extref_to_wrc;
+  signal wrc_extref_rst: std_logic;
   
 begin
-
-
-  U_Ext_PLL : ext_pll_10_to_125m
-    port map (
-      clk_ext_i        => clk_ext,
-      clk_ext_mul_o    => clk_ext_mul,
-      rst_a_i          => ext_pll_reset,
-      clk_in_stopped_o => clk_ext_stopped,
-      locked_o         => clk_ext_mul_locked);
-
-  U_Extend_EXT_Reset : gc_extend_pulse
-    generic map (
-      g_width => 1000)
-    port map (
-      clk_i      => clk_62m5_sys,
-      rst_n_i    => local_reset_n,
-      pulse_i    => clk_ext_rst,
-      extended_o => ext_pll_reset);
-
 
   U_Reset_Gen : spec_reset_gen
     port map (
@@ -415,13 +398,15 @@ begin
       clk_dmtd_i    => clk_dmtd,
       clk_ref_i     => clk_125m_pllref,
       clk_aux_i     => (others => '0'),
-      clk_ext_i     => clk_ext,
-      clk_ext_mul_i => clk_ext_mul,
-      clk_ext_mul_locked_i => clk_ext_mul_locked,
-      clk_ext_stopped_i    => clk_ext_stopped,
-      clk_ext_rst_o        => clk_ext_rst,
-      pps_ext_i     => dio_in(3),
-      rst_n_i       => local_reset_n,
+
+      clk_ext_i            => wrc_extref_in.clk_10m_ref,
+      clk_ext_mul_i        => wrc_extref_in.clk_125m_ref,
+      clk_ext_mul_locked_i => wrc_extref_in.locked,
+      clk_ext_stopped_i    => wrc_extref_in.stopped,
+      clk_ext_rst_o        => wrc_extref_rst,
+      pps_ext_i            => wrc_extref_in.pps,
+
+      rst_n_i              => local_reset_n,
 
       dac_hpll_load_p1_o => wrc_dacs_out.hpll_load_p1,
       dac_hpll_data_o    => wrc_dacs_out.hpll_data,
@@ -498,8 +483,9 @@ begin
 
   WRC_PLATFORM : xwrc_platform_xilinx
     generic map (
-      g_simulation => 0, 
-      g_family     => "spartan6")
+      g_simulation     => 0, 
+      g_family         => "spartan6",
+      g_with_10m_refin => 1)
     port map (
       local_reset_n_i      => local_reset_n,
       --------------------------------------------------------------------------
@@ -510,6 +496,10 @@ begin
       clk_125m_pllref_n_i  => clk_125m_pllref_n_i,
       clk_125m_gtp_p_i     => clk_125m_gtp_p_i,   -- 125 MHz GTP reference
       clk_125m_gtp_n_i     => clk_125m_gtp_n_i,   -- 125 MHz GTP reference
+
+      clk_10m_ref_p_i      => dio_clk_p_i,
+      clk_10m_ref_n_i      => dio_clk_n_i,
+      pps_ext_i            => dio_in(3),
       --------------------------------------------------------------------------
       -- I2C to control DAC
       --------------------------------------------------------------------------
@@ -543,12 +533,14 @@ begin
       clk_125m_pllref_o    => clk_125m_pllref,
       clk_62m5_dmtd_o      => clk_dmtd,
       dacs_i               => wrc_dacs_out,
-      phy8_o                => wrc_phy_in,
-      phy8_i                => wrc_phy_out,
+      phy8_o               => wrc_phy_in,
+      phy8_i               => wrc_phy_out,
       owr_en_i             => owr_en,
       owr_o                => owr_i,
       sfp_config_o         => wrc_sfp_in,
-      sfp_config_i         => wrc_sfp_out);
+      sfp_config_i         => wrc_sfp_out,
+      ext_ref_o            => wrc_extref_in,
+      ext_ref_rst_i        => wrc_extref_rst);
 
   Etherbone : eb_slave_core
     generic map (
@@ -613,15 +605,6 @@ begin
         OB => dio_n_o(i)
         );
   end generate gen_dio_iobufs;
-
-  U_input_buffer : IBUFGDS
-    generic map (
-      DIFF_TERM => true)
-    port map (
-      O  => clk_ext,
-      I  => dio_clk_p_i,
-      IB => dio_clk_n_i
-      );
 
   dio_led_bot_o <= '0';
 
