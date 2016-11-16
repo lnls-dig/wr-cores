@@ -48,6 +48,7 @@ use work.wr_fabric_pkg.all;
 use work.wishbone_pkg.all;
 use work.wr_xilinx_pkg.all;
 use work.wrcore_pkg.all;
+use work.gencores_pkg.all;
 
 library UNISIM;
 use UNISIM.vcomponents.all;
@@ -58,7 +59,8 @@ entity xwrc_platform_xilinx is
       -- setting g_simulation to TRUE will speed up some initialization processes
       g_simulation         :       integer := 0;
       -- define the Familiy of Xilinx FPGAs (supported: now only spartan6)
-      g_family             :       string  := "spartan6"
+      g_family             :       string  := "spartan6";
+      g_with_10m_refin     :       integer := 0
     );
   port (
       local_reset_n_i      : in    std_logic;
@@ -70,6 +72,13 @@ entity xwrc_platform_xilinx is
       clk_125m_pllref_n_i  : in    std_logic;
       clk_125m_gtp_n_i     : in    std_logic;                     -- 125 MHz GTP reference
       clk_125m_gtp_p_i     : in    std_logic;                     -- 125 MHz GTP reference
+
+      ---------------------------------------------------------------------------------------
+      -- External 10MHz & 1-PPS reference
+      ---------------------------------------------------------------------------------------
+      clk_10m_ref_p_i      : in std_logic := '0';                 -- 10MHz external reference
+      clk_10m_ref_n_i      : in std_logic := '0';                 -- 10MHz external reference
+      pps_ext_i            : in std_logic := '0';                 -- external 1-PPS from reference
 
       ---------------------------------------------------------------------------------------
       -- I2C to control DAC
@@ -115,7 +124,9 @@ entity xwrc_platform_xilinx is
       owr_en_i             : in  std_logic_vector(1 downto 0);
       owr_o                : out std_logic_vector(1 downto 0);
       sfp_config_o         : out t_sfp_to_wrc;
-      sfp_config_i         : in  t_sfp_from_wrc
+      sfp_config_i         : in  t_sfp_from_wrc;
+      ext_ref_o            : out t_extref_to_wrc;
+      ext_ref_rst_i        : in  std_logic := '0'
       );
 
 end xwrc_platform_xilinx;
@@ -135,6 +146,10 @@ architecture rtl of xwrc_platform_xilinx is
   signal clk_125m_gtp              : std_logic;
   signal clk_62m5_sys              : std_logic;
   signal clk_80m_ADC               : std_logic;
+
+  -- External 10MHz reference
+  signal clk_10m_ref  : std_logic;
+  signal ext_pll_rst  : std_logic;
 
   -- WRPC <--> EEPROM on FMC
   signal wrc_scl_out               : std_logic;
@@ -262,6 +277,37 @@ begin
       I                    => clk_125m_gtp_p_i,
       IB                   => clk_125m_gtp_n_i
       );
+
+  -------------------------------------------------------------------------------------------
+  -- PLL for multiplying external 10MHz reference clock
+  -------------------------------------------------------------------------------------------
+  GEN_EXT_REF: if g_with_10m_refin = 1 generate
+    U_Ext_BUF : IBUFGDS
+      generic map (
+        DIFF_TERM => true)
+      port map (
+        O  => clk_10m_ref,
+        I  => clk_10m_ref_p_i,
+        IB => clk_10m_ref_n_i);
+
+    U_Ext_PLL : ext_pll_10_to_125m
+      port map (
+        clk_ext_i        => clk_10m_ref,
+        clk_ext_mul_o    => ext_ref_o.clk_125m_ref,
+        rst_a_i          => ext_pll_rst,
+        clk_in_stopped_o => ext_ref_o.stopped,
+        locked_o         => ext_ref_o.locked);
+
+    U_Extend_EXT_Reset : gc_extend_pulse
+      generic map (
+        g_width => 1000)
+      port map (
+        clk_i      => clk_62m5_sys,
+        rst_n_i    => local_reset_n_i,
+        pulse_i    => ext_ref_rst_i,
+        extended_o => ext_pll_rst);
+  end generate;
+  ext_ref_o.pps <= pps_ext_i;
 
   -------------------------------------------------------------------------------
   -- Tri-state access to devices (SFP, one wire thermometer)

@@ -30,6 +30,14 @@ package wr_xilinx_pkg is
     dpll_data      : std_logic_vector(15 downto 0);
   end record;
 
+  type t_extref_to_wrc is record
+    clk_10m_ref     : std_logic;
+    clk_125m_ref    : std_logic;
+    locked  : std_logic;
+    stopped : std_logic;
+    pps     : std_logic;
+  end record;
+
   -- types for 8-bit Serdes
   type t_phy_8bits_to_wrc is record
     ref_clk        : std_logic;
@@ -95,7 +103,8 @@ package wr_xilinx_pkg is
     generic
     (
       g_simulation         :       integer := 0;
-      g_family             :       string  := "spartan6"
+      g_family             :       string  := "spartan6";
+      g_with_10m_refin     :       integer := 0
     );
     port (
       local_reset_n_i      : in    std_logic;
@@ -104,6 +113,9 @@ package wr_xilinx_pkg is
       clk_125m_pllref_n_i  : in    std_logic;
       clk_125m_gtp_n_i     : in    std_logic;                     -- 125 MHz GTP reference
       clk_125m_gtp_p_i     : in    std_logic;                     -- 125 MHz GTP reference
+      clk_10m_ref_p_i      : in    std_logic := '0';              -- 10MHz external reference
+      clk_10m_ref_n_i      : in    std_logic := '0';              -- 10MHz external reference
+      pps_ext_i            : in    std_logic := '0';              -- external 1-PPS from reference
       dac_sclk_o           : out   std_logic;                      -- Serial Clock Line
       dac_din_o            : out   std_logic;                      -- Serial Data Line
       dac_clr_n_o          : out   std_logic;                      -- ?
@@ -132,7 +144,9 @@ package wr_xilinx_pkg is
       owr_en_i             : in  std_logic_vector(1 downto 0);
       owr_o                : out std_logic_vector(1 downto 0);
       sfp_config_o         : out t_sfp_to_wrc;
-      sfp_config_i         : in  t_sfp_from_wrc
+      sfp_config_i         : in  t_sfp_from_wrc;
+      ext_ref_o            : out t_extref_to_wrc;
+      ext_ref_rst_i        : in  std_logic := '0'
       );
   end component;
 
