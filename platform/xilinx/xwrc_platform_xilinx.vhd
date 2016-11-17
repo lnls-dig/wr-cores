@@ -306,6 +306,7 @@ begin
         pulse_i    => ext_ref_rst_i,
         extended_o => ext_pll_rst);
   end generate;
+  ext_ref_o.clk_10m_ref <= clk_10m_ref;
   ext_ref_o.pps <= pps_ext_i;
 
   -------------------------------------------------------------------------------
