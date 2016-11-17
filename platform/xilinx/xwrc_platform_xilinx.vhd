@@ -3,7 +3,7 @@
 -- Project    : WR PTP Core
 -------------------------------------------------------------------------------
 -- File       : wrc_platform_xilinx.vhd
--- Author     : Maciej Lipinski
+-- Author     : Maciej Lipinski, Grzegorz Daniluk
 -- Company    : CERN
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
@@ -142,6 +142,7 @@ architecture rtl of xwrc_platform_xilinx is
   signal clk_62m5_pllout_fb_dmtd   : std_logic;
   signal clk_20m_vcxo_buf          : std_logic;
   signal clk_125m_pllref           : std_logic;
+  signal clk_125m_pllref_bufg      : std_logic;
   signal clk_125m_gtp              : std_logic;
   signal clk_62m5_sys              : std_logic;
   signal clk_80m_ADC               : std_logic;
@@ -197,7 +198,7 @@ begin
       LOCKED               => open,
       RST                  => '0',
       CLKFBIN              => clk_62m5_pllout_fb_pllref,
-      CLKIN                => clk_125m_pllref);
+      CLKIN                => clk_125m_pllref_bufg);
 
   cmp_dmtd_clk_pll : PLL_BASE
     generic map (
@@ -260,8 +261,13 @@ begin
                                                     -- to top-level port)
       IB                   => clk_125m_pllref_n_i );-- Diff_n buffer input (connect directly
                                                     -- to top-level port)
-  phy8_o.ref_clk     <= clk_125m_pllref;
-  clk_125m_pllref_o  <= clk_125m_pllref;
+  cmp_pllrefclk_bufg : BUFG
+    port map (
+      O => clk_125m_pllref_bufg,
+      I => clk_125m_pllref);
+
+  phy8_o.ref_clk     <= clk_125m_pllref_bufg;
+  clk_125m_pllref_o  <= clk_125m_pllref_bufg;
 
   -------------------------------------------------------------------------------------------
   -- Dedicated clock for GTP --ML:  different in SPEC -> need check
@@ -335,7 +341,7 @@ begin
         g_enable_ch1               => 1)
       port map (
         gtp_clk_i                  => clk_125m_gtp,
-        ch0_ref_clk_i              => clk_125m_pllref,
+        ch0_ref_clk_i              => clk_125m_pllref_bufg,
         ch0_tx_data_i              => x"00",
         ch0_tx_k_i                 => '0',
         ch0_tx_disparity_o         => open,
@@ -347,7 +353,7 @@ begin
         ch0_rx_bitslide_o          => open,
         ch0_rst_i                  => '1',
         ch0_loopen_i               => '0',
-        ch1_ref_clk_i              => clk_125m_pllref,
+        ch1_ref_clk_i              => clk_125m_pllref_bufg,
         ch1_tx_data_i              => phy8_i.tx_data,
         ch1_tx_k_i                 => phy8_i.tx_k(0),
         ch1_tx_disparity_o         => phy8_o.tx_disparity,
