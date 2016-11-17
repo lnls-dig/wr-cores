@@ -323,7 +323,14 @@ TIMESPEC TS_dio_clk_p_i = PERIOD "dio_clk_p_i" 100 ns HIGH 50%;
 NET "dio_clk_n_i" TNM_NET = dio_clk_n_i;
 TIMESPEC TS_dio_clk_n_i = PERIOD "dio_clk_n_i" 100 ns HIGH 50%;
 
-PIN "clk_125m_pllref_BUFG.O" CLOCK_DEDICATED_ROUTE = FALSE; 
+# Needed only when DMTD samples 125m refclock (clock has to be fed to D input of
+# a flip-flop).
+# However, in case of SPEC we use g_divide_input_by_2 generic in the dmtd_with_deglitcher.
+# This re-generates 62.5MHz clock from 125Mhz and we don't feed 125M clock directly to D
+# input of a flip-flop. This constraint would be needed e.g. for Kintex, where
+# refclock is 62.5MHz and we don't use g_divide_input_by_2.
+#PIN "WRC_PLATFORM/cmp_pllrefclk_bufg.O" CLOCK_DEDICATED_ROUTE = FALSE; 
+
 #Created by Constraints Editor (xc6slx45t-fgg484-3) - 2016/11/14
 NET "WRC_PLATFORM/gen_phy_spartan6.cmp_GTP/ch1_gtp_clkout_int<1>" TNM_NET = WRC_PLATFORM/gen_phy_spartan6.cmp_GTP/ch1_gtp_clkout_int<1>;
 TIMESPEC TS_WRC_PLATFORM_gen_phy_spartan6_cmp_GTP_ch1_gtp_clkout_int_1_ = PERIOD "WRC_PLATFORM/gen_phy_spartan6.cmp_GTP/ch1_gtp_clkout_int<1>" 8 ns HIGH 50%;
