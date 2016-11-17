@@ -317,6 +317,11 @@ NET "clk_125m_gtp_p_i" TNM_NET = clk_125m_gtp_p_i;
 TIMESPEC TS_clk_125m_gtp_p_i = PERIOD "clk_125m_gtp_p_i" 8 ns HIGH 50%;
 NET "clk_125m_gtp_n_i" TNM_NET = clk_125m_gtp_n_i;
 TIMESPEC TS_clk_125m_gtp_n_i = PERIOD "clk_125m_gtp_n_i" 8 ns HIGH 50%;
+# 10MHz reference clock input
+NET "dio_clk_p_i" TNM_NET = dio_clk_p_i;
+TIMESPEC TS_dio_clk_p_i = PERIOD "dio_clk_p_i" 100 ns HIGH 50%;
+NET "dio_clk_n_i" TNM_NET = dio_clk_n_i;
+TIMESPEC TS_dio_clk_n_i = PERIOD "dio_clk_n_i" 100 ns HIGH 50%;
 
 PIN "clk_125m_pllref_BUFG.O" CLOCK_DEDICATED_ROUTE = FALSE; 
 #Created by Constraints Editor (xc6slx45t-fgg484-3) - 2016/11/14
