@@ -149,6 +149,7 @@ architecture rtl of xwrc_platform_xilinx is
 
   -- External 10MHz reference
   signal clk_10m_ref  : std_logic;
+  signal clk_10m_ref_bufg  : std_logic;
   signal ext_pll_rst  : std_logic;
 
   -- WRPC <--> EEPROM on FMC
@@ -295,9 +296,14 @@ begin
         I  => clk_10m_ref_p_i,
         IB => clk_10m_ref_n_i);
 
+    U_Ext_BUFG : BUFG
+      port map (
+        O => clk_10m_ref_bufg,
+        I => clk_10m_ref);
+
     U_Ext_PLL : ext_pll_10_to_125m
       port map (
-        clk_ext_i        => clk_10m_ref,
+        clk_ext_i        => clk_10m_ref_bufg,
         clk_ext_mul_o    => ext_ref_o.clk_125m_ref,
         rst_a_i          => ext_pll_rst,
         clk_in_stopped_o => ext_ref_o.stopped,
@@ -312,7 +318,7 @@ begin
         pulse_i    => ext_ref_rst_i,
         extended_o => ext_pll_rst);
   end generate;
-  ext_ref_o.clk_10m_ref <= clk_10m_ref;
+  ext_ref_o.clk_10m_ref <= clk_10m_ref_bufg;
   ext_ref_o.pps <= pps_ext_i;
 
   -------------------------------------------------------------------------------
