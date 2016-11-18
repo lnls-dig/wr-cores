@@ -1,0 +1,1 @@
+qmegawiz { arria5_dmtd_pll_default arria5_ext_ref_pll_default arria5_sys_pll_default }

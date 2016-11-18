@@ -1,5 +1,6 @@
--- megafunction wizard: %Transceiver Reconfiguration Controller v13.1%
--- Retrieval info: <instance entity-name="alt_xcvr_reconfig" version="13.1" >
+-- megafunction wizard: %Transceiver Reconfiguration Controller v16.0%
+-- Retrieval info: <?xml version="1.0"?>
+-- Retrieval info: <instance entity-name="alt_xcvr_reconfig" version="16.0" >
 -- Retrieval info: 	<generic name="device_family" value="Arria V" />
 -- Retrieval info: 	<generic name="number_of_reconfig_interfaces" value="2" />
 -- Retrieval info: 	<generic name="gui_split_sizes" value="" />
@@ -14,5 +15,4 @@
 -- Retrieval info: 	<generic name="enable_mif" value="0" />
 -- Retrieval info: 	<generic name="gui_enable_pll" value="0" />
 -- Retrieval info: 	<generic name="gui_cal_status_port" value="false" />
--- Retrieval info: 	<generic name="AUTO_MGMT_CLK_CLK_CLOCK_RATE" value="-1" />
 -- Retrieval info: </instance>
