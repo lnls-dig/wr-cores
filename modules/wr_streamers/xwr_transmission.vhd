@@ -53,7 +53,6 @@ library work;
 use work.wishbone_pkg.all;  -- needed for t_wishbone_slave_in, etc
 use work.streamers_pkg.all; -- needed for streamers and  c_WR_TRANS_ARR_SIZE_*
 use work.wr_fabric_pkg.all; -- needed for :t_wrf_source_in, etc
-use work.WRBtrain_pkg.all;  -- needed for c_STREAMER_DATA_WIDTH
 use work.wrcore_pkg.all;    -- needed for t_generic_word_array
 use work.wr_transmission_wbgen2_pkg.all;
 
@@ -61,7 +60,9 @@ entity xwr_transmission is
 
   generic (
     -- Width of data words on tx_data_i.
-    g_data_width : integer := 32
+    g_tx_data_width           : integer := 32;
+    -- Width of the data words. Must be same as in the TX streamer.
+    g_rx_data_width            : integer := 32
     );
 
   port (
@@ -83,7 +84,7 @@ entity xwr_transmission is
     -- User tx interface
     ---------------------------------------------------------------------------
     -- Data word to be sent.
-    tx_data_i : in std_logic_vector(g_data_width-1 downto 0);
+    tx_data_i : in std_logic_vector(g_tx_data_width-1 downto 0);
     -- 1 indicates that the tx_data_i contains a valid data word.
     tx_valid_i : in std_logic;
     -- Synchronous data request: if active, the user may send a data word in
@@ -104,7 +105,7 @@ entity xwr_transmission is
     -- 1 indicates the last word of the data block on rx_data_o.
     rx_last_p1_o       : out std_logic;
     -- Received data.
-    rx_data_o          : out std_logic_vector(g_data_width-1 downto 0);
+    rx_data_o          : out std_logic_vector(g_rx_data_width-1 downto 0);
     -- 1 indicted that rx_data_o is outputting a valid data word.
     rx_valid_o         : out std_logic;
     -- Synchronous data request input: when 1, the streamer may output another
@@ -154,15 +155,13 @@ architecture rtl of xwr_transmission is
     );
   end component;
 
-  constant c_STREAMER_DATA_WIDTH : integer :=208;
-  constant c_STREAMER_ETHERTYPE  : std_logic_vector(15 downto 0) := x"dbff";	
   signal regs_to_wb              : t_wr_transmission_in_registers;
   signal regs_from_wb            : t_wr_transmission_out_registers;
   signal dbg_word                : std_logic_vector(31 downto 0);
   signal dbg_tx_bfield           : std_logic_vector(31 downto 0);
   signal dbg_rx_bfield           : std_logic_vector(31 downto 0);
   signal start_bit               : std_logic_vector(regs_from_wb.dbg_ctrl_start_byte_o'length-1+3 downto 0);
-  signal rx_data                 : std_logic_vector(g_data_width-1 downto 0);
+  signal rx_data                 : std_logic_vector(g_rx_data_width-1 downto 0);
   signal wb_regs_slave_in        : t_wishbone_slave_in;
   signal wb_regs_slave_out       : t_wishbone_slave_out;  
   signal rx_latency_valid        : std_logic;
@@ -175,7 +174,7 @@ architecture rtl of xwr_transmission is
   signal latency_acc             : std_logic_vector(63 downto 0);
   signal rx_valid                : std_logic;
   signal rx_lost_frames_cnt      : std_logic_vector(14 downto 0);
-  function f_dbg_word_starting_at_byte(data_in, start_bit : std_logic_vector) return std_logic_vector is
+  function f_dbg_word_starting_at_byte(data_in, start_bit : std_logic_vector; g_data_width: integer) return std_logic_vector is
     variable sb     : integer := 0;
     variable result : std_logic_vector(31 downto 0);
   begin
@@ -194,7 +193,7 @@ begin
 
   U_TX: xtx_streamer
     generic map(
-      g_data_width             => c_STREAMER_DATA_WIDTH,
+      g_data_width             => g_tx_data_width,
       g_tx_threshold           => 8,
       g_tx_timeout             => 1024)
     port map(
@@ -215,11 +214,11 @@ begin
       tx_frame_p1_o            => tx_frame,
       cfg_mac_local_i          => x"000000000000",
       cfg_mac_target_i         => x"ffffffffffff",
-      cfg_ethertype_i          => c_STREAMER_ETHERTYPE);
+      cfg_ethertype_i          => x"dbff");
 
   U_RX: xrx_streamer
     generic map(
-      g_data_width             => c_STREAMER_DATA_WIDTH,
+      g_data_width             => g_rx_data_width,
       g_filter_remote_mac      => false)
     port map(
       clk_sys_i                => clk_sys_i,
@@ -243,7 +242,7 @@ begin
       rx_frame_p1_o            => rx_frame,
       cfg_mac_local_i          => x"000000000000",
       cfg_mac_remote_i         => x"000000000000",
-      cfg_ethertype_i          => c_STREAMER_ETHERTYPE,
+      cfg_ethertype_i          => x"dbff",
       cfg_accept_broadcasts_i  => '1');
 
   rx_data_o  <= rx_data;
@@ -333,18 +332,18 @@ begin
       else
         if(regs_from_wb.dbg_ctrl_mux_o = '1') then --rx
           if(rx_valid = '1') then
-            dbg_word <= f_dbg_word_starting_at_byte(rx_data,start_bit);
+            dbg_word <= f_dbg_word_starting_at_byte(rx_data,start_bit,g_tx_data_width);
           end if;
         else -- tx
           if(tx_valid_i = '1') then
-            dbg_word <= f_dbg_word_starting_at_byte(tx_data_i,start_bit);
+            dbg_word <= f_dbg_word_starting_at_byte(tx_data_i,start_bit,g_tx_data_width);
           end if;
         end if;
       end if;
     end if;
   end process;
 
-
+  -- this is b-train specific stuff
   p_bfield_for_SNMP: process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
@@ -353,22 +352,22 @@ begin
         dbg_rx_bfield <= (others =>'0');
       else
         if(rx_valid = '1') then
-          dbg_rx_bfield <= rx_data(31+16 downto 16);
+          dbg_rx_bfield <= rx_data(15+16 downto 0+16) & rx_data(31+16 downto 16+16);
         end if;
         if(tx_valid_i = '1') then
-          dbg_tx_bfield <= tx_data_i(31+16 downto 16);
+          dbg_tx_bfield <= tx_data_i(15+16 downto 0+16) & tx_data_i(31+16 downto 16+16);
         end if;
       end if;
     end if;
   end process;  
 
   snmp_array_o(c_STREAMERS_ARR_SIZE_OUT)   <= dbg_word;
-  snmp_array_o(c_STREAMERS_ARR_SIZE_OUT+1) <= f_bigEndianess(dbg_rx_bfield);
-  snmp_array_o(c_STREAMERS_ARR_SIZE_OUT+2) <= f_bigEndianess(dbg_tx_bfield);
+  snmp_array_o(c_STREAMERS_ARR_SIZE_OUT+1) <= dbg_rx_bfield;
+  snmp_array_o(c_STREAMERS_ARR_SIZE_OUT+2) <= dbg_tx_bfield;
 
   regs_to_wb.dbg_data_i      <= dbg_word;
-  regs_to_wb.dbg_rx_bvalue_i <= f_bigEndianess(dbg_rx_bfield);
-  regs_to_wb.dbg_tx_bvalue_i <= f_bigEndianess(dbg_tx_bfield);
+  regs_to_wb.dbg_rx_bvalue_i <= dbg_rx_bfield;
+  regs_to_wb.dbg_tx_bvalue_i <= dbg_tx_bfield;
   regs_to_wb.dummy_dummy_i   <= x"DEADBEEF";
   
 
