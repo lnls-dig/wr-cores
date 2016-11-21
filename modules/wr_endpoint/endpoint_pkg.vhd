@@ -130,8 +130,8 @@ package endpoint_pkg is
       phy_loopen_o         : out std_logic;
       phy_loopen_vec_o     : out std_logic_vector(2 downto 0);
       phy_tx_prbs_sel_o    : out std_logic_vector(2 downto 0);
-      phy_sfp_tx_fault_i   : in  std_logic;
-      phy_sfp_los_i        : in  std_logic;
+      phy_sfp_tx_fault_i   : in  std_logic                     := '0';
+      phy_sfp_los_i        : in  std_logic                     := '0';
       phy_sfp_tx_disable_o : out std_logic;
       phy_enable_o         : out std_logic;
       phy_syncen_o         : out std_logic;
@@ -233,8 +233,8 @@ package endpoint_pkg is
       phy_loopen_o         : out std_logic;
       phy_loopen_vec_o     : out std_logic_vector(2 downto 0);
       phy_tx_prbs_sel_o    : out std_logic_vector(2 downto 0);
-      phy_sfp_tx_fault_i   : in  std_logic;
-      phy_sfp_los_i        : in  std_logic;
+      phy_sfp_tx_fault_i   : in  std_logic                     := '0';
+      phy_sfp_los_i        : in  std_logic                     := '0';
       phy_sfp_tx_disable_o : out std_logic;
       phy_enable_o         : out std_logic;
       phy_syncen_o         : out std_logic;
