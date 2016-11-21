@@ -1,7 +1,7 @@
 -- -*- Mode: LUA; tab-width: 2 -*-
 
 peripheral {
-  name = "WR Transmission control and debug";
+  name = "WR Transmission control, status and debug";
   description = "\
   -----------------------------------------------------------------\
   This WB registers allow to diagnose transmission and reception of\
@@ -206,6 +206,159 @@ peripheral {
       size = 32;
       access_bus = READ_ONLY;
       access_dev = WRITE_ONLY;
+      };
+  };
+  reg {
+    name = "Tx Config Reg 0";
+    prefix = "TX_CFG0";
+    field {
+      name = "Ethertype";
+      prefix = "Ethertype";
+      type = SLV;
+      size = 16;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+  };
+  reg {
+    name = "Tx Config Reg 1";
+    prefix = "TX_CFG1";
+    field {
+      name = "MAC Local LSB";
+      prefix = "mac_local_LSB";
+      type = SLV;
+      size = 32;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+  };
+  reg {
+    name = "Tx Config Reg 2";
+    prefix = "TX_CFG2";
+    field {
+      name = "MAC Local MSB";
+      prefix = "mac_local_MSB";
+      type = SLV;
+      size = 16;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+  };
+  reg {
+    name = "Tx Config Reg 3";
+    prefix = "TX_CFG3";
+    field {
+      name = "MAC Target LSB";
+      prefix = "mac_target_lsb";
+      type = SLV;
+      size = 32;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+  };
+  reg {
+    name = "Tx Config Reg 4";
+    prefix = "TX_CFG4";
+    field {
+      name = "MAC Target MSB";
+      prefix = "mac_target_MSB";
+      type = SLV;
+      size = 16;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+  };
+  reg {
+    name = "Rx Config Reg 0";
+    prefix = "RX_CFG0";
+    field {
+      name = "Ethertype";
+      prefix = "Ethertype";
+      type = SLV;
+      size = 16;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+    field {
+      name = "Accept Broadcast";
+      description = "0: accept only unicasts; \
+      1: accept all broadcast packets";
+      prefix = "accept_broadcast";
+      type = BIT;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+  };
+  reg {
+    name = "Rx Config Reg 1";
+    prefix = "RX_CFG1";
+    field {
+      name = "MAC Local LSB";
+      prefix = "mac_local_LSB";
+      type = SLV;
+      size = 32;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+  };
+  reg {
+    name = "Rx Config Reg 2";
+    prefix = "RX_CFG2";
+    field {
+      name = "MAC Local MSB";
+      prefix = "mac_local_MSB";
+      type = SLV;
+      size = 16;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+  };
+  reg {
+    name = "Rx Config Reg 3";
+    prefix = "RX_CFG3";
+    field {
+      name = "MAC Remote LSB";
+      prefix = "mac_remote_lsb";
+      type = SLV;
+      size = 32;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+  };
+  reg {
+    name = "Rx Config Reg 4";
+    prefix = "RX_CFG4";
+    field {
+      name = "MAC Remote MSB";
+      prefix = "mac_remote_MSB";
+      type = SLV;
+      size = 16;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+  };
+  reg {
+    name = "TxRx Config";
+    prefix = "CFG";
+    field {
+      name = "Enable WB TX CONFIG";
+      description = "Decide whether the transmission configuration of streamers should be the one provided as an input to the xwr_transmission module (either default, or provided by application-specifici module) or it should be the one provided in the WB registers:\
+      0: TX config loaded from application or default; \
+      1: TX config loaded from wishbone registers";
+      prefix = "tx_ena";
+      type = BIT;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+    field {
+      name = "Enable WB RX CONFIG";
+      description = "Decide whether the reception configuration of streamers should be the one provided as an input to the xwr_transmission module (either default, or provided by application-specifici module) or it should be the one provided in the WB registers:\
+      0: RX config loaded from application or default; \
+      1: RX config loaded from wishbone registers";
+      prefix = "rx_ena";
+      type = BIT;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
       };
   };
   reg {
