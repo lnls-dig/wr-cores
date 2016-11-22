@@ -320,6 +320,7 @@ package wrcore_pkg is
       g_softpll_enable_debugger   : boolean                        := false;
       g_vuart_fifo_size           : integer                        := 1024;
       g_pcs_16bit                 : boolean                        := false;
+      g_records_for_phy           : boolean                        := false;
       g_diag_id                   : integer                        := 0;
       g_diag_ver                  : integer                        := 0;
       g_diag_ro_size              : integer                        := 0;
@@ -341,7 +342,9 @@ package wrcore_pkg is
       dac_hpll_data_o      : out std_logic_vector(15 downto 0);
       dac_dpll_load_p1_o   : out std_logic;
       dac_dpll_data_o      : out std_logic_vector(15 downto 0);
-
+      -----------------------------------------
+      -- PHY I/f
+      -----------------------------------------
       phy_ref_clk_i        : in  std_logic                    := '0';
       phy_tx_data_o        : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
       phy_tx_k_o           : out std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
@@ -360,6 +363,14 @@ package wrcore_pkg is
       phy_sfp_tx_fault_i   : in std_logic := '0';
       phy_sfp_los_i        : in std_logic := '0';
       phy_sfp_tx_disable_o : out std_logic;
+      -----------------------------------------
+      -- PHY I/f - record-based
+      -- selection done with g_records_for_phy
+      -----------------------------------------
+      phy8_o  : out t_phy_8bits_from_wrc;
+      phy8_i  : in  t_phy_8bits_to_wrc  := c_dummy_phy8_to_wrc;
+      phy16_o : out t_phy_16bits_from_wrc;
+      phy16_i : in  t_phy_16bits_to_wrc := c_dummy_phy16_to_wrc;
 
       led_act_o  : out std_logic;
       led_link_o : out std_logic;
@@ -445,6 +456,7 @@ package wrcore_pkg is
       g_softpll_enable_debugger   : boolean                        := false;
       g_vuart_fifo_size           : integer                        := 1024;
       g_pcs_16bit                 : boolean                        := false;
+      g_records_for_phy           : boolean                        := false;
       g_diag_id                   : integer                        := 0;
       g_diag_ver                  : integer                        := 0;
       g_diag_ro_size              : integer                        := 0;
@@ -488,7 +500,9 @@ package wrcore_pkg is
       dac_dpll_load_p1_o : out std_logic;
       dac_dpll_data_o    : out std_logic_vector(15 downto 0);
 
+      -----------------------------------------
       -- PHY I/f
+      -----------------------------------------
       phy_ref_clk_i : in std_logic;
 
       phy_tx_data_o      : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
@@ -510,6 +524,14 @@ package wrcore_pkg is
       phy_sfp_tx_fault_i   : in std_logic := '0';
       phy_sfp_los_i        : in std_logic := '0';
       phy_sfp_tx_disable_o : out std_logic;
+      -----------------------------------------
+      -- PHY I/f - record-based
+      -- selection done with g_records_for_phy
+      -----------------------------------------
+      phy8_o  : out t_phy_8bits_from_wrc;
+      phy8_i  : in  t_phy_8bits_to_wrc  := c_dummy_phy8_to_wrc;
+      phy16_o : out t_phy_16bits_from_wrc;
+      phy16_i : in  t_phy_16bits_to_wrc := c_dummy_phy16_to_wrc;
 
       -----------------------------------------
       --GPIO

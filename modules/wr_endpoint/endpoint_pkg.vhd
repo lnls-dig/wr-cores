@@ -72,6 +72,76 @@ package endpoint_pkg is
   end record;
   type t_fab_pipe is array(integer range <>) of t_ep_internal_fabric;
 
+  -----------------------------
+  -- Phy i/f types
+  -----------------------------
+  -- 8-bit Serdes
+  type t_phy_8bits_to_wrc is record
+    ref_clk        : std_logic;
+    tx_disparity   : std_logic;
+    tx_enc_err     : std_logic;
+    rx_data        : std_logic_vector(7 downto 0);
+    rx_clk         : std_logic;
+    rx_k           : std_logic_vector(0 downto 0);
+    rx_enc_err     : std_logic;
+    rx_bitslide    : std_logic_vector(3 downto 0);
+    rdy            : std_logic;
+    sfp_tx_fault   : std_logic;
+    sfp_los        : std_logic;
+  end record;
+  type t_phy_8bits_from_wrc is record
+    rst            : std_logic;
+    loopen         : std_logic;
+    enable         : std_logic;
+    syncen         : std_logic;
+    tx_data        : std_logic_vector(7 downto 0);
+    tx_k           : std_logic_vector(0 downto 0);
+    loopen_vec     : std_logic_vector(2 downto 0);
+    tx_prbs_sel    : std_logic_vector(2 downto 0);
+    sfp_tx_disable : std_logic;
+  end record;
+
+  constant c_dummy_phy8_to_wrc : t_phy_8bits_to_wrc :=
+    ('0', '0', '0', (others=>'0'), '0', (others=>'0'), '0', (others=>'0'), '0',
+    '0', '0');
+  constant c_dummy_phy8_from_wrc : t_phy_8bits_from_wrc :=
+    ('0', '0', '0', '0', (others=>'0'), (others=>'0'), (others=>'0'),
+    (others=>'0'), '0');
+
+  -- 16-bit Serdes
+  type t_phy_16bits_to_wrc is record
+    ref_clk        : std_logic;
+    tx_disparity   : std_logic;
+    tx_enc_err     : std_logic;
+    rx_data        : std_logic_vector(15 downto 0);
+    rx_clk         : std_logic;
+    rx_k           : std_logic_vector(1 downto 0);
+    rx_enc_err     : std_logic;
+    rx_bitslide    : std_logic_vector(4 downto 0);
+    rdy            : std_logic;
+    sfp_tx_fault   : std_logic;
+    sfp_los        : std_logic;
+  end record;
+  type t_phy_16bits_from_wrc is record
+    rst            : std_logic;
+    loopen         : std_logic;
+    enable         : std_logic;
+    syncen         : std_logic;
+    tx_data        : std_logic_vector(15 downto 0);
+    tx_k           : std_logic_vector(1 downto 0);
+    loopen_vec     : std_logic_vector(2 downto 0);
+    tx_prbs_sel    : std_logic_vector(2 downto 0);
+    sfp_tx_disable : std_logic;
+  end record;
+
+  constant c_dummy_phy16_to_wrc : t_phy_16bits_to_wrc :=
+    ('0', '0', '0', (others=>'0'), '0', (others=>'0'), '0', (others=>'0'), '0',
+    '0', '0');
+  constant c_dummy_phy16_from_wrc : t_phy_16bits_from_wrc :=
+    ('0', '0', '0', '0', (others=>'0'), (others=>'0'), (others=>'0'),
+    (others=>'0'), '0');
+
+
   -- debug CS types
   type t_dbg_ep_rxpcs is record
     fsm : std_logic_vector(2 downto 0);
@@ -104,6 +174,7 @@ package endpoint_pkg is
       g_address_granularity   : t_wishbone_address_granularity := WORD;
       g_simulation            : boolean                        := false;
       g_pcs_16bit             : boolean                        := false;
+      g_records_for_phy       : boolean                        := false;
       g_tx_force_gap_length   : integer                        := 0;
       g_tx_runt_padding       : boolean                        := false;
       g_rx_buffer_size        : integer                        := 1024;
@@ -146,6 +217,10 @@ package endpoint_pkg is
       phy_rx_k_i           : in  std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
       phy_rx_enc_err_i     : in  std_logic                     := '0';
       phy_rx_bitslide_i    : in  std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
+      phy8_o               : out t_phy_8bits_from_wrc;
+      phy8_i               : in  t_phy_8bits_to_wrc  := c_dummy_phy8_to_wrc;
+      phy16_o              : out t_phy_16bits_from_wrc;
+      phy16_i              : in  t_phy_16bits_to_wrc := c_dummy_phy16_to_wrc;
       gmii_tx_clk_i        : in  std_logic                     := '0';
       gmii_txd_o           : out std_logic_vector(7 downto 0);
       gmii_tx_en_o         : out std_logic;

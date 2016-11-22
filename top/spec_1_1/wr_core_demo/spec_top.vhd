@@ -52,6 +52,9 @@ use work.gencores_pkg.all;
 use work.wrcore_pkg.all;
 -- Use the Xilinx White Rabbit platform-specific package (for xwrc_platform_xilinx)
 use work.wr_xilinx_pkg.all;
+-- Use the Endpoint package inside the WR PTP Core for definitions of
+-- record-based PHY interfaces phy8_o, phy8_i
+use work.endpoint_pkg.all;
 
 ---------------------------------------------------------------------------
 -- Additional packages needed for other HDL modules in this design
@@ -464,6 +467,7 @@ begin
       g_ep_rxbuf_size             => 1024,
       g_tx_runt_padding           => true,
       g_pcs_16bit                 => false,
+      g_records_for_phy           => true,
       g_dpram_initf               => "wrc.ram",
       g_aux_sdb                   => c_etherbone_sdb,
       g_dpram_size                => 131072/4,
@@ -491,24 +495,8 @@ begin
       dac_dpll_data_o    => wrc_dacs_out.dpll_data,
 
       -- PHY (SerDes) connections
-      phy_ref_clk_i      => clk_125m_pllref,
-      phy_tx_data_o      => wrc_phy_out.tx_data,
-      phy_tx_k_o         => wrc_phy_out.tx_k,
-      phy_tx_disparity_i => wrc_phy_in.tx_disparity,
-      phy_tx_enc_err_i   => wrc_phy_in.tx_enc_err,
-      phy_rx_data_i      => wrc_phy_in.rx_data,
-      phy_rx_rbclk_i     => wrc_phy_in.rx_clk,
-      phy_rx_k_i         => wrc_phy_in.rx_k,
-      phy_rx_enc_err_i   => wrc_phy_in.rx_enc_err,
-      phy_rx_bitslide_i  => wrc_phy_in.rx_bitslide,
-      phy_rst_o          => wrc_phy_out.rst,
-      phy_loopen_o       => wrc_phy_out.loopen,
-      phy_loopen_vec_o   => wrc_phy_out.loopen_vec,
-      phy_rdy_i          => wrc_phy_in.rdy,
-      phy_tx_prbs_sel_o  => wrc_phy_out.tx_prbs_sel,
-      phy_sfp_tx_fault_i   => wrc_phy_in.sfp_tx_fault,
-      phy_sfp_los_i        => wrc_phy_in.sfp_los,
-      phy_sfp_tx_disable_o => wrc_phy_out.sfp_tx_disable,
+      phy8_o => wrc_phy_out,
+      phy8_i => wrc_phy_in,
 
       -- Timecode & 1-PPS interface
       tm_dac_value_o       => open,

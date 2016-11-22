@@ -98,6 +98,7 @@ entity wr_core is
     g_softpll_enable_debugger   : boolean                        := false;
     g_vuart_fifo_size           : integer                        := 1024;
     g_pcs_16bit                 : boolean                        := false;
+    g_records_for_phy           : boolean                        := false;
     g_diag_id                   : integer                        := 0;
     g_diag_ver                  : integer                        := 0;
     g_diag_ro_size              : integer                        := 0;
@@ -164,6 +165,12 @@ entity wr_core is
     phy_sfp_tx_fault_i   : in std_logic := '0';
     phy_sfp_los_i        : in std_logic := '0';
     phy_sfp_tx_disable_o : out std_logic;
+
+    -- PHY I/F record-based
+    phy8_o  : out t_phy_8bits_from_wrc;
+    phy8_i  : in  t_phy_8bits_to_wrc  := c_dummy_phy8_to_wrc;
+    phy16_o : out t_phy_16bits_from_wrc;
+    phy16_i : in  t_phy_16bits_to_wrc := c_dummy_phy16_to_wrc;
 
     -----------------------------------------
     --GPIO
@@ -351,6 +358,7 @@ architecture struct of wr_core is
   -----------------------------------------------------------------------------
   --Timing system
   -----------------------------------------------------------------------------
+  signal phy_rx_clk  : std_logic;
   signal spll_wb_in  : t_wishbone_slave_in;
   signal spll_wb_out : t_wishbone_slave_out;
 
@@ -540,6 +548,17 @@ begin
   -----------------------------------------------------------------------------
   -- Software PLL
   -----------------------------------------------------------------------------
+  GEN_16BIT_PHY_IF: if g_pcs_16bit and g_records_for_phy generate
+    phy_rx_clk <= phy16_i.rx_clk;
+  end generate;
+
+  GEN_8BIT_PHY_IF: if not g_pcs_16bit and g_records_for_phy generate
+    phy_rx_clk <= phy8_i.rx_clk;
+  end generate;
+
+  GEN_STD_PHY_IF: if not g_records_for_phy generate
+    phy_rx_clk <= phy_rx_rbclk_i;
+  end generate;
 
   U_SOFTPLL : xwr_softpll_ng
     generic map(
@@ -559,7 +578,7 @@ begin
       rst_n_i   => rst_net_n,
 
       -- Reference inputs (i.e. the RX clocks recovered by the PHYs)
-      clk_ref_i(0) => phy_rx_rbclk_i,
+      clk_ref_i(0) => phy_rx_clk,
       -- Feedback clocks (i.e. the outputs of the main or aux oscillator)
       clk_fb_i     => clk_fb,
       -- DMTD Offset clock
@@ -630,6 +649,7 @@ begin
       g_simulation          => f_int_to_bool(g_simulation),
       g_tx_runt_padding     => g_tx_runt_padding,
       g_pcs_16bit           => g_pcs_16bit,
+      g_records_for_phy     => g_records_for_phy,
       g_rx_buffer_size      => g_rx_buffer_size,
       g_with_rx_buffer      => true,
       g_with_flow_control   => false,
@@ -667,6 +687,11 @@ begin
       phy_rx_k_i           => phy_rx_k_i,
       phy_rx_enc_err_i     => phy_rx_enc_err_i,
       phy_rx_bitslide_i    => phy_rx_bitslide_i,
+
+      phy8_o  => phy8_o,
+      phy8_i  => phy8_i,
+      phy16_o => phy16_o,
+      phy16_i => phy16_i,
 
       src_o => ep_src_out,
       src_i => ep_src_in,

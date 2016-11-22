@@ -49,6 +49,7 @@ use work.wishbone_pkg.all;
 use work.wr_xilinx_pkg.all;
 use work.wrcore_pkg.all;
 use work.gencores_pkg.all;
+use work.endpoint_pkg.all;
 
 library UNISIM;
 use UNISIM.vcomponents.all;

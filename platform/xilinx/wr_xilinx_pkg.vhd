@@ -6,6 +6,7 @@ use work.genram_pkg.all;
 use work.wishbone_pkg.all;
 use work.sysc_wbgen2_pkg.all;
 use work.wr_fabric_pkg.all;
+use work.endpoint_pkg.all;
 
 package wr_xilinx_pkg is
 
@@ -37,66 +38,6 @@ package wr_xilinx_pkg is
     stopped : std_logic;
     pps     : std_logic;
   end record;
-
-  -- types for 8-bit Serdes
-  type t_phy_8bits_to_wrc is record
-    ref_clk        : std_logic;
-    tx_disparity   : std_logic;
-    tx_enc_err     : std_logic;
-    rx_data        : std_logic_vector(7 downto 0);
-    rx_clk         : std_logic;
-    rx_k           : std_logic_vector(0 downto 0);
-    rx_enc_err     : std_logic;
-    rx_bitslide    : std_logic_vector(3 downto 0);
-    rdy            : std_logic;
-    sfp_tx_fault   : std_logic;
-    sfp_los        : std_logic;
-  end record;
-  type t_phy_8bits_from_wrc is record
-    rst            : std_logic;
-    loopen         : std_logic;
-    enable         : std_logic;
-    syncen         : std_logic;
-    tx_data        : std_logic_vector(7 downto 0);
-    tx_k           : std_logic_vector(0 downto 0);
-    loopen_vec     : std_logic_vector(2 downto 0);
-    tx_prbs_sel    : std_logic_vector(2 downto 0);
-    sfp_tx_disable : std_logic;
-  end record;
-
-  constant c_dummy_phy8_from_wrc : t_phy_8bits_from_wrc :=
-    ('0', '0', '0', '0', (others=>'0'), (others=>'0'), (others=>'0'),
-    (others=>'0'), '0');
-
-  -- types for 16-bit Serdes
-  type t_phy_16bits_to_wrc is record
-    ref_clk        : std_logic;
-    tx_disparity   : std_logic;
-    tx_enc_err     : std_logic;
-    rx_data        : std_logic_vector(15 downto 0);
-    rx_clk         : std_logic;
-    rx_k           : std_logic_vector(1 downto 0);
-    rx_enc_err     : std_logic;
-    rx_bitslide    : std_logic_vector(4 downto 0);
-    rdy            : std_logic;
-    sfp_tx_fault   : std_logic;
-    sfp_los        : std_logic;
-  end record;
-  type t_phy_16bits_from_wrc is record
-    rst            : std_logic;
-    loopen         : std_logic;
-    enable         : std_logic;
-    syncen         : std_logic;
-    tx_data        : std_logic_vector(15 downto 0);
-    tx_k           : std_logic_vector(1 downto 0);
-    loopen_vec     : std_logic_vector(2 downto 0);
-    tx_prbs_sel    : std_logic_vector(2 downto 0);
-    sfp_tx_disable : std_logic;
-  end record;
-
-  constant c_dummy_phy16_from_wrc : t_phy_16bits_from_wrc :=
-    ('0', '0', '0', '0', (others=>'0'), (others=>'0'), (others=>'0'),
-    (others=>'0'), '0');
 
   -------------------------------------------------------------------------------------------
   component xwrc_platform_xilinx
