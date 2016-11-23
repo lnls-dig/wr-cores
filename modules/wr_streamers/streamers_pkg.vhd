@@ -65,7 +65,8 @@ package streamers_pkg is
       cfg_mac_local_i         : in  std_logic_vector(47 downto 0) := x"000000000000";
       cfg_mac_remote_i        : in  std_logic_vector(47 downto 0) := x"000000000000";
       cfg_ethertype_i         : in  std_logic_vector(15 downto 0) := x"dbff";
-      cfg_accept_broadcasts_i : in  std_logic                     := '1');
+      cfg_accept_broadcasts_i : in  std_logic                     := '1';
+      cfg_fixed_latency_i     : in  std_logic_vector(27 downto 0) := x"0000000");
   end component;
 
   constant c_STREAMERS_ARR_SIZE_OUT : integer := 14;

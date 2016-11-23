@@ -346,7 +346,8 @@ begin
       cfg_mac_local_i          => rx_cfg_mac_local_i,
       cfg_mac_remote_i         => rx_cfg_mac_remote_i,
       cfg_ethertype_i          => rx_cfg_ethertype_i,
-      cfg_accept_broadcasts_i  => rx_cfg_accept_broadcasts_i);
+      cfg_accept_broadcasts_i  => rx_cfg_accept_broadcasts_i,
+      cfg_fixed_latency_i      => x"00000dc");
 
   rx_data_o  <= rx_data;
   rx_valid_o <= rx_valid;
