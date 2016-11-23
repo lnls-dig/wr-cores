@@ -338,6 +338,19 @@ peripheral {
       };
   };
   reg {
+    name = "Rx Config Reg 5";
+    prefix = "RX_CFG5";
+    field {
+      name = "Fixed Latency";
+      description = "This register allows to configure fixed-latency. If the value is other than zero, the instant of outputing the received data from the rx streamer to the user application is delayed, so that the time-difference between the transmission fo the data and the output to the user matches the provided value. If the configured latency value is smaller than the network latency, the data is provided to the user instantly. The configuration value is expressed in clock cycles (16ns) ";
+      prefix = "fixed_latency";
+      type = SLV;
+      size = 27;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+  };
+  reg {
     name = "TxRx Config";
     prefix = "CFG";
     field {

@@ -218,7 +218,9 @@ entity xwr_transmission is
     rx_cfg_ethertype_i         : in std_logic_vector(15 downto 0) := x"dbff";
     -- 1: accept all broadcast packets
     -- 0: accept only unicasts
-    rx_cfg_accept_broadcasts_i : in std_logic                     := '1'
+    rx_cfg_accept_broadcasts_i : in std_logic                     := '1';
+    -- value in cycles of fixed-latency enforced on data
+    rx_cfg_fixed_latency_i     : in std_logic_vector(27 downto 0) := x"0000000"
 
     );
 
@@ -270,6 +272,7 @@ architecture rtl of xwr_transmission is
   signal rx_cfg_mac_remote       : std_logic_vector(47 downto 0);
   signal rx_cfg_ethertype        : std_logic_vector(15 downto 0);
   signal rx_cfg_accept_broadcasts: std_logic;
+  signal rx_cfg_fixed_latency    : std_logic_vector(27 downto 0);
 
   function f_dbg_word_starting_at_byte(data_in, start_bit : std_logic_vector; g_data_width: integer) return std_logic_vector is
     variable sb     : integer := 0;
@@ -347,7 +350,7 @@ begin
       cfg_mac_remote_i         => rx_cfg_mac_remote_i,
       cfg_ethertype_i          => rx_cfg_ethertype_i,
       cfg_accept_broadcasts_i  => rx_cfg_accept_broadcasts_i,
-      cfg_fixed_latency_i      => x"00000dc");
+      cfg_fixed_latency_i      => rx_cfg_fixed_latency);
 
   rx_data_o  <= rx_data;
   rx_valid_o <= rx_valid;
@@ -497,5 +500,6 @@ begin
                                             rx_cfg_mac_remote_i(47 downto 32);
   rx_cfg_accept_broadcasts       <= from_wb.rx_cfg0_accept_broadcast_o when (from_wb.cfg_rx_ena_o='1') else
                                             rx_cfg_accept_broadcasts_i;
-
+  rx_cfg_fixed_latency           <= from_wb.rx_cfg5_fixed_latency_o when (from_wb.cfg_rx_ena_o='1') else
+                                            rx_cfg_fixed_latency_i;
 end rtl;

@@ -125,6 +125,7 @@ entity xrx_streamer is
     -- 1: accept all broadcast packets
     -- 0: accept only unicasts
     cfg_accept_broadcasts_i : in std_logic                     := '1';
+    -- value in cycles of fixed-latency enforced on data
     cfg_fixed_latency_i     : in std_logic_vector(27 downto 0) := x"0000000"
     );
 
