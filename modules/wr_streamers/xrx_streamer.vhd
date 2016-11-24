@@ -42,10 +42,6 @@ entity xrx_streamer is
     -- Size of RX buffer, in data words.
     g_buffer_size       : integer := 16;
 
-    -- When true, receives only packets whose destination MAC equals
-    -- cfg_mac_remote_i. When false. accepts all incoming packets. 
-    g_filter_remote_mac : boolean := false;
-
     -- DO NOT USE unless you know what you are doing
     -- legacy stuff: the streamers that were initially used in Btrain did not check/insert 
     -- the escape code. This is justified if only one block of a known number of words is 
@@ -125,6 +121,10 @@ entity xrx_streamer is
     -- 1: accept all broadcast packets
     -- 0: accept only unicasts
     cfg_accept_broadcasts_i : in std_logic                     := '1';
+    -- filtering of streamer frames on reception by source MAC address
+    -- 0: accept frames from any source
+    -- 1: accept frames only from the source MAC address defined in cfg_mac_remote_i
+    cfg_filter_remote_i     : in std_logic                     := '0';
     -- value in cycles of fixed-latency enforced on data
     cfg_fixed_latency_i     : in std_logic_vector(27 downto 0) := x"0000000"
     );
@@ -487,17 +487,17 @@ begin  -- rtl
                   end if;
                   count <= count + 1;
                 when x"03" =>
-                  if(fsm_in.data /= cfg_mac_remote_i(47 downto 32) and g_filter_remote_mac) then
+                  if(fsm_in.data /= cfg_mac_remote_i(47 downto 32) and cfg_filter_remote_i ='1') then
                     state <= IDLE;
                   end if;
                   count <= count + 1;
                 when x"04" =>
-                  if(fsm_in.data /= cfg_mac_remote_i(31 downto 16) and g_filter_remote_mac) then
+                  if(fsm_in.data /= cfg_mac_remote_i(31 downto 16) and cfg_filter_remote_i ='1') then
                     state <= IDLE;
                   end if;
                   count <= count + 1;
                 when x"05" =>
-                  if(fsm_in.data /= cfg_mac_remote_i(15 downto 0) and g_filter_remote_mac) then
+                  if(fsm_in.data /= cfg_mac_remote_i(15 downto 0) and cfg_filter_remote_i ='1') then
                     state <= IDLE;
                   end if;
                   count <= count + 1;

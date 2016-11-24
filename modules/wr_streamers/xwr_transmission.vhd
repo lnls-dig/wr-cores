@@ -94,10 +94,6 @@ entity xwr_transmission is
     -- Size of RX buffer, in data words.
     g_rx_buffer_size           : integer := 16;
 
-    -- When true, receives only packets whose destination MAC equals
-    -- cfg_mac_remote_i. When false. accepts all incoming packets. 
-    g_rx_filter_remote_mac     : boolean := false;
-
     -- DO NOT USE unless you know what you are doing
     -- legacy stuff: the streamers that were initially used in Btrain did not check/insert 
     -- the escape code. This is justified if only one block of a known number of words is 
@@ -219,6 +215,10 @@ entity xwr_transmission is
     -- 1: accept all broadcast packets
     -- 0: accept only unicasts
     rx_cfg_accept_broadcasts_i : in std_logic                     := '1';
+    -- filtering of streamer frames on reception by source MAC address
+    -- 0: accept frames from any source
+    -- 1: accept frames only from the source MAC address defined in cfg_mac_remote_i
+    rx_cfg_filter_remote_i     : in std_logic                     := '0';
     -- value in cycles of fixed-latency enforced on data
     rx_cfg_fixed_latency_i     : in std_logic_vector(27 downto 0) := x"0000000"
 
@@ -272,6 +272,7 @@ architecture rtl of xwr_transmission is
   signal rx_cfg_mac_remote       : std_logic_vector(47 downto 0);
   signal rx_cfg_ethertype        : std_logic_vector(15 downto 0);
   signal rx_cfg_accept_broadcasts: std_logic;
+  signal rx_cfg_filter_remote    : std_logic;
   signal rx_cfg_fixed_latency    : std_logic_vector(27 downto 0);
 
   function f_dbg_word_starting_at_byte(data_in, start_bit : std_logic_vector; g_data_width: integer) return std_logic_vector is
@@ -322,7 +323,6 @@ begin
     generic map(
       g_data_width             => g_rx_data_width,
       g_buffer_size            => g_rx_buffer_size,
-      g_filter_remote_mac      => g_rx_filter_remote_mac,
       g_escape_code_disable    => g_rx_escape_code_disable,
       g_expected_words_number  => g_rx_expected_words_number
       )
@@ -350,6 +350,7 @@ begin
       cfg_mac_remote_i         => rx_cfg_mac_remote_i,
       cfg_ethertype_i          => rx_cfg_ethertype_i,
       cfg_accept_broadcasts_i  => rx_cfg_accept_broadcasts_i,
+      cfg_filter_remote_i      => rx_cfg_filter_remote,
       cfg_fixed_latency_i      => rx_cfg_fixed_latency);
 
   rx_data_o  <= rx_data;
@@ -500,6 +501,8 @@ begin
                                             rx_cfg_mac_remote_i(47 downto 32);
   rx_cfg_accept_broadcasts       <= from_wb.rx_cfg0_accept_broadcast_o when (from_wb.cfg_rx_ena_o='1') else
                                             rx_cfg_accept_broadcasts_i;
+  rx_cfg_filter_remote           <= from_wb.rx_cfg0_filter_remote_o    when (from_wb.cfg_rx_ena_o='1') else
+                                            rx_cfg_filter_remote_i;
   rx_cfg_fixed_latency           <= from_wb.rx_cfg5_fixed_latency_o when (from_wb.cfg_rx_ena_o='1') else
                                             rx_cfg_fixed_latency_i;
 end rtl;

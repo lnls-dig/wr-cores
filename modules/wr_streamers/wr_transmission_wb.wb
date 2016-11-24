@@ -288,6 +288,15 @@ peripheral {
       access_bus = READ_WRITE;
       access_dev = READ_ONLY;
       };
+    field {
+      name = "Filter Remote";
+      description = "0: accept streamer frames with any source MAC address; \
+      1: accept streamer frames only with the source MAC address defined in mac_remote";
+      prefix = "filter_remote";
+      type = BIT;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
   };
   reg {
     name = "Rx Config Reg 1";

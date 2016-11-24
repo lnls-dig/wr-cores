@@ -38,7 +38,6 @@ package streamers_pkg is
     generic (
       g_data_width        : integer := 32;
       g_buffer_size       : integer := 16;
-      g_filter_remote_mac : boolean := false;
       g_escape_code_disable : boolean := FALSE;
       g_expected_words_number : integer := 0);
     port (
@@ -66,6 +65,7 @@ package streamers_pkg is
       cfg_mac_remote_i        : in  std_logic_vector(47 downto 0) := x"000000000000";
       cfg_ethertype_i         : in  std_logic_vector(15 downto 0) := x"dbff";
       cfg_accept_broadcasts_i : in  std_logic                     := '1';
+      cfg_filter_remote_i     : in std_logic                      := '0';
       cfg_fixed_latency_i     : in  std_logic_vector(27 downto 0) := x"0000000");
   end component;
 
@@ -150,10 +150,6 @@ package streamers_pkg is
     -- Size of RX buffer, in data words.
     g_rx_buffer_size           : integer := 16;
 
-    -- When true, receives only packets whose destination MAC equals
-    -- cfg_mac_remote_i. When false. accepts all incoming packets. 
-    g_rx_filter_remote_mac     : boolean := false;
-
     -- DO NOT USE unless you know what you are doing
     -- legacy stuff: the streamers that were initially used in Btrain did not check/insert 
     -- the escape code. This is justified if only one block of a known number of words is 
@@ -221,6 +217,7 @@ package streamers_pkg is
     rx_cfg_mac_remote_i        : in std_logic_vector(47 downto 0) := x"000000000000";
     rx_cfg_ethertype_i         : in std_logic_vector(15 downto 0) := x"dbff";
     rx_cfg_accept_broadcasts_i : in std_logic                     := '1';
+    rx_cfg_filter_remote_i     : in std_logic                     := '0';
     rx_cfg_fixed_latency_i     : in std_logic_vector(27 downto 0) := x"0000000"
     );
   end component;
