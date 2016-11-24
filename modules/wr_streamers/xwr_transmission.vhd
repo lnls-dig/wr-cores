@@ -503,6 +503,6 @@ begin
                                             rx_cfg_accept_broadcasts_i;
   rx_cfg_filter_remote           <= from_wb.rx_cfg0_filter_remote_o    when (from_wb.cfg_rx_ena_o='1') else
                                             rx_cfg_filter_remote_i;
-  rx_cfg_fixed_latency           <= from_wb.rx_cfg5_fixed_latency_o when (from_wb.cfg_rx_ena_o='1') else
+  rx_cfg_fixed_latency           <= from_wb.rx_cfg5_fixed_latency_o    when (from_wb.cfg_rx_ena_o='1') else
                                             rx_cfg_fixed_latency_i;
 end rtl;
