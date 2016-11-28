@@ -451,27 +451,30 @@ begin
     end if;
   end process;
 
-  -- this is b-train specific stuff
-  p_bfield_for_SNMP: process(clk_sys_i)
-  begin
-    if rising_edge(clk_sys_i) then
-      if rst_n_i = '0' then
-        dbg_tx_bfield <= (others =>'0');
-        dbg_rx_bfield <= (others =>'0');
-      else
-        if(rx_valid = '1') then
-          dbg_rx_bfield <= rx_data(15+16 downto 0+16) & rx_data(31+16 downto 16+16);
-        end if;
-        if(tx_valid_i = '1') then
-          dbg_tx_bfield <= tx_data_i(15+16 downto 0+16) & tx_data_i(31+16 downto 16+16);
+  gen_btrain_debug: if(g_tx_data_width > 47 and g_rx_data_width > 47) generate
+    -- this is b-train specific stuff that allows snooping bfield easily. Btrain is
+    -- the main (and currently) only application of streamers
+    p_bfield_for_SNMP: process(clk_sys_i)
+    begin
+      if rising_edge(clk_sys_i) then
+        if rst_n_i = '0' then
+          dbg_tx_bfield <= (others =>'0');
+          dbg_rx_bfield <= (others =>'0');
+        else
+          if(rx_valid = '1') then
+            dbg_rx_bfield <= rx_data(15+16 downto 0+16) & rx_data(31+16 downto 16+16);
+          end if;
+          if(tx_valid_i = '1') then
+            dbg_tx_bfield <= tx_data_i(15+16 downto 0+16) & tx_data_i(31+16 downto 16+16);
+          end if;
         end if;
       end if;
-    end if;
-  end process;  
+    end process;
+    snmp_array_o(c_STREAMERS_ARR_SIZE_OUT+1) <= dbg_rx_bfield;
+    snmp_array_o(c_STREAMERS_ARR_SIZE_OUT+2) <= dbg_tx_bfield;
+  end generate gen_btrain_debug;
 
   snmp_array_o(c_STREAMERS_ARR_SIZE_OUT)   <= dbg_word;
-  snmp_array_o(c_STREAMERS_ARR_SIZE_OUT+1) <= dbg_rx_bfield;
-  snmp_array_o(c_STREAMERS_ARR_SIZE_OUT+2) <= dbg_tx_bfield;
 
   to_wb.dbg_data_i      <= dbg_word;
   to_wb.dbg_rx_bvalue_i <= dbg_rx_bfield;
