@@ -360,28 +360,106 @@ peripheral {
       };
   };
   reg {
-    name = "TxRx Config";
+    name = "TxRx Config Override";
     prefix = "CFG";
     field {
-      name = "Enable WB TX CONFIG";
-      description = "Decide whether the transmission configuration of streamers should be the one provided as an input to the xwr_transmission module (either default, or provided by application-specifici module) or it should be the one provided in the WB registers:\
-      0: TX config loaded from application or default; \
-      1: TX config loaded from wishbone registers";
-      prefix = "tx_ena";
+      name = "Tx Ethertype";
+      description = "Overrides default/application Tx Ethertype configuration with configuration in the proper register:\
+      0: Default/set by application; \
+      1: Value from WB register";
+      prefix = "or_tx_ethtype";
       type = BIT;
       access_bus = READ_WRITE;
       access_dev = READ_ONLY;
       };
     field {
-      name = "Enable WB RX CONFIG";
-      description = "Decide whether the reception configuration of streamers should be the one provided as an input to the xwr_transmission module (either default, or provided by application-specifici module) or it should be the one provided in the WB registers:\
-      0: RX config loaded from application or default; \
-      1: RX config loaded from wishbone registers";
-      prefix = "rx_ena";
+      name = "Tx MAC Local";
+      description = "Overrides default/application Tx local MAC configuration with configuration in the proper register:\
+      0: Default/set by application; \
+      1: Value from WB register";
+      prefix = "or_tx_mac_loc";
       type = BIT;
       access_bus = READ_WRITE;
       access_dev = READ_ONLY;
       };
+    field {
+      name = "Tx MAC Target";
+      description = "Overrides default/application Tx target MAC configuration with configuration in the proper register:\
+      0: Default/set by application; \
+      1: Value from WB register";
+      prefix = "or_tx_mac_tar";
+      type = BIT;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+
+    field {
+      name = "Rx Ethertype";
+      description = "Overrides default/application Rx Ethertype configuration with configuration in the proper register:\
+      0: Default/set by application; \
+      1: Value from WB register";
+      prefix = "or_rx_ethertype";
+      type = BIT;
+      align=16;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+
+    field {
+      name = "Rx MAC Local";
+      description = "Overrides default/application Rx MAC Local configuration with configuration in the proper register:\
+      0: Default/set by application; \
+      1: Value from WB register";
+      prefix = "or_rx_mac_loc";
+      type = BIT;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+
+    field {
+      name = "Rx MAC Remote";
+      description = "Overrides default/application Rx MAC Remote configuration with configuration in the proper register:\
+      0: Default/set by application; \
+      1: Value from WB register";
+      prefix = "or_rx_mac_rem";
+      type = BIT;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+
+    field {
+      name = "Rx Accept Broadcast";
+      description = "Overrides default/application Rx Accept Broardcast configuration with configuration in the proper register:\
+      0: Default/set by application; \
+      1: Value from WB register";
+      prefix = "or_rx_acc_broadcast";
+      type = BIT;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+
+    field {
+      name = "Rx Filter Remote";
+      description = "Overrides default/application Rx Filter Remote configuration with configuration in the proper register:\
+      0: Default/set by application; \
+      1: Value from WB register";
+      prefix = "or_rx_ftr_remote";
+      type = BIT;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+
+    field {
+      name = "Rx Fixed Latency ";
+      description = "Overrides default/application Rx fixed latency configuration with configuration in the proper register:\
+      0: Default/set by application; \
+      1: Value from WB register";
+      prefix = "or_rx_fix_lat";
+      type = BIT;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+
   };
   reg {
     name = "DBG Control register";

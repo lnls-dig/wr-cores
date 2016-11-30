@@ -481,31 +481,31 @@ begin
   to_wb.dbg_tx_bvalue_i <= dbg_tx_bfield;
   to_wb.dummy_dummy_i   <= x"DEADBEEF";
 
-  tx_cfg_ethertype               <= from_wb.tx_cfg0_ethertype_o      when (from_wb.cfg_tx_ena_o='1') else
+  tx_cfg_ethertype               <= from_wb.tx_cfg0_ethertype_o      when (from_wb.cfg_or_tx_ethtype_o='1') else
                                             tx_cfg_ethertype_i;
-  tx_cfg_mac_local(31 downto 0)  <= from_wb.tx_cfg1_mac_local_lsb_o  when (from_wb.cfg_tx_ena_o='1') else
+  tx_cfg_mac_local(31 downto 0)  <= from_wb.tx_cfg1_mac_local_lsb_o  when (from_wb.cfg_or_tx_mac_loc_o='1') else
                                             tx_cfg_mac_local_i(31 downto 0);
-  tx_cfg_mac_local(47 downto 32) <= from_wb.tx_cfg2_mac_local_msb_o  when (from_wb.cfg_tx_ena_o='1') else
+  tx_cfg_mac_local(47 downto 32) <= from_wb.tx_cfg2_mac_local_msb_o  when (from_wb.cfg_or_tx_mac_loc_o='1') else
                                             tx_cfg_mac_local_i(47 downto 32);
-  tx_cfg_mac_target(31 downto 0) <= from_wb.tx_cfg3_mac_target_lsb_o when (from_wb.cfg_tx_ena_o='1') else
+  tx_cfg_mac_target(31 downto 0) <= from_wb.tx_cfg3_mac_target_lsb_o when (from_wb.cfg_or_tx_mac_tar_o='1') else
                                             tx_cfg_mac_target_i(31 downto 0);
-  tx_cfg_mac_target(47 downto 32)<= from_wb.tx_cfg4_mac_target_msb_o when (from_wb.cfg_tx_ena_o='1') else
+  tx_cfg_mac_target(47 downto 32)<= from_wb.tx_cfg4_mac_target_msb_o when (from_wb.cfg_or_tx_mac_tar_o='1') else
                                             tx_cfg_mac_target_i(47 downto 32);
 
-  rx_cfg_ethertype               <= from_wb.rx_cfg0_ethertype_o      when (from_wb.cfg_rx_ena_o='1') else
+  rx_cfg_ethertype               <= from_wb.rx_cfg0_ethertype_o      when (from_wb.cfg_or_rx_ethertype_o='1') else
                                             rx_cfg_ethertype_i;
-  rx_cfg_mac_local(31 downto 0)  <= from_wb.rx_cfg1_mac_local_lsb_o  when (from_wb.cfg_rx_ena_o='1') else
+  rx_cfg_mac_local(31 downto 0)  <= from_wb.rx_cfg1_mac_local_lsb_o  when (from_wb.cfg_or_rx_mac_loc_o='1') else
                                             rx_cfg_mac_local_i(31 downto 0);
-  rx_cfg_mac_local(47 downto 32) <= from_wb.rx_cfg2_mac_local_msb_o  when (from_wb.cfg_rx_ena_o='1') else
+  rx_cfg_mac_local(47 downto 32) <= from_wb.rx_cfg2_mac_local_msb_o  when (from_wb.cfg_or_rx_mac_loc_o='1') else
                                             rx_cfg_mac_local_i(47 downto 32);
-  rx_cfg_mac_remote(31 downto 0) <= from_wb.rx_cfg3_mac_remote_lsb_o when (from_wb.cfg_rx_ena_o='1') else
+  rx_cfg_mac_remote(31 downto 0) <= from_wb.rx_cfg3_mac_remote_lsb_o when (from_wb.cfg_or_rx_mac_rem_o='1') else
                                             rx_cfg_mac_remote_i(31 downto 0);
-  rx_cfg_mac_remote(47 downto 32)<= from_wb.rx_cfg4_mac_remote_msb_o when (from_wb.cfg_rx_ena_o='1') else
+  rx_cfg_mac_remote(47 downto 32)<= from_wb.rx_cfg4_mac_remote_msb_o when (from_wb.cfg_or_rx_mac_rem_o='1') else
                                             rx_cfg_mac_remote_i(47 downto 32);
-  rx_cfg_accept_broadcasts       <= from_wb.rx_cfg0_accept_broadcast_o when (from_wb.cfg_rx_ena_o='1') else
+  rx_cfg_accept_broadcasts       <= from_wb.rx_cfg0_accept_broadcast_o when (from_wb.cfg_or_rx_acc_broadcast_o='1') else
                                             rx_cfg_accept_broadcasts_i;
-  rx_cfg_filter_remote           <= from_wb.rx_cfg0_filter_remote_o    when (from_wb.cfg_rx_ena_o='1') else
+  rx_cfg_filter_remote           <= from_wb.rx_cfg0_filter_remote_o    when (from_wb.cfg_or_rx_ftr_remote_o='1') else
                                             rx_cfg_filter_remote_i;
-  rx_cfg_fixed_latency           <= from_wb.rx_cfg5_fixed_latency_o    when (from_wb.cfg_rx_ena_o='1') else
+  rx_cfg_fixed_latency           <= from_wb.rx_cfg5_fixed_latency_o    when (from_wb.cfg_or_rx_fix_lat_o='1') else
                                             rx_cfg_fixed_latency_i;
 end rtl;
