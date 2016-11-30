@@ -377,7 +377,9 @@ begin  -- rtl
       if rst_n_i = '0' or timestamped = '1' then
         delay_cnt <= (others=>'0');
       else
-        delay_cnt <= std_logic_vector(unsigned(delay_cnt) + 1);
+       -- increase by two since the latency value reported by streamers is
+       -- expressed in 8ns cycles and we work here in 16ns cycles 
+        delay_cnt <= std_logic_vector(unsigned(delay_cnt) + 2);
       end if;
     end if;
   end process;
