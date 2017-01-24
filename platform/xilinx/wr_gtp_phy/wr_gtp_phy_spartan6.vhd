@@ -46,7 +46,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 library unisim;
-use unisim.all;
+use unisim.vcomponents.all;
 
 library work;
 use work.gencores_pkg.all;
@@ -235,25 +235,6 @@ architecture rtl of wr_gtp_phy_spartan6 is
       TXP1_OUT              : out std_logic;
       TXENPRBSTST0_IN       : in  std_logic_vector(2 downto 0);
       TXENPRBSTST1_IN       : in  std_logic_vector(2 downto 0));
-  end component;
-
-  component BUFG
-    port (
-      O : out std_ulogic;
-      I : in  std_ulogic);
-  end component;
-
-  component BUFIO2
-    generic (
-      DIVIDE_BYPASS : boolean := true;
-      DIVIDE        : integer := 1;
-      I_INVERT      : boolean := false;
-      USE_DOUBLER   : boolean := false);
-    port (
-      DIVCLK       : out std_ulogic;
-      IOCLK        : out std_ulogic;
-      SERDESSTROBE : out std_ulogic;
-      I            : in  std_ulogic);
   end component;
 
   component gtp_phase_align
