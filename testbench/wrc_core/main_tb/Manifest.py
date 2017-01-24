@@ -16,8 +16,7 @@ modules = { "local" : [ "../../..",
 			"../../../modules/fabric",
 			"../../../ip_cores/general-cores",
 			"../../../ip_cores/etherbone-core",
-			"../../../ip_cores/gn4124-core",
-                        "../../../ip_cores/urv-core" ]}
+			"../../../ip_cores/gn4124-core" ]}
 
 
 

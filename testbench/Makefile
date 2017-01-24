@@ -2,7 +2,7 @@
 # testbenches added for CI
 
 TB_DIRS=wr_minic
-TB_DIRS+=wr_minic2
+TB_DIRS+=wrc_core/main_tb
 
 .PHONY: $(TB_DIRS)
 
