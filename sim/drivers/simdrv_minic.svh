@@ -105,7 +105,7 @@ class CSimDrv_Minic;
       byte oob[2];
       
       //new_tx_buffer();
-      $display("TX frame: size=%d, with_oob=%d, id=%d", size, with_oob, frame_id);
+      $display("Minic TX frame(%d): size=%d, with_oob=%d", frame_id, size, with_oob);
       
       if(size < 60) size  = 60;
       if(size & 1) begin
@@ -225,7 +225,7 @@ class CSimDrv_Minic;
            pkt  = new;
            pkt.deserialize(payload);
            id = ((pkt.payload[1] << 8) & 'hff00) | pkt.payload[0];
-           $display("RX frame(%d): size %d (%d)", id, psize, payload.size());
+           $display("Minic RX frame(%d): size %d (%d)", id, psize, payload.size());
            rx_queue.push_back(pkt);
         end
       
