@@ -5,8 +5,6 @@ syn_grade = "-3"
 syn_package = "fgg484"
 sim_tool = "modelsim"
 top_module = "main"
-fetchto = "../../ip_cores"
-vlog_opt = "+incdir+../../sim"
 
 include_dirs = [ "../../sim" ]
 

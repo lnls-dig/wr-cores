@@ -1,8 +1,11 @@
 onerror {resume}
 quietly WaveActivateNextPane {} 0
+add wave -noupdate /main/txp_cg_newframe
+add wave -noupdate /main/rxp_cg_newframe
+add wave -noupdate /main/txp_cg_size
+add wave -noupdate /main/rxp_cg_size
 add wave -noupdate /main/DUT/g_interface_mode
 add wave -noupdate /main/DUT/g_address_granularity
-add wave -noupdate /main/DUT/g_memsize_log2
 add wave -noupdate /main/DUT/g_buffer_little_endian
 add wave -noupdate /main/DUT/clk_sys_i
 add wave -noupdate /main/DUT/rst_n_i
@@ -65,7 +68,7 @@ add wave -noupdate -expand -group RX_PATH /main/DUT/rx_fifo_afull
 add wave -noupdate -expand -group RX_PATH /main/DUT/irq_rx_ack
 add wave -noupdate -expand -group RX_PATH /main/DUT/irq_rx
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {40485000000 fs} 1} {{Cursor 2} {2056885000000 fs} 0}
+WaveRestoreCursors {{Cursor 1} {40485000000 fs} 1} {{Cursor 2} {7845093670430 fs} 0}
 configure wave -namecolwidth 208
 configure wave -valuecolwidth 100
 configure wave -justifyvalue left
@@ -80,4 +83,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 fs} {84338283750 ps}
+WaveRestoreZoom {0 fs} {15051471750 ps}
