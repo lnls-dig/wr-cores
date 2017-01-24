@@ -15,4 +15,5 @@ doc/
 *.o
 *.bin
 *.elf
+*.ucdb
 Makefile

@@ -6,4 +6,5 @@ set NumericStdNoWarnings 1
 do wave.do
 run 200ms
 #runStatus -full
+coverage save coverage.ucdb
 quit -code [coverage attribute -name TESTSTATUS -concise]

@@ -12,6 +12,21 @@
 
 module main;
 
+  //-------------------------------------------
+  // Functional coverage analysis
+  //-------------------------------------------
+  reg txp_cg_newframe, rxp_cg_newframe;
+  int txp_cg_size, rxp_cg_size;
+  covergroup cg @(txp_cg_newframe == 1 or rxp_cg_newframe == 1);
+    coverpoint txp_cg_size iff (txp_cg_newframe == 1){
+      bins pkt_sizes[1440] = {[60:1500]};
+    }
+    coverpoint rxp_cg_size iff (rxp_cg_newframe == 1){
+      bins pkt_sizes[1440] = {[60:1500]};
+    }
+  endgroup
+  cg cover_group = new;
+
   reg clk_sys = 1'b0;
   reg rst_n = 1'b0;
   
@@ -176,6 +191,7 @@ module main;
         // 1st process, Minic operations, sending and receiving frames
         forever begin
           minic.run();
+          txp_cg_newframe = 0;
 
           // TEST_RX Minic: receive frame
           if(`TEST_RX && minic.poll()) begin
@@ -205,7 +221,11 @@ module main;
             minic.send(tx_pkt);
             tx_frames.push_back(tx_pkt);
             txp_minic_frames += 1;
+            txp_cg_newframe = 1;
+            txp_cg_size = tx_pkt.size;
           end
+          else
+            txp_cg_newframe = 0;
 
           #1;
         end
@@ -232,15 +252,18 @@ module main;
         // 3rd: Send frames to Minic
         if (`TEST_RX) begin
            #40ns;
+           rxp_cg_newframe = 1;
            for(i=0;i<`NFRAMES;i++) begin
               rx_pkt  = gen_rx.gen();
               rx_pkt.payload[0] = i & 'hff;
               rx_pkt.payload[1] = (i & 'hff00) >> 8;
+              rxp_cg_size = rx_pkt.size;
               wrf_src.send(rx_pkt);
               rx_frames.push_back(rx_pkt);
               rxp_src_frames += 1;
               #45us;
            end
+           rxp_cg_newframe = 0;
         end
 
       join      
