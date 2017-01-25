@@ -372,15 +372,9 @@ architecture struct of wr_core is
   signal ep_txtsu_stb, ep_txtsu_ack : std_logic;
   signal ep_led_link                : std_logic;
 
-  constant c_mnic_memsize_log2 : integer := f_log2_size(g_dpram_size);
-
   -----------------------------------------------------------------------------
   --Mini-NIC
   -----------------------------------------------------------------------------
-  signal mnic_mem_data_o : std_logic_vector(31 downto 0);
-  signal mnic_mem_addr_o : std_logic_vector(c_mnic_memsize_log2-1 downto 0);
-  signal mnic_mem_data_i : std_logic_vector(31 downto 0);
-  signal mnic_mem_wr_o   : std_logic;
   signal mnic_txtsu_ack  : std_logic;
   signal mnic_txtsu_stb  : std_logic;
 
@@ -476,8 +470,6 @@ architecture struct of wr_core is
   signal mux_snk_out : t_wrf_sink_out_array(1 downto 0);
   signal mux_snk_in  : t_wrf_sink_in_array(1 downto 0);
   signal mux_class   : t_wrf_mux_class(1 downto 0);
-
-  signal dummy : std_logic_vector(31 downto 0);
 
   signal spll_out_locked : std_logic_vector(g_aux_clks downto 0);
 
@@ -789,13 +781,12 @@ begin
       slave2_o => dpram_wbb_o
       );
 
-  dpram_wbb_i.cyc                                 <= '0';
-  dpram_wbb_i.stb                                 <= '0';
-  dpram_wbb_i.adr(c_mnic_memsize_log2-1 downto 0) <= (others=>'0'); --mnic_mem_addr_o;
-  dpram_wbb_i.sel                                 <= "1111";
-  dpram_wbb_i.we                                  <= '0'; --mnic_mem_wr_o;
-  dpram_wbb_i.dat                                 <= (others=>'0'); --mnic_mem_data_o;
-  mnic_mem_data_i                                 <= dpram_wbb_o.dat;
+  dpram_wbb_i.cyc <= '0';
+  dpram_wbb_i.stb <= '0';
+  dpram_wbb_i.adr <= (others=>'0');
+  dpram_wbb_i.sel <= "1111";
+  dpram_wbb_i.we  <= '0';
+  dpram_wbb_i.dat <= (others=>'0');
 
   -----------------------------------------------------------------------------
   -- WB Peripherials
@@ -994,24 +985,6 @@ begin
   secbar_master_i(7).stall <= aux_stall_i;
   secbar_master_i(7).err   <= '0';
   secbar_master_i(7).rty   <= '0';
-
-  --secbar_master_i(6).err <= '0';
-  --secbar_master_i(5).err <= '0';
-  --secbar_master_i(4).err <= '0';
-  --secbar_master_i(3).err <= '0';
-  --secbar_master_i(2).err <= '0';
-  --secbar_master_i(1).err <= '0';
-  --secbar_master_i(0).err <= '0';
-
-  --secbar_master_i(6).rty <= '0';
-  --secbar_master_i(5).rty <= '0';
-  --secbar_master_i(4).rty <= '0';
-  --secbar_master_i(3).rty <= '0';
-  --secbar_master_i(2).rty <= '0';
-  --secbar_master_i(1).rty <= '0';
-  --secbar_master_i(0).rty <= '0';
-
-
 
   -----------------------------------------------------------------------------
   -- WBP MUX
