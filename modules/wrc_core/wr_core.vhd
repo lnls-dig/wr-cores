@@ -421,8 +421,8 @@ architecture struct of wr_core is
      1 => f_sdb_embed_bridge(c_secbar_bridge_sdb, x"00020000"));
   constant c_sdb_address : t_wishbone_address := x"00030000";
 
-  signal cbar_slave_i  : t_wishbone_slave_in_array (2 downto 0);
-  signal cbar_slave_o  : t_wishbone_slave_out_array(2 downto 0);
+  signal cbar_slave_i  : t_wishbone_slave_in_array (1 downto 0);
+  signal cbar_slave_o  : t_wishbone_slave_out_array(1 downto 0);
   signal cbar_master_i : t_wishbone_master_in_array(1 downto 0);
   signal cbar_master_o : t_wishbone_master_out_array(1 downto 0);
 
@@ -755,9 +755,8 @@ begin
 
       dwb_o => cbar_slave_i(0),
       dwb_i => cbar_slave_o(0),
-      iwb_o => cbar_slave_i(1),
-      iwb_i => cbar_slave_o(1)
-      );
+      iwb_o => dpram_wbb_i,
+      iwb_i => dpram_wbb_o);
 
   -----------------------------------------------------------------------------
   -- Dual-port RAM
@@ -770,7 +769,7 @@ begin
       g_slave1_interface_mode => PIPELINED,
       g_slave2_interface_mode => PIPELINED,
       g_slave1_granularity    => BYTE,
-      g_slave2_granularity    => WORD)  
+      g_slave2_granularity    => BYTE)  
     port map(
       clk_sys_i => clk_sys_i,
       rst_n_i   => rst_n_i,
@@ -778,15 +777,7 @@ begin
       slave1_i => cbar_master_o(0),
       slave1_o => cbar_master_i(0),
       slave2_i => dpram_wbb_i,
-      slave2_o => dpram_wbb_o
-      );
-
-  dpram_wbb_i.cyc <= '0';
-  dpram_wbb_i.stb <= '0';
-  dpram_wbb_i.adr <= (others=>'0');
-  dpram_wbb_i.sel <= "1111";
-  dpram_wbb_i.we  <= '0';
-  dpram_wbb_i.dat <= (others=>'0');
+      slave2_o => dpram_wbb_o);
 
   -----------------------------------------------------------------------------
   -- WB Peripherials
@@ -870,7 +861,7 @@ begin
   -----------------------------------------------------------------------------
   WB_CON : xwb_sdb_crossbar
     generic map(
-      g_num_masters => 3,
+      g_num_masters => 2,
       g_num_slaves  => 2,
       g_registered  => true,
       g_wraparound  => true,
@@ -888,8 +879,8 @@ begin
       master_o  => cbar_master_o
       );
 
-  cbar_slave_i(2) <= ext_wb_in;
-  ext_wb_out      <= cbar_slave_o(2);
+  cbar_slave_i(1) <= ext_wb_in;
+  ext_wb_out      <= cbar_slave_o(1);
 
   --chipscope_ila_1 : chipscope_ila
   --  port map (
