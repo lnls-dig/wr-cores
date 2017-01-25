@@ -99,12 +99,16 @@ module main;
     .g_tx_runt_padding(1),
     .g_with_external_clock_input(1),
     .g_dpram_initf            ("sw/wrc.ram"),
-    .g_dpram_size             (131072/4))
+    .g_dpram_size             (131072/4),
+    .g_diag_id(1),
+    .g_diag_ver(2),
+    .g_diag_ro_size(5),
+    .g_diag_rw_size(1))
     DUT (
     .clk_sys_i      (clk_sys),
     .clk_dmtd_i     (clk_ref),
     .clk_ref_i      (clk_ref),
-    .clk_aux_i      (clk_ref),
+    //.clk_aux_i      (clk_ref),
     .rst_n_i        (rst_n),
 
     .pps_p_o        (),
@@ -178,9 +182,11 @@ module main;
     .phy_tx_k_o(phy_tx_k),
     .phy_tx_disparity_i(phy_tx_disparity),
     .phy_tx_enc_err_i(phy_tx_enc_err),
-    .phy_rx_data_i(phy_rx_data),
     .phy_rx_rbclk_i(clk_ref),
-    .phy_rx_k_i(phy_rx_k),
+    //.phy_rx_data_i(phy_rx_data),
+    //.phy_rx_k_i(phy_rx_k),
+    .phy_rx_data_i(phy_tx_data),
+    .phy_rx_k_i(phy_tx_k),
     .phy_rx_enc_err_i(phy_rx_enc_err),
     .phy_rx_bitslide_i(phy_rx_bitslide),
     .phy_rst_o(phy_rst),
@@ -320,6 +326,7 @@ module main;
   initial begin
     //CWishboneAccessor acc_wrc;
 		CSimDrv_WR_Endpoint ep_drv;
+    uint64_t val;
 
     @(posedge rst_n);
     repeat(3) @(posedge clk_sys);
@@ -349,6 +356,45 @@ module main;
 
     #1400us;
     tx_sizes = {};
+
+//    acc_wrc.read(`BASE_SYSCON + `ADDR_SYSC_DIAG_INFO, val);
+//    $display("DIAG ID: %d.%d",
+//      (val&`SYSC_DIAG_INFO_ID)>>`SYSC_DIAG_INFO_ID_OFFSET, val&`SYSC_DIAG_INFO_VER);
+//
+//    acc_wrc.read(`BASE_SYSCON + `ADDR_SYSC_DIAG_NW, val);
+//    $display("DIAG out words: %d", val & `SYSC_DIAG_NW_RW);
+//    $display("DIAG in words: %d", (val & `SYSC_DIAG_NW_RO)>>`SYSC_DIAG_NW_RO_OFFSET);
+//
+//    //reading words
+//    acc_wrc.write(`BASE_SYSCON + `ADDR_SYSC_DIAG_CR, 0);
+//    acc_wrc.read (`BASE_SYSCON + `ADDR_SYSC_DIAG_DAT, val);
+//    $display("1st word: %x", val);
+//
+//    acc_wrc.write(`BASE_SYSCON + `ADDR_SYSC_DIAG_CR, 1);
+//    acc_wrc.read (`BASE_SYSCON + `ADDR_SYSC_DIAG_DAT, val);
+//    $display("2nd word: %x", val);
+//
+//    acc_wrc.write(`BASE_SYSCON + `ADDR_SYSC_DIAG_CR, 2);
+//    acc_wrc.read (`BASE_SYSCON + `ADDR_SYSC_DIAG_DAT, val);
+//    $display("3rd word: %x", val);
+//
+//    acc_wrc.write(`BASE_SYSCON + `ADDR_SYSC_DIAG_CR, 3);
+//    acc_wrc.read (`BASE_SYSCON + `ADDR_SYSC_DIAG_DAT, val);
+//    $display("4th word: %x", val);
+//
+//    acc_wrc.write(`BASE_SYSCON + `ADDR_SYSC_DIAG_CR, 4);
+//    acc_wrc.read (`BASE_SYSCON + `ADDR_SYSC_DIAG_DAT, val);
+//    $display("5th word: %x", val);
+//
+//    acc_wrc.write(`BASE_SYSCON + `ADDR_SYSC_DIAG_CR, 5);
+//    acc_wrc.read (`BASE_SYSCON + `ADDR_SYSC_DIAG_DAT, val);
+//    $display("6th word: %x", val);
+//
+//    acc_wrc.write(`BASE_SYSCON + `ADDR_SYSC_DIAG_DAT, 1);
+//    acc_wrc.write(`BASE_SYSCON + `ADDR_SYSC_DIAG_CR, `SYSC_DIAG_CR_RW);
+//    acc_wrc.read (`BASE_SYSCON + `ADDR_SYSC_DIAG_DAT, val);
+//    $display("next word: %x", val);
+
     //NOW LET'S SEND SOME FRAMES
     //send_frames(wrc_src, 3000);
     send_frames(ep_src, 20);
