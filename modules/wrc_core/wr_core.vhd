@@ -395,36 +395,32 @@ architecture struct of wr_core is
   -----------------------------------------------------------------------------
   --WB Secondary Crossbar
   -----------------------------------------------------------------------------
-  constant c_secbar_layout : t_sdb_record_array(7 downto 0) :=
-    (0 => f_sdb_embed_device(c_xwr_mini_nic_sdb, x"00000000"),
-     1 => f_sdb_embed_device(c_xwr_endpoint_sdb, x"00000100"),
-     2 => f_sdb_embed_device(c_xwr_softpll_ng_sdb, x"00000200"),
-     3 => f_sdb_embed_device(c_xwr_pps_gen_sdb, x"00000300"),
-     4 => f_sdb_embed_device(c_wrc_periph0_sdb, x"00000400"),  -- Syscon
-     5 => f_sdb_embed_device(c_wrc_periph1_sdb, x"00000500"),  -- UART
-     6 => f_sdb_embed_device(c_wrc_periph2_sdb, x"00000600"),  -- 1-Wire
-     7 => f_sdb_embed_device(g_aux_sdb, x"00000700")           -- aux WB bus
+  constant c_secbar_layout : t_sdb_record_array(8 downto 0) :=
+    (0 => f_sdb_embed_device(f_xwb_dpram(g_dpram_size), x"00000000"),
+     1 => f_sdb_embed_device(c_xwr_mini_nic_sdb,   x"00020000"),
+     2 => f_sdb_embed_device(c_xwr_endpoint_sdb,   x"00020100"),
+     3 => f_sdb_embed_device(c_xwr_softpll_ng_sdb, x"00020200"),
+     4 => f_sdb_embed_device(c_xwr_pps_gen_sdb,    x"00020300"),
+     5 => f_sdb_embed_device(c_wrc_periph0_sdb,    x"00020400"),  -- Syscon
+     6 => f_sdb_embed_device(c_wrc_periph1_sdb,    x"00020500"),  -- UART
+     7 => f_sdb_embed_device(c_wrc_periph2_sdb,    x"00020600"),  -- 1-Wire
+     8 => f_sdb_embed_device(g_aux_sdb,            x"00020700")   -- aux WB bus
      );
 
-  constant c_secbar_sdb_address : t_wishbone_address := x"00000800";
+  constant c_secbar_sdb_address : t_wishbone_address := x"00030000";
   constant c_secbar_bridge_sdb  : t_sdb_bridge       :=
     f_xwb_bridge_layout_sdb(true, c_secbar_layout, c_secbar_sdb_address);
 
-  signal secbar_master_i : t_wishbone_master_in_array(7 downto 0);
-  signal secbar_master_o : t_wishbone_master_out_array(7 downto 0);
+  signal secbar_master_i : t_wishbone_master_in_array(8 downto 0);
+  signal secbar_master_o : t_wishbone_master_out_array(8 downto 0);
 
   -----------------------------------------------------------------------------
   --WB intercon
   -----------------------------------------------------------------------------
-  constant c_layout : t_sdb_record_array(1 downto 0) :=
-    (0 => f_sdb_embed_device(f_xwb_dpram(g_dpram_size), x"00000000"),
-     1 => f_sdb_embed_bridge(c_secbar_bridge_sdb, x"00020000"));
-  constant c_sdb_address : t_wishbone_address := x"00030000";
-
   signal cbar_slave_i  : t_wishbone_slave_in_array (1 downto 0);
   signal cbar_slave_o  : t_wishbone_slave_out_array(1 downto 0);
-  signal cbar_master_i : t_wishbone_master_in_array(1 downto 0);
-  signal cbar_master_o : t_wishbone_master_out_array(1 downto 0);
+  signal cbar_master_i : t_wishbone_master_in_array(0 downto 0);
+  signal cbar_master_o : t_wishbone_master_out_array(0 downto 0);
 
   -----------------------------------------------------------------------------
   --External WB interface
@@ -774,8 +770,8 @@ begin
       clk_sys_i => clk_sys_i,
       rst_n_i   => rst_n_i,
 
-      slave1_i => cbar_master_o(0),
-      slave1_o => cbar_master_i(0),
+      slave1_i => secbar_master_o(0),
+      slave1_o => secbar_master_i(0),
       slave2_i => dpram_wbb_i,
       slave2_o => dpram_wbb_o);
 
@@ -859,15 +855,13 @@ begin
   -----------------------------------------------------------------------------
   -- WB intercon
   -----------------------------------------------------------------------------
-  WB_CON : xwb_sdb_crossbar
+  WB_CON : xwb_crossbar
     generic map(
       g_num_masters => 2,
-      g_num_slaves  => 2,
+      g_num_slaves  => 1,
       g_registered  => true,
-      g_wraparound  => true,
-      g_layout      => c_layout,
-      g_sdb_addr    => c_sdb_address
-      )  
+      g_address     => (0 => x"00000000"),
+      g_mask        => (0 => x"00000000"))
     port map(
       clk_sys_i => clk_sys_i,
       rst_n_i   => rst_n_i,
@@ -930,7 +924,7 @@ begin
   WB_SECONDARY_CON : xwb_sdb_crossbar
     generic map(
       g_num_masters => 1,
-      g_num_slaves  => 8,
+      g_num_slaves  => 9,
       g_registered  => true,
       g_wraparound  => true,
       g_layout      => c_secbar_layout,
@@ -940,42 +934,42 @@ begin
       clk_sys_i  => clk_sys_i,
       rst_n_i    => rst_n_i,
       -- Master connections (INTERCON is a slave)
-      slave_i(0) => cbar_master_o(1),
-      slave_o(0) => cbar_master_i(1),
+      slave_i(0) => cbar_master_o(0),
+      slave_o(0) => cbar_master_i(0),
       -- Slave connections (INTERCON is a master)
       master_i   => secbar_master_i,
       master_o   => secbar_master_o
       );
 
-  secbar_master_i(0) <= minic_wb_out;
-  minic_wb_in        <= secbar_master_o(0);
-  secbar_master_i(1) <= ep_wb_out;
-  ep_wb_in           <= secbar_master_o(1);
-  secbar_master_i(2) <= spll_wb_out;
-  spll_wb_in         <= secbar_master_o(2);
-  secbar_master_i(3) <= ppsg_wb_out;
-  ppsg_wb_in         <= secbar_master_o(3);
+  secbar_master_i(1) <= minic_wb_out;
+  minic_wb_in        <= secbar_master_o(1);
+  secbar_master_i(2) <= ep_wb_out;
+  ep_wb_in           <= secbar_master_o(2);
+  secbar_master_i(3) <= spll_wb_out;
+  spll_wb_in         <= secbar_master_o(3);
+  secbar_master_i(4) <= ppsg_wb_out;
+  ppsg_wb_in         <= secbar_master_o(4);
   --peripherials
-  secbar_master_i(4) <= periph_slave_o(0);
-  secbar_master_i(5) <= periph_slave_o(1);
-  secbar_master_i(6) <= periph_slave_o(2);
-  periph_slave_i(0)  <= secbar_master_o(4);
-  periph_slave_i(1)  <= secbar_master_o(5);
-  periph_slave_i(2)  <= secbar_master_o(6);
+  secbar_master_i(5) <= periph_slave_o(0);
+  secbar_master_i(6) <= periph_slave_o(1);
+  secbar_master_i(7) <= periph_slave_o(2);
+  periph_slave_i(0)  <= secbar_master_o(5);
+  periph_slave_i(1)  <= secbar_master_o(6);
+  periph_slave_i(2)  <= secbar_master_o(7);
 
 
-  aux_adr_o <= secbar_master_o(7).adr;
-  aux_dat_o <= secbar_master_o(7).dat;
-  aux_sel_o <= secbar_master_o(7).sel;
-  aux_cyc_o <= secbar_master_o(7).cyc;
-  aux_stb_o <= secbar_master_o(7).stb;
-  aux_we_o  <= secbar_master_o(7).we;
+  aux_adr_o <= secbar_master_o(8).adr;
+  aux_dat_o <= secbar_master_o(8).dat;
+  aux_sel_o <= secbar_master_o(8).sel;
+  aux_cyc_o <= secbar_master_o(8).cyc;
+  aux_stb_o <= secbar_master_o(8).stb;
+  aux_we_o  <= secbar_master_o(8).we;
 
-  secbar_master_i(7).dat   <= aux_dat_i;
-  secbar_master_i(7).ack   <= aux_ack_i;
-  secbar_master_i(7).stall <= aux_stall_i;
-  secbar_master_i(7).err   <= '0';
-  secbar_master_i(7).rty   <= '0';
+  secbar_master_i(8).dat   <= aux_dat_i;
+  secbar_master_i(8).ack   <= aux_ack_i;
+  secbar_master_i(8).stall <= aux_stall_i;
+  secbar_master_i(8).err   <= '0';
+  secbar_master_i(8).rty   <= '0';
 
   -----------------------------------------------------------------------------
   -- WBP MUX
