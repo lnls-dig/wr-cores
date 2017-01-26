@@ -64,7 +64,7 @@ class EthPacket;
       is_hp     = 0;
       has_crc   = 0;
       oob_type  = NONE;
-      payload  = new[size](payload);
+      payload   = new[size](payload);
       
    endfunction // new
 
@@ -180,6 +180,10 @@ class EthPacket;
 
          if(oob_type == TX_FID && (b.ts.frame_id != ts.frame_id))
            return 0;
+
+         if(oob_type == RX_TIMESTAMP && (b.ts.ts_r != ts.ts_r) && (b.ts.ts_f !=
+           ts.ts_f))
+           return 0;
       end 
       
       return 1;
@@ -233,6 +237,10 @@ is_hp ? "H" : " ", has_crc ? "C" : " ");
            $sformat(tmp, "TxOOB: %x", ts.frame_id);
            str  = {str, tmp};
         end
+      if(oob_type == RX_TIMESTAMP) begin
+        $sformat(tmp, "RxOOB: %x, %x", ts.ts_f, ts.ts_r);
+        str  = {str, tmp};
+      end
 
       $display(str);
       hexdump(payload);
@@ -264,6 +272,7 @@ class EthPacketGenerator;
 
    protected int r_flags;
    protected int m_current_frame_id;
+   protected int current_ts;
    protected int cur_seq_id;
 
    function new();
@@ -271,6 +280,7 @@ class EthPacketGenerator;
       min_size            = 64;
       max_size            = 128;
       m_current_frame_id  = 0;
+      current_ts          = 0;
       template            = new;
       cur_seq_id = 0;
       
@@ -360,6 +370,13 @@ class EthPacketGenerator;
 		   pkt.ts.frame_id                        = m_current_frame_id++;
 		   pkt.oob_type                           = TX_FID;
 		 end
+
+     if(r_flags & RX_OOB) begin
+       pkt.oob_type    = RX_TIMESTAMP;
+       pkt.ts.port_id  = 0;
+       pkt.ts.ts_r = ++current_ts;
+       pkt.ts.ts_f = current_ts;
+     end
 
 		 pkt.size = len + 14; //payload + header
 		 return pkt;
