@@ -7,3 +7,6 @@
 [submodule "ip_cores/gn4124-core"]
 	path = ip_cores/gn4124-core
 	url = git://ohwr.org/hdl-core-lib/gn4124-core.git
+[submodule "ip_cores/vme64x-core"]
+	path = ip_cores/vme64x-core
+	url = git://ohwr.org/hdl-core-lib/vme64x-core.git
