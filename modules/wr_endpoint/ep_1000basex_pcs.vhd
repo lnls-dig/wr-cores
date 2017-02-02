@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2013-06-03
+-- Last update: 2017-02-02
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -19,7 +19,7 @@
 -- - White Rabbit serdes-specific features (calibration patterns & bitslide)
 -------------------------------------------------------------------------------
 --
--- Copyright (c) 2009-2011 CERN / BE-CO-HT
+-- Copyright (c) 2009-2017 CERN / BE-CO-HT
 --
 -- This source file is free software; you can redistribute it   
 -- and/or modify it under the terms of the GNU Lesser General   
@@ -408,9 +408,10 @@ begin  -- rtl
   txpcs_busy_o <= txpcs_busy_int;
 
   -- to enable killing of link (by ML)
-  mdio_mcr_pdown      <= mdio_mcr_pdown_cpu or (not link_ctr_i);
- 
-  serdes_rst_o        <= (not pcs_reset_n) or mdio_mcr_pdown;
+  mdio_mcr_pdown <= mdio_mcr_pdown_cpu or (not link_ctr_i);
+
+  -- keep PHY reset also when SFP reports LOS (DL)
+  serdes_rst_o <= (not pcs_reset_n) or mdio_mcr_pdown or serdes_sfp_los_i;
 
   U_MDIO_WB : ep_pcs_tbi_mdio_wb
     port map (
