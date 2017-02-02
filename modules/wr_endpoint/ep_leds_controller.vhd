@@ -35,19 +35,12 @@ architecture rtl of ep_leds_controller is
   signal state                  : t_state;
   signal led_act                : std_logic;
   signal last_cycle_act         : std_logic;
-  signal txrx, txrx_synced      : std_logic;
+  signal txrx                   : std_logic;
 begin  -- rtl
 
   led_link_o <= link_ok_i;
 
   txrx <= dvalid_rx_i or dvalid_tx_i;
-
-  U_Sync_Activity : gc_sync_ffs
-    port map (
-      clk_i    => clk_sys_i,
-      rst_n_i  => rst_n_i,
-      data_i   => txrx,
-      synced_o => txrx_synced);
 
   p_counter : process(clk_sys_i)
   begin
@@ -76,7 +69,7 @@ begin  -- rtl
       else
         case state is
           when INACTIVE =>
-            if(txrx_synced = '1') then
+            if(txrx = '1') then
               state     <= BLINKING;
               led_act   <= '1';
               cnt_reset <= '1';
@@ -91,7 +84,7 @@ begin  -- rtl
               end if;
               last_cycle_act <= '0';
             else
-              if(txrx_synced = '1') then
+              if(txrx = '1') then
                 last_cycle_act <= '1';
               end if;
             end if;

@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-04-26
--- Last update: 2013-03-15
+-- Last update: 2017-02-02
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -20,7 +20,7 @@
 -- Refer to the manual for more details.
 -------------------------------------------------------------------------------
 --
--- Copyright (c) 2011 - 2012 CERN / BE-CO-HT
+-- Copyright (c) 2011 - 2017 CERN / BE-CO-HT
 --
 -- This source file is free software; you can redistribute it   
 -- and/or modify it under the terms of the GNU Lesser General   
@@ -802,14 +802,11 @@ begin
   begin
     if rising_edge(clk_sys_i) then
 
-      if(rst_n_i = '0') then
+      if(rst_n_i = '0') or
+        (regs_fromwb.dsr_lact_o = '1' and regs_fromwb.dsr_lact_load_o = '1') then
         regs_towb_ep.dsr_lact_i <= '0';
       else
-        if(regs_fromwb.dsr_lact_o = '1' and regs_fromwb.dsr_lact_load_o = '1') then
-          regs_towb_ep.dsr_lact_i <= '0';  -- clear-on-write
-        elsif(txpcs_fab.dvalid = '1' or rxpath_fab.dvalid = '1') then
-          regs_towb_ep.dsr_lact_i <= '1';
-        end if;
+        regs_towb_ep.dsr_lact_i <= dvalid_rx or dvalid_tx;
       end if;
     end if;
   end process;
@@ -887,7 +884,7 @@ begin
   gen_leds : if g_with_leds generate
     U_Led_Ctrl : ep_leds_controller
       generic map (
-        g_blink_period_log2 => 20)
+        g_blink_period_log2 => 22)
       port map (
         clk_sys_i   => clk_sys_i,
         rst_n_i     => rst_n_i,
@@ -899,7 +896,7 @@ begin
   end generate gen_leds;
 
   -------------------------- TRU stuff -----------------------------------
-  link_up_o <= link_ok;                 -- indicates that link is IP
+  link_up_o <= link_ok;                 -- indicates that link is UP
 
   pfilter_pclass_o <= pfilter_pclass;
   pfilter_done_o   <= pfilter_done;
