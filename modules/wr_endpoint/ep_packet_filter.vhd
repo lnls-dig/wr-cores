@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2014-03-18
+-- Last update: 2017-02-02
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -15,7 +15,7 @@
 -- constaints are described in detail in the Endpoint's manual.
 -------------------------------------------------------------------------------
 --
--- Copyright (c) 2011 CERN / BE-CO-HT
+-- Copyright (c) 2011-2017 CERN / BE-CO-HT
 --
 -- This source file is free software; you can redistribute it   
 -- and/or modify it under the terms of the GNU Lesser General   
@@ -346,11 +346,8 @@ begin  -- behavioral
     port map (
       clk_in_i  => clk_rx_i,
       clk_out_i => clk_sys_i,
-      rst_n_i   => rst_n_sys_i,
+      rst_n_i   => rst_n_rx_i,
       d_p_i     => done_int,
       q_p_o     => done_o);
 
 end behavioral;
-
-
-
