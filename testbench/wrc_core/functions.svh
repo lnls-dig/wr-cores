@@ -33,27 +33,38 @@ assign sv_src.dat_i = vhd_dst``_i.dat; \
 assign sv_src.stall = vhd_dst``_i.stall;
 
 int tx_sizes[$], tx_padded[$];
-//////////////////////////////////////////////////////////
 
-task send_frames(WBPacketSource src, int n_packets);
+/* this semaphor is used it coordinate transmission of frames by the
+ * functino send_frames() and the retransmission of LM32-generated 
+ * frames in the main.sv
+ */
+semaphore  txPkt = new(1);
+//////////////////////////////////////////////////////////
+/* this function sends an n_packet number of frames with
+ * - random content
+ * - random size
+ * - sequence ID
+ * - either random or forced Iter-Frame Gap (IFG)
+ */
+task send_frames(WBPacketSource src, int n_packets, int ifg = 0 /*[us]*/);
+// TODO: improve the IFG: allow to make it tighter
   int i, seed = 0,n1=0,n2=0;
   int cur_size, dir;
   EthPacket pkt, tmpl;
   EthPacket to_ext[$], to_minic[$];
   EthPacketGenerator gen  = new;
+  int random_ifg; //us
+  int min_ifg = 1; //us
+  int max_ifg = 100;//us
   
   tmpl                = new;
-  tmpl.src                = '{22,33,44,44,55,66};
-  tmpl.dst                = '{'hff,'hff,'hff,'hff,'hff,'hff};
-  //tmpl.dst                = '{'h01,'h1b,'h19,'h00,'h00,'h00}; // PTP dst MAC
+  tmpl.src                = '{'h22,'h33,'h44,'h44,'h55,'h66};
+  tmpl.dst                = '{'h77,'h88,'h99,'hAA,'hBB,'hCC};
   tmpl.has_smac           = 1;
   tmpl.is_q               = 0;
   tmpl.ethertype	=	{'h0800};
-  //tmpl.ethertype	=	{'hdbff};
-  //tmpl.ethertype	=	{'h88f7};
-  
-  //gen.set_randomization(EthPacketGenerator::SEQ_PAYLOAD | EthPacketGenerator::ETHERTYPE /*| EthPacketGenerator::RX_OOB*/) ;
-  gen.set_randomization(EthPacketGenerator::SEQ_PAYLOAD ) ;
+
+  gen.set_randomization(EthPacketGenerator::SEQ_PAYLOAD | EthPacketGenerator::SEQ_ID ) ;
   gen.set_template(tmpl);
   gen.set_size(1, 1500);
 
@@ -72,11 +83,20 @@ task send_frames(WBPacketSource src, int n_packets);
       cur_size -= 1;
 
     pkt         = gen.gen(cur_size);
-    //pkt         = gen.gen();
     tx_sizes = {tx_sizes, pkt.size};
     tx_padded = {tx_padded, padded_size(pkt)};
+    if(ifg == 0) // random
+      random_ifg = $dist_uniform(seed, min_ifg, max_ifg);
+    else
+      random_ifg = ifg;
+
+    $display("IFG: %4d [us] | %s", random_ifg, (ifg==0?"random":"forced"));
+
+    txPkt.get(1);
     src.send(pkt);
-		#100us;
+    txPkt.put(1);
+
+    #(random_ifg*1000); // this assumes the timescale in the main.sv is [ns]
   end
 endtask
 

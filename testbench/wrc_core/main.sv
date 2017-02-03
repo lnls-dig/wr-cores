@@ -1,3 +1,72 @@
+/* Title      : Testbench for WRPC
+-- Project    : WR PTP CORE (WRPC)
+-------------------------------------------------------------------------------
+-- File       : main.sv
+-- Author     : Grzegorz Dzaniluk, Maciej Lipinski
+-- Company    : CERN
+-- Standard   : SystemVerilog
+-------------------------------------------------------------------------------
+-- Description:
+--
+-- This testbench test data transmission
+-- * from/to LM32
+-- * in/out external fabric of WRPC
+--
+-- It constis of the following elements:
+-- * DUT     : WRPC
+-- * EP      : endpoint that is used by simulation to tx/rx data to/from DUT's PHY
+-- * LOOPBACK: loops back data received by WRPC on its external interface (this
+--             data is not forwarded to LM32). So that the data received by WRPC
+--             is sent out by WRPC. The LOOPBACK module puts sourc MAC as
+--             destination.The WRPC, itself, fills in the destination address
+--             with its own.
+--
+-- Operation
+-- 1. LM32 generates frames with PTP destination MAC address. The simulation
+--    loops back these frames. Each frame has a seqID. Each frame has information
+--    regarding the previously received frame: status code and the return value
+--    of minic_rx_frame() function. Each time a frame is recieved by LM32, it
+--    checks the seqID. If there is something wrong with the reception of
+--    LM32-generated froms, the next frame sent by LM32 has a proper code. This
+--    code is checked when the frame is received (and looped back) by the
+--    simulation.
+--
+-- 2. Simulation generates traffic that is forwarded by the WRPC onto the external
+--    source interface. This interfaces is connected to the LOOPBACK. Thus, the
+--    same frame (with swapped MAC) is returned to the sink interface of WRPC.
+--    The WRPC sends it out with its own source MAC. This frame is received back
+--    by the simulation code. The simulation checks the sequence ID embedded in
+--    the frames. The simulations generates/sends traffic in two modes: 1) random
+--    Inter-frame gap (IFG) and 2) fixed/forced IFG. The latter is used to stress
+--    WRPC with high load.
+--
+-------------------------------------------------------------------------------
+--
+-- Copyright (c) 2017 CERN/BE-CO-HT
+--
+-- This source file is free software; you can redistribute it
+-- and/or modify it under the terms of the GNU Lesser General
+-- Public License as published by the Free Software Foundation;
+-- either version 2.1 of the License, or (at your option) any
+-- later version.
+--
+-- This source is distributed in the hope that it will be
+-- useful, but WITHOUT ANY WARRANTY; without even the implied
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+-- PURPOSE.  See the GNU Lesser General Public License for more
+-- details.
+--
+-- You should have received a copy of the GNU Lesser General
+-- Public License along with this source; if not, download it
+-- from http://www.gnu.org/licenses/lgpl-2.1.html
+--
+-------------------------------------------------------------------------------
+-- Revisions  :
+-- Date        Version  Author          Description
+-- unknown      1.0     gdaniluk         created
+-- 2017-02-03   2.0     mlipinski        update: add LM32 generation, randomization
+---------------------------------------------------------------------------------*/
+
 `timescale 1ns/1ps
 
 `include "tbi_utils.sv"
@@ -81,6 +150,7 @@ module main;
   wire wrc_snk_ack;
   wire wrc_snk_stall;
   wire wrc_snk_err;
+  wire link_up;
 
   /// ////////////////////// WR PTP CORE /////////////////////////////////////
   wr_core #(
@@ -117,6 +187,7 @@ module main;
 
     .btn1_i                     (1'b0),
     .btn2_i                     (1'b0),
+    .led_link_o                 (link_up),
 
      // connected to wrf_loopback
     .ext_snk_adr_i              (wrc_snk_adr),
@@ -226,7 +297,7 @@ module main;
     .wb_ack_o                   (WB_ep.master.ack),
     .wb_stall_o                 (WB_ep.master.stall));
 
-  /// ////////////////////// Loopback /////////////////////////////////////
+  /// ////////////////////// LOOPBACK /////////////////////////////////////
   wrf_loopback #(
     .g_interface_mode           (PIPELINED),
     .g_address_granularity      (BYTE))
@@ -268,10 +339,13 @@ module main;
   assign phy_tx_enc_err    = 0;
   assign phy_rx_enc_err    = 0;
 
+  
+
   initial begin
 
     CSimDrv_WR_Endpoint ep_drv;
     uint64_t val;
+    int frame_number = 10000;
 
     @(posedge rst_n);
     repeat(3) @(posedge clk_sys);
@@ -299,15 +373,31 @@ module main;
     #1us;
     acc_wrc.write(`BASE_SYSCON + `ADDR_SYSC_RSTR, 'hdeadbee );
 
-    #1400us;
+    
+    $display("");$display("");$display("");$display("");
+    $display("====================================================");
+    $display("===============wait for link up=====================");
+    $display("====================================================");
+    $display("");$display("");$display("");$display("");
+    wait(link_up == 1'b1);
+    $display("both up now");
+
     tx_sizes = {};
 
-    send_frames(ep_src, 20);
+    #1400us;
+    $display("Fixed IFG");
+    send_frames(ep_src, frame_number, 1);
+    $display("Random IFG");
+    send_frames(ep_src, frame_number);
+
 
   end
 
   initial begin
     EthPacket pkt;
+    mac_addr_t PTP_MAC='{'h01,'h1b,'h19,'h00,'h00,'h00};
+    mac_addr_t SELF_MAC='{'h22,'h33,'h44,'h44,'h55,'h66};
+    string codes [integer];
     int i = 0, correct = 0, j;
     int drop_first = 1;
     int size_pos;
@@ -315,6 +405,17 @@ module main;
     EthPacket rxp;
     int prev_size=0;
     uint64_t val64;
+    uint32_t seqID=0;
+    int cnt = 0, stat = 0, ret = 0;
+    int total_cnt=0;
+    int self_seqID_reg=0, self_seqID_rx=0; //registered/expected and received seqID from simulation
+    int lm32_seqID_reg=0, lm32_seqID_rx=0; //registered/expected and received seqID from LM32
+
+    codes['hAA]="Frame OK - first";
+    codes['hBB]="Frame OK";
+    codes['hE0]="Frame Error - rx function returned 0";
+    codes['hE1]="Frame Error - wrong sequence ID";
+    codes['hE2]="Frame Error - rx function returned error code";
 
     WB_wrc_snk.settings.gen_random_stalls = 1;
     wrc_snk = new(WB_wrc_snk.get_accessor());
@@ -326,20 +427,66 @@ module main;
     WB_lbk.settings.cyc_on_stall = 1;
     #1us;
     acc_lbk.write(`ADDR_LBK_MCR, `LBK_MCR_ENA);
-
+    wait(link_up == 1'b1);
     #1200us;
 
     while(1) begin
-      #1us;
+      #0.5us;
       ep_snk.recv(pkt);
-      $display("--> recv: size=%4d", pkt.size);
-      acc_lbk.read(`ADDR_LBK_RCV_CNT, val64);
-      $display("rcv_cnt: %d", val64);
-      acc_lbk.read(`ADDR_LBK_DRP_CNT, val64);
-      $display("drp_cnt: %d", val64);
-      acc_lbk.read(`ADDR_LBK_FWD_CNT, val64);
-      $display("fwd_cnt: %d", val64);
 
+      /// /////////////////////////////////////////////////////////////////////////////////
+      /// received frame generated inside LM32
+      if(pkt.dst == PTP_MAC) begin
+        lm32_seqID_rx  = 'h0000FFFF & (pkt.payload[0] << 8 | pkt.payload[1]);
+        stat = 'h0000FFFF & (pkt.payload[2] << 8 | pkt.payload[3]);
+        ret  = 'h0000FFFF & (pkt.payload[4] << 8 | pkt.payload[5]);
+        $display("--> recv [size=%4d] LM32-generated fame seqID: exp=%4d | rx=%4d, stat=%s [0x%4x], ret=%2d",pkt.size, lm32_seqID_reg, lm32_seqID_rx, codes[stat], stat,ret);
+        txPkt.get(1);//use semaphore to coordinate with the transmissin in function: send_frames()
+        ep_src.send(pkt);
+        txPkt.put(1);
+        //check seqID
+        if(lm32_seqID_reg != lm32_seqID_rx)
+          $warning("LM32-generated ERROR: wrong seqID");
+        lm32_seqID_reg = lm32_seqID_rx +1;
+
+        //check status codes
+        if(stat=='hAA || stat=='hBB) // OK
+           $display("LM32-generated OK");
+        else if(stat=='hE0 || stat=='hE1 || stat=='hE2) begin // recognized error
+          $warning("LM32-generated ERROR: %s [code=0x%4x], ret=%2d", codes[stat], stat,ret);
+        end
+        else begin // unrecognized error
+          $warning("LM32-generated ERROR: code=0x%4x, ret=%2d", stat,ret);
+        end
+      end
+
+      /// ///////////////////////////////////////////////////////////////////////////////////
+      /// received frame generated by the simulation itself
+      else if(pkt.dst == SELF_MAC) begin // simulation-generated tests
+        self_seqID_rx = 'hFFFFFFFF & (pkt.payload[3] << 24 |pkt.payload[2] << 16 | pkt.payload[1] << 8 | pkt.payload[0]);
+        $display("--> recv [size=%4d]: simulation-generated frame that is looped back to the simulation sink, seqID: exp=%4d | rx=%4d",pkt.size, self_seqID_reg, self_seqID_rx);
+
+        if(self_seqID_reg != self_seqID_rx)
+          $warning("simulation-generated ERROR: wrong seqID");
+        self_seqID_reg = self_seqID_rx +1;
+      end
+      /// ///////////////////////////////////////////////////////////////////////////////////
+      /// received something else, probably corrupted frame
+      else begin
+        $warning("--> recv [size=%4d]: ERROR, some frame of DST MAC that should not be there",pkt.size);
+      end
+
+      /// ///////////////////////////////////////////////////////////////////////////////////
+      /// show statistics from time to time
+      if(total_cnt % 50 == 0) begin
+        acc_lbk.read(`ADDR_LBK_RCV_CNT, val64);
+        $display("rcv_cnt: %d", val64);
+        acc_lbk.read(`ADDR_LBK_DRP_CNT, val64);
+        $display("drp_cnt: %d", val64);
+        acc_lbk.read(`ADDR_LBK_FWD_CNT, val64);
+        $display("fwd_cnt: %d", val64);
+      end
+      total_cnt++;
     end
   end
 
