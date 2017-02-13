@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-Co-HT
 -- Created    : 2010-09-02
--- Last update: 2017-02-03
+-- Last update: 2017-02-13
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -55,6 +55,10 @@ entity wr_pps_gen is
     wb_ack_o   : out std_logic;
     wb_stall_o : out std_logic;
 
+    -- Link status indicator (used for fast masking of PPS output when link
+    -- goes down
+    link_ok_i : in std_logic;
+
     -- External PPS input. Warning! This signal is treated as synchronous to
     -- the clk_ref_i (or the external 10 MHz reference) to prevent sync chain
     -- delay uncertainities. Setup/hold times must be respected!
@@ -77,7 +81,7 @@ architecture behavioral of wr_pps_gen is
 
   constant c_PERIOD : integer := g_ref_clock_rate;
 
-  component pps_gen_wb
+  component pps_gen_wb is
     port (
       rst_n_i                : in  std_logic;
       clk_sys_i              : in  std_logic;
@@ -89,6 +93,7 @@ architecture behavioral of wr_pps_gen is
       wb_stb_i               : in  std_logic;
       wb_we_i                : in  std_logic;
       wb_ack_o               : out std_logic;
+      wb_stall_o             : out std_logic;
       refclk_i               : in  std_logic;
       ppsg_cr_cnt_rst_o      : out std_logic;
       ppsg_cr_cnt_en_o       : out std_logic;
@@ -112,9 +117,9 @@ architecture behavioral of wr_pps_gen is
       ppsg_escr_pps_valid_o  : out std_logic;
       ppsg_escr_tm_valid_o   : out std_logic;
       ppsg_escr_sec_set_o    : out std_logic;
-      ppsg_escr_nsec_set_o   : out std_logic);
-  end component;
-
+      ppsg_escr_nsec_set_o   : out std_logic;
+      ppsg_escr_pps_unmask_o : out std_logic);
+  end component pps_gen_wb;
 
 -- Wisbone slave signals
   signal ppsg_cr_cnt_rst : std_logic;
@@ -143,8 +148,9 @@ architecture behavioral of wr_pps_gen is
   signal ppsg_escr_sec_set   : std_logic;
   signal ppsg_escr_nsec_set  : std_logic;
 
-  signal ppsg_escr_pps_valid : std_logic;
-  signal ppsg_escr_tm_valid  : std_logic;
+  signal ppsg_escr_pps_valid  : std_logic;
+  signal ppsg_escr_tm_valid   : std_logic;
+  signal ppsg_escr_pps_unmask : std_logic;
 
   signal cntr_nsec    : unsigned (27 downto 0);
   signal cntr_utc     : unsigned (39 downto 0);
@@ -212,7 +218,7 @@ begin  -- behavioral
       sl_ack_o   => wb_ack_o,
       sl_stall_o => wb_stall_o);
 
-  
+
   U_Sync_reset_refclk : gc_sync_ffs
     generic map (
       g_sync_edge => "positive")
@@ -334,7 +340,7 @@ begin  -- behavioral
           ns_overflow_adv <= '0';
           -- we're in the middle of offset adjustment - load the counter with
           -- offset value instead of resetting it. This equals to subtracting the offset
-          -- but takes less logic. 
+          -- but takes less logic.
           if(adjust_in_progress_nsec = '1') then
             cntr_nsec               <= adj_nsec;
             adjust_in_progress_nsec <= '0';
@@ -416,7 +422,8 @@ begin  -- behavioral
       else
 
         if(ns_overflow_adv = '1') then
-          pps_out_int <= ppsg_escr_pps_valid;
+          pps_out_int <= ppsg_escr_pps_valid and
+                         (link_ok_i or ppsg_escr_pps_unmask);
           width_cntr  <= unsigned(ppsg_cr_pwidth);
         elsif(ns_overflow = '1') then
           pps_led_o <= ppsg_escr_pps_valid;
@@ -479,7 +486,8 @@ begin  -- behavioral
       ppsg_escr_pps_valid_o  => ppsg_escr_pps_valid,
       ppsg_escr_tm_valid_o   => ppsg_escr_tm_valid,
       ppsg_escr_sec_set_o    => ppsg_escr_sec_set,
-      ppsg_escr_nsec_set_o   => ppsg_escr_nsec_set);
+      ppsg_escr_nsec_set_o   => ppsg_escr_nsec_set,
+      ppsg_escr_pps_unmask_o => ppsg_escr_pps_unmask);
 
 -- drive unused signals
   wb_out.rty   <= '0';

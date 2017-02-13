@@ -5,40 +5,40 @@
 -- Author     : Grzegorz Daniluk
 -- Company    : Elproma
 -- Created    : 2011-02-02
--- Last update: 2017-02-03
+-- Last update: 2017-02-13
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
 -- Description:
--- WR PTP Core is a HDL module implementing a complete gigabit Ethernet 
--- interface (MAC + PCS + PHY) with integrated PTP slave ordinary clock 
--- compatible with White Rabbit protocol. It performs subnanosecond clock 
--- synchronization via WR protocol and also acts as an Ethernet "gateway", 
+-- WR PTP Core is a HDL module implementing a complete gigabit Ethernet
+-- interface (MAC + PCS + PHY) with integrated PTP slave ordinary clock
+-- compatible with White Rabbit protocol. It performs subnanosecond clock
+-- synchronization via WR protocol and also acts as an Ethernet "gateway",
 -- providing access to TX/RX interfaces of the built-in WR MAC.
 --
 -- Starting from version 2.0 all modules are interconnected with pipelined
--- wishbone interface (using wb crossbars). Separate pipelined wishbone bus is 
--- used for passing packets between Endpoint, Mini-NIC and External 
+-- wishbone interface (using wb crossbars). Separate pipelined wishbone bus is
+-- used for passing packets between Endpoint, Mini-NIC and External
 -- MAC interface.
 -------------------------------------------------------------------------------
 --
 -- Copyright (c) 2011, 2012 Elproma Elektronika
 -- Copyright (c) 2012, 2013 CERN
 --
--- This source file is free software; you can redistribute it   
--- and/or modify it under the terms of the GNU Lesser General   
--- Public License as published by the Free Software Foundation; 
--- either version 2.1 of the License, or (at your option) any   
--- later version.                                               
+-- This source file is free software; you can redistribute it
+-- and/or modify it under the terms of the GNU Lesser General
+-- Public License as published by the Free Software Foundation;
+-- either version 2.1 of the License, or (at your option) any
+-- later version.
 --
--- This source is distributed in the hope that it will be       
--- useful, but WITHOUT ANY WARRANTY; without even the implied   
--- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      
--- PURPOSE.  See the GNU Lesser General Public License for more 
--- details.                                                     
+-- This source is distributed in the hope that it will be
+-- useful, but WITHOUT ANY WARRANTY; without even the implied
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+-- PURPOSE.  See the GNU Lesser General Public License for more
+-- details.
 --
--- You should have received a copy of the GNU Lesser General    
--- Public License along with this source; if not, download it   
+-- You should have received a copy of the GNU Lesser General
+-- Public License along with this source; if not, download it
 -- from http://www.gnu.org/licenses/lgpl-2.1.html
 --
 -------------------------------------------------------------------------------
@@ -80,7 +80,7 @@ use work.softpll_pkg.all;
 
 entity wr_core is
   generic(
-    --if set to 1, then blocks in PCS use smaller calibration counter to speed 
+    --if set to 1, then blocks in PCS use smaller calibration counter to speed
     --up simulation
     g_simulation                : integer                        := 0;
     g_with_external_clock_input : boolean                        := true;
@@ -363,6 +363,8 @@ architecture struct of wr_core is
   signal ep_txtsu_stb, ep_txtsu_ack : std_logic;
   signal ep_led_link                : std_logic;
 
+  signal phy_rst : std_logic;
+
   constant c_mnic_memsize_log2 : integer := f_log2_size(g_dpram_size);
 
   -----------------------------------------------------------------------------
@@ -520,6 +522,9 @@ begin
       slave_i => ppsg_wb_in,
       slave_o => ppsg_wb_out,
 
+      -- used for fast masking of PPS output when link goes down
+      link_ok_i => not phy_rst,
+
       -- Single-pulse PPS output for synchronizing endpoint to
       pps_in_i    => pps_ext_i,
       pps_csync_o => s_pps_csync,
@@ -656,7 +661,7 @@ begin
       pps_csync_p1_i => s_pps_csync,
       pps_valid_i    => pps_valid,
 
-      phy_rst_o            => phy_rst_o,
+      phy_rst_o            => phy_rst,
       phy_rdy_i            => phy_rdy_i,
       phy_loopen_o         => phy_loopen_o,
       phy_loopen_vec_o     => phy_loopen_vec_o,
@@ -705,6 +710,8 @@ begin
 
   tm_link_up_o <= ep_led_link;
 
+  phy_rst_o <= phy_rst;
+
   -----------------------------------------------------------------------------
   -- Mini-NIC
   -----------------------------------------------------------------------------
@@ -740,7 +747,7 @@ begin
 
   -----------------------------------------------------------------------------
   -- LM32
-  -----------------------------------------------------------------------------  
+  -----------------------------------------------------------------------------
   LM32_CORE : xwb_lm32
     generic map(g_profile => "medium_icache_debug")
     port map(
@@ -756,7 +763,7 @@ begin
 
   -----------------------------------------------------------------------------
   -- Dual-port RAM
-  -----------------------------------------------------------------------------  
+  -----------------------------------------------------------------------------
   DPRAM : xwb_dpram
     generic map(
       g_size                  => g_dpram_size,
@@ -765,7 +772,7 @@ begin
       g_slave1_interface_mode => PIPELINED,
       g_slave2_interface_mode => PIPELINED,
       g_slave1_granularity    => BYTE,
-      g_slave2_granularity    => WORD)  
+      g_slave2_granularity    => WORD)
     port map(
       clk_sys_i => clk_sys_i,
       rst_n_i   => rst_n_i,
@@ -871,7 +878,7 @@ begin
       g_wraparound  => true,
       g_layout      => c_layout,
       g_sdb_addr    => c_sdb_address
-      )  
+      )
     port map(
       clk_sys_i => clk_sys_i,
       rst_n_i   => rst_n_i,
@@ -1058,7 +1065,7 @@ begin
   -- ts goes to minic
   mnic_txtsu_stb      <=  '1' when (ep_txtsu_stb = '1' and (ep_txtsu_frame_id  = x"0000")) else
                           '0';
-  
+
   ep_txtsu_ack <= txtsu_ack_i or mnic_txtsu_ack;
 
 end struct;

@@ -49,6 +49,7 @@ package wrcore_pkg is
       rst_n_i         : in  std_logic;
       slave_i         : in  t_wishbone_slave_in;
       slave_o         : out t_wishbone_slave_out;
+      link_ok_i       : in  std_logic;
       pps_in_i        : in  std_logic;
       pps_csync_o     : out std_logic;
       pps_out_o       : out std_logic;
