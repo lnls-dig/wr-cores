@@ -339,9 +339,8 @@ module main;
   assign phy_tx_enc_err    = 0;
   assign phy_rx_enc_err    = 0;
 
-  
 
-  initial begin
+  initial begin ///configure EP of the testbench and send test-frame
 
     CSimDrv_WR_Endpoint ep_drv;
     uint64_t val;
@@ -386,14 +385,15 @@ module main;
 
     #1400us;
     $display("Fixed IFG");
-    send_frames(ep_src, frame_number, 1);
+    send_frames(ep_src, frame_number, 1 /* force Inter-frame gap of 1 us */);
     $display("Random IFG");
-    send_frames(ep_src, frame_number);
+    send_frames(ep_src, frame_number, 0 /* random Inter-frame gap, between 1 and 100us */);
 
 
   end
 
-  initial begin
+  initial begin /// receive frames from WRPC (looped back or sent by LM32), loopback frames
+                /// sent from LM32
     EthPacket pkt;
     mac_addr_t PTP_MAC='{'h01,'h1b,'h19,'h00,'h00,'h00};
     mac_addr_t SELF_MAC='{'h22,'h33,'h44,'h44,'h55,'h66};
