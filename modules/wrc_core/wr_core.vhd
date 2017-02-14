@@ -342,6 +342,7 @@ architecture struct of wr_core is
   -----------------------------------------------------------------------------
   signal s_pps_csync : std_logic;
   signal pps_valid   : std_logic;
+  signal ppsg_link_ok: std_logic;
 
   signal ppsg_wb_in  : t_wishbone_slave_in;
   signal ppsg_wb_out : t_wishbone_slave_out;
@@ -523,7 +524,7 @@ begin
       slave_o => ppsg_wb_out,
 
       -- used for fast masking of PPS output when link goes down
-      link_ok_i => not phy_rst,
+      link_ok_i => ppsg_link_ok,
 
       -- Single-pulse PPS output for synchronizing endpoint to
       pps_in_i    => pps_ext_i,
@@ -536,6 +537,7 @@ begin
       tm_cycles_o     => tm_cycles_o,
       tm_time_valid_o => tm_time_valid_o
       );
+  ppsg_link_ok <= not phy_rst;
 
   -----------------------------------------------------------------------------
   -- Software PLL
