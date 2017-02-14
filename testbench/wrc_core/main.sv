@@ -159,7 +159,7 @@ module main;
     .g_address_granularity      (BYTE),
     .g_tx_runt_padding          (1),
     .g_with_external_clock_input(1),
-    .g_dpram_initf              ("wrc.ram"),
+    .g_dpram_initf              ("wrc.bram"),
     .g_dpram_size               (131072/4),
     .g_diag_id                  (1),
     .g_diag_ver                 (2),
