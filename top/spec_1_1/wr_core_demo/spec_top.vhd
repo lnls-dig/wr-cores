@@ -468,7 +468,7 @@ begin
       g_tx_runt_padding           => true,
       g_pcs_16bit                 => false,
       g_records_for_phy           => true,
-      g_dpram_initf               => "wrc.ram",
+      g_dpram_initf               => "wrc.bram",
       g_aux_sdb                   => c_etherbone_sdb,
       g_dpram_size                => 131072/4,
       g_interface_mode            => PIPELINED,
