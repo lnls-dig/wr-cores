@@ -2,7 +2,7 @@
 # testbenches added for CI
 
 TB_DIRS=wr_minic
-TB_DIRS+=wrc_core/main_tb
+TB_DIRS+=wrc_core
 
 test_results_xml=test_results.xml
 .PHONY: $(TB_DIRS)
