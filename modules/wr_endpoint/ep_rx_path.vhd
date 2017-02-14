@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2009-06-22
--- Last update: 2013-03-12
+-- Last update: 2017-02-02
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -365,6 +365,7 @@ begin  -- behavioral
     vlan_vid       <= (others => '0');
     vlan_tag_done  <= '0';
     vlan_is_tagged <= '0';
+    regs_o         <= c_ep_in_registers_init_value;
   end generate gen_without_vlan_unit;
 
   U_RTU_Header_Extract : ep_rtu_header_extract
@@ -413,8 +414,7 @@ begin  -- behavioral
                                 -- stored in mbuf => mbuf is probably full so we
                                 -- should drop this frame
         dropped_o  => rxbuf_dropped,
-        regs_i     => regs_i,
-        rmon_o     => open);
+        regs_i     => regs_i);
   end generate gen_with_rx_buffer;
 
   gen_without_rx_buffer : if (not g_with_rx_buffer) generate
@@ -497,6 +497,19 @@ begin  -- behavioral
 
   rmon_o.rx_frame <= '1' when (src_wb_out.cyc = '1' and src_wb_cyc_d0 = '0') else
                      '0';
+
+  -- drive unused signals and outputs
+  dreq_pipe(2 downto 0)         <= (others => '0');
+  rmon_o.rx_sync_lost           <= '0';
+  rmon_o.rx_invalid_code        <= '0';
+  rmon_o.rx_overrun             <= '0';
+  rmon_o.rx_ok                  <= '0';
+  rmon_o.rx_buffer_overrun      <= '0';
+  rmon_o.rx_rtu_overrun         <= '0';
+  rmon_o.rx_path_timing_failure <= '0';
+  rmon_o.tx_pause               <= '0';
+  rmon_o.tx_underrun            <= '0';
+  rmon_o.tx_frame               <= '0';
 
 end behavioral;
 

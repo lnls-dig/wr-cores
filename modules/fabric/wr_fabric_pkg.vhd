@@ -62,6 +62,9 @@ package wr_fabric_pkg is
   function f_marshall_wrf_status (stat  : t_wrf_status_reg) return std_logic_vector;
   function f_unmarshall_wrf_status(stat : std_logic_vector) return t_wrf_status_reg;
 
+  constant c_wrf_status_init_value : t_wrf_status_reg :=
+    ('0', '0', '0', '0', '0', (others => '0'));
+
   constant c_dummy_src_in : t_wrf_source_in :=
     ('0', '0', '0', '0');
   constant c_dummy_snk_in : t_wrf_sink_in :=

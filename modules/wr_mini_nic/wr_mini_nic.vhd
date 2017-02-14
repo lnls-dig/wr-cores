@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk, Tomasz Wlostowski
 -- Company    : CERN BE-Co-HT
 -- Created    : 2010-07-26
--- Last update: 2016-10-27
+-- Last update: 2017-02-03
 -- Platform   : FPGA-generic
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -228,27 +228,27 @@ architecture behavioral of wr_mini_nic is
   signal irq_tx_mask : std_logic;
 
 
-  component chipscope_ila
-    port (
-      CONTROL : inout std_logic_vector(35 downto 0);
-      CLK     : in    std_logic;
-      TRIG0   : in    std_logic_vector(31 downto 0);
-      TRIG1   : in    std_logic_vector(31 downto 0);
-      TRIG2   : in    std_logic_vector(31 downto 0);
-      TRIG3   : in    std_logic_vector(31 downto 0));
-  end component;
+  --component chipscope_ila
+  --  port (
+  --    CONTROL : inout std_logic_vector(35 downto 0);
+  --    CLK     : in    std_logic;
+  --    TRIG0   : in    std_logic_vector(31 downto 0);
+  --    TRIG1   : in    std_logic_vector(31 downto 0);
+  --    TRIG2   : in    std_logic_vector(31 downto 0);
+  --    TRIG3   : in    std_logic_vector(31 downto 0));
+  --end component;
 
-  signal CONTROL : std_logic_vector(35 downto 0);
-  signal CLK     : std_logic;
-  signal TRIG0   : std_logic_vector(31 downto 0);
-  signal TRIG1   : std_logic_vector(31 downto 0);
-  signal TRIG2   : std_logic_vector(31 downto 0);
-  signal TRIG3   : std_logic_vector(31 downto 0);
+  --signal CONTROL : std_logic_vector(35 downto 0);
+  --signal CLK     : std_logic;
+  --signal TRIG0   : std_logic_vector(31 downto 0);
+  --signal TRIG1   : std_logic_vector(31 downto 0);
+  --signal TRIG2   : std_logic_vector(31 downto 0);
+  --signal TRIG3   : std_logic_vector(31 downto 0);
 
-  component chipscope_icon
-    port (
-      CONTROL0 : inout std_logic_vector (35 downto 0));
-  end component;
+  --component chipscope_icon
+  --  port (
+  --    CONTROL0 : inout std_logic_vector (35 downto 0));
+  --end component;
 
 begin  -- behavioral
 
@@ -265,7 +265,9 @@ begin  -- behavioral
   --  port map (
   --    CONTROL0 => CONTROL);
 
-  regs_in.mcr_ver_i <= x"1";
+  regs_in.mcr_ver_i         <= x"1";
+  regs_in.dbgr_irq_cnt_i    <= (others => '0');
+  regs_in.dbgr_wb_irq_val_i <= '0';
 
 -------------------------------------------------------------------------------
 -- Tx / Rx FIFO
@@ -763,31 +765,35 @@ begin  -- behavioral
       irq_rx_ack_o     => irq_rx_ack,
       irq_txts_i       => irq_txts);
 
-  TRIG0(0) <= regs_out.mcr_rx_en_o;
-  TRIG0(1) <= rx_fifo_empty;
-  TRIG0(2) <= rx_fifo_full;
-  TRIG0(3) <= rx_fifo_rd;
-  TRIG0(4) <= rx_fifo_we;
-  TRIG0(6 downto 5)  <= rx_fifo_q(17 downto 16);
-  TRIG0(22 downto 7) <= rx_fifo_q(15 downto 0);
-  TRIG0(24 downto 23) <= "00" when(nrx_state = RX_WAIT_FRAME) else
-                         "01" when(nrx_state = RX_FRAME) else
-                         "10" when(nrx_state = RX_FULL) else
-                         "11";
-  TRIG0(25) <= nrx_sof;
-  TRIG0(26) <= nrx_eof;
-  TRIG0(27) <= snk_cyc_i;
-  TRIG0(28) <= snk_stb_i;
-  TRIG0(29) <= snk_stall_int;
-  TRIG0(31 downto 30) <= snk_adr_i;
+  wb_in.err <= '0';
+  wb_in.rty <= '0';
+  wb_in.int <= '0';
 
-  TRIG1(15 downto 0) <= snk_dat_i;
-  TRIG1(16) <= rx_fifo_afull;
-  TRIG1(17) <= wb_out.cyc;
-  TRIG1(18) <= wb_out.stb;
-  TRIG1(19) <= wb_in.ack;
-  TRIG1(20) <= irq_rx;
+  --TRIG0(0) <= regs_out.mcr_rx_en_o;
+  --TRIG0(1) <= rx_fifo_empty;
+  --TRIG0(2) <= rx_fifo_full;
+  --TRIG0(3) <= rx_fifo_rd;
+  --TRIG0(4) <= rx_fifo_we;
+  --TRIG0(6 downto 5)  <= rx_fifo_q(17 downto 16);
+  --TRIG0(22 downto 7) <= rx_fifo_q(15 downto 0);
+  --TRIG0(24 downto 23) <= "00" when(nrx_state = RX_WAIT_FRAME) else
+  --                       "01" when(nrx_state = RX_FRAME) else
+  --                       "10" when(nrx_state = RX_FULL) else
+  --                       "11";
+  --TRIG0(25) <= nrx_sof;
+  --TRIG0(26) <= nrx_eof;
+  --TRIG0(27) <= snk_cyc_i;
+  --TRIG0(28) <= snk_stb_i;
+  --TRIG0(29) <= snk_stall_int;
+  --TRIG0(31 downto 30) <= snk_adr_i;
 
-  TRIG2(31 downto 0) <= wb_out.adr;
+  --TRIG1(15 downto 0) <= snk_dat_i;
+  --TRIG1(16) <= rx_fifo_afull;
+  --TRIG1(17) <= wb_out.cyc;
+  --TRIG1(18) <= wb_out.stb;
+  --TRIG1(19) <= wb_in.ack;
+  --TRIG1(20) <= irq_rx;
+
+  --TRIG2(31 downto 0) <= wb_out.adr;
 
 end behavioral;

@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2009-06-22
--- Last update: 2012-11-15
+-- Last update: 2017-02-02
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -76,7 +76,7 @@ architecture behavioral of ep_tx_crc_inserter is
 
   signal odd_length : std_logic;
 
-  signal embed_valid, embed_eof : std_logic;
+  signal embed_valid : std_logic;
 
   signal stored_msb : std_logic_vector(7 downto 0);
   signal in_payload : std_logic;
@@ -162,11 +162,9 @@ begin  -- behavioral
     if rising_edge(clk_sys_i) then
       if(rst_n_i = '0' or snk_fab_i.error = '1') then
         state     <= IDLE;
-        embed_eof <= '0';
       else
         case state is
           when IDLE =>
-            embed_eof  <= '0';
             odd_length <= '0';
 
             if(snk_fab_i.sof = '1') then
@@ -194,14 +192,12 @@ begin  -- behavioral
                 state <= EMBED_3;
               else
                 state     <= IDLE;
-                embed_eof <= '1';
               end if;
             end if;
             
           when EMBED_3 =>
             if(src_dreq_d0 = '1') then
               state     <= IDLE;
-              embed_eof <= '1';
             end if;
         end case;
       end if;
@@ -261,10 +257,11 @@ begin  -- behavioral
     src_fab_o.addr <= c_WRF_DATA;
   end process;
 
-  snk_dreq_o       <= src_dreq_i and in_payload;
-  src_fab_o.sof    <= snk_fab_i.sof;
-  src_fab_o.error  <= snk_fab_i.error;
-
+  snk_dreq_o                   <= src_dreq_i and in_payload;
+  src_fab_o.sof                <= snk_fab_i.sof;
+  src_fab_o.error              <= snk_fab_i.error;
+  src_fab_o.has_rx_timestamp   <= snk_fab_i.has_rx_timestamp;
+  src_fab_o.rx_timestamp_valid <= snk_fab_i.rx_timestamp_valid;
 
 end behavioral;
 

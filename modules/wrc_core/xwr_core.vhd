@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk
 -- Company    : Elproma
 -- Created    : 2011-02-02
--- Last update: 2014-07-15
+-- Last update: 2017-02-01
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -243,7 +243,6 @@ entity xwr_core is
     pps_p_o              : out std_logic;
     pps_led_o            : out std_logic;
 
-    dio_o       : out std_logic_vector(3 downto 0);
     rst_aux_n_o : out std_logic;
 
     aux_diag_i    : in  t_generic_word_array(g_diag_ro_size-1 downto 0) := (others =>(others=>'0'));
@@ -409,7 +408,6 @@ begin
       pps_p_o              => pps_p_o,
       pps_led_o            => pps_led_o,
 
-      dio_o       => dio_o,
       rst_aux_n_o => rst_aux_n_o,
 
       link_ok_o => link_ok_o,

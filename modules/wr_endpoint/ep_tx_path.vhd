@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2012-11-01
--- Last update: 2012-11-16
+-- Last update: 2017-02-03
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -162,7 +162,6 @@ architecture rtl of ep_tx_path is
   signal inject_mode           : std_logic_vector( 1 downto 0);
 
   signal inj_ctr_req            : std_logic;
-  signal inj_ctr_ready          : std_logic;
   signal inj_ctr_packet_sel     : std_logic_vector(2 downto 0);
   signal inj_ctr_user_value     : std_logic_vector(15 downto 0);
   signal inj_ctr_ena            : std_logic;
@@ -227,7 +226,7 @@ begin  -- rtl
         src_fab_o             => fab_pipe(1),
         src_dreq_i            => dreq_pipe(1),
         inject_req_o          => inj_ctr_req,
-        inject_ready_i        => inj_ctr_ready,
+        inject_ready_i        => inject_ready,
         inject_packet_sel_o   => inj_ctr_packet_sel,
         inject_user_value_o   => inj_ctr_user_value,
         inject_ctr_ena_o      => inj_ctr_ena,
@@ -238,20 +237,17 @@ begin  -- rtl
 
   inject_req        <= inj_ctr_req        when (inj_ctr_ena ='1') else inject_req_i;
   inject_packet_sel <= inj_ctr_packet_sel when (inj_ctr_ena ='1') else inject_packet_sel_i;
-  inject_user_value <= inj_ctr_user_value when (inj_ctr_ena ='1') else inject_user_value_i;
-  inject_mode       <= inj_ctr_mode       when (inj_ctr_ena ='1') else "00";
-  inj_ctr_ready     <= inject_ready;
   inject_ready_o    <= inject_ready;
 
   gen_without_inj_ctrl: if((not g_with_inj_ctrl) or (not g_with_packet_injection)) generate
     fab_pipe(1)        <= fab_pipe(0);
     dreq_pipe(0)       <= dreq_pipe(1);   
     inj_ctr_req        <= '0';
-    inj_ctr_ready      <= '0';
+    inj_ctr_mode       <= (others => '0');
     inj_ctr_packet_sel <= (others => '0');
     inj_ctr_user_value <= (others => '0');
     inj_ctr_ena        <= '0';
-    regs_o.inj_ctrl_pic_ena_i <='0';
+    regs_o             <= c_ep_in_registers_init_value;
   end generate gen_without_inj_ctrl;
 
   gen_with_vlan_unit : if(g_with_vlans) generate
@@ -276,6 +272,10 @@ begin  -- rtl
   end generate gen_without_vlan_unit;
 
   gen_with_injection : if(g_with_packet_injection) generate
+
+    inject_user_value <= inj_ctr_user_value when (inj_ctr_ena ='1') else inject_user_value_i;
+    inject_mode       <= inj_ctr_mode       when (inj_ctr_ena ='1') else "00";
+
     U_Injector : ep_tx_packet_injection
       port map (
         clk_sys_i           => clk_sys_i,
@@ -296,6 +296,7 @@ begin  -- rtl
   gen_without_injection : if (not g_with_packet_injection) generate
     fab_pipe(3)  <= fab_pipe(2);
     dreq_pipe(2) <= dreq_pipe(3);
+    inject_ready <= '0';
   end generate gen_without_injection;
 
   U_Insert_CRC : ep_tx_crc_inserter

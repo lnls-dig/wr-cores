@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2009-06-22
--- Last update: 2011-05-27
+-- Last update: 2017-02-03
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'87
 -------------------------------------------------------------------------------
@@ -74,7 +74,6 @@ architecture syn of ep_ts_counter is
 
   signal cntr_r           : unsigned(g_num_bits_r-1 downto 0) := (others => '0');
   signal cntr_f           : unsigned (g_num_bits_f-1 downto 0);
-  signal sync_in_progress : std_logic;
   
 begin  -- syn
 
@@ -85,7 +84,6 @@ begin  -- syn
     if rising_edge(clk_i) then
       if(rst_n_i = '0') then
         cntr_r           <= to_unsigned(g_init_value, g_num_bits_r);
-        sync_in_progress <= '0';
         sync_done_o      <= '1';
       else
 

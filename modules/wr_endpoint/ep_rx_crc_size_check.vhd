@@ -82,7 +82,6 @@ architecture behavioral of ep_rx_crc_size_check is
   signal q_dvalid_in      : std_logic;
   signal q_dvalid_out     : std_logic;
   signal q_dreq_out       : std_logic;
-  signal d_eof            : std_logic;
   
   -- bypass_queue stuff comes here
   constant c_crc_size    : integer := 2;
@@ -226,7 +225,6 @@ begin  -- behavioral
 
         q_purge   <= '0';
         q_bytesel <= '0';
-        d_eof     <= '0';
 
         state <= ST_WAIT_FRAME;
 
@@ -248,7 +246,6 @@ begin  -- behavioral
             q_bytesel       <= '0';
             src_fab_o.error <= '0';
             src_fab_o.sof   <= '0';
-            d_eof           <= '0';
 
             if(snk_fab_i.sof = '1') then
               state         <= ST_DATA;
@@ -278,7 +275,6 @@ begin  -- behavioral
                 src_fab_o.error <= '1';
                 q_purge         <= '1';
               elsif(snk_fab_i.eof = '1') then
-                d_eof         <= '1';
                 state         <= ST_WAIT_FRAME;
               else
                 state       <= ST_OOB;
@@ -316,6 +312,8 @@ begin  -- behavioral
   src_fab_o.bytesel <= snk_fab_i.bytesel  when (dat_in = '1') else '0';
   src_fab_o.eof     <= snk_fab_i.eof;
 
+  src_fab_o.has_rx_timestamp   <= snk_fab_i.has_rx_timestamp;
+  src_fab_o.rx_timestamp_valid <= snk_fab_i.rx_timestamp_valid;
 
   --------------------- the whole of bypass_queue is here ------------------------------------
   -- it was put inside as the optimization made it far from "universal" and apparently this

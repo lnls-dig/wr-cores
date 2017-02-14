@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2012-01-23
+-- Last update: 2017-02-02
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -64,8 +64,7 @@ entity ep_rx_buffer is
     full_o     : out std_logic;
     drop_req_i : in  std_logic;
     dropped_o  : out std_logic;
-    regs_i     : in  t_ep_out_registers;
-    rmon_o     : out t_rmon_triggers
+    regs_i     : in  t_ep_out_registers
     );
 
 end ep_rx_buffer;
@@ -160,6 +159,8 @@ architecture behavioral of ep_rx_buffer is
       fab.error   <= '0';
       fab.data    <= (others => '0');
     end if;
+    fab.has_rx_timestamp   <= '0';
+    fab.rx_timestamp_valid <= '0';
   end f_unpack_rbuf_contents;
 
 
@@ -232,7 +233,7 @@ begin
   end process;
 
 
-  p_encode_fifo_in : process(snk_fab_i, state, q_drop)
+  p_encode_fifo_in : process(drop_req_i, q_drop, snk_fab_i, state)
     variable fab_pre_encode : t_ep_internal_fabric;
     
   begin

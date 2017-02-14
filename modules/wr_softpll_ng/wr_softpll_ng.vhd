@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2011-01-29
--- Last update: 2014-07-15
+-- Last update: 2017-02-03
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -18,7 +18,7 @@
 -- The rest of the magic is done in the software.
 -------------------------------------------------------------------------------
 --
--- Copyright (c) 2012-2013 CERN
+-- Copyright (c) 2012-2017 CERN
 --
 -- This source file is free software; you can redistribute it   
 -- and/or modify it under the terms of the GNU Lesser General   
@@ -137,8 +137,6 @@ entity wr_softpll_ng is
 -- When HI, the respective clock output is locked.
     out_locked_o : out std_logic_vector(g_num_outputs-1 downto 0);
 
-    out_status_o : out std_logic_vector(4*g_num_outputs-1 downto 0);
-
     wb_adr_i   : in  std_logic_vector(c_wishbone_address_width-1 downto 0);
     wb_dat_i   : in  std_logic_vector(c_wishbone_data_width-1 downto 0);
     wb_dat_o   : out std_logic_vector(c_wishbone_data_width-1 downto 0);
@@ -227,7 +225,6 @@ architecture rtl of wr_softpll_ng is
       pps_csync_p1_i : in  std_logic;
       sample_cref_o  : out std_logic_vector(g_counter_width-1 downto 0);
       sample_cin_o   : out std_logic_vector(g_counter_width-1 downto 0);
-      sample_pps_o   : out std_logic;
       sample_valid_o : out std_logic;
       sample_ack_i   : in  std_logic);
   end component;
@@ -303,6 +300,7 @@ architecture rtl of wr_softpll_ng is
   signal dbg_fifo_almostfull   : std_logic;
   signal dbg_seq_id            : unsigned(15 downto 0);
   signal dbg_fifo_permit_write : std_logic;
+  signal dbg_fifo_irq          : std_logic := '0';
 
   -- Temporary vectors for DDMTD clock selection (straight/reversed)
   signal dmtd_ref_clk_in, dmtd_ref_clk_dmtd : std_logic_vector(g_num_ref_inputs-1 downto 0);
@@ -473,11 +471,14 @@ begin  -- rtl
 
   end generate gen_feedback_dmtds;
 
+  -- drive unused debug output
+  debug_o(4) <= '0';
+
   gen_with_ext_clock_input : if(g_with_ext_clock_input) generate
 
-		debug_o(0) <= fb_resync_out(0);
-		debug_o(1) <= tags_p(g_num_ref_inputs + g_num_outputs);
-		debug_o(2) <= tags_p(g_num_ref_inputs);
+    debug_o(0) <= fb_resync_out(0);
+    debug_o(1) <= tags_p(g_num_ref_inputs + g_num_outputs);
+    debug_o(2) <= tags_p(g_num_ref_inputs);
     
     U_DMTD_EXT : dmtd_with_deglitcher
       generic map (
@@ -505,7 +506,7 @@ begin  -- rtl
 
         deglitch_threshold_i => deglitch_thr_slv,
         dbg_dmtdout_o        => debug_o(3),
-				dbg_clk_d3_o         => debug_o(5));
+        dbg_clk_d3_o         => debug_o(5));
 
     U_Aligner_EXT : spll_aligner
       generic map (
@@ -526,23 +527,38 @@ begin  -- rtl
         sample_ack_i   => aligner_sample_ack(g_num_outputs)
         );
 
+    aligner_sample_valid(g_num_outputs-1 downto 0) <= (others => '0');
+
+    aligner_sample_cref(0 to g_num_outputs-1) <= (others => (others => '0'));
+    aligner_sample_cin(0 to g_num_outputs-1)  <= (others => (others => '0'));
+
     regs_out.eccr_ext_supported_i   <= '1';
     regs_out.eccr_ext_ref_locked_i  <= clk_ext_mul_locked_i;
     regs_out.eccr_ext_ref_stopped_i <= clk_ext_stopped_i;
     clk_ext_rst_o <= regs_in.eccr_ext_ref_pllrst_o;
   end generate gen_with_ext_clock_input;
 
-  aligner_sample_valid(g_num_outputs-1 downto 0) <= (others => '0');
   
   gen_without_ext_clock_input : if(not g_with_ext_clock_input) generate
+    aligner_sample_valid <= (others => '0');
+    aligner_sample_cref  <= (others => (others => '0'));
+    aligner_sample_cin   <= (others => (others => '0'));
+
     regs_out.eccr_ext_supported_i            <= '0';
     regs_out.eccr_ext_ref_locked_i           <= '0';
     regs_out.eccr_ext_ref_stopped_i          <= '0';
     clk_ext_rst_o <= '0';
+    -- drive unused debug outputs
+    debug_o(0) <= '0';
+    debug_o(1) <= '0';
+    debug_o(2) <= '0';
+    debug_o(3) <= '0';
+    debug_o(5) <= '0';
   end generate gen_without_ext_clock_input;
 
   p_ack_aligner_samples: process(regs_in, aligner_sample_valid)
   begin
+    regs_out.al_cr_valid_i <= (others => '0');
     for i in 0 to g_num_outputs loop
       aligner_sample_ack(i)     <= regs_in.al_cr_valid_o(i) and regs_in.al_cr_valid_load_o;
       regs_out.al_cr_valid_i(i) <= aligner_sample_valid(i);
@@ -584,6 +600,12 @@ begin  -- rtl
 
       irq_tag_i => irq_tag);
 
+    -- drive unused outputs
+    wb_out.err   <= '0';
+    wb_out.rty   <= '0';
+    wb_out.stall <= '0';
+    wb_out.int   <= '0';
+
   p_ocer_rcer_regs : process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
@@ -602,9 +624,11 @@ begin  -- rtl
     end if;
   end process;
 
-  -- Drive back the respective registers
-  regs_out.ocer_i(g_num_outputs-1 downto 0)    <= ocer_int;
+  regs_out.ocer_i(g_num_outputs-1 downto 0) <= ocer_int;
+  regs_out.ocer_i(7 downto g_num_outputs)   <= (others => '0');
+
   regs_out.rcer_i(g_num_ref_inputs-1 downto 0) <= rcer_int;
+  regs_out.rcer_i(31 downto g_num_ref_inputs)  <= (others => '0');
 
   p_latch_tags : process(clk_sys_i)
   begin
@@ -687,10 +711,12 @@ begin  -- rtl
     end if;
   end process;
 
-  regs_out.trr_wr_req_i                       <= tag_valid and not regs_in.trr_wr_full_o;
-  regs_out.trr_value_i(g_tag_bits-1 downto 0) <= tag_muxed;
-  regs_out.trr_chan_id_i                      <= '0'&tag_src;
+  regs_out.trr_wr_req_i  <= tag_valid and not regs_in.trr_wr_full_o;
+  regs_out.trr_chan_id_i <= '0'&tag_src;
 
+  regs_out.trr_value_i(g_tag_bits-1 downto 0) <= tag_muxed;
+  regs_out.trr_value_i(23 downto g_tag_bits)  <= (others => '0');
+  
   regs_out.occr_out_en_i(g_num_outputs-1 downto 0) <= out_enable_i;
   regs_out.occr_out_en_i(7 downto g_num_outputs)   <= (others => '0');
 
@@ -742,12 +768,12 @@ begin  -- rtl
     begin
       if rising_edge(clk_sys_i) then
         if rst_n_i = '0' then
-          dbg_fifo_irq_o <= '0';
+          dbg_fifo_irq <= '0';
         else
           if(unsigned(regs_in.dfr_host_wr_usedw_o) = 0) then
-            dbg_fifo_irq_o <= '0';
+            dbg_fifo_irq <= '0';
           elsif(unsigned(regs_in.dfr_host_wr_usedw_o) = c_DBG_FIFO_COALESCE) then
-            dbg_fifo_irq_o <= '1';
+            dbg_fifo_irq <= '1';
           end if;
         end if;
       end if;
@@ -760,8 +786,13 @@ begin  -- rtl
   end generate gen_with_debug_fifo;
 
   gen_without_debug_fifo : if(g_with_debug_fifo = false) generate
+    dbg_fifo_irq               <= '0';
     regs_out.dfr_host_wr_req_i <= '0';
+    regs_out.dfr_host_value_i  <= (others => '0');
+    regs_out.dfr_host_seq_id_i <= (others => '0');
   end generate gen_without_debug_fifo;
+
+  dbg_fifo_irq_o <= dbg_fifo_irq;
 
   -----------------------------------------------------------------------------
   -- CSR N_OUT/N_REF fields
@@ -779,5 +810,11 @@ begin  -- rtl
 
   wb_irq_o <= wb_irq_out;
 
-  
+  regs_out.al_cr_required_i    <= (others => '0');
+  regs_out.csr_dbg_supported_i <= '0';
+  regs_out.f_dmtd_valid_i      <= '0';
+  regs_out.f_ref_valid_i       <= '0';
+  regs_out.f_ext_valid_i       <= '0';
+  regs_out.trr_disc_i          <= '0';
+
 end rtl;

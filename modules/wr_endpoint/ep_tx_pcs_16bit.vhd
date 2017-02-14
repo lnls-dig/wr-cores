@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT section
 -- Created    : 2009-06-16
--- Last update: 2013-03-12
+-- Last update: 2017-02-02
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -149,7 +149,6 @@ architecture behavioral of ep_tx_pcs_16bit is
   signal reset_synced_txclk : std_logic;
 
   signal mdio_mcr_pdown_synced : std_logic;
-  signal s_one                 : std_logic := '1';
 
   signal an_tx_en_synced : std_logic;
   signal wr_count       :  std_logic_vector(6 downto 0);

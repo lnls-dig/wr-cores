@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-04-26
--- Last update: 2012-11-16
+-- Last update: 2017-02-03
 -- Platform   : FPGA-generic
 -- Standard   : VHDL '93
 -------------------------------------------------------------------------------
@@ -14,7 +14,7 @@
 -- structures and component declarations.
 -------------------------------------------------------------------------------
 --
--- Copyright (c) 2011 - 2012 CERN / BE-CO-HT
+-- Copyright (c) 2011 - 2017 CERN / BE-CO-HT
 --
 -- This source file is free software; you can redistribute it   
 -- and/or modify it under the terms of the GNU Lesser General   
@@ -46,6 +46,7 @@ package endpoint_pkg is
   function f_pcs_data_width(pcs_16 : boolean) return integer;
   function f_pcs_k_width(pcs_16 : boolean) return integer;
   function f_pcs_bts_width(pcs_16 : boolean) return integer;
+  function f_pcs_clock_rate(pcs_16 : boolean) return integer;
 
   type t_txtsu_timestamp is record
     stb       : std_logic;
@@ -448,6 +449,16 @@ package body endpoint_pkg is
       return 5;
     else
       return 4;
+    end if;
+  end function;
+
+  function f_pcs_clock_rate(pcs_16 : boolean)
+    return integer is
+  begin
+    if (pcs_16) then
+      return 62500000;
+    else
+      return 125000000;
     end if;
   end function;
 

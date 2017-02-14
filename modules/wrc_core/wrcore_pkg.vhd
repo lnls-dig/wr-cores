@@ -287,7 +287,6 @@ package wrcore_pkg is
       dac_out_load_o  : out std_logic;
       out_enable_i    : in  std_logic_vector(g_num_outputs-1 downto 0);
       out_locked_o    : out std_logic_vector(g_num_outputs-1 downto 0);
-      out_status_o    : out std_logic_vector(4*g_num_outputs-1 downto 0);
       slave_i         : in  t_wishbone_slave_in;
       slave_o         : out t_wishbone_slave_out;
       debug_o         : out std_logic_vector(5 downto 0);
@@ -423,7 +422,6 @@ package wrcore_pkg is
       pps_p_o              : out std_logic;
       pps_led_o            : out std_logic;
 
-      dio_o       : out std_logic_vector(3 downto 0);
       rst_aux_n_o : out std_logic;
 
       link_ok_o : out std_logic;
@@ -651,7 +649,6 @@ package wrcore_pkg is
       pps_p_o              : out std_logic;
       pps_led_o            : out std_logic;
 
-      dio_o       : out std_logic_vector(3 downto 0);
       rst_aux_n_o : out std_logic;
 
       link_ok_o : out std_logic;

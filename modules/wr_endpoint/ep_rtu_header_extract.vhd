@@ -145,24 +145,30 @@ begin  -- rtl
   end generate gen_with_rtu;
 
   gen_without_rtu : if (not g_with_rtu) generate
-    src_fab_o.sof <= snk_fab_i.sof;
-    rtu_rq_valid_out <='0';
+    src_fab_o.sof          <= snk_fab_i.sof;
+    rtu_rq_valid_out       <= '0';
+    rtu_rq_o.smac          <= (others => '0');
+    rtu_rq_o.dmac          <= (others => '0');
+    rtu_rq_abort_o         <= '0';
+    rmon_drp_at_rtu_full_o <= '0';
   end generate gen_without_rtu;
 
   snk_dreq_o <= src_dreq_i;
 
-  src_fab_o.eof      <= snk_fab_i.eof;
-  src_fab_o.dvalid   <= snk_fab_i.dvalid;
-  src_fab_o.error    <= snk_fab_i.error;
-  src_fab_o.bytesel  <= snk_fab_i.bytesel;
-  src_fab_o.data     <= snk_fab_i.data;
-  src_fab_o.addr     <= snk_fab_i.addr;
-  src_fab_o.has_rx_timestamp <= snk_fab_i.has_rx_timestamp;
+  src_fab_o.eof                <= snk_fab_i.eof;
+  src_fab_o.dvalid             <= snk_fab_i.dvalid;
+  src_fab_o.error              <= snk_fab_i.error;
+  src_fab_o.bytesel            <= snk_fab_i.bytesel;
+  src_fab_o.data               <= snk_fab_i.data;
+  src_fab_o.addr               <= snk_fab_i.addr;
+  src_fab_o.has_rx_timestamp   <= snk_fab_i.has_rx_timestamp;
+  src_fab_o.rx_timestamp_valid <= snk_fab_i.rx_timestamp_valid;
 
-  rtu_rq_o.vid       <= vlan_vid_i;
-  rtu_rq_o.has_vid   <= vlan_is_tagged_i;
-  rtu_rq_o.prio      <= vlan_class_i;
-  rtu_rq_o.has_prio  <= vlan_is_tagged_i;
-  rtu_rq_valid_o     <= rtu_rq_valid_out and not snk_fab_i.error;
+  rtu_rq_o.vid      <= vlan_vid_i;
+  rtu_rq_o.has_vid  <= vlan_is_tagged_i;
+  rtu_rq_o.prio     <= vlan_class_i;
+  rtu_rq_o.has_prio <= vlan_is_tagged_i;
+  rtu_rq_valid_o    <= rtu_rq_valid_out and not snk_fab_i.ERROR;
+  rtu_rq_o.hash     <= (others => '0');
   
 end rtl;

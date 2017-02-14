@@ -6,14 +6,14 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2009-06-22
--- Last update: 2011-10-30
+-- Last update: 2017-02-02
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: RX Wishbone Master. Converts the internal fabric (DREQ-VALID
 -- throttling) to Pipelined Wishbone (b4)
 -------------------------------------------------------------------------------
--- Copyright (c) 2011 Tomasz Wlostowski
+-- Copyright (c) 2011-2017 CERN/Tomasz Wlostowski
 -------------------------------------------------------------------------------
 -- Revisions  :
 -- Date        Version  Author  Description
@@ -60,7 +60,7 @@ architecture behavioral of ep_rx_wb_master is
   signal tmp_sel : std_logic;
   signal tmp_dat : std_logic_vector(15 downto 0);
   signal tmp_adr : std_logic_vector(1 downto 0);
-  signal enter_idle: std_logic;
+  signal enter_idle : std_logic;
   signal sof_reg  : std_logic;
 
 begin  -- behavioral
@@ -94,7 +94,7 @@ begin  -- behavioral
   end process;
 
   process(clk_sys_i)
-    variable stat : t_wrf_status_reg;
+    variable stat : t_wrf_status_reg := c_wrf_status_init_value;
   begin
     if rising_edge(clk_sys_i) then
       if rst_n_i = '0' then
@@ -130,7 +130,7 @@ begin  -- behavioral
 
             if(src_wb_i.err = '1') then
               state <= IDLE;
-	            enter_idle <= '1';
+              enter_idle <= '1';
               src_out_int.cyc <= '0';
               src_out_int.stb <= '0';
             elsif(snk_fab_i.error = '1') then
@@ -152,7 +152,7 @@ begin  -- behavioral
           when FLUSH_STALL =>
             if(src_wb_i.err = '1') then
               state <= IDLE;
-enter_idle <= '1';
+              enter_idle <= '1';
               src_out_int.cyc <= '0';
               src_out_int.stb <= '0';
             elsif(src_wb_i.stall = '0') then
@@ -192,7 +192,7 @@ enter_idle <= '1';
 
             if(((ack_count = 0) or g_ignore_ack) and src_out_int.stb = '0') then
               src_out_int.cyc <= '0';
-enter_idle <= '1';
+              enter_idle <= '1';
               state           <= IDLE;
             end if;
           when others => null;

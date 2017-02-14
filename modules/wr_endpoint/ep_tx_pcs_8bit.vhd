@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT section
 -- Created    : 2009-06-16
--- Last update: 2014-11-28
+-- Last update: 2017-02-03
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -157,8 +157,6 @@ architecture behavioral of ep_tx_pcs_8bit is
   signal mdio_mcr_pdown_synced : std_logic;
   signal an_tx_en_synced       : std_logic;
 
-  signal s_one : std_logic := '1';
-
 begin
 
   U_sync_pcs_busy_o : gc_sync_ffs
@@ -248,7 +246,7 @@ begin
 
   fifo_enough_data <= not fifo_almost_empty;
 
-  f_unpack_fifo_contents(fifo_packed_out, s_one, fifo_fab, true);
+  f_unpack_fifo_contents(fifo_packed_out, '1', fifo_fab, true);
 
   -----------------------------------------------------------------------------
   -- TX PCS state machine

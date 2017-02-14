@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-04-26
--- Last update: 2017-02-02
+-- Last update: 2017-02-03
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -105,16 +105,16 @@ entity wr_endpoint is
 -- PHY Interace (8/16 bit PCS)
 -------------------------------------------------------------------------------    
 
-    phy_rst_o    : out std_logic;
+    phy_rst_o            : out std_logic;
     phy_loopen_o         : out std_logic;
     phy_loopen_vec_o     : out std_logic_vector(2 downto 0);
     phy_tx_prbs_sel_o    : out std_logic_vector(2 downto 0);
     phy_sfp_tx_fault_i   : in  std_logic;
     phy_sfp_los_i        : in  std_logic;
     phy_sfp_tx_disable_o : out std_logic;
-    phy_enable_o : out std_logic;
-    phy_syncen_o : out std_logic;
-    phy_rdy_i    : in  std_logic;
+    phy_enable_o         : out std_logic;
+    phy_syncen_o         : out std_logic;
+    phy_rdy_i            : in  std_logic;
 
     phy_ref_clk_i      : in  std_logic;
     phy_tx_data_o      : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
@@ -132,15 +132,15 @@ entity wr_endpoint is
 -- GMII Interface (8-bit)
 -------------------------------------------------------------------------------
 
-    gmii_tx_clk_i : in  std_logic;
-    gmii_txd_o    : out std_logic_vector(7 downto 0) := x"00";
-    gmii_tx_en_o  : out std_logic                    := '0';
-    gmii_tx_er_o  : out std_logic                    := '0';
+    gmii_tx_clk_i : in  std_logic := '0';
+    gmii_txd_o    : out std_logic_vector(7 downto 0);
+    gmii_tx_en_o  : out std_logic;
+    gmii_tx_er_o  : out std_logic;
 
-    gmii_rx_clk_i : in std_logic;
-    gmii_rxd_i    : in std_logic_vector(7 downto 0);
-    gmii_rx_er_i  : in std_logic;
-    gmii_rx_dv_i  : in std_logic;
+    gmii_rx_clk_i : in std_logic                    := '0';
+    gmii_rxd_i    : in std_logic_vector(7 downto 0) := x"00";
+    gmii_rx_er_i  : in std_logic                    := '0';
+    gmii_rx_dv_i  : in std_logic                    := '0';
 
     ---------------------------------------------------------------------------
     -- Wishbone I/O
@@ -308,15 +308,6 @@ architecture syn of wr_endpoint is
   constant c_zeros : std_logic_vector(63 downto 0) := (others => '0');
   constant c_ones  : std_logic_vector(63 downto 0) := (others => '0');
 
-  function f_pick_rate (pcs_16bit : boolean) return integer is
-  begin
-    if(pcs_16bit) then
-      return 62500000;
-    else
-      return 125000000;
-    end if;
-  end f_pick_rate;
-
 -------------------------------------------------------------------------------
   component dmtd_phase_meas
     generic (
@@ -382,7 +373,7 @@ architecture syn of wr_endpoint is
   signal regs_towb_tsu   : t_ep_in_registers;
   signal regs_towb_rpath : t_ep_in_registers;
   signal regs_towb_tpath : t_ep_in_registers;
-  signal regs_towb_dmtd: t_ep_in_registers;
+  signal regs_towb_dmtd  : t_ep_in_registers;
 
 -------------------------------------------------------------------------------
 -- flow control signals
@@ -398,8 +389,8 @@ architecture syn of wr_endpoint is
 
   signal link_ok : std_logic;
 
-  signal txfra_enable, rxfra_enable : std_logic;
-  signal mdio_addr                  : std_logic_vector(15 downto 0);
+  signal txfra_enable : std_logic;
+  signal mdio_addr    : std_logic_vector(15 downto 0);
 
   signal sink_in  : t_wrf_sink_in;
   signal sink_out : t_wrf_sink_out;
@@ -619,7 +610,6 @@ begin
 -------------------------------------------------------------------------------
 -- RX deframer
 -------------------------------------------------------------------------------
-  rxfra_enable <= link_ok and regs_fromwb.ecr_rx_en_o;
 
   U_Rx_Path : ep_rx_path
     generic map (
@@ -678,6 +668,7 @@ begin
   src_in.stall <= src_stall_i;
   src_in.ack   <= src_ack_i;
   src_in.err   <= src_err_i;
+  src_in.rty   <= '0';
 
 -------------------------------------------------------------------------------
 -- Flow control unit
@@ -715,7 +706,7 @@ begin
     generic map (
       g_timestamp_bits_r => 28,
       g_timestamp_bits_f => 4,
-      g_ref_clock_rate   => f_pick_rate(g_pcs_16bit))
+      g_ref_clock_rate   => f_pcs_clock_rate(g_pcs_16bit))
     port map (
       clk_ref_i      => clk_ref_i,
       clk_rx_i       => phy_rx_clk_i,
@@ -811,6 +802,23 @@ begin
     end if;
   end process;
 
+  -- drive unused regs_towb_ep signals
+  regs_towb_ep.ecr_feat_vlan_i           <= '0';
+  regs_towb_ep.ecr_feat_dmtd_i           <= '0';
+  regs_towb_ep.ecr_feat_ptp_i            <= '0';
+  regs_towb_ep.ecr_feat_dpi_i            <= '0';
+  regs_towb_ep.tscr_cs_done_i            <= '0';
+  regs_towb_ep.tscr_rx_cal_result_i      <= '0';
+  regs_towb_ep.tcar_pcp_map_i            <= (others => '0');
+  regs_towb_ep.dsr_lstatus_i             <= '0';
+  regs_towb_ep.dmcr_en_i                 <= '0';
+  regs_towb_ep.dmcr_n_avg_i              <= (others => '0');
+  regs_towb_ep.inj_ctrl_pic_conf_ifg_i   <= (others => '0');
+  regs_towb_ep.inj_ctrl_pic_conf_sel_i   <= (others => '0');
+  regs_towb_ep.inj_ctrl_pic_conf_valid_i <= '0';
+  regs_towb_ep.inj_ctrl_pic_mode_id_i    <= (others => '0');
+  regs_towb_ep.inj_ctrl_pic_mode_valid_i <= '0';
+  regs_towb_ep.inj_ctrl_pic_ena_i        <= '0';
 
 -------------------------------------------------------------------------------
 -- DMTD phase meter
@@ -876,6 +884,7 @@ begin
   gen_without_dmtd : if(not g_with_dmtd) generate
     regs_towb_ep.dmsr_ps_rdy_i <= '0';
     regs_towb_ep.dmsr_ps_val_i <= (others => 'X');
+    regs_towb_dmtd             <= c_ep_in_registers_init_value;
   end generate gen_without_dmtd;
 
   dvalid_tx <= snk_cyc_i and snk_stb_i and link_ok;
@@ -990,6 +999,11 @@ begin
 --   TRIG0(17    downto  16) <= phy_rx_k_i;
 --   TRIG0(              18) <= phy_rx_enc_err_i;
 --   TRIG0(23    downto  19) <= phy_rx_bitslide_i;
+
+  -- Drive unsued GMII outputs
+  gmii_txd_o   <= (others => '0');
+  gmii_tx_en_o <= '0';
+  gmii_tx_er_o <= '0';
 
 end syn;
 

@@ -148,4 +148,6 @@ begin  -- wrapper
   wb_o.err <= '0';
   wb_o.rty <= '0';
   
+  snk_o.rty <= '0';
+
 end wrapper;

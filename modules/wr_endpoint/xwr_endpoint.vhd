@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-04-26
--- Last update: 2012-11-16
+-- Last update: 2017-02-02
 -- Platform   : FPGA-generic
 -- Standard   : VHDL '93
 -------------------------------------------------------------------------------
@@ -277,19 +277,19 @@ architecture syn of xwr_endpoint is
   signal phy_loopen_vec   : std_logic_vector(2 downto 0);
   signal phy_enable       : std_logic;
   signal phy_syncen       : std_logic;
-  signal phy_tx_data : std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
-  signal phy_tx_k    : std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
+  signal phy_tx_data      : std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
+  signal phy_tx_k         : std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
   signal phy_tx_prbs_sel  : std_logic_vector(2 downto 0);
   signal sfp_tx_disable   : std_logic;
   signal phy_tx_clk       : std_logic;
 
   signal phy_tx_disparity : std_logic;
   signal phy_tx_enc_err   : std_logic;
-  signal phy_rx_data : std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
+  signal phy_rx_data      : std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
   signal phy_rx_clk       : std_logic;
-  signal phy_rx_k    : std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
+  signal phy_rx_k         : std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
   signal phy_rx_enc_err   : std_logic;
-  signal phy_rx_bts  : std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0);
+  signal phy_rx_bts       : std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0);
   signal phy_rdy          : std_logic;
   signal sfp_tx_fault     : std_logic;
   signal sfp_los          : std_logic;
@@ -501,6 +501,10 @@ begin
     phy_rdy          <= phy_rdy_i;
     sfp_tx_fault     <= phy_sfp_tx_fault_i;
     sfp_los          <= phy_sfp_los_i;
+
+    -- drive unused ports with dummy values
+    phy8_o  <= c_dummy_phy8_from_wrc;
+    phy16_o <= c_dummy_phy16_from_wrc;
   end generate;
   
 end syn;

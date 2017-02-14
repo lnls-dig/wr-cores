@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-Co-HT
 -- Created    : 2010-09-02
--- Last update: 2014-07-15
+-- Last update: 2017-02-03
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -160,10 +160,8 @@ architecture behavioral of wr_pps_gen is
   signal rst_synced_refclk : std_logic;
 
   signal adjust_in_progress_nsec : std_logic;
-  signal adjust_done_nsec        : std_logic;
 
   signal adjust_in_progress_utc : std_logic;
-  signal adjust_done_utc        : std_logic;
 
   signal width_cntr : unsigned(27 downto 0);
 
@@ -305,7 +303,6 @@ begin  -- behavioral
         ns_overflow             <= '0';
         ns_overflow_adv         <= '0';
         adjust_in_progress_nsec <= '0';
-        adjust_done_nsec        <= '1';
 
         -- counter is enabled?
       elsif(ppsg_cr_cnt_en = '1') then
@@ -314,14 +311,12 @@ begin  -- behavioral
         if(cntr_adjust_p = '1') then
 
 -- start waiting for next counter overflow
-          adjust_done_nsec        <= '0';
           adjust_in_progress_nsec <= '1';
         end if;
 
 -- got SET TIME command - load the counter with new value
         if(ppsg_cr_cnt_set_p = '1' or ext_sync_p = '1' or ppsg_escr_nsec_set = '1') then
           cntr_nsec        <= adj_nsec;
-          adjust_done_nsec <= '1';
           ns_overflow      <= '0';
           ns_overflow_adv  <= '0';
 
@@ -342,7 +337,6 @@ begin  -- behavioral
           -- but takes less logic. 
           if(adjust_in_progress_nsec = '1') then
             cntr_nsec               <= adj_nsec;
-            adjust_done_nsec        <= '1';  -- assert done flag at the end
             adjust_in_progress_nsec <= '0';
           else
             -- normal counter reset. Generate overflow pulse.
@@ -386,16 +380,13 @@ begin  -- behavioral
     if rising_edge(clk_ref_i) then
       if rst_synced_refclk = '0' or ppsg_cr_cnt_rst = '1' then
         cntr_utc               <= (others => '0');
-        adjust_done_utc        <= '1';
         adjust_in_progress_utc <= '0';
       elsif(ppsg_cr_cnt_en = '1') then
 
         if(ppsg_cr_cnt_set_p = '1' or ppsg_escr_sec_set = '1') then
           cntr_utc        <= adj_utc;
-          adjust_done_utc <= '1';
         elsif(cntr_adjust_p = '1') then
           adjust_in_progress_utc <= '1';
-          adjust_done_utc        <= '0';
 
           if(ns_overflow = '1') then
             cntr_utc <= cntr_utc +1;
@@ -403,7 +394,6 @@ begin  -- behavioral
 
         elsif(adjust_in_progress_utc = '1' and ns_overflow = '1') then
           cntr_utc               <= cntr_utc + adj_utc + 1;
-          adjust_done_utc        <= '1';
           adjust_in_progress_utc <= '0';
         elsif(ns_overflow = '1') then
           cntr_utc <= cntr_utc + 1;
@@ -490,6 +480,12 @@ begin  -- behavioral
       ppsg_escr_tm_valid_o   => ppsg_escr_tm_valid,
       ppsg_escr_sec_set_o    => ppsg_escr_sec_set,
       ppsg_escr_nsec_set_o   => ppsg_escr_nsec_set);
+
+-- drive unused signals
+  wb_out.rty   <= '0';
+  wb_out.stall <= '0';
+  wb_out.int   <= '0';
+  wb_out.err   <= '0';
 
 -- start the adjustment upon write of 1 to CNT_ADJ bit
   cntr_adjust_p <= ppsg_cr_cnt_adj_load and ppsg_cr_cnt_adj_o;

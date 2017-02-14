@@ -53,6 +53,9 @@ begin  -- rtl
   src_fab_out.bytesel <= snk_fab_i.bytesel;
   src_fab_out.dvalid  <= snk_fab_i.dvalid or (embed_status and src_dreq_i);
 
+  src_fab_out.has_rx_timestamp   <= snk_fab_i.has_rx_timestamp;
+  src_fab_out.rx_timestamp_valid <= snk_fab_i.rx_timestamp_valid;
+
   src_fab_o <= src_fab_out;
 
   src_fab_out.sof <= '1' when (mbuf_valid_i = '1' and state = WAIT_MBUF and mbuf_drop_i = '0' and mbuf_is_pause_i = '0') else '0';

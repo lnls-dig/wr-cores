@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2009-06-22
--- Last update: 2012-11-16
+-- Last update: 2017-02-02
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -16,7 +16,7 @@
 -- - decodes TX OOB data and passes it to the timestamping unit
 -------------------------------------------------------------------------------
 --
--- Copyright (c) 2009 - 2012 CERN
+-- Copyright (c) 2009 - 2017 CERN
 --
 -- This source file is free software; you can redistribute it   
 -- and/or modify it under the terms of the GNU Lesser General   
@@ -149,7 +149,6 @@ architecture behavioral of ep_tx_header_processor is
 
 -- Flow Control-related signals
   signal tx_pause_mode  : std_logic;
-  signal tx_pause_delay : std_logic_vector(15 downto 0);
 
   signal snk_valid : std_logic;
 
@@ -346,11 +345,13 @@ begin  -- behavioral
       if(rst_n_i = '0') then
         state <= TXF_IDLE;
 
-        src_fab_o.dvalid <= '0';
-        src_fab_o.error  <= '0';
-        src_fab_o.sof    <= '0';
-        src_fab_o.eof    <= '0';
-        src_fab_o.bytesel <= '0';
+        src_fab_o.has_rx_timestamp   <= '0';
+        src_fab_o.rx_timestamp_valid <= '0';
+        src_fab_o.dvalid             <= '0';
+        src_fab_o.ERROR              <= '0';
+        src_fab_o.sof                <= '0';
+        src_fab_o.eof                <= '0';
+        src_fab_o.bytesel            <= '0';
 
         wb_out.err <= '0';
         wb_out.rty <= '0';
@@ -418,7 +419,6 @@ begin  -- behavioral
 
                 fc_pause_ready_o <= '0';
                 tx_pause_mode    <= fc_pause_req_i;
-                tx_pause_delay   <= fc_pause_delay_i;
 
                 counter       <= (others => '0');
                 

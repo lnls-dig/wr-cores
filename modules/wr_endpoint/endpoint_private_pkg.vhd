@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2013-03-15
+-- Last update: 2017-02-03
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -648,8 +648,7 @@ package endpoint_private_pkg is
       full_o     : out std_logic;
       drop_req_i : in std_logic;
       dropped_o  : out std_logic;
-      regs_i     : in  t_ep_out_registers;
-      rmon_o     : out t_rmon_triggers);
+      regs_i     : in  t_ep_out_registers);
   end component;
 
 
@@ -770,10 +769,10 @@ package endpoint_private_pkg is
 
 
   procedure f_unpack_fifo_contents (
-    signal din       : in  std_logic_vector;
-    signal din_valid : in  std_logic;
-    signal fab       : out t_ep_internal_fabric;
-    early_eof        :     boolean := false);
+    signal din         : in  std_logic_vector;
+    constant din_valid : in  std_logic;
+    signal fab         : out t_ep_internal_fabric;
+    early_eof          : boolean := false);
 
 
   procedure f_pack_rmon_triggers (
@@ -852,13 +851,14 @@ package body endpoint_private_pkg is
 
   procedure f_unpack_fifo_contents
     (
-      signal din       : in  std_logic_vector;
-      signal din_valid : in  std_logic;
-      signal fab       : out t_ep_internal_fabric;
-      early_eof        :     boolean := false) is
+      signal din         : in  std_logic_vector;
+      constant din_valid : in  std_logic;
+      signal fab         : out t_ep_internal_fabric;
+      early_eof          : boolean := false) is
   begin
 
     fab.data <= din(15 downto 0);
+    fab.addr <= (others => '0');
     if(din_valid = '1') then
       if(early_eof) then
         fab.dvalid             <= not (not din(17) and din(16));

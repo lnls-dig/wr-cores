@@ -23,7 +23,6 @@ entity spll_aligner is
 
     sample_cref_o  : out std_logic_vector(g_counter_width-1 downto 0);
     sample_cin_o   : out std_logic_vector(g_counter_width-1 downto 0);
-    sample_pps_o   : out std_logic;
     sample_valid_o : out std_logic;
     sample_ack_i   : in  std_logic
     );

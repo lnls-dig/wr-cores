@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2017-02-02
+-- Last update: 2017-02-03
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -200,13 +200,12 @@ entity ep_1000basex_pcs is
     
     dbg_tx_pcs_wr_count_o     : out std_logic_vector(5+4 downto 0);
     dbg_tx_pcs_rd_count_o     : out std_logic_vector(5+4 downto 0);
-    nice_dbg_o : out t_dbg_ep_pcs);
+    nice_dbg_o                : out t_dbg_ep_pcs);
 
 end ep_1000basex_pcs;
 
 architecture rtl of ep_1000basex_pcs is
 
-  signal mdio_mcr_uni_en          : std_logic;
   signal mdio_mcr_anrestart       : std_logic;
   signal mdio_mcr_pdown           : std_logic;
   signal mdio_mcr_pdown_cpu       : std_logic;
@@ -227,6 +226,8 @@ architecture rtl of ep_1000basex_pcs is
   signal mdio_wr_spec_rx_cal_stat : std_logic;
   signal mdio_wr_spec_cal_crst    : std_logic;
   signal mdio_wr_spec_bslide      : std_logic_vector(4 downto 0);
+  signal mdio_data_in             : std_logic_vector(31 downto 0);
+  signal mdio_data_out            : std_logic_vector(31 downto 0);
 
   signal lstat_read_notify : std_logic;
 
@@ -250,8 +251,6 @@ architecture rtl of ep_1000basex_pcs is
   signal pcs_reset_n : std_logic;
 
   signal wb_stb, wb_ack : std_logic;
-
-  signal dummy : std_logic_vector(31 downto 0);
 
   signal tx_clk, rx_clk : std_logic;
 
@@ -403,6 +402,10 @@ begin  -- rtl
 
     mdio_wr_spec_bslide <= '0' & serdes_rx_bitslide_i(3 downto 0);
 
+    dbg_tx_pcs_rd_count_o <= (others => '0');
+    dbg_tx_pcs_wr_count_o <= (others => '0');
+    nice_dbg_o.rx.fsm     <= (others => '0');
+
   end generate gen_8bit;
 
   txpcs_busy_o <= txpcs_busy_int;
@@ -415,13 +418,11 @@ begin  -- rtl
 
   U_MDIO_WB : ep_pcs_tbi_mdio_wb
     port map (
-      rst_n_i                 => rst_n_i,
-      clk_sys_i               => clk_sys_i,
-      wb_adr_i                => mdio_addr_i(4 downto 0),
-      wb_dat_i(15 downto 0)   => mdio_data_i,
-      wb_dat_i(31 downto 16)  => x"0000",
-      wb_dat_o(15 downto 0)   => mdio_data_o,
-      wb_dat_o(31 downto 16)  => dummy(31 downto 16),
+      rst_n_i   => rst_n_i,
+      clk_sys_i => clk_sys_i,
+      wb_adr_i  => mdio_addr_i(4 downto 0),
+      wb_dat_i  => mdio_data_in,
+      wb_dat_o  => mdio_data_out,
 
       wb_cyc_i   => wb_stb,
       wb_sel_i   => "1111",
@@ -432,7 +433,7 @@ begin  -- rtl
       tx_clk_i   => serdes_tx_clk_i,
       rx_clk_i   => serdes_rx_clk_i,
 
-      mdio_mcr_uni_en_o          => mdio_mcr_uni_en,
+      mdio_mcr_uni_en_o          => open,
       mdio_mcr_anrestart_o       => mdio_mcr_anrestart,
       mdio_mcr_pdown_o           => mdio_mcr_pdown_cpu,
       mdio_mcr_anenable_o        => mdio_mcr_anenable,
@@ -462,6 +463,9 @@ begin  -- rtl
       lstat_read_notify_o => lstat_read_notify
       );
 
+
+  mdio_data_in <= X"0000" & mdio_data_i;
+  mdio_data_o  <= mdio_data_out(15 downto 0);
 
   mdio_msr_rfault <= '0';
 
@@ -581,5 +585,25 @@ begin  -- rtl
     synced_o => open,
     npulse_o => open,
     ppulse_o => rmon_o.rx_sync_lost);
+
+  -- drive unused outputs
+  rmon_o.rx_crc_err             <= '0';
+  rmon_o.rx_ok                  <= '0';
+  rmon_o.rx_pfilter_drop        <= '0';
+  rmon_o.rx_runt                <= '0';
+  rmon_o.rx_giant               <= '0';
+  rmon_o.rx_pause               <= '0';
+  rmon_o.rx_pcs_err             <= '0';
+  rmon_o.rx_buffer_overrun      <= '0';
+  rmon_o.rx_rtu_overrun         <= '0';
+  rmon_o.rx_path_timing_failure <= '0';
+  rmon_o.tx_pause               <= '0';
+  rmon_o.rx_pclass              <= (others => '0');
+  rmon_o.rx_tclass              <= (others => '0');
+  rmon_o.tx_frame               <= '0';
+  rmon_o.rx_frame               <= '0';
+  rmon_o.rx_drop_at_rtu_full    <= '0';
+  serdes_syncen_o               <= '1';
+  serdes_enable_o               <= '1';
 
 end rtl;

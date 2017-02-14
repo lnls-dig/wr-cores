@@ -32,27 +32,27 @@ architecture behavioral of ep_rx_oob_insert is
 
   signal src_dreq_d0 : std_logic;
 
-  component chipscope_ila
-    port (
-      CONTROL : inout std_logic_vector(35 downto 0);
-      CLK     : in    std_logic;
-      TRIG0   : in    std_logic_vector(31 downto 0);
-      TRIG1   : in    std_logic_vector(31 downto 0);
-      TRIG2   : in    std_logic_vector(31 downto 0);
-      TRIG3   : in    std_logic_vector(31 downto 0));
-  end component;
+  --component chipscope_ila
+  --  port (
+  --    CONTROL : inout std_logic_vector(35 downto 0);
+  --    CLK     : in    std_logic;
+  --    TRIG0   : in    std_logic_vector(31 downto 0);
+  --    TRIG1   : in    std_logic_vector(31 downto 0);
+  --    TRIG2   : in    std_logic_vector(31 downto 0);
+  --    TRIG3   : in    std_logic_vector(31 downto 0));
+  --end component;
 
-  component chipscope_icon
-    port (
-      CONTROL0 : inout std_logic_vector (35 downto 0));
-  end component;
+  --component chipscope_icon
+  --  port (
+  --    CONTROL0 : inout std_logic_vector (35 downto 0));
+  --end component;
   
-  signal CONTROL : std_logic_vector(35 downto 0);
-  signal CLK     : std_logic;
-  signal TRIG0   : std_logic_vector(31 downto 0);
-  signal TRIG1   : std_logic_vector(31 downto 0);
-  signal TRIG2   : std_logic_vector(31 downto 0);
-  signal TRIG3   : std_logic_vector(31 downto 0);
+  --signal CONTROL : std_logic_vector(35 downto 0);
+  --signal CLK     : std_logic;
+  --signal TRIG0   : std_logic_vector(31 downto 0);
+  --signal TRIG1   : std_logic_vector(31 downto 0);
+  --signal TRIG2   : std_logic_vector(31 downto 0);
+  --signal TRIG3   : std_logic_vector(31 downto 0);
   
 begin
   --chipscope_ila_1 : chipscope_ila
@@ -68,22 +68,24 @@ begin
   --  port map (
   --    CONTROL0 => CONTROL);
 
-  TRIG0(15 downto 0) <= snk_fab_i.data;
-  trig0(16) <= snk_fab_i.sof;
-  trig0(17) <= snk_fab_i.eof;
-  trig0(18) <= snk_fab_i.error;
-  trig0(19) <= snk_fab_i.bytesel;
-  trig0(20) <= snk_fab_i.has_rx_timestamp;
-  trig0(21) <= snk_fab_i.dvalid;
-  trig0(22) <= '1' when state = WAIT_OOB else '0';
-  trig0(24 downto 23) <= snk_fab_i.addr;
-  
-  snk_dreq_o        <= src_dreq_i;
-  src_fab_o.sof     <= snk_fab_i.sof;
-  src_fab_o.eof     <= snk_fab_i.eof;
-  src_fab_o.error   <= snk_fab_i.error;
-  src_fab_o.bytesel <= snk_fab_i.bytesel;
+  --TRIG0(15 downto 0) <= snk_fab_i.data;
+  --trig0(16) <= snk_fab_i.sof;
+  --trig0(17) <= snk_fab_i.eof;
+  --trig0(18) <= snk_fab_i.error;
+  --trig0(19) <= snk_fab_i.bytesel;
+  --trig0(20) <= snk_fab_i.has_rx_timestamp;
+  --trig0(21) <= snk_fab_i.dvalid;
+  --trig0(22) <= '1' when state = WAIT_OOB else '0';
+  --trig0(24 downto 23) <= snk_fab_i.addr;
 
+  snk_dreq_o                   <= src_dreq_i;
+  src_fab_o.sof                <= snk_fab_i.sof;
+  src_fab_o.eof                <= snk_fab_i.eof;
+  src_fab_o.ERROR              <= snk_fab_i.ERROR;
+  src_fab_o.bytesel            <= snk_fab_i.bytesel;
+  src_fab_o.has_rx_timestamp   <= snk_fab_i.has_rx_timestamp;
+  src_fab_o.rx_timestamp_valid <= snk_fab_i.rx_timestamp_valid;
+  
   p_comb_src : process (state, snk_fab_i, src_dreq_i, regs_i)
   begin
 

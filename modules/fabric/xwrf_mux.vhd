@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk
 -- Company    : CERN BE-CO-HT
 -- Created    : 2011-08-11
--- Last update: 2013-05-13
+-- Last update: 2017-02-03
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -154,6 +154,7 @@ begin
                           '1';
     mux_snk_o(J).err <= ep_src_i.err when(mux /= MUX_SEL and mux_select(J) = '1') else
                         '0';
+    mux_snk_o(J).rty <= '0';
   end generate;
 
   ep_src_o.cyc <= mux_snk_i(f_hot_to_bin(mux_select)).cyc when(mux /= MUX_SEL) else
@@ -283,6 +284,7 @@ begin
 
   ep_snk_o.stall <= ep_snk_out_stall;
 
+  ep_snk_o.rty <= '0';
 
 end behaviour;
 

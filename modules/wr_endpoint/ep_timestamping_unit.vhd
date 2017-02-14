@@ -7,7 +7,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2009-06-22
--- Last update: 2013-03-15
+-- Last update: 2017-02-03
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'87
 -------------------------------------------------------------------------------
@@ -164,6 +164,9 @@ architecture syn of ep_timestamping_unit is
 
   signal cal_count                                   : unsigned(5 downto 0);
   signal rx_trigger_mask, rx_trigger_a, rx_cal_pulse_a : std_logic;
+
+  signal regs_o_tscr_cs_done       : std_logic;
+  signal regs_o_tscr_rx_cal_result : std_logic;
   
 begin  -- syn
 
@@ -183,9 +186,20 @@ begin  -- syn
       value_r_o      => cntr_r,
       value_f_o      => cntr_f,
       sync_start_p_i => regs_i.tscr_cs_start_o,
-      sync_done_o    => regs_o.tscr_cs_done_i
+      sync_done_o    => regs_o_tscr_cs_done
       );
 
+
+  p_gen_regs_o: process (regs_o_tscr_cs_done, regs_o_tscr_rx_cal_result) is
+  begin
+    -- initial values
+    regs_o <= c_ep_in_registers_init_value;
+
+    -- override initial values
+    regs_o.tscr_cs_done_i       <= regs_o_tscr_cs_done;
+    regs_o.tscr_rx_cal_result_i <= regs_o_tscr_rx_cal_result;
+
+  end process p_gen_regs_o;
 
   p_rx_timestamper_calibration : process(clk_rx_i)
   begin
@@ -203,9 +217,9 @@ begin  -- syn
 
         if(rx_ts_done = '1') then
           if(cntr_rx_f /= cntr_rx_r(g_timestamp_bits_f-1 downto 0)) then
-            regs_o.tscr_rx_cal_result_i <= '1';
+            regs_o_tscr_rx_cal_result <= '1';
           else
-            regs_o.tscr_rx_cal_result_i <= '0';
+            regs_o_tscr_rx_cal_result <= '0';
           end if;
         end if;
 

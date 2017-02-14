@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk
 -- Company    : Elproma
 -- Created    : 2011-04-04
--- Last update: 2012-04-30
+-- Last update: 2017-02-03
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -164,7 +164,8 @@ begin
   -------------------------------------
   -- TIMER
   -------------------------------------
-  sysc_regs_i.tvr_i <= std_logic_vector(cntr_tics);
+  sysc_regs_i.tvr_i      <= std_logic_vector(cntr_tics);
+  sysc_regs_i.tcr_tdiv_i <= (others => '0');
 
   process(clk_sys_i)
   begin

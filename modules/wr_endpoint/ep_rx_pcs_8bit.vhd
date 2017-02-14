@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2009-06-16
--- Last update: 2012-03-16
+-- Last update: 2017-02-02
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -346,6 +346,7 @@ begin
   fifo_wrreq <= fifo_wr_toggle and fifo_mask_write;
 
   pcs_fab_o.data             <= fifo_rx_data;
+  pcs_fab_o.addr             <= (others => '0');
   pcs_fab_o.sof              <= fifo_sof and fifo_wrreq;
   pcs_fab_o.eof              <= fifo_eof and fifo_wrreq;
   pcs_fab_o.bytesel          <= fifo_bytesel;
