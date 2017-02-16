@@ -8,6 +8,7 @@ module main;
    reg clk_125m_pllref = 0;
    reg clk_20m_vcxo = 0;
    reg clk_ext = 0;
+   wire sfp_txp, sfp_txn;
    
 
    always #50ns clk_ext <= ~clk_ext;
@@ -21,6 +22,13 @@ module main;
           .clk_125m_pllref_p_i(clk_125m_pllref),
           .clk_125m_pllref_n_i(~clk_125m_pllref),
           .clk_20m_vcxo_i(clk_20m_vcxo),
+          .fpga_pll_ref_clk_101_p_i(clk_125m_pllref),
+          .fpga_pll_ref_clk_101_n_i(~clk_125m_pllref),
+
+	  .sfp_txp_o(sfp_txp),
+	  .sfp_txn_o(sfp_txn),
+	  .sfp_rxp_i(sfp_txp),
+	  .sfp_rxn_i(sfp_txn),
 
           `GENNUM_WIRE_SPEC_PINS(I_Gennum)
 	  );
