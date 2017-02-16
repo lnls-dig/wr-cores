@@ -147,10 +147,14 @@ class CSimDrv_WR_Endpoint;
 `define EP_QMODE_VLAN_DISABLED 2
    
    task init(int port_id);
+      uint64_t rval;
       m_acc.write(m_base + `ADDR_EP_ECR, `EP_ECR_TX_EN | `EP_ECR_RX_EN | (port_id << `EP_ECR_PORTID_OFFSET)) ;
       m_acc.write(m_base + `ADDR_EP_RFCR, 1518 << `EP_RFCR_MRU_OFFSET);
       m_acc.write(m_base + `ADDR_EP_VCR0, `EP_QMODE_VLAN_DISABLED << `EP_VCR0_QMODE_OFFSET);
       m_acc.write(m_base + `ADDR_EP_TSCR, `EP_TSCR_EN_RXTS | `EP_TSCR_EN_TXTS);
+      //enable auto-negotiation
+      rval = `MDIO_MCR_ANENABLE | `MDIO_MCR_ANRESTART | `MDIO_MCR_SPEED1000 | `MDIO_MCR_FULLDPLX;
+      mdio_write(`ADDR_MDIO_MCR, rval);
    endtask // init
 
    task automatic mdio_read(int addr, output int val);
