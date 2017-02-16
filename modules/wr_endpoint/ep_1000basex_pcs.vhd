@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2017-02-03
+-- Last update: 2017-02-16
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -122,9 +122,6 @@ entity ep_1000basex_pcs is
     -- 1: serdes is reset, 0: serdes is operating normally.
     serdes_rst_o : out std_logic;
 
-    -- 1: serdes comma alignent is enabled.
-    serdes_syncen_o : out std_logic;
-
     -- 1: serdes near-end PMA loopback is enabled.
     serdes_loopen_o         : out std_logic;
 
@@ -143,12 +140,8 @@ entity ep_1000basex_pcs is
     -- 1: Disables the transmitter
     serdes_sfp_tx_disable_o : out std_logic;
 
-    -- 1: serdes TX/RX is enabled.
-    serdes_enable_o : out std_logic;
-    
     -- 1: serdes is locked and aligned
     serdes_rdy_i    : in  std_logic;
-
 
     ---------------------------------------------------------------------------
     -- Serdes TX path (all synchronous to serdes_tx_clk_i)
@@ -603,7 +596,5 @@ begin  -- rtl
   rmon_o.tx_frame               <= '0';
   rmon_o.rx_frame               <= '0';
   rmon_o.rx_drop_at_rtu_full    <= '0';
-  serdes_syncen_o               <= '1';
-  serdes_enable_o               <= '1';
 
 end rtl;

@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-04-26
--- Last update: 2017-02-02
+-- Last update: 2017-02-16
 -- Platform   : FPGA-generic
 -- Standard   : VHDL '93
 -------------------------------------------------------------------------------
@@ -103,8 +103,6 @@ entity xwr_endpoint is
     phy_sfp_tx_fault_i   : in std_logic;
     phy_sfp_los_i        : in std_logic;
     phy_sfp_tx_disable_o : out std_logic;
-    phy_enable_o         : out std_logic;
-    phy_syncen_o         : out std_logic;
     phy_rdy_i            : in  std_logic;
 
     phy_ref_clk_i      : in  std_logic := '0';
@@ -275,8 +273,6 @@ architecture syn of xwr_endpoint is
   signal phy_rst          : std_logic;
   signal phy_loopen       : std_logic;
   signal phy_loopen_vec   : std_logic_vector(2 downto 0);
-  signal phy_enable       : std_logic;
-  signal phy_syncen       : std_logic;
   signal phy_tx_data      : std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
   signal phy_tx_k         : std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
   signal phy_tx_prbs_sel  : std_logic_vector(2 downto 0);
@@ -329,8 +325,6 @@ begin
       phy_loopen_o         => phy_loopen,
       phy_loopen_vec_o     => phy_loopen_vec,
       phy_tx_prbs_sel_o    => phy_tx_prbs_sel,
-      phy_enable_o         => phy_enable,
-      phy_syncen_o         => phy_syncen,
       phy_rdy_i            => phy_rdy,
 
       phy_sfp_tx_fault_i   => sfp_tx_fault,
@@ -434,8 +428,6 @@ begin
     phy16_o.rst            <= phy_rst;
     phy16_o.loopen         <= phy_loopen;
     phy16_o.loopen_vec     <= phy_loopen_vec;
-    phy16_o.enable         <= phy_enable;
-    phy16_o.syncen         <= phy_syncen;
     phy16_o.tx_data        <= phy_tx_data;
     phy16_o.tx_k           <= phy_tx_k;
     phy16_o.tx_prbs_sel    <= phy_tx_prbs_sel;
@@ -452,14 +444,22 @@ begin
     phy_rdy          <= phy16_i.rdy;
     sfp_tx_fault     <= phy16_i.sfp_tx_fault;
     sfp_los          <= phy16_i.sfp_los;
+
+    -- drive unused ports with dummy values
+    phy8_o               <= c_dummy_phy8_from_wrc;
+    phy_rst_o            <= '0';
+    phy_loopen_o         <= '0';
+    phy_tx_data_o        <= (others => '0');
+    phy_tx_k_o           <= (others => '0');
+    phy_loopen_vec_o     <= (others => '0');
+    phy_tx_prbs_sel_o    <= (others => '0');
+    phy_sfp_tx_disable_o <= '0';
   end generate;
 
   GEN_8BIT_IF: if not g_pcs_16bit and g_records_for_phy generate
     phy8_o.rst            <= phy_rst;
     phy8_o.loopen         <= phy_loopen;
     phy8_o.loopen_vec     <= phy_loopen_vec;
-    phy8_o.enable         <= phy_enable;
-    phy8_o.syncen         <= phy_syncen;
     phy8_o.tx_data        <= phy_tx_data;
     phy8_o.tx_k           <= phy_tx_k;
     phy8_o.tx_prbs_sel    <= phy_tx_prbs_sel;
@@ -476,6 +476,16 @@ begin
     phy_rdy          <= phy8_i.rdy;
     sfp_tx_fault     <= phy8_i.sfp_tx_fault;
     sfp_los          <= phy8_i.sfp_los;
+
+    -- drive unused ports with dummy values
+    phy16_o              <= c_dummy_phy16_from_wrc;
+    phy_rst_o            <= '0';
+    phy_loopen_o         <= '0';
+    phy_tx_data_o        <= (others => '0');
+    phy_tx_k_o           <= (others => '0');
+    phy_loopen_vec_o     <= (others => '0');
+    phy_tx_prbs_sel_o    <= (others => '0');
+    phy_sfp_tx_disable_o <= '0';
   end generate;
 
   -- backwards compatibility
@@ -483,8 +493,6 @@ begin
     phy_rst_o            <= phy_rst;
     phy_loopen_o         <= phy_loopen;
     phy_loopen_vec_o     <= phy_loopen_vec;
-    phy_enable_o         <= phy_enable;
-    phy_syncen_o         <= phy_syncen;
     phy_tx_data_o        <= phy_tx_data;
     phy_tx_k_o           <= phy_tx_k;
     phy_tx_prbs_sel_o    <= phy_tx_prbs_sel;

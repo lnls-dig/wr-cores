@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-04-26
--- Last update: 2017-02-03
+-- Last update: 2017-02-16
 -- Platform   : FPGA-generic
 -- Standard   : VHDL '93
 -------------------------------------------------------------------------------
@@ -93,8 +93,6 @@ package endpoint_pkg is
   type t_phy_8bits_from_wrc is record
     rst            : std_logic;
     loopen         : std_logic;
-    enable         : std_logic;
-    syncen         : std_logic;
     tx_data        : std_logic_vector(7 downto 0);
     tx_k           : std_logic_vector(0 downto 0);
     loopen_vec     : std_logic_vector(2 downto 0);
@@ -103,10 +101,10 @@ package endpoint_pkg is
   end record;
 
   constant c_dummy_phy8_to_wrc : t_phy_8bits_to_wrc :=
-    ('0', '0', '0', (others=>'0'), '0', (others=>'0'), '0', (others=>'0'), '0',
-    '0', '0');
+    ('0', '0', '0', (others=>'0'), '0', (others=>'0'), '0',
+    (others=>'0'), '0', '0', '0');
   constant c_dummy_phy8_from_wrc : t_phy_8bits_from_wrc :=
-    ('0', '0', '0', '0', (others=>'0'), (others=>'0'), (others=>'0'),
+    ('0', '0', (others=>'0'), (others=>'0'), (others=>'0'),
     (others=>'0'), '0');
 
   -- 16-bit Serdes
@@ -126,8 +124,6 @@ package endpoint_pkg is
   type t_phy_16bits_from_wrc is record
     rst            : std_logic;
     loopen         : std_logic;
-    enable         : std_logic;
-    syncen         : std_logic;
     tx_data        : std_logic_vector(15 downto 0);
     tx_k           : std_logic_vector(1 downto 0);
     loopen_vec     : std_logic_vector(2 downto 0);
@@ -136,10 +132,10 @@ package endpoint_pkg is
   end record;
 
   constant c_dummy_phy16_to_wrc : t_phy_16bits_to_wrc :=
-    ('0', '0', '0', (others=>'0'), '0', (others=>'0'), '0', (others=>'0'), '0',
-    '0', '0');
+    ('0', '0', '0', (others=>'0'), '0', (others=>'0'), '0',
+    (others=>'0'), '0', '0', '0');
   constant c_dummy_phy16_from_wrc : t_phy_16bits_from_wrc :=
-    ('0', '0', '0', '0', (others=>'0'), (others=>'0'), (others=>'0'),
+    ('0', '0', (others=>'0'), (others=>'0'), (others=>'0'),
     (others=>'0'), '0');
 
 
@@ -205,8 +201,6 @@ package endpoint_pkg is
       phy_sfp_tx_fault_i   : in  std_logic                     := '0';
       phy_sfp_los_i        : in  std_logic                     := '0';
       phy_sfp_tx_disable_o : out std_logic;
-      phy_enable_o         : out std_logic;
-      phy_syncen_o         : out std_logic;
       phy_rdy_i            : in  std_logic;
       phy_ref_clk_i        : in  std_logic                     := '0';
       phy_tx_data_o        : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
@@ -312,8 +306,6 @@ package endpoint_pkg is
       phy_sfp_tx_fault_i   : in  std_logic                     := '0';
       phy_sfp_los_i        : in  std_logic                     := '0';
       phy_sfp_tx_disable_o : out std_logic;
-      phy_enable_o         : out std_logic;
-      phy_syncen_o         : out std_logic;
       phy_rdy_i            : in  std_logic;
       phy_ref_clk_i        : in  std_logic;
       phy_tx_data_o        : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);

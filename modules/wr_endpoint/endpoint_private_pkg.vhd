@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2017-02-03
+-- Last update: 2017-02-16
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -135,14 +135,12 @@ package endpoint_private_pkg is
       link_ok_o                     : out std_logic;
       link_ctr_i                    : in  std_logic := '1';
       serdes_rst_o                  : out std_logic;
-      serdes_syncen_o               : out std_logic;
       serdes_loopen_o               : out std_logic;
       serdes_loopen_vec_o           : out std_logic_vector(2 downto 0);
       serdes_tx_prbs_sel_o          : out std_logic_vector(2 downto 0);
       serdes_sfp_tx_fault_i         : in  std_logic;
       serdes_sfp_los_i              : in  std_logic;
       serdes_sfp_tx_disable_o       : out std_logic;
-      serdes_enable_o               : out std_logic;
       serdes_rdy_i                  : in  std_logic;
       serdes_tx_clk_i               : in  std_logic;
       serdes_tx_data_o              : out std_logic_vector(f_pcs_data_width(g_16bit)-1 downto 0);

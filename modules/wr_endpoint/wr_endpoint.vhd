@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-04-26
--- Last update: 2017-02-03
+-- Last update: 2017-02-16
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -112,8 +112,6 @@ entity wr_endpoint is
     phy_sfp_tx_fault_i   : in  std_logic;
     phy_sfp_los_i        : in  std_logic;
     phy_sfp_tx_disable_o : out std_logic;
-    phy_enable_o         : out std_logic;
-    phy_syncen_o         : out std_logic;
     phy_rdy_i            : in  std_logic;
 
     phy_ref_clk_i      : in  std_logic;
@@ -516,8 +514,6 @@ begin
       serdes_sfp_tx_fault_i    => phy_sfp_tx_fault_i,
       serdes_sfp_los_i         => phy_sfp_los_i,
       serdes_sfp_tx_disable_o  => phy_sfp_tx_disable_o,
-      serdes_enable_o          => phy_enable_o,
-      serdes_syncen_o          => phy_syncen_o,
       serdes_rdy_i             => phy_rdy_i,
 
       serdes_tx_clk_i       => phy_ref_clk_i,
