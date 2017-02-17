@@ -5,7 +5,7 @@
 -- Author     : Grzegorz Daniluk
 -- Company    : Elproma
 -- Created    : 2011-02-02
--- Last update: 2017-02-13
+-- Last update: 2017-02-21
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -23,7 +23,7 @@
 -------------------------------------------------------------------------------
 --
 -- Copyright (c) 2011, 2012 Elproma Elektronika
--- Copyright (c) 2012, 2013 CERN
+-- Copyright (c) 2012, 2017 CERN
 --
 -- This source file is free software; you can redistribute it
 -- and/or modify it under the terms of the GNU Lesser General
@@ -334,8 +334,20 @@ architecture struct of wr_core is
     end if;
   end function;
 
+  -----------------------------------------------------------------------------
+  --Local resets for peripheral
+  -----------------------------------------------------------------------------
   signal rst_wrc_n : std_logic;
   signal rst_net_n : std_logic;
+
+  -----------------------------------------------------------------------------
+  --Local resets (resynced)
+  -----------------------------------------------------------------------------
+  signal rst_net_resync_ref_n   : std_logic;
+  signal rst_net_resync_ext_n   : std_logic;
+  signal rst_net_resync_dmtd_n  : std_logic;
+  signal rst_net_resync_rxclk_n : std_logic;
+  signal rst_net_resync_txclk_n : std_logic;
 
   -----------------------------------------------------------------------------
   --PPS generator
@@ -351,6 +363,7 @@ architecture struct of wr_core is
   --Timing system
   -----------------------------------------------------------------------------
   signal phy_rx_clk  : std_logic;
+  signal phy_tx_clk  : std_logic;
   signal spll_wb_in  : t_wishbone_slave_in;
   signal spll_wb_out : t_wishbone_slave_out;
 
@@ -501,7 +514,75 @@ architecture struct of wr_core is
   --signal TRIG3   : std_logic_vector(31 downto 0);
 begin
 
+  -----------------------------------------------------------------------------
+  -- PHY TX/RX clock selection based on generics
+  -----------------------------------------------------------------------------
+
+  GEN_16BIT_PHY_IF: if g_pcs_16bit and g_records_for_phy generate
+    phy_rx_clk <= phy16_i.rx_clk;
+    phy_tx_clk <= phy16_i.ref_clk;
+  end generate;
+
+  GEN_8BIT_PHY_IF: if not g_pcs_16bit and g_records_for_phy generate
+    phy_rx_clk <= phy8_i.rx_clk;
+    phy_tx_clk <= phy8_i.ref_clk;
+  end generate;
+
+  GEN_STD_PHY_IF: if not g_records_for_phy generate
+    phy_rx_clk <= phy_rx_rbclk_i;
+    phy_tx_clk <= phy_ref_clk_i;
+  end generate;
+
+  -----------------------------------------------------------------------------
+  -- Reset resync and distribution
+  -----------------------------------------------------------------------------
+
   rst_aux_n_o <= rst_net_n;
+
+  U_Sync_reset_refclk : gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => clk_ref_i,
+      rst_n_i  => '1',
+      data_i   => rst_net_n,
+      synced_o => rst_net_resync_ref_n);
+
+  U_sync_reset_dmtd : gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => clk_dmtd_i,
+      rst_n_i  => '1',
+      data_i   => rst_net_n,
+      synced_o => rst_net_resync_dmtd_n);
+
+  U_sync_reset_ext : gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => clk_ext_i,
+      rst_n_i  => '1',
+      data_i   => rst_net_n,
+      synced_o => rst_net_resync_ext_n);
+
+  U_sync_reset_rxclk : gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => phy_rx_clk,
+      rst_n_i  => '1',
+      data_i   => rst_net_n,
+      synced_o => rst_net_resync_rxclk_n);
+
+  U_sync_reset_txclk : gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => phy_tx_clk,
+      rst_n_i  => '1',
+      data_i   => rst_net_n,
+      synced_o => rst_net_resync_txclk_n);
 
   -----------------------------------------------------------------------------
   -- PPS generator
@@ -516,9 +597,9 @@ begin
     port map(
       clk_ref_i => clk_ref_i,
       clk_sys_i => clk_sys_i,
-      clk_ext_i => clk_ext_i,
 
-      rst_n_i => rst_net_n,
+      rst_sys_n_i => rst_net_n,
+      rst_ref_n_i => rst_net_resync_ref_n,
 
       slave_i => ppsg_wb_in,
       slave_o => ppsg_wb_out,
@@ -542,18 +623,6 @@ begin
   -----------------------------------------------------------------------------
   -- Software PLL
   -----------------------------------------------------------------------------
-  GEN_16BIT_PHY_IF: if g_pcs_16bit and g_records_for_phy generate
-    phy_rx_clk <= phy16_i.rx_clk;
-  end generate;
-
-  GEN_8BIT_PHY_IF: if not g_pcs_16bit and g_records_for_phy generate
-    phy_rx_clk <= phy8_i.rx_clk;
-  end generate;
-
-  GEN_STD_PHY_IF: if not g_records_for_phy generate
-    phy_rx_clk <= phy_rx_rbclk_i;
-  end generate;
-
   U_SOFTPLL : xwr_softpll_ng
     generic map(
       g_with_ext_clock_input => g_with_external_clock_input,
@@ -568,8 +637,11 @@ begin
       g_ref_clock_rate       => f_refclk_rate(g_pcs_16bit),
       g_ext_clock_rate       => 10000000)
     port map(
-      clk_sys_i => clk_sys_i,
-      rst_n_i   => rst_net_n,
+      clk_sys_i    => clk_sys_i,
+      rst_sys_n_i  => rst_net_n,
+      rst_ref_n_i  => rst_net_resync_ref_n,
+      rst_ext_n_i  => rst_net_resync_ext_n,
+      rst_dmtd_n_i => rst_net_resync_dmtd_n,
 
       -- Reference inputs (i.e. the RX clocks recovered by the PHYs)
       clk_ref_i(0) => phy_rx_clk,
@@ -659,7 +731,11 @@ begin
       clk_ref_i      => clk_ref_i,
       clk_sys_i      => clk_sys_i,
       clk_dmtd_i     => clk_dmtd_i,
-      rst_n_i        => rst_net_n,
+      rst_sys_n_i    => rst_net_n,
+      rst_ref_n_i    => rst_net_resync_ref_n,
+      rst_dmtd_n_i   => rst_net_resync_dmtd_n,
+      rst_txclk_n_i  => rst_net_resync_txclk_n,
+      rst_rxclk_n_i  => rst_net_resync_rxclk_n,
       pps_csync_p1_i => s_pps_csync,
       pps_valid_i    => pps_valid,
 

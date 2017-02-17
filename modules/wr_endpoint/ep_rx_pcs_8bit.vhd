@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2009-06-16
--- Last update: 2017-02-02
+-- Last update: 2017-02-20
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -17,7 +17,7 @@
 -- pulses for RXed packets.
 -------------------------------------------------------------------------------
 --
--- Copyright (c) 2009 Tomasz Wlostowski / CERN
+-- Copyright (c) 2009-2017 Tomasz Wlostowski / CERN
 --
 -- This source file is free software; you can redistribute it   
 -- and/or modify it under the terms of the GNU Lesser General   
@@ -65,6 +65,9 @@ entity ep_rx_pcs_8bit is
 -- reset (refclk2-synchronous)
     rst_n_i : in std_logic;
 
+-- reset (phy_rx_clk_i sync)
+    rst_rxclk_n_i : in std_logic;
+
     pcs_fifo_almostfull_i : in  std_logic;
 -- RX path busy indicator (active HI).
 -- When asserted, the receiver is in the middle of reception of a frame
@@ -94,6 +97,7 @@ entity ep_rx_pcs_8bit is
 -------------------------------------------------------------------------------    
 
     -- Receive control regsiter
+    mdio_mcr_reset_i           : in  std_logic;
     mdio_mcr_pdown_i           : in  std_logic;
     mdio_wr_spec_cal_crst_i    : in  std_logic;
     mdio_wr_spec_rx_cal_stat_o : out std_logic;
@@ -152,7 +156,6 @@ architecture behavioral of ep_rx_pcs_8bit is
       cal_i    : in  std_logic);
   end component;
 
-  signal reset_synced_rxclk : std_logic;
   signal rst_n_rx : std_logic;
 
   signal rx_state             : t_tbif_rx_state;
@@ -205,6 +208,7 @@ architecture behavioral of ep_rx_pcs_8bit is
 
 -- Misc. signals
   signal cal_pattern_cntr      : unsigned(c_cal_pattern_counter_bits-1 downto 0);
+  signal mdio_mcr_reset_synced : std_logic;
   signal mdio_mcr_pdown_synced : std_logic;
 
 
@@ -227,17 +231,6 @@ begin
       npulse_o => open,
       ppulse_o => open);
 
-  U_sync_rx_reset : gc_sync_ffs
-    generic map (
-      g_sync_edge => "positive")
-    port map (
-      clk_i    => phy_rx_clk_i,
-      rst_n_i  => '1',
-      data_i   => rst_n_i,
-      synced_o => reset_synced_rxclk,
-      npulse_o => open,
-      ppulse_o => open);
-
   U_sync_an_rx_enable : gc_sync_ffs
     generic map (
       g_sync_edge => "positive")
@@ -246,6 +239,17 @@ begin
       rst_n_i  => rst_n_rx,
       data_i   => an_rx_en_i,
       synced_o => an_rx_en_synced,
+      npulse_o => open,
+      ppulse_o => open);
+
+  U_sync_mcr_reset : gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => phy_rx_clk_i,
+      rst_n_i  => '1',
+      data_i   => mdio_mcr_reset_i,
+      synced_o => mdio_mcr_reset_synced,
       npulse_o => open,
       ppulse_o => open);
 
@@ -261,7 +265,7 @@ begin
       ppulse_o => open);
 
   rx_sync_enable <= not mdio_mcr_pdown_synced;
-  rst_n_rx  <= reset_synced_rxclk and phy_rdy_i;
+  rst_n_rx  <= rst_rxclk_n_i and not mdio_mcr_reset_synced and phy_rdy_i;
 
 -------------------------------------------------------------------------------
 -- 802.3z Link Synchronization State Machine
@@ -304,7 +308,7 @@ begin
   -- reads: phy_rx_data_i, mdio_wr_spec_cal_crst_i
   -- writes: mdio_wr_spec_rx_cal_stat_o
   --
-  p_detect_cal : process(phy_rx_clk_i, rst_n_rx)
+  p_detect_cal : process(phy_rx_clk_i)
   begin
     if rising_edge(phy_rx_clk_i) then
       if rst_n_rx = '0' then
@@ -359,7 +363,7 @@ begin
 
   -- process postprocesses the raw 8b10b decoder output (phy_rx_data_i, phy_rx_k_i, phy_rx_enc_err_ior)
   -- providing 1-bit signals indicating various 8b10b control patterns
-  p_8b10b_postprocess : process(phy_rx_clk_i, rst_n_rx)
+  p_8b10b_postprocess : process(phy_rx_clk_i)
   begin
     if rising_edge(phy_rx_clk_i) then
       
@@ -458,7 +462,7 @@ begin
 -- reads: almost everything
 -- writes: almost everything
 
-  rx_fsm : process (phy_rx_clk_i, rst_n_rx)
+  rx_fsm : process (phy_rx_clk_i)
   begin
     if rising_edge(phy_rx_clk_i) then
       -- reset or PCS disabled

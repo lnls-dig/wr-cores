@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-Co-HT
 -- Created    : 2010-02-25
--- Last update: 2011-05-11
+-- Last update: 2017-02-20
 -- Platform   : FPGA-generic
 -- Standard   : VHDL '93
 -------------------------------------------------------------------------------
@@ -15,7 +15,7 @@
 -- increase the accuracy.
 -------------------------------------------------------------------------------
 --
--- Copyright (c) 2009 - 2010 CERN
+-- Copyright (c) 2009 - 2017 CERN
 --
 -- This source file is free software; you can redistribute it   
 -- and/or modify it under the terms of the GNU Lesser General   
@@ -55,8 +55,9 @@ entity dmtd_phase_meas is
     g_counter_bits        : integer := 14);
 
   port (
--- [clk_sys_i] reset
-    rst_n_i : in std_logic;
+-- resets
+    rst_sys_n_i  : in std_logic;
+    rst_dmtd_n_i : in std_logic;
 
 -- system clock 
     clk_sys_i  : in std_logic;
@@ -75,9 +76,7 @@ entity dmtd_phase_meas is
 
 end dmtd_phase_meas;
 
-
 architecture syn of dmtd_phase_meas is
-
 
   component dmtd_with_deglitcher
     generic (
@@ -97,9 +96,6 @@ architecture syn of dmtd_phase_meas is
   end component;
 
   type t_pd_state is (PD_WAIT_TAG, PD_WAIT_A, PD_WAIT_B);
-
-  signal rst_n_dmtdclk : std_logic;
-  signal rst_n_sysclk  : std_logic;
 
   signal tag_a : std_logic_vector(g_counter_bits-1 downto 0);
   signal tag_b : std_logic_vector(g_counter_bits-1 downto 0);
@@ -123,26 +119,12 @@ architecture syn of dmtd_phase_meas is
   
 begin  -- syn
 
-  rst_n_sysclk <= rst_n_i;
-
-  -- reset sync for DMTD sampling clock
-  sync_reset_dmtdclk : gc_sync_ffs
-    generic map (
-      g_sync_edge => "positive")
-    port map (
-      clk_i    => clk_dmtd_i,
-      rst_n_i  => rst_n_i,
-      data_i   => rst_n_sysclk,
-      synced_o => rst_n_dmtdclk,
-      npulse_o => open,
-      ppulse_o => open);
-
   DMTD_A : dmtd_with_deglitcher
     generic map (
       g_counter_bits => g_counter_bits)
     port map (
-      rst_n_dmtdclk_i       => rst_n_dmtdclk,
-      rst_n_sysclk_i        => rst_n_sysclk,
+      rst_n_dmtdclk_i       => rst_dmtd_n_i,
+      rst_n_sysclk_i        => rst_sys_n_i,
       clk_dmtd_i            => clk_dmtd_i,
       clk_sys_i             => clk_sys_i,
       clk_in_i              => clk_a_i,
@@ -157,8 +139,8 @@ begin  -- syn
     generic map (
       g_counter_bits => g_counter_bits)
     port map (
-      rst_n_dmtdclk_i       => rst_n_dmtdclk,
-      rst_n_sysclk_i        => rst_n_sysclk,
+      rst_n_dmtdclk_i       => rst_dmtd_n_i,
+      rst_n_sysclk_i        => rst_sys_n_i,
       clk_dmtd_i            => clk_dmtd_i,
       clk_sys_i             => clk_sys_i,
       clk_in_i              => clk_b_i,
@@ -170,10 +152,10 @@ begin  -- syn
       dbg_dmtdout_o         => open);
 
 
-  collect_tags : process (clk_sys_i, rst_n_sysclk)
+  collect_tags : process (clk_sys_i)
   begin  -- process   
     if rising_edge(clk_sys_i) then
-      if(rst_n_sysclk = '0' or en_i = '0') then
+      if(rst_sys_n_i = '0' or en_i = '0') then
         phase_raw    <= (others => '0');
         phase_raw_p  <= '0';
         ph_acq_valid <= '0';
@@ -243,10 +225,10 @@ begin  -- syn
   phase_lo <= '1' when phase_raw(phase_raw'high downto phase_raw'high-1) = "00" else '0';
 
 
-  calc_error : process (clk_sys_i, rst_n_sysclk)
+  calc_error : process (clk_sys_i)
   begin  -- process calc_error
     if rising_edge(clk_sys_i) then
-      if(rst_n_sysclk = '0' or en_i = '0') then
+      if(rst_sys_n_i = '0' or en_i = '0') then
         acc            <= (others => '0');
         avg_cnt        <= (others => '0');
         phase_meas_p_o <= '0';

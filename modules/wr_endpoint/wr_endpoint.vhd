@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-04-26
--- Last update: 2017-02-16
+-- Last update: 2017-02-20
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -91,8 +91,12 @@ entity wr_endpoint is
 -- DMTD offset clock for phase tracking - used only if g_with_dmtd == true
     clk_dmtd_i : in std_logic;
 
--- sync reset (clk_sys_i domain), active LO
-    rst_n_i : in std_logic;
+-- resets for various clock domains
+    rst_sys_n_i   : in std_logic;
+    rst_ref_n_i   : in std_logic;
+    rst_dmtd_n_i  : in std_logic;
+    rst_txclk_n_i : in std_logic;
+    rst_rxclk_n_i : in std_logic;
 
 -- PPS input (1 clk_ref_i cycle HI) for synchronizing timestamp counter
     pps_csync_p1_i : in std_logic;
@@ -312,7 +316,8 @@ architecture syn of wr_endpoint is
       g_deglitcher_threshold : integer;
       g_counter_bits         : integer);
     port (
-      rst_n_i        : in  std_logic;
+      rst_sys_n_i    : in  std_logic;
+      rst_dmtd_n_i   : in  std_logic;
       clk_sys_i      : in  std_logic;
       clk_a_i        : in  std_logic;
       clk_b_i        : in  std_logic;
@@ -396,7 +401,6 @@ architecture syn of wr_endpoint is
   signal src_in  : t_wrf_source_in;
   signal src_out : t_wrf_source_out;
 
-  signal rst_n_rxsync, rst_n_sys, rst_n_ref : std_logic;
   signal rst_n_rx : std_logic;
 
   signal wb_in  : t_wishbone_slave_in;
@@ -453,26 +457,7 @@ architecture syn of wr_endpoint is
 
 begin
 
-  -----------------------------------------------------------------------------
-  -- Reset signal synchronization
-  -----------------------------------------------------------------------------
-  
-  U_Sync_Rst_RX : gc_sync_ffs
-    port map (
-      clk_i    => phy_rx_clk_i,
-      rst_n_i  => '1',
-      data_i   => rst_n_i,
-      synced_o => rst_n_rxsync);
-
-  U_Sync_Rst_REF : gc_sync_ffs
-    port map (
-      clk_i    => clk_ref_i,
-      rst_n_i  => '1',
-      data_i   => rst_n_i,
-      synced_o => rst_n_ref);
-
-  rst_n_sys <= rst_n_i;
-  rst_n_rx  <= rst_n_rxsync and phy_rdy_i;
+  rst_n_rx  <= rst_rxclk_n_i and phy_rdy_i;
 
 -------------------------------------------------------------------------------
 -- 1000Base-X PCS
@@ -485,8 +470,10 @@ begin
       g_simulation => g_simulation,
       g_16bit      => g_pcs_16bit)
     port map (
-      rst_n_i   => rst_n_i,
-      clk_sys_i => clk_sys_i,
+      rst_sys_n_i   => rst_sys_n_i,
+      rst_rxclk_n_i => rst_rxclk_n_i,
+      rst_txclk_n_i => rst_txclk_n_i,
+      clk_sys_i     => clk_sys_i,
 
       rxpcs_fab_o             => rxpcs_fab,
       rxpcs_busy_o            => rxpcs_busy,
@@ -558,7 +545,7 @@ begin
       g_use_new_crc           => g_use_new_txcrc)
     port map (
       clk_sys_i        => clk_sys_i,
-      rst_n_i          => rst_n_i,
+      rst_n_i          => rst_sys_n_i,
       pcs_error_i      => txpcs_error,
       pcs_busy_i       => txpcs_busy,
       pcs_fab_o        => txpcs_fab,
@@ -619,7 +606,7 @@ begin
       clk_sys_i => clk_sys_i,
       clk_rx_i  => phy_rx_clk_i,
 
-      rst_n_sys_i => rst_n_sys,
+      rst_n_sys_i => rst_sys_n_i,
       rst_n_rx_i  => rst_n_rx,
 
       pcs_fab_i             => rxpath_fab,
@@ -707,9 +694,9 @@ begin
       clk_ref_i      => clk_ref_i,
       clk_rx_i       => phy_rx_clk_i,
       clk_sys_i      => clk_sys_i,
-      rst_n_rx_i     => rst_n_rxsync,
-      rst_n_sys_i    => rst_n_sys,
-      rst_n_ref_i    => rst_n_ref,
+      rst_n_rx_i     => rst_rxclk_n_i,
+      rst_n_sys_i    => rst_sys_n_i,
+      rst_n_ref_i    => rst_ref_n_i,
       pps_csync_p1_i => pps_csync_p1_i,
       pps_valid_i    => pps_valid_i,
 
@@ -743,7 +730,7 @@ begin
       g_slave_granularity  => g_address_granularity)
     port map (
       clk_sys_i  => clk_sys_i,
-      rst_n_i    => rst_n_sys,
+      rst_n_i    => rst_sys_n_i,
       sl_adr_i   => extended_ADDR,
       sl_dat_i   => wb_dat_i,
       sl_sel_i   => wb_sel_i,
@@ -758,7 +745,7 @@ begin
 
   U_WB_SLAVE : ep_wishbone_controller
     port map (
-      rst_n_i    => rst_n_sys,
+      rst_n_i    => rst_sys_n_i,
       clk_sys_i  => clk_sys_i,
       wb_adr_i   => wb_in.adr(4 downto 0),
       wb_dat_i   => wb_in.dat,
@@ -789,7 +776,7 @@ begin
   begin
     if rising_edge(clk_sys_i) then
 
-      if(rst_n_i = '0') or
+      if(rst_sys_n_i = '0') or
         (regs_fromwb.dsr_lact_o = '1' and regs_fromwb.dsr_lact_load_o = '1') then
         regs_towb_ep.dsr_lact_i <= '0';
       else
@@ -831,7 +818,9 @@ begin
         clk_a_i    => phy_ref_clk_i,
         clk_b_i    => phy_rx_clk_i,
         clk_dmtd_i => clk_dmtd_i,
-        rst_n_i    => rst_n_i,
+
+        rst_sys_n_i  => rst_sys_n_i,
+        rst_dmtd_n_i => rst_dmtd_n_i,
 
         en_i           => r_dmcr_en,
         navg_i         => r_dmcr_n_avg,
@@ -846,7 +835,7 @@ begin
     p_dmtd_update : process(clk_sys_i)
     begin
       if rising_edge(clk_sys_i) then
-        if rst_n_i = '0' then
+        if rst_sys_n_i = '0' then
           validity_cntr              <= (others => '0');
           regs_towb_ep.dmsr_ps_rdy_i <= '0';
         else
@@ -892,7 +881,7 @@ begin
         g_blink_period_log2 => 22)
       port map (
         clk_sys_i   => clk_sys_i,
-        rst_n_i     => rst_n_i,
+        rst_n_i     => rst_sys_n_i,
         dvalid_tx_i => dvalid_tx,
         dvalid_rx_i => dvalid_rx,
         link_ok_i   => link_ok,
@@ -915,7 +904,7 @@ begin
   p_ep_ctrl : process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
-      if rst_n_i = '0' then
+      if rst_sys_n_i = '0' then
         ep_ctrl <= '1';
       else
         ep_ctrl <= not link_kill_i;
@@ -960,7 +949,7 @@ begin
       g_sync_edge => "negative")
     port map (
       clk_i    => clk_sys_i,
-      rst_n_i  => rst_n_i,
+      rst_n_i  => rst_sys_n_i,
       data_i   => txpcs_timestamp_trigger_p_a,
       synced_o => open,
       npulse_o => open,
@@ -971,7 +960,7 @@ begin
       g_sync_edge => "negative")
     port map (
       clk_i    => clk_sys_i,
-      rst_n_i  => rst_n_i,
+      rst_n_i  => rst_sys_n_i,
       data_i   => rxpcs_timestamp_trigger_p_a,
       synced_o => open,
       npulse_o => open,

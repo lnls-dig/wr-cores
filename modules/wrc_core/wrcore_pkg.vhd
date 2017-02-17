@@ -45,8 +45,8 @@ package wrcore_pkg is
     port (
       clk_ref_i       : in  std_logic;
       clk_sys_i       : in  std_logic;
-      clk_ext_i       : in  std_logic := '0';
-      rst_n_i         : in  std_logic;
+      rst_ref_n_i     : in  std_logic;
+      rst_sys_n_i     : in  std_logic;
       slave_i         : in  t_wishbone_slave_in;
       slave_o         : out t_wishbone_slave_out;
       link_ok_i       : in  std_logic;
@@ -270,7 +270,10 @@ package wrcore_pkg is
       g_address_granularity  : t_wishbone_address_granularity);
     port (
       clk_sys_i       : in  std_logic;
-      rst_n_i         : in  std_logic;
+      rst_sys_n_i     : in  std_logic;
+      rst_ref_n_i     : in  std_logic;
+      rst_ext_n_i     : in  std_logic;
+      rst_dmtd_n_i    : in  std_logic;
       clk_ref_i       : in  std_logic_vector(g_num_ref_inputs-1 downto 0);
       clk_fb_i        : in  std_logic_vector(g_num_outputs-1 downto 0);
       clk_dmtd_i      : in  std_logic;

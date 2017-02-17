@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-04-26
--- Last update: 2017-02-16
+-- Last update: 2017-02-20
 -- Platform   : FPGA-generic
 -- Standard   : VHDL '93
 -------------------------------------------------------------------------------
@@ -81,8 +81,12 @@ entity xwr_endpoint is
 
     clk_dmtd_i : in std_logic := '0';
 
--- sync reset (clk_sys_i domain), active LO
-    rst_n_i : in std_logic;
+-- resets for various clock domains
+    rst_sys_n_i   : in std_logic;
+    rst_ref_n_i   : in std_logic;
+    rst_dmtd_n_i  : in std_logic;
+    rst_txclk_n_i : in std_logic;
+    rst_rxclk_n_i : in std_logic;
 
 -- PPS input (1 clk_ref_i cycle HI) for synchronizing timestamp counter
     pps_csync_p1_i : in std_logic := '0';
@@ -317,7 +321,11 @@ begin
       clk_ref_i            => clk_ref_i,
       clk_sys_i            => clk_sys_i,
       clk_dmtd_i           => clk_dmtd_i,
-      rst_n_i              => rst_n_i,
+      rst_sys_n_i          => rst_sys_n_i,
+      rst_ref_n_i          => rst_ref_n_i,
+      rst_dmtd_n_i         => rst_dmtd_n_i,
+      rst_txclk_n_i        => rst_txclk_n_i,
+      rst_rxclk_n_i        => rst_rxclk_n_i,
       pps_csync_p1_i       => pps_csync_p1_i,
       pps_valid_i          => pps_valid_i,
 

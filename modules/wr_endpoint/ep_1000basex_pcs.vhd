@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2017-02-16
+-- Last update: 2017-02-20
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -68,11 +68,13 @@ entity ep_1000basex_pcs is
   port (
 
     ---------------------------------------------------------------------------
-    -- System clock & reset
+    -- System clock & resets (system + rx/tx)
     ---------------------------------------------------------------------------
 
-    rst_n_i   : in std_logic;
-    clk_sys_i : in std_logic;
+    rst_sys_n_i   : in std_logic;
+    rst_txclk_n_i : in std_logic;
+    rst_rxclk_n_i : in std_logic;
+    clk_sys_i     : in std_logic;
 
     ---------------------------------------------------------------------------
     -- PCS <-> MAC Interface
@@ -199,6 +201,8 @@ end ep_1000basex_pcs;
 
 architecture rtl of ep_1000basex_pcs is
 
+  alias rst_n_i : std_logic is rst_sys_n_i;
+
   signal mdio_mcr_anrestart       : std_logic;
   signal mdio_mcr_pdown           : std_logic;
   signal mdio_mcr_pdown_cpu       : std_logic;
@@ -263,11 +267,14 @@ begin  -- rtl
         rst_n_i   => pcs_reset_n,
         clk_sys_i => clk_sys_i,
 
+        rst_txclk_n_i => rst_txclk_n_i,
+
         pcs_fab_i   => txpcs_fab_i,
         pcs_error_o => txpcs_error_o,
         pcs_busy_o  => txpcs_busy_int,
         pcs_dreq_o  => txpcs_dreq_o,
 
+        mdio_mcr_reset_i      => mdio_mcr_reset,
         mdio_mcr_pdown_i      => mdio_mcr_pdown,
         mdio_wr_spec_tx_cal_i => mdio_wr_spec_tx_cal,
 
@@ -292,6 +299,8 @@ begin  -- rtl
         clk_sys_i => clk_sys_i,
         rst_n_i   => pcs_reset_n,
 
+        rst_rxclk_n_i => rst_rxclk_n_i,
+
         pcs_busy_o            => rxpcs_busy_o,
         pcs_fab_o             => rxpcs_fab_o,
         pcs_fifo_almostfull_i => rxpcs_fifo_almostfull_i,
@@ -301,6 +310,7 @@ begin  -- rtl
         timestamp_valid_i       => rxpcs_timestamp_valid_i,
         timestamp_stb_i         => rxpcs_timestamp_stb_i,
 
+        mdio_mcr_reset_i           => mdio_mcr_reset,
         mdio_mcr_pdown_i           => mdio_mcr_pdown,
         mdio_wr_spec_cal_crst_i    => mdio_wr_spec_cal_crst,
         mdio_wr_spec_rx_cal_stat_o => mdio_wr_spec_rx_cal_stat,
@@ -335,11 +345,14 @@ begin  -- rtl
         rst_n_i   => pcs_reset_n,
         clk_sys_i => clk_sys_i,
 
+        rst_txclk_n_i => rst_txclk_n_i,
+
         pcs_fab_i   => txpcs_fab_i,
         pcs_error_o => txpcs_error_o,
         pcs_busy_o  => txpcs_busy_int,
         pcs_dreq_o  => txpcs_dreq_o,
 
+        mdio_mcr_reset_i      => mdio_mcr_reset,
         mdio_mcr_pdown_i      => mdio_mcr_pdown,
         mdio_wr_spec_tx_cal_i => mdio_wr_spec_tx_cal,
 
@@ -362,6 +375,8 @@ begin  -- rtl
         clk_sys_i => clk_sys_i,
         rst_n_i   => pcs_reset_n,
 
+        rst_rxclk_n_i => rst_rxclk_n_i,
+
         pcs_busy_o            => rxpcs_busy_o,
         pcs_fab_o             => rxpcs_fab_o,
         pcs_fifo_almostfull_i => rxpcs_fifo_almostfull_i,
@@ -371,6 +386,7 @@ begin  -- rtl
         timestamp_valid_i       => rxpcs_timestamp_valid_i,
         timestamp_stb_i         => rxpcs_timestamp_stb_i,
 
+        mdio_mcr_reset_i           => mdio_mcr_reset,
         mdio_mcr_pdown_i           => mdio_mcr_pdown,
         mdio_wr_spec_cal_crst_i    => mdio_wr_spec_cal_crst,
         mdio_wr_spec_rx_cal_stat_o => mdio_wr_spec_rx_cal_stat,
@@ -517,7 +533,7 @@ begin  -- rtl
   -- process: handles the LSTATUS bit in MSR register
   -- inputs: sync_lost, synced, lstat_read_notify
   -- outputs: mdio_msr_lstatus
-  p_gen_link_status : process(clk_sys_i, pcs_reset_n)
+  p_gen_link_status : process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
       if(pcs_reset_n = '0') then

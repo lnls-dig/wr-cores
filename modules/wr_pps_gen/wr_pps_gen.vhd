@@ -4,15 +4,15 @@
 -------------------------------------------------------------------------------
 -- File       : wrsw_pps_gen.vhd
 -- Author     : Tomasz Wlostowski
--- Company    : CERN BE-Co-HT
+-- Company    : CERN (BE-CO-HT)
 -- Created    : 2010-09-02
--- Last update: 2017-02-13
+-- Last update: 2017-02-20
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
 -- Description:
 -------------------------------------------------------------------------------
--- Copyright (c) 2010 Tomasz Wlostowski
+-- Copyright (c) 2010-2017 CERN
 -------------------------------------------------------------------------------
 -- Revisions  :
 -- Date        Version  Author          Description
@@ -39,11 +39,10 @@ entity wr_pps_gen is
     g_with_ext_clock_input : boolean                        := false
     );
   port (
-    clk_ref_i : in std_logic;
-    clk_sys_i : in std_logic;
-    clk_ext_i : in std_logic := '0';
-
-    rst_n_i : in std_logic;
+    clk_ref_i   : in std_logic;
+    clk_sys_i   : in std_logic;
+    rst_ref_n_i : in std_logic;
+    rst_sys_n_i : in std_logic;
 
     wb_adr_i   : in  std_logic_vector(4 downto 0);
     wb_dat_i   : in  std_logic_vector(31 downto 0);
@@ -78,6 +77,8 @@ entity wr_pps_gen is
 end wr_pps_gen;
 
 architecture behavioral of wr_pps_gen is
+
+  alias rst_n_i : std_logic is rst_sys_n_i;
 
   constant c_PERIOD : integer := g_ref_clock_rate;
 
@@ -163,8 +164,6 @@ architecture behavioral of wr_pps_gen is
   signal adj_nsec : unsigned(27 downto 0);
   signal adj_utc  : unsigned(39 downto 0);
 
-  signal rst_synced_refclk : std_logic;
-
   signal adjust_in_progress_nsec : std_logic;
 
   signal adjust_in_progress_utc : std_logic;
@@ -219,17 +218,6 @@ begin  -- behavioral
       sl_stall_o => wb_stall_o);
 
 
-  U_Sync_reset_refclk : gc_sync_ffs
-    generic map (
-      g_sync_edge => "positive")
-    port map (
-      clk_i    => clk_ref_i,
-      rst_n_i  => '1',
-      data_i   => rst_n_i,
-      synced_o => rst_synced_refclk,
-      npulse_o => open,
-      ppulse_o => open);
-
   U_Sync_pps_refclk : gc_sync_ffs
     generic map (
       g_sync_edge => "positive")
@@ -277,7 +265,7 @@ begin  -- behavioral
     p_external_sync : process(clk_ref_i)
     begin
       if falling_edge(clk_ref_i) then
-        if(rst_synced_refclk = '0') then
+        if(rst_ref_n_i = '0') then
           sync_in_progress  <= '0';
           ppsg_escr_sync_in <= '0';
         else
@@ -301,10 +289,10 @@ begin  -- behavioral
   end generate gen_with_external_clock_input;
 -- Nanosecond counter. Counts from 0 to c_PERIOD-1 every clk_ref_i cycle.
 
-  p_count_nsec : process(clk_ref_i, rst_synced_refclk)
+  p_count_nsec : process(clk_ref_i)
   begin
     if rising_edge(clk_ref_i) then
-      if rst_synced_refclk = '0' or ppsg_cr_cnt_rst = '1' then
+      if rst_ref_n_i = '0' or ppsg_cr_cnt_rst = '1' then
         cntr_nsec               <= (others => '0');
         ns_overflow             <= '0';
         ns_overflow_adv         <= '0';
@@ -361,7 +349,7 @@ begin  -- behavioral
   p_drive_pps_valid : process(clk_ref_i)
   begin
     if rising_edge(clk_ref_i) then
-      if rst_synced_refclk = '0' or ppsg_cr_cnt_rst = '1' then
+      if rst_ref_n_i = '0' or ppsg_cr_cnt_rst = '1' then
         pps_valid_int   <= '0';
         ns_overflow_2nd <= '0';
       else
@@ -381,10 +369,10 @@ begin  -- behavioral
     end if;
   end process;
 
-  p_count_utc : process(clk_ref_i, rst_synced_refclk)
+  p_count_utc : process(clk_ref_i)
   begin
     if rising_edge(clk_ref_i) then
-      if rst_synced_refclk = '0' or ppsg_cr_cnt_rst = '1' then
+      if rst_ref_n_i = '0' or ppsg_cr_cnt_rst = '1' then
         cntr_utc               <= (others => '0');
         adjust_in_progress_utc <= '0';
       elsif(ppsg_cr_cnt_en = '1') then
@@ -412,10 +400,10 @@ begin  -- behavioral
   pps_csync_o <= ns_overflow;
 
   -- generates variable-width PPS pulses for PPS external output
-  p_gen_pps_out : process(clk_ref_i, rst_synced_refclk)
+  p_gen_pps_out : process(clk_ref_i)
   begin
     if rising_edge(clk_ref_i) then
-      if rst_synced_refclk = '0' then
+      if rst_ref_n_i = '0' then
         pps_out_int <= '0';
         pps_led_o   <= '0';
         width_cntr  <= (others => '0');
@@ -440,10 +428,10 @@ begin  -- behavioral
 
   end process;
 
-  process(clk_ref_i, rst_synced_refclk)
+  process(clk_ref_i)
   begin
     if rising_edge(clk_ref_i) then
-      if rst_synced_refclk = '0' then
+      if rst_ref_n_i = '0' then
         pps_out_o <= '0';
       else
         pps_out_o <= pps_out_int;

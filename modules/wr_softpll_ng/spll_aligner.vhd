@@ -16,7 +16,9 @@ entity spll_aligner is
     clk_in_i  : in std_logic;
     clk_ref_i : in std_logic;
 
-    rst_n_sys_i : in std_logic;
+    rst_n_sys_i    : in std_logic;
+    rst_n_ref_i    : in  std_logic;
+    rst_n_ext_i    : in  std_logic;
 
     pps_ext_a_i    : in std_logic;
     pps_csync_p1_i : in std_logic;
@@ -38,29 +40,14 @@ architecture rtl of spll_aligner is
 
   signal cnt_ref_div           : unsigned(g_counter_width-1 downto 0);
   signal pps_ext_p, pps_ext_d0 : std_logic;
-  signal rst_n_in, rst_n_ref   : std_logic;
   signal ref_div_p             : std_logic;
   signal sample_ready_p        : std_logic;
 begin
 
-  U_Reset_IN : gc_sync_ffs
-    port map (
-      clk_i    => clk_in_i,
-      rst_n_i  => '1',
-      data_i   => rst_n_sys_i,
-      synced_o => rst_n_in);
-
-  U_Reset_REF : gc_sync_ffs
-    port map (
-      clk_i    => clk_ref_i,
-      rst_n_i  => '1',
-      data_i   => rst_n_sys_i,
-      synced_o => rst_n_ref);
-
   p_ref_counter : process(clk_ref_i)
   begin
     if rising_edge(clk_ref_i) then
-      if pps_csync_p1_i = '1' or rst_n_ref = '0' then
+      if pps_csync_p1_i = '1' or rst_n_ref_i = '0' then
         cnt_ref_bin <= to_unsigned(0, g_counter_width);
       elsif(cnt_ref_bin = g_ref_clock_rate - 1) then
         cnt_ref_bin <= (others => '0');
@@ -73,7 +60,7 @@ begin
   p_samplerate_divider : process(clk_ref_i)
   begin
     if rising_edge(clk_ref_i) then
-      if pps_csync_p1_i = '1' or rst_n_ref = '0' then
+      if pps_csync_p1_i = '1' or rst_n_ref_i = '0' then
         ref_div_p   <= '0';
         cnt_ref_div <= to_unsigned(0, g_counter_width);
       elsif (cnt_ref_div = c_div_ticks - 2) then
@@ -101,7 +88,7 @@ begin
   p_in_counter : process(clk_in_i)
   begin
     if rising_edge(clk_in_i) then
-      if pps_ext_p = '1' or rst_n_in = '0' then
+      if pps_ext_p = '1' or rst_n_ext_i = '0' then
         cnt_in_bin <= to_unsigned(2, g_counter_width);
       elsif(cnt_in_bin = g_in_clock_rate - 1) then
         cnt_in_bin <= (others => '0');
@@ -134,7 +121,7 @@ begin
   U_sync_sampling : gc_pulse_synchronizer2
     port map (
       clk_in_i    => clk_ref_i,
-      rst_in_n_i  => rst_n_ref,
+      rst_in_n_i  => rst_n_ref_i,
       clk_out_i   => clk_sys_i,
       rst_out_n_i => rst_n_sys_i,
       d_p_i       => ref_div_p,

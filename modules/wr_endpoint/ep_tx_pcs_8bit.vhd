@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT section
 -- Created    : 2009-06-16
--- Last update: 2017-02-03
+-- Last update: 2017-02-20
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -23,22 +23,22 @@
 --
 -------------------------------------------------------------------------------
 --
--- Copyright (c) 2009 Tomasz Wlostowski / CERN
+-- Copyright (c) 2009-2017 Tomasz Wlostowski / CERN
 --
--- This source file is free software; you can redistribute it   
--- and/or modify it under the terms of the GNU Lesser General   
--- Public License as published by the Free Software Foundation; 
--- either version 2.1 of the License, or (at your option) any   
--- later version.                                               
+-- This source file is free software; you can redistribute it
+-- and/or modify it under the terms of the GNU Lesser General
+-- Public License as published by the Free Software Foundation;
+-- either version 2.1 of the License, or (at your option) any
+-- later version.
 --
--- This source is distributed in the hope that it will be       
--- useful, but WITHOUT ANY WARRANTY; without even the implied   
--- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      
--- PURPOSE.  See the GNU Lesser General Public License for more 
--- details.                                                     
+-- This source is distributed in the hope that it will be
+-- useful, but WITHOUT ANY WARRANTY; without even the implied
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+-- PURPOSE.  See the GNU Lesser General Public License for more
+-- details.
 --
--- You should have received a copy of the GNU Lesser General    
--- Public License along with this source; if not, download it   
+-- You should have received a copy of the GNU Lesser General
+-- Public License along with this source; if not, download it
 -- from http://www.gnu.org/licenses/lgpl-2.1.html
 --
 -------------------------------------------------------------------------------
@@ -72,9 +72,12 @@ entity ep_tx_pcs_8bit is
 -- 62.5 MHz clock (refclk/2)
     clk_sys_i : in std_logic;
 
+-- reset (phy_tx_clk_i sync)
+    rst_txclk_n_i : in std_logic;
+
 -------------------------------------------------------------------------------
 -- TX Framer inteface
--------------------------------------------------------------------------------    
+-------------------------------------------------------------------------------
 
 -- TX Fabric input
     pcs_fab_i : in t_ep_internal_fabric;
@@ -92,6 +95,7 @@ entity ep_tx_pcs_8bit is
 -- WB controller control signals
 -------------------------------------------------------------------------------
 
+    mdio_mcr_reset_i      : in std_logic;
 -- Transmit Control Register, EN_PCS field
     mdio_mcr_pdown_i      : in std_logic;
 -- Transmit Control Register, TX_CAL field
@@ -104,7 +108,7 @@ entity ep_tx_pcs_8bit is
 -- Timestamp strobe
     timestamp_trigger_p_a_o : out std_logic;
 
--- RMON events 
+-- RMON events
     rmon_tx_underrun : out std_logic;
 
 -------------------------------------------------------------------------------
@@ -150,10 +154,11 @@ architecture behavioral of ep_tx_pcs_8bit is
   signal tx_rdreq_toggle : std_logic;
   signal tx_odd_length   : std_logic;
 
-  signal tx_busy            : std_logic;
-  signal tx_error           : std_logic;
-  signal reset_synced_txclk : std_logic;
+  signal tx_busy  : std_logic;
+  signal tx_error : std_logic;
+  signal rst_n_tx : std_logic;
 
+  signal mdio_mcr_reset_synced : std_logic;
   signal mdio_mcr_pdown_synced : std_logic;
   signal an_tx_en_synced       : std_logic;
 
@@ -177,14 +182,25 @@ begin
       data_i   => tx_error,
       ppulse_o => pcs_error_o);
 
-  U_sync_tx_reset : gc_sync_ffs
+  U_sync_an_tx_en : gc_sync_ffs
     generic map (
       g_sync_edge => "positive")
     port map (
       clk_i    => phy_tx_clk_i,
       rst_n_i  => '1',
-      data_i   => rst_n_i,
-      synced_o => reset_synced_txclk);
+      data_i   => an_tx_en_i,
+      synced_o => an_tx_en_synced);
+
+  U_sync_mcr_reset : gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => phy_tx_clk_i,
+      rst_n_i  => '1',
+      data_i   => mdio_mcr_reset_i,
+      synced_o => mdio_mcr_reset_synced,
+      npulse_o => open,
+      ppulse_o => open);
 
   U_sync_power_down : gc_sync_ffs
     generic map (
@@ -194,22 +210,15 @@ begin
       rst_n_i  => '1',
       data_i   => mdio_mcr_pdown_i,
       synced_o => mdio_mcr_pdown_synced);
-  
-  U_sync_tx_en : gc_sync_ffs
-    generic map (
-      g_sync_edge => "positive")
-    port map (
-      clk_i    => phy_tx_clk_i,
-      rst_n_i  => '1',
-      data_i   => an_tx_en_i,
-      synced_o => an_tx_en_synced);
 
   phy_tx_data_o <= tx_odata_reg;
   phy_tx_k_o    <= tx_is_k;
 
+  rst_n_tx <= rst_txclk_n_i and not mdio_mcr_reset_synced;
+
 -------------------------------------------------------------------------------
 -- Clock alignment FIFO
--------------------------------------------------------------------------------  
+-------------------------------------------------------------------------------
 
   fifo_clear_n <= '0' when (rst_n_i = '0') or (mdio_mcr_pdown_synced = '1') else '1';
 
@@ -254,11 +263,11 @@ begin
 
   p_tx_fsm : process (phy_tx_clk_i)
   begin
-    
+
     if rising_edge(phy_tx_clk_i) then
 
 -- The PCS is reset or disabled
-      if(reset_synced_txclk = '0' or mdio_mcr_pdown_synced = '1') then
+      if(rst_n_tx = '0' or mdio_mcr_pdown_synced = '1') then
         tx_state                <= TX_COMMA;
         timestamp_trigger_p_a_o <= '0';
         fifo_rd                 <= '0';
@@ -271,14 +280,14 @@ begin
         tx_odd_length           <= '0';
         tx_rdreq_toggle         <= '0';
         rmon_tx_underrun        <= '0';
-        
+
       else
-        
+
         case tx_state is
 
 -------------------------------------------------------------------------------
 -- State COMMA: sends K28.5 comma character (first byte of /I/ sequence)
--------------------------------------------------------------------------------            
+-------------------------------------------------------------------------------
           when TX_COMMA =>
             tx_is_k      <= '1';
             tx_odata_reg <= c_K28_5;
@@ -354,7 +363,7 @@ begin
 
 -------------------------------------------------------------------------------
 -- States: CR1, CR2, CR3, CR4: send the /C/ Configuration code set
--------------------------------------------------------------------------------            
+-------------------------------------------------------------------------------
 
           when TX_CR1 =>
             tx_is_k      <= '1';
@@ -411,7 +420,7 @@ begin
 
 -------------------------------------------------------------------------------
 -- State SFD: outputs the start-of-frame delimeter (last byte of the preamble)
--------------------------------------------------------------------------------            
+-------------------------------------------------------------------------------
           when TX_SFD =>
 
             tx_odata_reg            <= c_preamble_sfd;
@@ -455,7 +464,7 @@ begin
 
 -------------------------------------------------------------------------------
 -- State EPD: send End-of-frame delimeter
--------------------------------------------------------------------------------            
+-------------------------------------------------------------------------------
           when TX_EPD =>
             timestamp_trigger_p_a_o <= '0';
 
@@ -479,7 +488,7 @@ begin
 
 -------------------------------------------------------------------------------
 -- State GEN_ERROR: entered when an error occured. Just terminates the frame.
--------------------------------------------------------------------------------            
+-------------------------------------------------------------------------------
           when TX_GEN_ERROR =>
             tx_state <= TX_EPD;
 
@@ -503,5 +512,3 @@ begin
   pcs_dreq_o <= not fifo_almost_full;
 
 end behavioral;
-
-

@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT section
 -- Created    : 2009-06-16
--- Last update: 2017-02-02
+-- Last update: 2017-02-20
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -21,7 +21,7 @@
 -- exchange between these clock domains is done using an async FIFO.
 -------------------------------------------------------------------------------
 --
--- Copyright (c) 2011 CERN / BE-CO-HT
+-- Copyright (c) 2011-2017 CERN / BE-CO-HT
 --
 -- This source file is free software; you can redistribute it   
 -- and/or modify it under the terms of the GNU Lesser General   
@@ -65,6 +65,9 @@ entity ep_tx_pcs_16bit is
 -- system clock (faster than reference)
     clk_sys_i : in std_logic;
 
+-- reset (phy_tx_clk_i sync)
+    rst_txclk_n_i : in std_logic;
+
 -------------------------------------------------------------------------------
 -- TX Framer inteface
 -------------------------------------------------------------------------------    
@@ -85,6 +88,7 @@ entity ep_tx_pcs_16bit is
 -- WB controller control signals
 -------------------------------------------------------------------------------
 
+    mdio_mcr_reset_i      : in std_logic;
 -- Transmit Control Register, EN_PCS field
     mdio_mcr_pdown_i      : in std_logic;
 -- Transmit Control Register, TX_CAL field
@@ -144,10 +148,11 @@ architecture behavioral of ep_tx_pcs_16bit is
   signal fifo_read_int                   : std_logic;
   signal fifo_fab                        : t_ep_internal_fabric;
 
-  signal tx_busy            : std_logic;
-  signal tx_error           : std_logic;
-  signal reset_synced_txclk : std_logic;
+  signal tx_busy  : std_logic;
+  signal tx_error : std_logic;
+  signal rst_n_tx : std_logic;
 
+  signal mdio_mcr_reset_synced : std_logic;
   signal mdio_mcr_pdown_synced : std_logic;
 
   signal an_tx_en_synced : std_logic;
@@ -167,15 +172,6 @@ architecture behavioral of ep_tx_pcs_16bit is
   -- 
 begin
 
-  U_sync_an_tx_en : gc_sync_ffs
-    generic map (
-      g_sync_edge => "positive")
-    port map (
-      clk_i    => phy_tx_clk_i,
-      rst_n_i  => rst_n_i,
-      data_i   => an_tx_en_i,
-      synced_o => an_tx_en_synced);
-
   U_sync_pcs_busy_o : gc_sync_ffs
     generic map (
       g_sync_edge => "positive")
@@ -194,14 +190,25 @@ begin
       data_i   => tx_error,
       ppulse_o => pcs_error_o);
 
-  U_sync_tx_reset : gc_sync_ffs
+  U_sync_an_tx_en : gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => phy_tx_clk_i,
+      rst_n_i  => rst_n_i,
+      data_i   => an_tx_en_i,
+      synced_o => an_tx_en_synced);
+
+  U_sync_mcr_reset : gc_sync_ffs
     generic map (
       g_sync_edge => "positive")
     port map (
       clk_i    => phy_tx_clk_i,
       rst_n_i  => '1',
-      data_i   => rst_n_i,
-      synced_o => reset_synced_txclk);
+      data_i   => mdio_mcr_reset_i,
+      synced_o => mdio_mcr_reset_synced,
+      npulse_o => open,
+      ppulse_o => open);
 
   U_sync_power_down : gc_sync_ffs
     generic map (
@@ -214,6 +221,8 @@ begin
 
   phy_tx_data_o <= tx_odata_reg;
   phy_tx_k_o    <= tx_is_k;
+
+  rst_n_tx <= rst_txclk_n_i and not mdio_mcr_reset_synced;
 
 -------------------------------------------------------------------------------
 -- Clock alignment FIFO
@@ -314,7 +323,7 @@ begin
     if rising_edge(phy_tx_clk_i) then
 
 -- The PCS is reset or disabled
-      if(reset_synced_txclk = '0' or mdio_mcr_pdown_synced = '1') then
+      if(rst_n_tx = '0' or mdio_mcr_pdown_synced = '1') then
         tx_state                <= TX_COMMA_IDLE;
         timestamp_trigger_p_a_o <= '0';
         fifo_rd                 <= '0';

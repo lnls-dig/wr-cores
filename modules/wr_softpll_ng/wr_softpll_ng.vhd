@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2011-01-29
--- Last update: 2017-02-03
+-- Last update: 2017-02-20
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -90,8 +90,11 @@ entity wr_softpll_ng is
     );
 
   port(
-    clk_sys_i : in std_logic;
-    rst_n_i   : in std_logic;
+    clk_sys_i    : in std_logic;
+    rst_sys_n_i  : in std_logic;
+    rst_ref_n_i  : in std_logic;
+    rst_ext_n_i  : in std_logic;
+    rst_dmtd_n_i : in std_logic;
 
 -- Reference inputs (i.e. the RX clocks recovered by the PHYs)
     clk_ref_i : in std_logic_vector(g_num_ref_inputs-1 downto 0);
@@ -157,6 +160,8 @@ end wr_softpll_ng;
 
 architecture rtl of wr_softpll_ng is
 
+  alias rst_n_i : std_logic is rst_sys_n_i;
+
   constant c_log2_replication : integer := 2;
   constant c_use_multi_dmtd   : boolean := false;
 
@@ -221,6 +226,8 @@ architecture rtl of wr_softpll_ng is
       clk_in_i       : in  std_logic;
       clk_ref_i      : in  std_logic;
       rst_n_sys_i    : in  std_logic;
+      rst_n_ref_i    : in  std_logic;
+      rst_n_ext_i    : in  std_logic;
       pps_ext_a_i    : in  std_logic;
       pps_csync_p1_i : in  std_logic;
       sample_cref_o  : out std_logic_vector(g_counter_width-1 downto 0);
@@ -387,23 +394,13 @@ begin  -- rtl
 
   gen_ref_dmtds : for i in 0 to g_num_ref_inputs-1 generate
 
-
-    U_sync_rst_dmtd_ref : gc_sync_ffs
-      generic map (
-        g_sync_edge => "positive")
-      port map (
-        clk_i    => clk_dmtd_i,
-        rst_n_i  => '1',
-        data_i   => rst_n_i,
-        synced_o => rst_n_dmtd_ref_clk(i));
-
     DMTD_REF : dmtd_with_deglitcher
       generic map (
         g_counter_bits      => g_tag_bits,
         g_divide_input_by_2 => g_divide_input_by_2,
-				g_reverse	=> g_reverse_dmtds)
+        g_reverse	    => g_reverse_dmtds)
       port map (
-        rst_n_dmtdclk_i => rst_n_dmtd_ref_clk(i),
+        rst_n_dmtdclk_i => rst_dmtd_n_i,
         rst_n_sysclk_i  => rst_n_i,
 
         clk_dmtd_i    => clk_dmtd_i,
@@ -429,23 +426,13 @@ begin  -- rtl
 
   gen_feedback_dmtds : for i in 0 to g_num_outputs-1 generate
     
-
-    U_sync_rst_dmtd_fb : gc_sync_ffs
-      generic map (
-        g_sync_edge => "positive")
-      port map (
-        clk_i    => clk_dmtd_i,
-        rst_n_i  => '1',
-        data_i   => rst_n_i,
-        synced_o => rst_n_dmtd_fb_clk(i));
-
     DMTD_FB : dmtd_with_deglitcher
       generic map (
         g_counter_bits      => g_tag_bits,
         g_divide_input_by_2 => g_divide_input_by_2,
-				g_reverse => g_reverse_dmtds)
+        g_reverse           => g_reverse_dmtds)
       port map (
-        rst_n_dmtdclk_i => rst_n_dmtd_fb_clk(i),
+        rst_n_dmtdclk_i => rst_dmtd_n_i,
         rst_n_sysclk_i  => rst_n_i,
 
         clk_dmtd_i    => clk_dmtd_i,
@@ -484,9 +471,9 @@ begin  -- rtl
       generic map (
         g_counter_bits      => g_tag_bits,
         g_divide_input_by_2 => g_divide_input_by_2,
-				g_reverse	=> g_reverse_dmtds)
+        g_reverse	    => g_reverse_dmtds)
       port map (
-        rst_n_dmtdclk_i => rst_n_i,     -- FIXME!
+        rst_n_dmtdclk_i => rst_dmtd_n_i,
         rst_n_sysclk_i  => rst_n_i,
         clk_dmtd_i      => clk_dmtd_i,
         clk_dmtd_en_i   => '1',
@@ -519,6 +506,8 @@ begin  -- rtl
         clk_in_i       => clk_ext_i,
         clk_ref_i      => clk_fb_i(0),
         rst_n_sys_i    => rst_n_i,
+        rst_n_ref_i    => rst_ref_n_i,
+        rst_n_ext_i    => rst_ext_n_i,
         pps_ext_a_i    => pps_ext_a_i,
         pps_csync_p1_i => pps_csync_p1_i,
         sample_cref_o  => aligner_sample_cref(g_num_outputs),

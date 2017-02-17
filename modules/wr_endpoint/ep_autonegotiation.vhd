@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2011-10-18
+-- Last update: 2017-02-21
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -126,7 +126,7 @@ begin  -- syn
   -- process: link timer (counts until MSB of link_timer == 1).
   -- inputs: link_timer_restart
   -- outputs: link_timer_expired
-  p_link_timer : process(clk_sys_i, rst_n_i)
+  p_link_timer : process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
       if rst_n_i = '0' or link_timer_restart ='1'  then
@@ -163,7 +163,7 @@ begin  -- syn
 
 -- process: main auto-negotiation state machine. More or less compatible with
 -- IEEE 802.3.
-  p_autonegotation_fsm : process(clk_sys_i, rst_n_i)
+  p_autonegotation_fsm : process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
       if rst_n_i = '0' then

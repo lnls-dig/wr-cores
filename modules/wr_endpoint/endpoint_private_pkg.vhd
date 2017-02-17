@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2017-02-16
+-- Last update: 2017-02-20
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -118,7 +118,9 @@ package endpoint_private_pkg is
       g_simulation : boolean;
       g_16bit      : boolean);
     port (
-      rst_n_i                       : in  std_logic;
+      rst_sys_n_i                   : in  std_logic;
+      rst_txclk_n_i                 : in  std_logic;
+      rst_rxclk_n_i                 : in  std_logic;
       clk_sys_i                     : in  std_logic;
       rxpcs_fab_o                   : out t_ep_internal_fabric;
       rxpcs_fifo_almostfull_i       : in  std_logic;
@@ -167,11 +169,13 @@ package endpoint_private_pkg is
   component ep_tx_pcs_8bit
     port (
       rst_n_i                 : in  std_logic;
+      rst_txclk_n_i           : in  std_logic;
       clk_sys_i               : in  std_logic;
       pcs_fab_i               : in  t_ep_internal_fabric;
       pcs_error_o             : out std_logic;
       pcs_busy_o              : out std_logic;
       pcs_dreq_o              : out std_logic;
+      mdio_mcr_reset_i        : in  std_logic;
       mdio_mcr_pdown_i        : in  std_logic;
       mdio_wr_spec_tx_cal_i   : in  std_logic;
       an_tx_en_i              : in  std_logic;
@@ -188,11 +192,13 @@ package endpoint_private_pkg is
   component ep_tx_pcs_16bit
     port (
       rst_n_i                 : in  std_logic;
+      rst_txclk_n_i           : in  std_logic;
       clk_sys_i               : in  std_logic;
       pcs_fab_i               : in  t_ep_internal_fabric;
       pcs_error_o             : out std_logic;
       pcs_busy_o              : out std_logic;
       pcs_dreq_o              : out std_logic;
+      mdio_mcr_reset_i        : in  std_logic;
       mdio_mcr_pdown_i        : in  std_logic;
       mdio_wr_spec_tx_cal_i   : in  std_logic;
       an_tx_en_i              : in  std_logic;
@@ -214,6 +220,7 @@ package endpoint_private_pkg is
     port (
       clk_sys_i                  : in  std_logic;
       rst_n_i                    : in  std_logic;
+      rst_rxclk_n_i              : in  std_logic;
       pcs_fifo_almostfull_i      : in  std_logic;
       pcs_busy_o                 : out std_logic;
       pcs_fab_o                  : out t_ep_internal_fabric;
@@ -226,6 +233,7 @@ package endpoint_private_pkg is
       phy_rx_data_i              : in  std_logic_vector(7 downto 0);
       phy_rx_k_i                 : in  std_logic;
       phy_rx_enc_err_i           : in  std_logic;
+      mdio_mcr_reset_i           : in  std_logic;
       mdio_mcr_pdown_i           : in  std_logic;
       mdio_wr_spec_cal_crst_i    : in  std_logic;
       mdio_wr_spec_rx_cal_stat_o : out std_logic;
@@ -246,6 +254,7 @@ package endpoint_private_pkg is
     port (
       clk_sys_i                  : in  std_logic;
       rst_n_i                    : in  std_logic;
+      rst_rxclk_n_i              : in  std_logic;
       pcs_fifo_almostfull_i      : in  std_logic;
       pcs_busy_o                 : out std_logic;
       pcs_fab_o                  : out t_ep_internal_fabric;
@@ -258,6 +267,7 @@ package endpoint_private_pkg is
       phy_rx_data_i              : in  std_logic_vector(15 downto 0);
       phy_rx_k_i                 : in  std_logic_vector(1 downto 0);
       phy_rx_enc_err_i           : in  std_logic;
+      mdio_mcr_reset_i           : in  std_logic;
       mdio_mcr_pdown_i           : in  std_logic;
       mdio_wr_spec_cal_crst_i    : in  std_logic;
       mdio_wr_spec_rx_cal_stat_o : out std_logic;

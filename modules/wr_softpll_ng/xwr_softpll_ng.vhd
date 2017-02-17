@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2011-01-29
--- Last update: 2017-02-02
+-- Last update: 2017-02-20
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -15,7 +15,7 @@
 -- Struct'ized version of wr_softpll_ng.
 -------------------------------------------------------------------------------
 --
--- Copyright (c) 2012-2013 CERN
+-- Copyright (c) 2012-2017 CERN
 --
 -- This source file is free software; you can redistribute it   
 -- and/or modify it under the terms of the GNU Lesser General   
@@ -83,9 +83,11 @@ entity xwr_softpll_ng is
     );
 
   port(
-    clk_sys_i : in std_logic;
-    rst_n_i   : in std_logic;
-
+    clk_sys_i    : in std_logic;
+    rst_sys_n_i  : in std_logic;
+    rst_ref_n_i  : in std_logic;
+    rst_ext_n_i  : in std_logic;
+    rst_dmtd_n_i : in std_logic;
 
 -- Reference inputs (i.e. the RX clocks recovered by the PHYs)
     clk_ref_i  : in std_logic_vector(g_num_ref_inputs-1 downto 0);
@@ -148,7 +150,10 @@ architecture wrapper of xwr_softpll_ng is
       g_address_granularity  : t_wishbone_address_granularity);
     port (
       clk_sys_i       : in  std_logic;
-      rst_n_i         : in  std_logic;
+      rst_sys_n_i     : in std_logic;
+      rst_ref_n_i     : in std_logic;
+      rst_ext_n_i     : in std_logic;
+      rst_dmtd_n_i    : in std_logic;
       clk_ref_i       : in  std_logic_vector(g_num_ref_inputs-1 downto 0);
       clk_fb_i        : in  std_logic_vector(g_num_outputs-1 downto 0);
       clk_dmtd_i      : in  std_logic;
@@ -199,7 +204,10 @@ begin  -- behavioral
       )
     port map (
       clk_sys_i       => clk_sys_i,
-      rst_n_i         => rst_n_i,
+      rst_sys_n_i     => rst_sys_n_i,
+      rst_ref_n_i     => rst_ref_n_i,
+      rst_ext_n_i     => rst_ext_n_i,
+      rst_dmtd_n_i    => rst_dmtd_n_i,
       clk_ref_i       => clk_ref_i,
       clk_fb_i        => clk_fb_i,
       clk_dmtd_i      => clk_dmtd_i,

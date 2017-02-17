@@ -4,15 +4,15 @@
 -------------------------------------------------------------------------------
 -- File       : xwb_pps_gen.vhd
 -- Author     : Tomasz Wlostowski
--- Company    : CERN BE-Co-HT
+-- Company    : CERN (BE-CO-HT)
 -- Created    : 2010-09-02
--- Last update: 2017-02-13
+-- Last update: 2017-02-20
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
 -- Description:
 -------------------------------------------------------------------------------
--- Copyright (c) 2010 Tomasz Wlostowski
+-- Copyright (c) 2010-2017 CERN
 -------------------------------------------------------------------------------
 -- Revisions  :
 -- Date        Version  Author          Description
@@ -38,10 +38,10 @@ entity xwr_pps_gen is
     g_with_ext_clock_input : boolean                        := FALSE
     );
   port (
-    clk_ref_i : in std_logic;
-    clk_sys_i : in std_logic;
-    clk_ext_i : in std_logic := '0';
-    rst_n_i   : in std_logic;
+    clk_ref_i   : in std_logic;
+    clk_sys_i   : in std_logic;
+    rst_ref_n_i : in std_logic;
+    rst_sys_n_i : in std_logic;
 
     slave_i : in  t_wishbone_slave_in;
     slave_o : out t_wishbone_slave_out;
@@ -77,8 +77,8 @@ architecture behavioral of xwr_pps_gen is
     port (
       clk_ref_i       : in  std_logic;
       clk_sys_i       : in  std_logic;
-      clk_ext_i       : in  std_logic;
-      rst_n_i         : in  std_logic;
+      rst_ref_n_i     : in  std_logic;
+      rst_sys_n_i     : in  std_logic;
       wb_adr_i        : in  std_logic_vector(4 downto 0);
       wb_dat_i        : in  std_logic_vector(31 downto 0);
       wb_dat_o        : out std_logic_vector(31 downto 0);
@@ -114,8 +114,8 @@ begin  -- behavioral
     port map(
       clk_ref_i       => clk_ref_i,
       clk_sys_i       => clk_sys_i,
-      clk_ext_i       => clk_ext_i,
-      rst_n_i         => rst_n_i,
+      rst_ref_n_i     => rst_ref_n_i,
+      rst_sys_n_i     => rst_sys_n_i,
       wb_adr_i        => slave_i.adr(4 downto 0),
       wb_dat_i        => slave_i.dat,
       wb_dat_o        => slave_o.dat,
