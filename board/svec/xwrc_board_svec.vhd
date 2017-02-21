@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-16
--- Last update: 2017-02-17
+-- Last update: 2017-02-20
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -94,8 +94,8 @@ entity xwrc_board_svec is
     -- 125MHz ref clock output
     clk_ref_125m_o : out std_logic;
 
-    -- active high reset output, synchronous to clk_sys_62m5_o
-    rst_sys_62m5_o : out std_logic;
+    -- active low reset output, synchronous to clk_sys_62m5_o
+    rst_sys_62m5_n_o : out std_logic;
 
     ---------------------------------------------------------------------------
     -- SPI interfaces to DACs
@@ -384,7 +384,7 @@ begin  -- architecture struct
   -- distribution of resets (already synchronized to their clock domains)
   rst_62m5_n <= rstlogic_rst_out(0);
 
-  rst_sys_62m5_o <= not rst_62m5_n;
+  rst_sys_62m5_n_o <= rst_62m5_n;
 
   -----------------------------------------------------------------------------
   -- 2x SPI DAC

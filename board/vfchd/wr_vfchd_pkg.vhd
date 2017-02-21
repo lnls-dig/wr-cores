@@ -22,7 +22,7 @@ package wr_vfchd_pkg is
       areset_n_i        : in  std_logic;
       clk_sys_62m5_o    : out std_logic;
       clk_ref_125m_o    : out std_logic;
-      rst_sys_62m5_o    : out std_logic;
+      rst_sys_62m5_n_o  : out std_logic;
       dac_ref_sync_n_o  : out std_logic;
       dac_dmtd_sync_n_o : out std_logic;
       dac_din_o         : out std_logic;
@@ -83,7 +83,7 @@ package wr_vfchd_pkg is
       areset_n_i        : in  std_logic;
       clk_sys_62m5_o    : out std_logic;
       clk_ref_125m_o    : out std_logic;
-      rst_sys_62m5_o    : out std_logic;
+      rst_sys_62m5_n_o  : out std_logic;
       dac_ref_sync_n_o  : out std_logic;
       dac_dmtd_sync_n_o : out std_logic;
       dac_din_o         : out std_logic;

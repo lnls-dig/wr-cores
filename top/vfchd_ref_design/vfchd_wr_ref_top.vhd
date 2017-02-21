@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-01-24
--- Last update: 2017-02-17
+-- Last update: 2017-02-20
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level file for the WRPC reference design on the VFC-HD.
@@ -250,10 +250,11 @@ architecture top of vfchd_wr_ref_top is
   signal cnx2_slave_in  : t_wishbone_slave_in_array(c_NUM_WB2_SLAVES-1 downto 0);
 
   -- clock and reset
-  signal clk_sys_62m5 : std_logic;
-  signal rst_sys_62m5 : std_logic;
-  signal clk_ref_125m : std_logic;
-  signal clk_ref_div2 : std_logic;
+  signal clk_sys_62m5   : std_logic;
+  signal rst_sys_62m5   : std_logic;
+  signal rst_sys_62m5_n : std_logic;
+  signal clk_ref_125m   : std_logic;
+  signal clk_ref_div2   : std_logic;
 
   -- I2C EEPROM
   signal eeprom_sda_in  : std_logic;
@@ -317,6 +318,8 @@ architecture top of vfchd_wr_ref_top is
 
 begin  -- architecture top
 
+  rst_sys_62m5 <= not rst_sys_62m5_n;
+
   -----------------------------------------------------------------------------
   -- Primary wishbone Crossbar
   -----------------------------------------------------------------------------
@@ -331,7 +334,7 @@ begin  -- architecture top
       g_sdb_addr    => c_SDB_ADDRESS)
     port map (
       clk_sys_i => clk_sys_62m5,
-      rst_n_i   => not rst_sys_62m5,
+      rst_n_i   => rst_sys_62m5_n,
       slave_i   => cnx1_master_out,
       slave_o   => cnx1_master_in,
       master_i  => cnx1_slave_out,
@@ -344,7 +347,7 @@ begin  -- architecture top
   cmp_vme_core : xvme64x_core
     port map (
       clk_i           => clk_sys_62m5,
-      rst_n_i         => not rst_sys_62m5,
+      rst_n_i         => rst_sys_62m5_n,
       VME_AS_n_i      => vme_as_n_i,
       VME_RST_n_i     => io_exp_init_done,
       VME_WRITE_n_i   => vme_write_n_i,
@@ -400,7 +403,7 @@ begin  -- architecture top
       areset_n_i        => areset_n_i,
       clk_sys_62m5_o    => clk_sys_62m5,
       clk_ref_125m_o    => clk_ref_125m,
-      rst_sys_62m5_o    => rst_sys_62m5,
+      rst_sys_62m5_n_o  => rst_sys_62m5_n,
       dac_ref_sync_n_o  => dac_ref_sync_n_o,
       dac_dmtd_sync_n_o => dac_dmtd_sync_n_o,
       dac_din_o         => dac_din_o,
@@ -453,7 +456,7 @@ begin  -- architecture top
       g_mask        => (0 => (others => '0')))
     port map (
       clk_sys_i => clk_sys_62m5,
-      rst_n_i   => not rst_sys_62m5,
+      rst_n_i   => rst_sys_62m5_n,
       slave_i   => cnx2_master_out,
       slave_o   => cnx2_master_in,
       master_i  => cnx2_slave_out,
@@ -664,7 +667,7 @@ begin  -- architecture top
       g_width => 5000000)
     port map (
       clk_i      => clk_sys_62m5,
-      rst_n_i    => not rst_sys_62m5,
+      rst_n_i    => rst_sys_62m5_n,
       pulse_i    => pps_led,
       extended_o => pps_led_d);
 

@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-16
--- Last update: 2017-02-17
+-- Last update: 2017-02-20
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level file for the WRPC reference design on the SVEC.
@@ -227,7 +227,6 @@ architecture top of svec_wr_ref_top is
   -- clock and reset
   signal areset_n       : std_logic;
   signal clk_sys_62m5   : std_logic;
-  signal rst_sys_62m5   : std_logic;
   signal rst_sys_62m5_n : std_logic;
   signal clk_ref_125m   : std_logic;
   signal clk_ref_div2   : std_logic;
@@ -273,9 +272,6 @@ begin  -- architecture top
 
   -- logic AND of all async reset sources (active low)
   areset_n <= vme_sysreset_n_i and rst_n_i;
-
-  -- System clock reset (active low)
-  rst_sys_62m5_n <= not rst_sys_62m5;
 
   -----------------------------------------------------------------------------
   -- Primary wishbone Crossbar
@@ -362,7 +358,7 @@ begin  -- architecture top
       areset_n_i          => areset_n,
       clk_sys_62m5_o      => clk_sys_62m5,
       clk_ref_125m_o      => clk_ref_125m,
-      rst_sys_62m5_o      => rst_sys_62m5,
+      rst_sys_62m5_n_o    => rst_sys_62m5_n,
       pll20dac_din_o      => pll20dac_din_o,
       pll20dac_sclk_o     => pll20dac_sclk_o,
       pll20dac_sync_n_o   => pll20dac_sync_n_o,

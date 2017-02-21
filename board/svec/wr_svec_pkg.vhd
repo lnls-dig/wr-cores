@@ -24,7 +24,7 @@ package wr_svec_pkg is
       clk_10m_ext_ref_i   : in  std_logic                                     := '0';
       clk_sys_62m5_o      : out std_logic;
       clk_ref_125m_o      : out std_logic;
-      rst_sys_62m5_o      : out std_logic;
+      rst_sys_62m5_n_o    : out std_logic;
       pll20dac_din_o      : out std_logic;
       pll20dac_sclk_o     : out std_logic;
       pll20dac_sync_n_o   : out std_logic;
@@ -101,7 +101,7 @@ package wr_svec_pkg is
       clk_10m_ext_ref_i   : in  std_logic                                               := '0';
       clk_sys_62m5_o      : out std_logic;
       clk_ref_125m_o      : out std_logic;
-      rst_sys_62m5_o      : out std_logic;
+      rst_sys_62m5_n_o    : out std_logic;
       pll20dac_din_o      : out std_logic;
       pll20dac_sclk_o     : out std_logic;
       pll20dac_sync_n_o   : out std_logic;
