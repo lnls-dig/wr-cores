@@ -39,6 +39,7 @@ package wr_xilinx_pkg is
       clk_125m_ref_o        : out std_logic;
       clk_62m5_dmtd_o       : out std_logic;
       pll_locked_o          : out std_logic;
+      clk_10m_ext_o         : out std_logic;
       phy8_o                : out t_phy_8bits_to_wrc;
       phy8_i                : in  t_phy_8bits_from_wrc  := c_dummy_phy8_from_wrc;
       phy16_o               : out t_phy_16bits_to_wrc;

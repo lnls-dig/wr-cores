@@ -119,6 +119,7 @@ entity xwrc_platform_xilinx is
     clk_125m_ref_o        : out std_logic;
     clk_62m5_dmtd_o       : out std_logic;
     pll_locked_o          : out std_logic;
+    clk_10m_ext_o         : out std_logic;
     -- PHY
     phy8_o                : out t_phy_8bits_to_wrc;
     phy8_i                : in  t_phy_8bits_from_wrc  := c_dummy_phy8_from_wrc;
@@ -261,7 +262,7 @@ begin  -- architecture rtl
 
         signal clk_ext_fbi  : std_logic;
         signal clk_ext_fbo  : std_logic;
-        signal clk_ext_in   : std_logic;
+        signal clk_ext_buf  : std_logic;
         signal clk_ext      : std_logic;
         signal clk_ext_stat : std_logic_vector(7 downto 0);
         signal pll_ext_rst  : std_logic;
@@ -283,7 +284,7 @@ begin  -- architecture rtl
            STARTUP_WAIT       => FALSE)
           port map
           -- Input clock
-          (CLKIN    => clk_ext_in,
+          (CLKIN    => clk_ext_buf,
            CLKFB    => clk_ext_fbi,
            -- Output clocks
            CLK0     => clk_ext_fbo,
@@ -305,8 +306,10 @@ begin  -- architecture rtl
         -- External reference input buffer
         cmp_clk_ext_buf_i : BUFG
           port map
-          (O => clk_ext_in,
+          (O => clk_ext_buf,
            I => clk_10m_ext_i);
+
+        clk_10m_ext_o <= clk_ext_buf;
 
         -- External reference feedback buffer
         cmp_clk_ext_buf_fb : BUFG
