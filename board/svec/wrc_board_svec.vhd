@@ -237,7 +237,7 @@ entity wrc_board_svec is
     -- WRPC timing interface and status
     ---------------------------------------------------------------------------
 
-    pps_ext_i       : in  std_logic;
+    pps_ext_i       : in                                                     := '0';
     pps_p_o         : out std_logic;
     pps_led_o       : out std_logic;
     tm_time_valid_o : out std_logic;

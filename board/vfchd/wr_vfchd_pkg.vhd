@@ -156,7 +156,7 @@ package wr_vfchd_pkg is
       wb_eth_err_i      : in  std_logic                                               := '0';
       wb_eth_rty_i      : in  std_logic                                               := '0';
       wb_eth_stall_i    : in  std_logic                                               := '0';
-      pps_ext_i         : in  std_logic;
+      pps_ext_i         : in  std_logic                                               := '0';
       pps_p_o           : out std_logic;
       pps_led_o         : out std_logic;
       tm_time_valid_o   : out std_logic;

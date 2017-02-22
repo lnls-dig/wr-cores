@@ -74,7 +74,7 @@ package wr_spec_pkg is
       wrs_rx_dreq_i       : in  std_logic                                     := '0';
       wb_eth_master_o     : out t_wishbone_master_out;
       wb_eth_master_i     : in  t_wishbone_master_in                          := cc_dummy_master_in;
-      pps_ext_i           : in  std_logic;
+      pps_ext_i           : in  std_logic                                     := '0';
       pps_p_o             : out std_logic;
       pps_led_o           : out std_logic;
       tm_time_valid_o     : out std_logic;

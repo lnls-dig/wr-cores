@@ -216,7 +216,7 @@ entity wrc_board_vfchd is
     -- WRPC timing interface and status
     ---------------------------------------------------------------------------
 
-    pps_ext_i       : in  std_logic;
+    pps_ext_i       : in  std_logic                                         := '0';
     pps_p_o         : out std_logic;
     tm_time_valid_o : out std_logic;
     tm_tai_o        : out std_logic_vector(39 downto 0);
