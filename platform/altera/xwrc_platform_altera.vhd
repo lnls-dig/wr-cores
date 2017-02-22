@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2016-11-21
--- Last update: 2017-02-16
+-- Last update: 2017-02-22
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: This module instantiates platform-specific modules that are
@@ -106,6 +106,7 @@ entity xwrc_platform_altera is
     clk_125m_ref_o        : out std_logic;
     clk_62m5_dmtd_o       : out std_logic;
     pll_locked_o          : out std_logic;
+    clk_10m_ext_o         : out std_logic;
     -- PHY
     phy8_o                : out t_phy_8bits_to_wrc;
     phy8_i                : in  t_phy_8bits_from_wrc  := c_dummy_phy8_from_wrc;
@@ -260,6 +261,9 @@ begin  -- architecture rtl
 
   -- always pass ext reference reset input to output, even when not used
   clk_ext_rst_o <= ext_ref_rst_i;
+
+  -- always pass ext reference clock input to output, even when not used
+  clk_10m_ext_o <= clk_10m_ext_i;
 
   -----------------------------------------------------------------------------
   -- Transceiver PHY
