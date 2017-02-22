@@ -15,7 +15,7 @@ package wr_board_pkg is
     constant iface_type : in t_board_fabric_iface);
 
   function f_str2iface_type (
-    constant iface_str : string)
+    constant iface_str : string(1 to 9))
     return t_board_fabric_iface;
 
   component xwrc_board_common is
@@ -136,7 +136,7 @@ package body wr_board_pkg is
   end procedure f_check_fabric_iface_type;
 
   function f_str2iface_type (
-    constant iface_str : string)
+    constant iface_str : string(1 to 9))
     return t_board_fabric_iface is
     variable result : t_board_fabric_iface;
   begin
