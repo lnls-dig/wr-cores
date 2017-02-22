@@ -7,7 +7,7 @@
 -- Author(s)  : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-20
--- Last update: 2017-02-20
+-- Last update: 2017-02-22
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level file for the WRPC reference design on the SPEC.
@@ -53,6 +53,7 @@ use ieee.numeric_std.all;
 library work;
 use work.gencores_pkg.all;
 use work.wishbone_pkg.all;
+use work.wr_board_pkg.all;
 use work.wr_spec_pkg.all;
 use work.gn4124_core_pkg.all;
 
@@ -415,7 +416,7 @@ begin  -- architecture top
     generic map (
       g_simulation                => 0,
       g_with_external_clock_input => TRUE,
-      g_fabric_iface              => "etherbone")
+      g_fabric_iface              => ETHERBONE)
     port map (
       areset_n_i          => areset_n,
       clk_20m_vcxo_i      => clk_20m_vcxo_i,

@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2016-07-26
--- Last update: 2017-02-20
+-- Last update: 2017-02-22
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -50,6 +50,7 @@ use work.wr_fabric_pkg.all;
 use work.endpoint_pkg.all;
 use work.streamers_pkg.all;
 use work.wr_altera_pkg.all;
+use work.wr_board_pkg.all;
 use work.wr_vfchd_pkg.all;
 
 entity wrc_board_vfchd is
@@ -60,10 +61,10 @@ entity wrc_board_vfchd is
     g_with_external_clock_input : integer := 1;
     -- set to 1 to use 16bit PCS (instead of default 8bit PCS)
     g_pcs_16bit                 : integer := 0;
-    -- "plain"     = expose WRC fabric interface
+    -- "plainfbrc" = expose WRC fabric interface
     -- "streamers" = attach WRC streamers to fabric interface
     -- "etherbone" = attach Etherbone slave to fabric interface
-    g_fabric_iface              : string  := "plain";
+    g_fabric_iface              : string  := "plainfbrc";
     -- data width when g_fabric_iface = "streamers" (otherwise ignored)
     g_streamer_width            : integer := 32;
     -- memory initialisation file for embedded CPU
@@ -306,7 +307,7 @@ begin  -- architecture struct
       g_simulation                => g_simulation,
       g_with_external_clock_input => f_int2bool(g_with_external_clock_input),
       g_pcs_16bit                 => f_int2bool(g_pcs_16bit),
-      g_fabric_iface              => g_fabric_iface,
+      g_fabric_iface              => f_str2iface_type(g_fabric_iface),
       g_streamer_width            => g_streamer_width,
       g_dpram_initf               => g_dpram_initf)
     port map (

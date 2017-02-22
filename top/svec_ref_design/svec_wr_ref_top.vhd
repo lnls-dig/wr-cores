@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-16
--- Last update: 2017-02-20
+-- Last update: 2017-02-22
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level file for the WRPC reference design on the SVEC.
@@ -54,6 +54,7 @@ library work;
 use work.gencores_pkg.all;
 use work.wishbone_pkg.all;
 use work.xvme64x_core_pkg.all;
+use work.wr_board_pkg.all;
 use work.wr_svec_pkg.all;
 
 library unisim;
@@ -347,7 +348,7 @@ begin  -- architecture top
   cmp_xwrc_board_svec : xwrc_board_svec
     generic map (
       g_with_external_clock_input => TRUE,
-      g_fabric_iface              => "etherbone")
+      g_fabric_iface              => ETHERBONE)
     port map (
       clk_20m_vcxo_i      => clk_20m_vcxo_i,
       clk_125m_pllref_p_i => clk_125m_pllref_p_i,

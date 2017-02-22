@@ -7,7 +7,7 @@
 -- Author(s)  : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-17
--- Last update: 2017-02-17
+-- Last update: 2017-02-22
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -48,6 +48,7 @@ use work.wr_fabric_pkg.all;
 use work.endpoint_pkg.all;
 use work.streamers_pkg.all;
 use work.wr_xilinx_pkg.all;
+use work.wr_board_pkg.all;
 use work.wr_spec_pkg.all;
 
 library unisim;
@@ -56,17 +57,17 @@ use unisim.vcomponents.all;
 entity xwrc_board_spec is
   generic(
     -- set to 1 to speed up some initialization processes during simulation
-    g_simulation                : integer := 0;
+    g_simulation                : integer              := 0;
     -- Select whether to include external ref clock input
-    g_with_external_clock_input : boolean := TRUE;
-    -- "plainfbrc" = expose WRC fabric interface
-    -- "streamers" = attach WRC streamers to fabric interface
-    -- "etherbone" = attach Etherbone slave to fabric interface
-    g_fabric_iface              : string  := "plainfbrc";
+    g_with_external_clock_input : boolean              := TRUE;
+    -- plain     = expose WRC fabric interface
+    -- streamers = attach WRC streamers to fabric interface
+    -- etherbone = attach Etherbone slave to fabric interface
+    g_fabric_iface              : t_board_fabric_iface := plain;
     -- data width when g_fabric_iface = "streamers" (otherwise ignored)
-    g_streamer_width            : integer := 32;
+    g_streamer_width            : integer              := 32;
     -- memory initialisation file for embedded CPU
-    g_dpram_initf               : string  := "../../bin/wrpc/wrc_phy8.bram"
+    g_dpram_initf               : string               := "../../bin/wrpc/wrc_phy8.bram"
     );
   port (
     ---------------------------------------------------------------------------
@@ -244,28 +245,8 @@ architecture struct of xwrc_board_spec is
   signal onewire_en : std_logic_vector(1 downto 0);
 
   -- PHY
-  signal phy8_to_wrc    : t_phy_8bits_to_wrc;
-  signal phy8_from_wrc  : t_phy_8bits_from_wrc;
-
-  -- Timecode interface
-  signal tm_time_valid : std_logic;
-  signal tm_tai        : std_logic_vector(39 downto 0);
-  signal tm_cycles     : std_logic_vector(27 downto 0);
-
-  -- WR SNMP
-  signal aux_diag_in  : t_generic_word_array(c_WR_TRANS_ARR_SIZE_OUT-1 downto 0);
-  signal aux_diag_out : t_generic_word_array(c_WR_TRANS_ARR_SIZE_IN-1 downto 0);
-
-  -- WR fabric interface
-  signal wrf_src_out : t_wrf_source_out;
-  signal wrf_src_in  : t_wrf_source_in;
-  signal wrf_snk_out : t_wrf_sink_out;
-  signal wrf_snk_in  : t_wrf_sink_in;
-
-  -- Aux WB interface
-  signal aux_master_out : t_wishbone_master_out;
-  signal aux_master_in  : t_wishbone_master_in;
-  signal aux_rst_n      : std_logic;
+  signal phy8_to_wrc   : t_phy_8bits_to_wrc;
+  signal phy8_from_wrc : t_phy_8bits_from_wrc;
 
   -- External reference
   signal ext_ref_mul         : std_logic;
@@ -273,39 +254,7 @@ architecture struct of xwrc_board_spec is
   signal ext_ref_mul_stopped : std_logic;
   signal ext_ref_rst         : std_logic;
 
-
-  component spec_serial_dac is
-    generic (
-      g_num_data_bits  : integer;
-      g_num_extra_bits : integer;
-      g_num_cs_select  : integer);
-    port (
-      clk_i         : in  std_logic;
-      rst_n_i       : in  std_logic;
-      value_i       : in  std_logic_vector(g_num_data_bits-1 downto 0);
-      cs_sel_i      : in  std_logic_vector(g_num_cs_select-1 downto 0);
-      load_i        : in  std_logic;
-      sclk_divsel_i : in  std_logic_vector(2 downto 0);
-      dac_cs_n_o    : out std_logic_vector(g_num_cs_select-1 downto 0);
-      dac_sclk_o    : out std_logic;
-      dac_sdata_o   : out std_logic;
-      xdone_o       : out std_logic);
-  end component spec_serial_dac;
-
 begin  -- architecture struct
-
-  -----------------------------------------------------------------------------
-  -- Check for unsupported features and/or misconfiguration
-  -----------------------------------------------------------------------------
-
-  gen_unknown_wrfabric : if(g_fabric_iface /= "plainfbrc") and
-                           (g_fabric_iface /= "streamers") and
-                           (g_fabric_iface /= "etherbone")
-  generate
-    assert FALSE
-      report "WR PTP core fabric interface [" & g_fabric_iface & "] is not supported"
-      severity ERROR;
-  end generate gen_unknown_wrfabric;
 
   -----------------------------------------------------------------------------
   -- Platform-dependent part (PHY, PLLs, buffers, etc)
@@ -388,9 +337,9 @@ begin  -- architecture struct
   -- 2x SPI DAC
   -----------------------------------------------------------------------------
 
-  cmp_dac_arb: spec_serial_dac_arb
+  cmp_dac_arb : spec_serial_dac_arb
     generic map (
-      g_invert_sclk    => false,
+      g_invert_sclk    => FALSE,
       g_num_extra_bits => 8)
     port map (
       clk_i         => clk_pll_62m5,
@@ -405,10 +354,10 @@ begin  -- architecture struct
       dac_din_o     => plldac_din_o);
 
   -----------------------------------------------------------------------------
-  -- The WR PTP core itself
+  -- The WR PTP core with optional fabric interface attached
   -----------------------------------------------------------------------------
 
-  cmp_xwr_core : xwr_core
+  cmp_board_common : xwrc_board_common
     generic map (
       g_simulation                => g_simulation,
       g_with_external_clock_input => TRUE,
@@ -425,11 +374,12 @@ begin  -- architecture struct
       g_softpll_enable_debugger   => FALSE,
       g_vuart_fifo_size           => 1024,
       g_pcs_16bit                 => FALSE,
-      g_records_for_phy           => TRUE,
       g_diag_id                   => 0,
       g_diag_ver                  => 0,
       g_diag_ro_size              => c_WR_TRANS_ARR_SIZE_OUT,
-      g_diag_rw_size              => c_WR_TRANS_ARR_SIZE_IN
+      g_diag_rw_size              => c_WR_TRANS_ARR_SIZE_IN,
+      g_streamer_width            => g_streamer_width,
+      g_fabric_iface              => g_fabric_iface
       )
     port map (
       clk_sys_i            => clk_pll_62m5,
@@ -473,12 +423,22 @@ begin  -- architecture struct
       owr_i                => onewire_in,
       slave_i              => wb_slave_i,
       slave_o              => wb_slave_o,
-      aux_master_o         => aux_master_out,
-      aux_master_i         => aux_master_in,
-      wrf_src_o            => wrf_src_out,
-      wrf_src_i            => wrf_src_in,
-      wrf_snk_o            => wrf_snk_out,
-      wrf_snk_i            => wrf_snk_in,
+      wrf_src_o            => wrf_src_o,
+      wrf_src_i            => wrf_src_i,
+      wrf_snk_o            => wrf_snk_o,
+      wrf_snk_i            => wrf_snk_i,
+      wrs_tx_data_i        => wrs_tx_data_i,
+      wrs_tx_valid_i       => wrs_tx_valid_i,
+      wrs_tx_dreq_o        => wrs_tx_dreq_o,
+      wrs_tx_last_i        => wrs_tx_last_i,
+      wrs_tx_flush_i       => wrs_tx_flush_i,
+      wrs_rx_first_o       => wrs_rx_first_o,
+      wrs_rx_last_o        => wrs_rx_last_o,
+      wrs_rx_data_o        => wrs_rx_data_o,
+      wrs_rx_valid_o       => wrs_rx_valid_o,
+      wrs_rx_dreq_i        => wrs_rx_dreq_i,
+      wb_eth_master_o      => wb_eth_master_o,
+      wb_eth_master_i      => wb_eth_master_i,
       timestamps_o         => open,
       timestamps_ack_i     => '1',
       fc_tx_pause_req_i    => '0',
@@ -489,14 +449,11 @@ begin  -- architecture struct
       tm_dac_wr_o          => open,
       tm_clk_aux_lock_en_i => (others => '0'),
       tm_clk_aux_locked_o  => open,
-      tm_time_valid_o      => tm_time_valid,
-      tm_tai_o             => tm_tai,
-      tm_cycles_o          => tm_cycles,
+      tm_time_valid_o      => tm_time_valid_o,
+      tm_tai_o             => tm_tai_o,
+      tm_cycles_o          => tm_cycles_o,
       pps_p_o              => pps_p_o,
       pps_led_o            => pps_led_o,
-      rst_aux_n_o          => aux_rst_n,
-      aux_diag_i           => aux_diag_in,
-      aux_diag_o           => aux_diag_out,
       link_ok_o            => open);
 
   sfp_rate_select_o <= '1';
@@ -504,104 +461,5 @@ begin  -- architecture struct
   onewire_oen_o <= onewire_en(0);
   onewire_in(0) <= onewire_i;
   onewire_in(1) <= '1';
-
-  tm_time_valid_o <= tm_time_valid;
-  tm_tai_o        <= tm_tai;
-  tm_cycles_o     <= tm_cycles;
-
-  gen_wr_streamers : if (g_fabric_iface = "streamers") generate
-
-    cmp_xwr_transmission : xwr_transmission
-      generic map (
-        g_tx_data_width => g_streamer_width,
-        g_rx_data_width => g_streamer_width)
-      port map (
-        clk_sys_i       => clk_pll_62m5,
-        rst_n_i         => rst_62m5_n,
-        src_i           => wrf_snk_out,
-        src_o           => wrf_snk_in,
-        snk_i           => wrf_src_out,
-        snk_o           => wrf_src_in,
-        tx_data_i       => wrs_tx_data_i,
-        tx_valid_i      => wrs_tx_valid_i,
-        tx_dreq_o       => wrs_tx_dreq_o,
-        tx_last_p1_i    => wrs_tx_last_i,
-        tx_flush_p1_i   => wrs_tx_flush_i,
-        rx_first_p1_o   => wrs_rx_first_o,
-        rx_last_p1_o    => wrs_rx_last_o,
-        rx_data_o       => wrs_rx_data_o,
-        rx_valid_o      => wrs_rx_valid_o,
-        rx_dreq_i       => wrs_rx_dreq_i,
-        clk_ref_i       => clk_pll_125m,
-        tm_time_valid_i => tm_time_valid,
-        tm_tai_i        => tm_tai,
-        tm_cycles_i     => tm_cycles,
-        wb_slave_i      => aux_master_out,
-        wb_slave_o      => aux_master_in,
-        snmp_array_o    => aux_diag_in,
-        snmp_array_i    => aux_diag_out);
-
-    -- unused output ports
-    wrf_src_o <= c_dummy_snk_in;
-    wrf_snk_o <= c_dummy_src_in;
-
-    wb_eth_master_o <= cc_dummy_master_out;
-
-  end generate gen_wr_streamers;
-
-  gen_etherbone : if (g_fabric_iface = "etherbone") generate
-
-    cmp_eb_ethernet_slave : eb_ethernet_slave
-      generic map (
-        g_sdb_address => x"0000000000030000")
-      port map (
-        clk_i       => clk_pll_62m5,
-        nRst_i      => aux_rst_n,
-        src_o       => wrf_snk_in,
-        src_i       => wrf_snk_out,
-        snk_o       => wrf_src_in,
-        snk_i       => wrf_src_out,
-        cfg_slave_o => aux_master_in,
-        cfg_slave_i => aux_master_out,
-        master_o    => wb_eth_master_o,
-        master_i    => wb_eth_master_i);
-
-    -- unused output ports
-    wrf_src_o <= c_dummy_snk_in;
-    wrf_snk_o <= c_dummy_src_in;
-
-    wrs_tx_dreq_o  <= '0';
-    wrs_rx_first_o <= '0';
-    wrs_rx_last_o  <= '0';
-    wrs_rx_valid_o <= '0';
-    wrs_rx_data_o  <= (others => '0');
-
-    -- unused inputs to WR PTP core
-    aux_diag_in <= (others => (others => '0'));
-
-  end generate gen_etherbone;
-
-  gen_wr_fabric : if (g_fabric_iface = "plainfbrc") generate
-
-    wrf_src_o <= wrf_src_out;
-    wrf_snk_o <= wrf_snk_out;
-
-    wrf_src_in <= wrf_src_i;
-    wrf_snk_in <= wrf_snk_i;
-
-    -- unused output ports
-    wrs_tx_dreq_o  <= '0';
-    wrs_rx_first_o <= '0';
-    wrs_rx_last_o  <= '0';
-    wrs_rx_valid_o <= '0';
-    wrs_rx_data_o  <= (others => '0');
-
-    wb_eth_master_o <= cc_dummy_master_out;
-
-    -- unused inputs to WR PTP core
-    aux_diag_in   <= (others => (others => '0'));
-    aux_master_in <= cc_dummy_master_in;
-
-  end generate gen_wr_fabric;
 
 end architecture struct;

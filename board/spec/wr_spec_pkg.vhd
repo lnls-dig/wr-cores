@@ -4,16 +4,17 @@ use ieee.std_logic_1164.all;
 library work;
 use work.wishbone_pkg.all;
 use work.wr_fabric_pkg.all;
+use work.wr_board_pkg.all;
 
 package wr_spec_pkg is
 
   component xwrc_board_spec is
     generic (
-      g_simulation                : integer := 0;
-      g_with_external_clock_input : boolean := TRUE;
-      g_fabric_iface              : string  := "plainfbrc";
-      g_streamer_width            : integer := 32;
-      g_dpram_initf               : string  := "../../bin/wrpc/wrc_phy8.bram");
+      g_simulation                : integer              := 0;
+      g_with_external_clock_input : boolean              := TRUE;
+      g_fabric_iface              : t_board_fabric_iface := PLAIN;
+      g_streamer_width            : integer              := 32;
+      g_dpram_initf               : string               := "../../bin/wrpc/wrc_phy8.bram");
     port (
       areset_n_i          : in  std_logic;
       clk_20m_vcxo_i      : in  std_logic;
@@ -21,7 +22,7 @@ package wr_spec_pkg is
       clk_125m_pllref_n_i : in  std_logic;
       clk_125m_gtp_n_i    : in  std_logic;
       clk_125m_gtp_p_i    : in  std_logic;
-      clk_10m_ext_ref_i   : in  std_logic  := '0';
+      clk_10m_ext_ref_i   : in  std_logic                                     := '0';
       clk_sys_62m5_o      : out std_logic;
       clk_ref_125m_o      : out std_logic;
       rst_62m5_n_o        : out std_logic;
@@ -34,15 +35,15 @@ package wr_spec_pkg is
       sfp_txn_o           : out std_logic;
       sfp_rxp_i           : in  std_logic;
       sfp_rxn_i           : in  std_logic;
-      sfp_det_i           : in  std_logic  := '1';
+      sfp_det_i           : in  std_logic                                     := '1';
       sfp_sda_i           : in  std_logic;
       sfp_sda_o           : out std_logic;
       sfp_scl_i           : in  std_logic;
       sfp_scl_o           : out std_logic;
       sfp_rate_select_o   : out std_logic;
-      sfp_tx_fault_i      : in  std_logic  := '0';
+      sfp_tx_fault_i      : in  std_logic                                     := '0';
       sfp_tx_disable_o    : out std_logic;
-      sfp_los_i           : in  std_logic  := '0';
+      sfp_los_i           : in  std_logic                                     := '0';
       eeprom_sda_i        : in  std_logic;
       eeprom_sda_o        : out std_logic;
       eeprom_scl_i        : in  std_logic;
@@ -62,15 +63,15 @@ package wr_spec_pkg is
       wrf_snk_o           : out t_wrf_sink_out;
       wrf_snk_i           : in  t_wrf_sink_in                                 := c_dummy_snk_in;
       wrs_tx_data_i       : in  std_logic_vector(g_streamer_width-1 downto 0) := (others => '0');
-      wrs_tx_valid_i      : in  std_logic  := '0';
+      wrs_tx_valid_i      : in  std_logic                                     := '0';
       wrs_tx_dreq_o       : out std_logic;
-      wrs_tx_last_i       : in  std_logic  := '1';
-      wrs_tx_flush_i      : in  std_logic  := '0';
+      wrs_tx_last_i       : in  std_logic                                     := '1';
+      wrs_tx_flush_i      : in  std_logic                                     := '0';
       wrs_rx_first_o      : out std_logic;
       wrs_rx_last_o       : out std_logic;
       wrs_rx_data_o       : out std_logic_vector(g_streamer_width-1 downto 0);
       wrs_rx_valid_o      : out std_logic;
-      wrs_rx_dreq_i       : in  std_logic  := '0';
+      wrs_rx_dreq_i       : in  std_logic                                     := '0';
       wb_eth_master_o     : out t_wishbone_master_out;
       wb_eth_master_i     : in  t_wishbone_master_in                          := cc_dummy_master_in;
       pps_ext_i           : in  std_logic;
@@ -87,7 +88,7 @@ package wr_spec_pkg is
     generic (
       g_simulation                : integer := 0;
       g_with_external_clock_input : integer := 1;
-      g_fabric_iface              : string  := "plain";
+      g_fabric_iface              : string  := "PLAINFBRC";
       g_streamer_width            : integer := 32;
       g_dpram_initf               : string  := "../../bin/wrpc/wrc_phy8.bram");
     port (
@@ -97,7 +98,7 @@ package wr_spec_pkg is
       clk_125m_pllref_n_i : in  std_logic;
       clk_125m_gtp_n_i    : in  std_logic;
       clk_125m_gtp_p_i    : in  std_logic;
-      clk_10m_ext_ref_i   : in  std_logic  := '0';
+      clk_10m_ext_ref_i   : in  std_logic                                               := '0';
       clk_sys_62m5_o      : out std_logic;
       clk_ref_125m_o      : out std_logic;
       rst_62m5_n_o        : out std_logic;
@@ -110,15 +111,15 @@ package wr_spec_pkg is
       sfp_txn_o           : out std_logic;
       sfp_rxp_i           : in  std_logic;
       sfp_rxn_i           : in  std_logic;
-      sfp_det_i           : in  std_logic  := '1';
+      sfp_det_i           : in  std_logic                                               := '1';
       sfp_sda_i           : in  std_logic;
       sfp_sda_o           : out std_logic;
       sfp_scl_i           : in  std_logic;
       sfp_scl_o           : out std_logic;
       sfp_rate_select_o   : out std_logic;
-      sfp_tx_fault_i      : in  std_logic  := '0';
+      sfp_tx_fault_i      : in  std_logic                                               := '0';
       sfp_tx_disable_o    : out std_logic;
-      sfp_los_i           : in  std_logic  := '0';
+      sfp_los_i           : in  std_logic                                               := '0';
       eeprom_sda_i        : in  std_logic;
       eeprom_sda_o        : out std_logic;
       eeprom_scl_i        : in  std_logic;
@@ -135,9 +136,9 @@ package wr_spec_pkg is
       wb_dat_i            : in  std_logic_vector(c_wishbone_data_width-1 downto 0)      := (others => '0');
       wb_dat_o            : out std_logic_vector(c_wishbone_data_width-1 downto 0);
       wb_sel_i            : in  std_logic_vector(c_wishbone_address_width/8-1 downto 0) := (others => '0');
-      wb_we_i             : in  std_logic  := '0';
-      wb_cyc_i            : in  std_logic  := '0';
-      wb_stb_i            : in  std_logic  := '0';
+      wb_we_i             : in  std_logic                                               := '0';
+      wb_cyc_i            : in  std_logic                                               := '0';
+      wb_stb_i            : in  std_logic                                               := '0';
       wb_ack_o            : out std_logic;
       wb_int_o            : out std_logic;
       wb_err_o            : out std_logic;
@@ -164,15 +165,15 @@ package wr_spec_pkg is
       wrf_snk_err_o       : out std_logic;
       wrf_snk_rty_o       : out std_logic;
       wrs_tx_data_i       : in  std_logic_vector(g_streamer_width-1 downto 0)           := (others => '0');
-      wrs_tx_valid_i      : in  std_logic  := '0';
+      wrs_tx_valid_i      : in  std_logic                                               := '0';
       wrs_tx_dreq_o       : out std_logic;
-      wrs_tx_last_i       : in  std_logic  := '1';
-      wrs_tx_flush_i      : in  std_logic  := '0';
+      wrs_tx_last_i       : in  std_logic                                               := '1';
+      wrs_tx_flush_i      : in  std_logic                                               := '0';
       wrs_rx_first_o      : out std_logic;
       wrs_rx_last_o       : out std_logic;
       wrs_rx_data_o       : out std_logic_vector(g_streamer_width-1 downto 0);
       wrs_rx_valid_o      : out std_logic;
-      wrs_rx_dreq_i       : in  std_logic  := '0';
+      wrs_rx_dreq_i       : in  std_logic                                               := '0';
       wb_eth_adr_o        : out std_logic_vector(c_wishbone_address_width-1 downto 0);
       wb_eth_dat_o        : out std_logic_vector(c_wishbone_data_width-1 downto 0);
       wb_eth_dat_i        : in  std_logic_vector(c_wishbone_data_width-1 downto 0)      := (others => '0');
@@ -180,11 +181,11 @@ package wr_spec_pkg is
       wb_eth_we_o         : out std_logic;
       wb_eth_cyc_o        : out std_logic;
       wb_eth_stb_o        : out std_logic;
-      wb_eth_ack_i        : in  std_logic  := '0';
-      wb_eth_int_i        : in  std_logic  := '0';
-      wb_eth_err_i        : in  std_logic  := '0';
-      wb_eth_rty_i        : in  std_logic  := '0';
-      wb_eth_stall_i      : in  std_logic  := '0';
+      wb_eth_ack_i        : in  std_logic                                               := '0';
+      wb_eth_int_i        : in  std_logic                                               := '0';
+      wb_eth_err_i        : in  std_logic                                               := '0';
+      wb_eth_rty_i        : in  std_logic                                               := '0';
+      wb_eth_stall_i      : in  std_logic                                               := '0';
       pps_ext_i           : in  std_logic;
       pps_p_o             : out std_logic;
       pps_led_o           : out std_logic;

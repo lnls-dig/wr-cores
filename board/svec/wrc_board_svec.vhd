@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2016-02-16
--- Last update: 2017-02-20
+-- Last update: 2017-02-22
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -50,6 +50,7 @@ use work.wr_fabric_pkg.all;
 use work.endpoint_pkg.all;
 use work.streamers_pkg.all;
 use work.wr_xilinx_pkg.all;
+use work.wr_board_pkg.all;
 use work.wr_svec_pkg.all;
 
 entity wrc_board_svec is
@@ -58,10 +59,10 @@ entity wrc_board_svec is
     g_simulation                : integer := 0;
     -- Select whether to include external ref clock input
     g_with_external_clock_input : integer := 1;
-    -- "plain" = expose WRC fabric interface
+    -- "plainfbrc" = expose WRC fabric interface
     -- "streamers" = attach WRC streamers to fabric interface
     -- "etherbone" = attach Etherbone slave to fabric interface
-    g_fabric_iface              : string  := "plain";
+    g_fabric_iface              : string  := "plainfbrc";
     -- data width when g_fabric_iface = "streamers" (otherwise ignored)
     g_streamer_width            : integer := 32;
     -- memory initialisation file for embedded CPU
@@ -327,7 +328,7 @@ begin  -- architecture struct
     generic map (
       g_simulation                => g_simulation,
       g_with_external_clock_input => f_int2bool(g_with_external_clock_input),
-      g_fabric_iface              => g_fabric_iface,
+      g_fabric_iface              => f_str2iface_type(g_fabric_iface),
       g_streamer_width            => g_streamer_width,
       g_dpram_initf               => g_dpram_initf)
     port map (

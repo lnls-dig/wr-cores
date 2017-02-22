@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-01-24
--- Last update: 2017-02-20
+-- Last update: 2017-02-22
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level file for the WRPC reference design on the VFC-HD.
@@ -54,6 +54,7 @@ library work;
 use work.gencores_pkg.all;
 use work.wishbone_pkg.all;
 use work.xvme64x_core_pkg.all;
+use work.wr_board_pkg.all;
 use work.wr_vfchd_pkg.all;
 use work.vfchd_i2cmux_pkg.all;
 
@@ -395,7 +396,7 @@ begin  -- architecture top
   cmp_xwrc_board_vfchd : xwrc_board_vfchd
     generic map (
       g_with_external_clock_input => TRUE,
-      g_fabric_iface              => "etherbone")
+      g_fabric_iface              => ETHERBONE)
     port map (
       clk_board_125m_i  => clk_board_125m_i,
       clk_board_20m_i   => clk_board_20m_i,

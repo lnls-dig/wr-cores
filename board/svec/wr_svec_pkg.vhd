@@ -4,16 +4,17 @@ use ieee.std_logic_1164.all;
 library work;
 use work.wishbone_pkg.all;
 use work.wr_fabric_pkg.all;
+use work.wr_board_pkg.all;
 
 package wr_svec_pkg is
 
   component xwrc_board_svec is
     generic (
-      g_simulation                : integer := 0;
-      g_with_external_clock_input : boolean := TRUE;
-      g_fabric_iface              : string  := "plainfbrc";
-      g_streamer_width            : integer := 32;
-      g_dpram_initf               : string  := "../../bin/wrpc/wrc_phy8.bram");
+      g_simulation                : integer              := 0;
+      g_with_external_clock_input : boolean              := TRUE;
+      g_fabric_iface              : t_board_fabric_iface := PLAIN;
+      g_streamer_width            : integer              := 32;
+      g_dpram_initf               : string               := "../../bin/wrpc/wrc_phy8.bram");
     port (
       areset_n_i          : in  std_logic;
       clk_20m_vcxo_i      : in  std_logic;
@@ -88,7 +89,7 @@ package wr_svec_pkg is
     generic (
       g_simulation                : integer := 0;
       g_with_external_clock_input : integer := 1;
-      g_fabric_iface              : string  := "plain";
+      g_fabric_iface              : string  := "PLAINFBRC";
       g_streamer_width            : integer := 32;
       g_dpram_initf               : string  := "../../bin/wrpc/wrc_phy8.bram");
     port (
