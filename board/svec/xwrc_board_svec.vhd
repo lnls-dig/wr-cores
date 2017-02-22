@@ -227,6 +227,7 @@ architecture struct of xwrc_board_svec is
   signal clk_pll_125m : std_logic;
   signal clk_pll_dmtd : std_logic;
   signal pll_locked   : std_logic;
+  signal clk_10m_ext  : std_logic;
 
   -- Reset logic
   signal rst_62m5_n       : std_logic;
@@ -348,6 +349,7 @@ begin  -- architecture struct
       clk_125m_ref_o        => clk_pll_125m,
       clk_62m5_dmtd_o       => clk_pll_dmtd,
       pll_locked_o          => pll_locked,
+      clk_10m_ext_o         => clk_10m_ext,
       phy8_o                => phy8_to_wrc,
       phy8_i                => phy8_from_wrc,
       phy16_o               => phy16_to_wrc,
@@ -456,7 +458,7 @@ begin  -- architecture struct
       clk_dmtd_i           => clk_pll_dmtd,
       clk_ref_i            => clk_pll_125m,
       clk_aux_i            => (others => '0'),
-      clk_ext_i            => clk_10m_ext_ref_i,
+      clk_ext_i            => clk_10m_ext,
       clk_ext_mul_i        => ext_ref_mul,
       clk_ext_mul_locked_i => ext_ref_mul_locked,
       clk_ext_stopped_i    => ext_ref_mul_stopped,
