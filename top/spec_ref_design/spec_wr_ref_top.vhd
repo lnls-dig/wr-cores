@@ -228,7 +228,7 @@ architecture top of spec_wr_ref_top is
   constant c_WB_SLAVE_WRC : integer := 0;
 
   -- sdb header address on primary crossbar
-  constant c_SDB_ADDRESS : t_wishbone_address := x"00000000";
+  constant c_SDB_ADDRESS : t_wishbone_address := x"00040000";
 
   -- f_xwb_bridge_manual_sdb(size, sdb_addr)
   -- Note: sdb_addr is the sdb records address relative to the bridge base address
@@ -237,7 +237,7 @@ architecture top of spec_wr_ref_top is
 
   -- Primary wishbone crossbar layout
   constant c_WB_LAYOUT : t_sdb_record_array(c_NUM_WB_SLAVES - 1 downto 0) := (
-    c_WB_SLAVE_WRC => f_sdb_embed_bridge(c_wrc_bridge_sdb, x"00040000"));
+    c_WB_SLAVE_WRC => f_sdb_embed_bridge(c_wrc_bridge_sdb, x"00000000"));
 
   -----------------------------------------------------------------------------
   -- Signals
