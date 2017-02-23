@@ -299,7 +299,7 @@ begin  -- architecture struct
       g_aux_clks                  => g_aux_clks,
       g_ep_rxbuf_size             => g_ep_rxbuf_size,
       g_tx_runt_padding           => g_tx_runt_padding,
-      g_dpram_initf               => g_dpram_initf,
+      g_dpram_initf               => f_find_default_lm32_firmware(g_dpram_initf,g_simulation,g_pcs_16bit),
       g_dpram_size                => g_dpram_size,
       g_interface_mode            => g_interface_mode,
       g_address_granularity       => g_address_granularity,
