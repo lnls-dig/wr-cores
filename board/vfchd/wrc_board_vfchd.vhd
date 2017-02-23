@@ -68,7 +68,13 @@ entity wrc_board_vfchd is
     -- data width when g_fabric_iface = "streamers" (otherwise ignored)
     g_streamer_width            : integer := 32;
     -- memory initialisation file for embedded CPU
-    g_dpram_initf               : string  := "../../bin/wrpc/wrc_phy8.mif"
+    g_dpram_initf               : string  := "../../bin/wrpc/wrc_phy8.mif";
+    -- identification (id and ver) of the layout of words in the generic diag interface
+    g_diag_id                   : integer                        := 0;
+    g_diag_ver                  : integer                        := 0;
+    -- size the generic diag interface
+    g_diag_ro_vector_width      : integer                        := 0;
+    g_diag_rw_vector_width      : integer                        := 0
     );
   port (
     ---------------------------------------------------------------------------
@@ -213,6 +219,13 @@ entity wrc_board_vfchd is
     wb_eth_stall_i : in  std_logic                                          := '0';
 
     ---------------------------------------------------------------------------
+    -- Generic diagnostics interface (access from WRPC via SNMP or uart console
+    ---------------------------------------------------------------------------
+
+    aux_diag_i      : in  std_logic_vector(g_diag_ro_vector_width - 1 downto 0) := (others => '0');
+    aux_diag_o      : out std_logic_vector(g_diag_rw_vector_width - 1 downto 0) := (others => '0');
+
+    ---------------------------------------------------------------------------
     -- WRPC timing interface and status
     ---------------------------------------------------------------------------
 
@@ -246,6 +259,13 @@ architecture std_wrapper of wrc_board_vfchd is
   -- Etherbone interface
   signal wb_eth_master_out : t_wishbone_master_out;
   signal wb_eth_master_in  : t_wishbone_master_in;
+
+  -- Aux diagnostics
+  constant c_diag_ro_size  : integer:= g_diag_ro_vector_width/32;
+  constant c_diag_rw_size  : integer:= g_diag_rw_vector_width/32;
+
+  signal aux_diag_in  : t_generic_word_array(c_diag_ro_size-1 downto 0);
+  signal aux_diag_out : t_generic_word_array(c_diag_rw_size-1 downto 0);
 
 begin  -- architecture struct
 
@@ -301,6 +321,10 @@ begin  -- architecture struct
   wb_eth_master_in.rty   <= wb_eth_rty_i;
   wb_eth_master_in.stall <= wb_eth_stall_i;
 
+  -- auxiliary diagnostics
+  aux_diag_in <= f_de_vectorize_diag(aux_diag_i,g_diag_ro_vector_width);
+  aux_diag_o  <= f_vectorize_diag(aux_diag_out, g_diag_rw_vector_width);
+
   -- Instantiate the records-based module
   cmp_xwrc_board_vfchd : xwrc_board_vfchd
     generic map (
@@ -309,7 +333,11 @@ begin  -- architecture struct
       g_pcs_16bit                 => f_int2bool(g_pcs_16bit),
       g_fabric_iface              => f_str2iface_type(g_fabric_iface),
       g_streamer_width            => g_streamer_width,
-      g_dpram_initf               => g_dpram_initf)
+      g_dpram_initf               => g_dpram_initf,
+      g_diag_id                   => g_diag_id,
+      g_diag_ver                  => g_diag_ver,
+      g_diag_ro_size              => c_diag_ro_size,
+      g_diag_rw_size              => c_diag_rw_size)
     port map (
       clk_board_125m_i  => clk_board_125m_i,
       clk_board_20m_i   => clk_board_20m_i,
@@ -359,6 +387,8 @@ begin  -- architecture struct
       tm_tai_o          => tm_tai_o,
       tm_cycles_o       => tm_cycles_o,
       led_link_o        => led_link_o,
+      aux_diag_i        => aux_diag_in,
+      aux_diag_o        => aux_diag_out,
       led_act_o         => led_act_o);
 
 end architecture std_wrapper;
