@@ -70,7 +70,8 @@ entity xwrc_board_common is
     g_diag_ver                  : integer                        := 0;
     g_diag_ro_size              : integer                        := 0;
     g_diag_rw_size              : integer                        := 0;
-    g_streamer_width            : integer                        := 32;
+    g_tx_streamer_width         : integer                        := 32;
+    g_rx_streamer_width         : integer                        := 32;
     g_fabric_iface              : t_board_fabric_iface           := PLAIN);
   port(
     ---------------------------------------------------------------------------
@@ -172,14 +173,14 @@ entity xwrc_board_common is
     ---------------------------------------------------------------------------
     -- WR streamers (when g_fabric_iface = STREAMERS)
     ---------------------------------------------------------------------------
-    wrs_tx_data_i  : in  std_logic_vector(g_streamer_width-1 downto 0) := (others => '0');
+    wrs_tx_data_i  : in  std_logic_vector(g_tx_streamer_width-1 downto 0) := (others => '0');
     wrs_tx_valid_i : in  std_logic                                     := '0';
     wrs_tx_dreq_o  : out std_logic;
     wrs_tx_last_i  : in  std_logic                                     := '1';
     wrs_tx_flush_i : in  std_logic                                     := '0';
     wrs_rx_first_o : out std_logic;
     wrs_rx_last_o  : out std_logic;
-    wrs_rx_data_o  : out std_logic_vector(g_streamer_width-1 downto 0);
+    wrs_rx_data_o  : out std_logic_vector(g_rx_streamer_width-1 downto 0);
     wrs_rx_valid_o : out std_logic;
     wrs_rx_dreq_i  : in  std_logic                                     := '0';
 
@@ -408,8 +409,8 @@ begin  -- architecture struct
 
     cmp_xwr_transmission : xwr_transmission
       generic map (
-        g_tx_data_width => g_streamer_width,
-        g_rx_data_width => g_streamer_width)
+        g_tx_data_width => g_tx_streamer_width,
+        g_rx_data_width => g_rx_streamer_width)
       port map (
         clk_sys_i       => clk_sys_i,
         rst_n_i         => rst_n_i,

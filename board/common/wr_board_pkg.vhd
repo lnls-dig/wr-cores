@@ -75,7 +75,8 @@ package wr_board_pkg is
       g_diag_ver                  : integer;
       g_diag_ro_size              : integer;
       g_diag_rw_size              : integer;
-      g_streamer_width            : integer;
+      g_tx_streamer_width         : integer;
+      g_rx_streamer_width         : integer;
       g_fabric_iface              : t_board_fabric_iface);
     port (
       clk_sys_i            : in  std_logic;
@@ -127,14 +128,14 @@ package wr_board_pkg is
       wrf_src_i            : in  t_wrf_source_in                               := c_dummy_src_in;
       wrf_snk_o            : out t_wrf_sink_out;
       wrf_snk_i            : in  t_wrf_sink_in                                 := c_dummy_snk_in;
-      wrs_tx_data_i        : in  std_logic_vector(g_streamer_width-1 downto 0) := (others => '0');
+      wrs_tx_data_i        : in  std_logic_vector(g_tx_streamer_width-1 downto 0) := (others => '0');
       wrs_tx_valid_i       : in  std_logic                                     := '0';
       wrs_tx_dreq_o        : out std_logic;
       wrs_tx_last_i        : in  std_logic                                     := '1';
       wrs_tx_flush_i       : in  std_logic                                     := '0';
       wrs_rx_first_o       : out std_logic;
       wrs_rx_last_o        : out std_logic;
-      wrs_rx_data_o        : out std_logic_vector(g_streamer_width-1 downto 0);
+      wrs_rx_data_o        : out std_logic_vector(g_rx_streamer_width-1 downto 0);
       wrs_rx_valid_o       : out std_logic;
       wrs_rx_dreq_i        : in  std_logic                                     := '0';
       wb_eth_master_o      : out t_wishbone_master_out;
