@@ -3,6 +3,7 @@ use ieee.std_logic_1164.all;
 
 library work;
 use work.wishbone_pkg.all;
+use work.wrcore_pkg.all;
 use work.wr_fabric_pkg.all;
 use work.wr_board_pkg.all;
 
@@ -14,7 +15,11 @@ package wr_spec_pkg is
       g_with_external_clock_input : boolean              := TRUE;
       g_fabric_iface              : t_board_fabric_iface := PLAIN;
       g_streamer_width            : integer              := 32;
-      g_dpram_initf               : string               := "../../bin/wrpc/wrc_phy8.bram");
+      g_dpram_initf               : string               := "../../bin/wrpc/wrc_phy8.bram";
+      g_diag_id                   : integer              := 0;
+      g_diag_ver                  : integer              := 0;
+      g_diag_ro_size              : integer              := 0;
+      g_diag_rw_size              : integer              := 0);
     port (
       areset_n_i          : in  std_logic;
       clk_20m_vcxo_i      : in  std_logic;
@@ -81,6 +86,8 @@ package wr_spec_pkg is
       tm_tai_o            : out std_logic_vector(39 downto 0);
       tm_cycles_o         : out std_logic_vector(27 downto 0);
       led_link_o          : out std_logic;
+      aux_diag_i          : in  t_generic_word_array(g_diag_ro_size-1 downto 0) := (others =>(others=>'0'));
+      aux_diag_o          : out t_generic_word_array(g_diag_rw_size-1 downto 0);
       led_act_o           : out std_logic);
   end component xwrc_board_spec;
 
@@ -90,7 +97,11 @@ package wr_spec_pkg is
       g_with_external_clock_input : integer := 1;
       g_fabric_iface              : string  := "PLAINFBRC";
       g_streamer_width            : integer := 32;
-      g_dpram_initf               : string  := "../../bin/wrpc/wrc_phy8.bram");
+      g_dpram_initf               : string  := "../../bin/wrpc/wrc_phy8.bram";
+      g_diag_id                   : integer := 0;
+      g_diag_ver                  : integer := 0;
+      g_diag_ro_vector_width      : integer := 0;
+      g_diag_rw_vector_width      : integer := 0);
     port (
       areset_n_i          : in  std_logic;
       clk_20m_vcxo_i      : in  std_logic;
@@ -193,6 +204,8 @@ package wr_spec_pkg is
       tm_tai_o            : out std_logic_vector(39 downto 0);
       tm_cycles_o         : out std_logic_vector(27 downto 0);
       led_link_o          : out std_logic;
+      aux_diag_i          : in  std_logic_vector(g_diag_ro_vector_width - 1 downto 0) := (others => '0');
+      aux_diag_o          : out std_logic_vector(g_diag_rw_vector_width - 1 downto 0) := (others => '0');
       led_act_o           : out std_logic);
   end component wrc_board_spec;
 

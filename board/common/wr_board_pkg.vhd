@@ -33,6 +33,16 @@ package wr_board_pkg is
     application_size : integer
     ) return integer;
 
+  function f_vectorize_diag (
+    diag_in          : t_generic_word_array;
+    diag_vector_size : integer)
+    return std_logic_vector;
+
+  function f_de_vectorize_diag (
+    diag_in          : std_logic_vector;
+    diag_vector_size : integer)
+    return t_generic_word_array;
+
   component xwrc_board_common is
     generic (
       g_simulation                : integer;
@@ -210,5 +220,35 @@ package body wr_board_pkg is
       return application_size;
     end if;
   end f_pick_diag_size;
+
+  function f_vectorize_diag (
+    diag_in          : t_generic_word_array;
+    diag_vector_size : integer)
+    return std_logic_vector is
+    variable result : std_logic_vector(diag_vector_size-1 downto 0);
+  begin
+    assert (diag_vector_size mod 32 = 0) report
+      "g_diag_ro/w_vector_width must have value that is a mutiple of 32"
+    severity error;
+    for i in 0 to diag_vector_size/32-1 loop
+      result(i*32-31 downto i*32) := diag_in(i);
+    end loop;
+    return result;
+  end function f_vectorize_diag;
+
+  function f_de_vectorize_diag (
+    diag_in          : std_logic_vector;
+    diag_vector_size : integer)
+    return t_generic_word_array is
+    variable result : t_generic_word_array(diag_vector_size/32-1 downto 0);
+  begin
+    assert (diag_vector_size mod 32 = 0) report
+      "g_diag_ro/w_vector_width must have value that is a mutiple of 32"
+    severity error;
+    for i in 0 to diag_vector_size/32-1 loop
+      result(i) := diag_in(i*32-31 downto i*32);
+    end loop;
+    return result;
+  end function f_de_vectorize_diag;
 
 end package body wr_board_pkg;
