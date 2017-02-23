@@ -14,9 +14,24 @@ package wr_board_pkg is
   procedure f_check_fabric_iface_type (
     constant iface_type : in t_board_fabric_iface);
 
+  procedure f_check_diag_id (
+    constant diag_id, diag_ver : in integer);
+
   function f_str2iface_type (
     constant iface_str : string(1 to 9))
     return t_board_fabric_iface;
+
+  function f_pick_diag_val (
+    iface            : t_board_fabric_iface;
+    streamers_val   : integer;
+    application_val : integer
+    ) return integer;
+
+  function f_pick_diag_size (
+    iface                 : t_board_fabric_iface;
+    streamers_size   : integer;
+    application_size : integer
+    ) return integer;
 
   component xwrc_board_common is
     generic (
@@ -118,6 +133,8 @@ package wr_board_pkg is
       tm_cycles_o          : out std_logic_vector(27 downto 0);
       pps_p_o              : out std_logic;
       pps_led_o            : out std_logic;
+      aux_diag_i           : in  t_generic_word_array(g_diag_ro_size-1 downto 0) := (others =>(others=>'0'));
+      aux_diag_o           : out t_generic_word_array(g_diag_rw_size-1 downto 0);
       link_ok_o            : out std_logic);
   end component xwrc_board_common;
 
@@ -135,6 +152,18 @@ package body wr_board_pkg is
     end if;
   end procedure f_check_fabric_iface_type;
 
+  procedure f_check_diag_id (
+    constant diag_id, diag_ver : in integer) is
+  begin
+    assert (diag_id /= 1) report
+      "g_diag_id=1 is reserved for wr_streamers and cannot be set by users"
+      severity error;
+
+    assert (not (diag_id /= 0 and diag_ver=0)) report
+      "If diag_id is set by the user (diag_id > 1), g_diag_ver must be at least 1"
+      severity error;
+  end procedure f_check_diag_id;
+
   function f_str2iface_type (
     constant iface_str : string(1 to 9))
     return t_board_fabric_iface is
@@ -148,5 +177,38 @@ package body wr_board_pkg is
     end case;
     return result;
   end function f_str2iface_type;
+
+  -- this function decides what is the diag_id/ver used in the WRPC and MIB for access
+  -- via SNMP
+  function f_pick_diag_val (
+    iface            : t_board_fabric_iface;
+    streamers_val   : integer;
+    application_val : integer
+    ) return integer is
+  begin
+    -- streamers are enabled and application/user does nto use diags (no vector specified),
+    -- use default streamer's id/ver
+    if(iface = STREAMERS and application_val = 0) then
+      return streamers_val;
+    else -- otherwise, use id/ver specified by the user/application. This is the case also
+         -- when streamers are used.
+      return application_val;
+    end if;
+  end f_pick_diag_val;
+
+  -- provide the size of the final diag array.
+  function f_pick_diag_size (
+    iface                 : t_board_fabric_iface;
+    streamers_size   : integer;
+    application_size : integer
+    ) return integer is
+  begin
+    -- when streamers are used, concatenate the array of streamers and application/user
+    if(iface = STREAMERS) then
+      return (streamers_size+application_size);
+    else -- otherwise, only the size provided by the application/user
+      return application_size;
+    end if;
+  end f_pick_diag_size;
 
 end package body wr_board_pkg;

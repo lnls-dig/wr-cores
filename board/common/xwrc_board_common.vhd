@@ -221,6 +221,10 @@ entity xwrc_board_common is
     pps_p_o              : out std_logic;
     pps_led_o            : out std_logic;
 
+    -- access from WRPC (via SNMP or uart console) to applications for diagnostics (generic)
+    aux_diag_i           : in  t_generic_word_array(g_diag_ro_size-1 downto 0) := (others =>(others=>'0'));
+    aux_diag_o           : out t_generic_word_array(g_diag_rw_size-1 downto 0);
+
     link_ok_o : out std_logic
     );
 
@@ -238,10 +242,6 @@ architecture struct of xwrc_board_common is
   signal tm_tai        : std_logic_vector(39 downto 0);
   signal tm_cycles     : std_logic_vector(27 downto 0);
 
-  -- WR SNMP
-  signal aux_diag_in  : t_generic_word_array(c_WR_TRANS_ARR_SIZE_OUT-1 downto 0);
-  signal aux_diag_out : t_generic_word_array(c_WR_TRANS_ARR_SIZE_IN-1 downto 0);
-
   -- WR fabric interface
   signal wrf_src_out : t_wrf_source_out;
   signal wrf_src_in  : t_wrf_source_in;
@@ -253,10 +253,38 @@ architecture struct of xwrc_board_common is
   signal aux_master_in  : t_wishbone_master_in;
   signal aux_rst_n      : std_logic;
 
+  -- Aux diagnostics:
+  -- 1) streamers have their own ID not to be used by the users
+  -- 2) regardless whether streamers are enabled nor not, application can use diagnostics
+  -- 3) if application uses diagnostics, it must specify diag_id > 1, diag_ver should start
+  --    with 1.
+  -- Application diagnostic words are added after streamer's diagnostics in the array that
+  -- goes to/from WRPC
+
+  constant c_streamers_diag_id  : integer := 1; -- id reserved for streamers
+  constant c_streamers_diag_ver : integer := 1; -- version that will be probably increased
+                                                -- when more diagnostics is added to streamers
+
+  -- final values that go to WRPC generics (depend on configuration)
+  constant c_diag_id      : integer := f_pick_diag_val(g_fabric_iface,c_streamers_diag_id, g_diag_id);
+  constant c_diag_ver     : integer := f_pick_diag_val(g_fabric_iface,c_streamers_diag_id, g_diag_id);
+
+  constant c_diag_ro_size : integer := f_pick_diag_size(g_fabric_iface, c_WR_TRANS_ARR_SIZE_OUT, g_diag_ro_size);
+  constant c_diag_rw_size : integer := f_pick_diag_size(g_fabric_iface, c_WR_TRANS_ARR_SIZE_IN,  g_diag_rw_size);
+
+  -- WR SNMP
+  signal aux_diag_in  : t_generic_word_array(c_diag_ro_size-1 downto 0);
+  signal aux_diag_out : t_generic_word_array(c_diag_rw_size-1 downto 0);
+
 begin  -- architecture struct
 
   -- Check for unsupported fabric interface type
   f_check_fabric_iface_type(g_fabric_iface);
+
+  -- check whether diag id and version are correct, i.e.:
+  -- * diag_id =1 is reserved for wr_streamers and cannot be used
+  -- * diag_ver values should start with 1
+  f_check_diag_id(g_diag_id,g_diag_ver);
 
   -----------------------------------------------------------------------------
   -- The WR PTP core itself
@@ -280,10 +308,10 @@ begin  -- architecture struct
       g_vuart_fifo_size           => g_vuart_fifo_size,
       g_pcs_16bit                 => g_pcs_16bit,
       g_records_for_phy           => TRUE,
-      g_diag_id                   => g_diag_id,
-      g_diag_ver                  => g_diag_ver,
-      g_diag_ro_size              => g_diag_ro_size,
-      g_diag_rw_size              => g_diag_rw_size)
+      g_diag_id                   => c_diag_id,
+      g_diag_ver                  => c_diag_ver,
+      g_diag_ro_size              => c_diag_ro_size,
+      g_diag_rw_size              => c_diag_rw_size)
     port map (
       clk_sys_i            => clk_sys_i,
       clk_dmtd_i           => clk_dmtd_i,
@@ -405,8 +433,8 @@ begin  -- architecture struct
         tm_cycles_i     => tm_cycles,
         wb_slave_i      => aux_master_out,
         wb_slave_o      => aux_master_in,
-        snmp_array_o    => aux_diag_in,
-        snmp_array_i    => aux_diag_out);
+        snmp_array_o    => aux_diag_in(c_WR_TRANS_ARR_SIZE_OUT-1 downto 0),
+        snmp_array_i    => aux_diag_out(c_WR_TRANS_ARR_SIZE_IN-1 downto 0));
 
     -- unused output ports
     wrf_src_o <= c_dummy_snk_in;
@@ -414,6 +442,9 @@ begin  -- architecture struct
 
     aux_master_o    <= cc_dummy_master_out;
     wb_eth_master_o <= cc_dummy_master_out;
+
+    aux_diag_in(c_diag_ro_size-1 downto c_WR_TRANS_ARR_SIZE_OUT)  <= aux_diag_i;
+    aux_diag_o <= aux_diag_out(c_diag_rw_size-1 downto c_WR_TRANS_ARR_SIZE_IN);
 
   end generate gen_wr_streamers;
 
@@ -447,7 +478,8 @@ begin  -- architecture struct
     aux_master_o <= cc_dummy_master_out;
 
     -- unused inputs to WR PTP core
-    aux_diag_in <= (others => (others => '0'));
+    aux_diag_in <= aux_diag_i;
+    aux_diag_o  <= aux_diag_out;
 
   end generate gen_etherbone;
 
@@ -472,7 +504,8 @@ begin  -- architecture struct
     aux_master_o  <= aux_master_out;
 
     -- unused inputs to WR PTP core
-    aux_diag_in <= (others => (others => '0'));
+    aux_diag_in <= aux_diag_i;
+    aux_diag_o  <= aux_diag_out;
 
   end generate gen_wr_fabric;
 
