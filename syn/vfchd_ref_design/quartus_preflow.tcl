@@ -208,13 +208,17 @@ loc AU28 vme_addr_b[31]
 loc AM27 fmc_enable_n_o
 loc C20  dio_led_term_o
 loc D20  dio_led_out_o
-loc M27  dio1_i "LVDS"
+loc D25  dio4_i "LVDS"
+# VFC-HD has a discrete diff receiver for the FMC-DIO clock
+# so the signal arrives to the FPGA as CMOS (single-ended)
 loc AK34 dio5_clk_i
-loc R26  dio1_oe_n_o
+loc M29  dio4_oe_n_o
 loc C28  dio5_oe_n_o
-loc T27  dio1_term_en_o
+loc B27  dio4_term_en_o
 loc C27  dio5_term_en_o
 
+loc AH21 vfchd_gpio1_o
+loc AG21 vfchd_gpio2_o
 loc AL26 vfchd_gpio3_o
 loc AV24 vfchd_gpio4_o
 

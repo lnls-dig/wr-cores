@@ -151,9 +151,9 @@ entity vfchd_wr_ref_top is
     fmc_enable_n_o : out std_logic;
     dio_led_term_o : out std_logic;
     dio_led_out_o  : out std_logic;
-    dio1_i         : in  std_logic;   -- LEMO1 as input for ext PPS in
-    dio1_oe_n_o    : out std_logic;   -- LEMO1 output enable control
-    dio1_term_en_o : out std_logic;   -- LEMO1 output termination control
+    dio4_i         : in  std_logic;   -- LEMO4 as input for ext PPS in
+    dio4_oe_n_o    : out std_logic;   -- LEMO4 output enable control
+    dio4_term_en_o : out std_logic;   -- LEMO4 output termination control
     dio5_clk_i     : in  std_logic;   -- LEMO5 clock input for ext 10MHz
     dio5_oe_n_o    : out std_logic;   -- LEMO5 output enable control
     dio5_term_en_o : out std_logic;   -- LEMO5 output termination control
@@ -256,6 +256,7 @@ architecture top of vfchd_wr_ref_top is
   signal rst_sys_62m5_n : std_logic;
   signal clk_ref_125m   : std_logic;
   signal clk_ref_div2   : std_logic;
+  signal clk_ext_ref    : std_logic;
 
   -- I2C EEPROM
   signal eeprom_sda_in  : std_logic;
@@ -313,6 +314,7 @@ architecture top of vfchd_wr_ref_top is
   -- LEDs
   signal pps_led     : std_logic;
   signal pps_led_d   : std_logic;
+  signal pps_ext_in  : std_logic;
   signal vfchd_led   : std_logic_vector(7 downto 0);
   signal wr_led_link : std_logic;
   signal wr_led_act  : std_logic;
@@ -401,7 +403,7 @@ begin  -- architecture top
     port map (
       clk_board_125m_i  => clk_board_125m_i,
       clk_board_20m_i   => clk_board_20m_i,
-      clk_ext_10m_i     => dio5_clk_i,
+      clk_ext_10m_i     => clk_ext_ref,
       areset_n_i        => areset_n_i,
       clk_sys_62m5_o    => clk_sys_62m5,
       clk_ref_125m_o    => clk_ref_125m,
@@ -427,7 +429,7 @@ begin  -- architecture top
       wb_slave_i        => cnx1_slave_in(c_WB_SLAVE_WRC),
       wb_eth_master_o   => cnx1_master_out(c_WB_MASTER_ETHBONE),
       wb_eth_master_i   => cnx1_master_in(c_WB_MASTER_ETHBONE),
-      pps_ext_i         => dio1_i,
+      pps_ext_i         => pps_ext_in,
       pps_p_o           => vfchd_gpio3_o,
       pps_led_o         => pps_led,
       led_link_o        => wr_led_link,
@@ -689,11 +691,12 @@ begin  -- architecture top
   vfchd_gpio4_o <= clk_ref_div2;
 
   -- Configure DIO LEMO1 and LEMO5 as inputs
-  dio1_term_en_o <= '0';
-  dio1_oe_n_o    <= '1';
+  dio4_term_en_o <= '0';
+  dio4_oe_n_o    <= '1';
+  pps_ext_in     <= dio4_i;
   dio5_term_en_o <= '0';
   dio5_oe_n_o    <= '1';
-
+  clk_ext_ref    <= dio5_clk_i;
   dio_led_term_o <= '0';
   dio_led_out_o  <= pps_led_d;
 
