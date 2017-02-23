@@ -15,7 +15,7 @@ package wr_svec_pkg is
       g_with_external_clock_input : boolean              := TRUE;
       g_fabric_iface              : t_board_fabric_iface := PLAIN;
       g_streamer_width            : integer              := 32;
-      g_dpram_initf               : string               := "../../bin/wrpc/wrc_phy8.bram";
+      g_dpram_initf               : string               := "default_xilinx";
       g_diag_id                   : integer              := 0;
       g_diag_ver                  : integer              := 0;
       g_diag_ro_size              : integer              := 0;
@@ -98,7 +98,7 @@ package wr_svec_pkg is
       g_with_external_clock_input : integer := 1;
       g_fabric_iface              : string  := "PLAINFBRC";
       g_streamer_width            : integer := 32;
-      g_dpram_initf               : string  := "../../bin/wrpc/wrc_phy8.bram";
+      g_dpram_initf               : string  := "default_xilinx";
       g_diag_id                   : integer                        := 0;
       g_diag_ver                  : integer                        := 0;
       g_diag_ro_vector_width      : integer                        := 0;

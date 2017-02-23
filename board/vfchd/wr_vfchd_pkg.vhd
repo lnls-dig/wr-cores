@@ -15,7 +15,7 @@ package wr_vfchd_pkg is
       g_pcs_16bit                 : boolean              := FALSE;
       g_fabric_iface              : t_board_fabric_iface := PLAIN;
       g_streamer_width            : integer              := 32;
-      g_dpram_initf               : string               := "../../bin/wrpc/wrc_phy8.mif";
+      g_dpram_initf               : string               := "default_altera";
       g_diag_id                   : integer              := 0;
       g_diag_ver                  : integer              := 0;
       g_diag_ro_size              : integer              := 0;
@@ -82,7 +82,7 @@ package wr_vfchd_pkg is
       g_pcs_16bit                 : integer := 0;
       g_fabric_iface              : string  := "PLAINFBRC";
       g_streamer_width            : integer := 32;
-      g_dpram_initf               : string  := "../../bin/wrpc/wrc_phy8.mif";
+      g_dpram_initf               : string  := "default_altera";
       g_diag_id                   : integer                        := 0;
       g_diag_ver                  : integer                        := 0;
       g_diag_ro_vector_width      : integer                        := 0;

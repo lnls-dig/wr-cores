@@ -67,7 +67,7 @@ entity xwrc_board_spec is
     -- data width when g_fabric_iface = "streamers" (otherwise ignored)
     g_streamer_width            : integer              := 32;
     -- memory initialisation file for embedded CPU
-    g_dpram_initf               : string               := "../../bin/wrpc/wrc_phy8.bram";
+    g_dpram_initf               : string               := "default_xilinx";
     -- identification (id and ver) of the layout of words in the generic diag interface
     g_diag_id                   : integer                        := 0;
     g_diag_ver                  : integer                        := 0;
