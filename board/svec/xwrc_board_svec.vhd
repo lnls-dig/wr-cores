@@ -67,7 +67,13 @@ entity xwrc_board_svec is
     -- data width when g_fabric_iface = "streamers" (otherwise ignored)
     g_streamer_width            : integer              := 32;
     -- memory initialisation file for embedded CPU
-    g_dpram_initf               : string               := "../../bin/wrpc/wrc_phy8.bram"
+    g_dpram_initf               : string               := "../../bin/wrpc/wrc_phy8.bram";
+    -- identification (id and ver) of the layout of words in the generic diag interface
+    g_diag_id                   : integer                        := 0;
+    g_diag_ver                  : integer                        := 0;
+    -- size the generic diag interface
+    g_diag_ro_size              : integer                        := 0;
+    g_diag_rw_size              : integer                        := 0
     );
   port (
     ---------------------------------------------------------------------------
@@ -197,6 +203,13 @@ entity xwrc_board_svec is
 
     wb_eth_master_o : out t_wishbone_master_out;
     wb_eth_master_i : in  t_wishbone_master_in := cc_dummy_master_in;
+
+    ---------------------------------------------------------------------------
+    -- Generic diagnostics interface (access from WRPC via SNMP or uart console
+    ---------------------------------------------------------------------------
+
+    aux_diag_i           : in  t_generic_word_array(g_diag_ro_size-1 downto 0) := (others =>(others=>'0'));
+    aux_diag_o           : out t_generic_word_array(g_diag_rw_size-1 downto 0);
 
     ---------------------------------------------------------------------------
     -- WRPC timing interface and status
@@ -387,10 +400,10 @@ begin  -- architecture struct
       g_softpll_enable_debugger   => FALSE,
       g_vuart_fifo_size           => 1024,
       g_pcs_16bit                 => FALSE,
-      g_diag_id                   => 0,
-      g_diag_ver                  => 0,
-      g_diag_ro_size              => c_WR_TRANS_ARR_SIZE_OUT,
-      g_diag_rw_size              => c_WR_TRANS_ARR_SIZE_IN,
+      g_diag_id                   => g_diag_id,
+      g_diag_ver                  => g_diag_ver,
+      g_diag_ro_size              => g_diag_ro_size,
+      g_diag_rw_size              => g_diag_rw_size,
       g_streamer_width            => g_streamer_width,
       g_fabric_iface              => g_fabric_iface
       )
@@ -469,6 +482,8 @@ begin  -- architecture struct
       tm_cycles_o          => tm_cycles_o,
       pps_p_o              => pps_p_o,
       pps_led_o            => pps_led_o,
+      aux_diag_i           => aux_diag_i,
+      aux_diag_o           => aux_diag_o,
       link_ok_o            => open);
 
   sfp_rate_select_o <= '1';
