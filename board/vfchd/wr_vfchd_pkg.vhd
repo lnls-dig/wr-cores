@@ -2,6 +2,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 
 library work;
+use work.wrcore_pkg.all;
 use work.wishbone_pkg.all;
 use work.wr_fabric_pkg.all;
 use work.wr_board_pkg.all;
