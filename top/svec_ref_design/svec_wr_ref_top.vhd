@@ -348,6 +348,7 @@ begin  -- architecture top
   cmp_xwrc_board_svec : xwrc_board_svec
     generic map (
       g_with_external_clock_input => TRUE,
+      g_dpram_initf               => "../../bin/wrpc/wrc_phy8.bram",
       g_fabric_iface              => ETHERBONE)
     port map (
       clk_20m_vcxo_i      => clk_20m_vcxo_i,

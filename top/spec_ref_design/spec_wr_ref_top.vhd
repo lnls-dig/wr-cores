@@ -416,6 +416,7 @@ begin  -- architecture top
     generic map (
       g_simulation                => 0,
       g_with_external_clock_input => TRUE,
+      g_dpram_initf               => "../../bin/wrpc/wrc_phy8.bram",
       g_fabric_iface              => ETHERBONE)
     port map (
       areset_n_i          => areset_n,
