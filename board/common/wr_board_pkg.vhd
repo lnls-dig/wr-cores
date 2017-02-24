@@ -11,10 +11,14 @@ package wr_board_pkg is
 
   type t_board_fabric_iface is (PLAIN, STREAMERS, ETHERBONE, always_last_invalid);
 
-  constant dpram_initf_default_altera_phy8     : string := "../../bin/wrpc/wrc_phy8.mif";
-  constant dpram_initf_default_xilinx_phy8     : string := "../../bin/wrpc/wrc_phy8.bram";
-  constant dpram_initf_default_altera_phy8_sim : string := "../../bin/wrpc/wrc_phy8_sim.mif";
-  constant dpram_initf_default_xilinx_phy8_sim : string := "../../bin/wrpc/wrc_phy8_sim.bram";
+  -- TODO: using these default paths requires absolute path. If relative path is used,
+  --       they work only for reference designs by chance. Once we figure out how to
+  --       automatically figure out absolute path of <wr-cores location>/bin/wrpc, we
+  --       will be able to use this concept in f_find_default_lm32_firmware()
+  constant dpram_initf_default_altera_phy8     : string := "";
+  constant dpram_initf_default_xilinx_phy8     : string := "";
+  constant dpram_initf_default_altera_phy8_sim : string := "";
+  constant dpram_initf_default_xilinx_phy8_sim : string := "";
 
   procedure f_check_fabric_iface_type (
     constant iface_type : in t_board_fabric_iface);
@@ -269,25 +273,44 @@ package body wr_board_pkg is
     pcs_16_bit  : boolean)
     return string is
   begin
-    if((dpram_initf = "default_altera" or dpram_initf = "default_xilinx") and pcs_16_bit = TRUE) then
+    if((dpram_initf = "default_altera" or dpram_initf = "default_xilinx") and 
+        pcs_16_bit = TRUE) then
       assert FALSE
-      report "[Board:Software for LM32 in WR Core] No release binary for pcs_16_bit." severity error;
+      report "[Board:Software for LM32 in WR Core] No release binary for " &
+              "pcs_16_bit." severity failure;
       return "";
-    elsif (simulation = 0 and dpram_initf = "default_altera" and pcs_16_bit = FALSE) then
-      report "[Board:Software for LM32 in WR Core] Using release LM32 firmware (altera, phy8)." severity note;
+    elsif (dpram_initf /= "default_altera" and dpram_initf /= "default_xilinx") then
+      report "[Board:Software for LM32 in WR Core]  Using user-provided LM32 " &
+             "firmware ("&dpram_initf&")." severity note;
+      return dpram_initf;
+    elsif (simulation = 0 and dpram_initf = "default_altera" and pcs_16_bit = FALSE and 
+           dpram_initf_default_altera_phy8 /="") then
+      report "[Board:Software for LM32 in WR Core] Using release LM32 firmware " &
+             "(altera, phy8)." severity note;
       return dpram_initf_default_altera_phy8;
-    elsif (simulation = 0 and dpram_initf = "default_xilinx" and pcs_16_bit = FALSE) then
-      report "[Board:Software for LM32 in WR Core] Using release LM32 firmware (xilnix, phy8)." severity note;
+    elsif (simulation = 0 and dpram_initf = "default_xilinx" and pcs_16_bit = FALSE and 
+           dpram_initf_default_xilinx_phy8 /="") then
+      report "[Board:Software for LM32 in WR Core] Using release LM32 firmware " &
+             "(xilnix, phy8)" severity note;
       return dpram_initf_default_xilinx_phy8;
-    elsif (simulation = 1 and dpram_initf = "default_altera" and pcs_16_bit = FALSE) then
-      report "Board:[Software for LM32 in WR Core] Using release LM32 firmware (altera, phy8, sim)." severity note;
+    elsif (simulation = 1 and dpram_initf = "default_altera" and pcs_16_bit = FALSE and 
+           dpram_initf_default_altera_phy8_sim /="") then
+      report "Board:[Software for LM32 in WR Core] Using release LM32 firmware " &
+             "(altera, phy8, sim)." severity note;
       return dpram_initf_default_altera_phy8_sim;
-    elsif (simulation = 1 and dpram_initf = "default_xilinx" and pcs_16_bit = FALSE) then
-      report "[Board:Software for LM32 in WR Core] Using release LM32 firmware (xilinx, phy8, sim)." severity note;
+    elsif (simulation = 1 and dpram_initf = "default_xilinx" and pcs_16_bit = FALSE and 
+           dpram_initf_default_xilinx_phy8_sim /="") then
+      report "[Board:Software for LM32 in WR Core] Using release LM32 firmware " &
+             "(xilinx, phy8, sim)." severity note;
       return dpram_initf_default_xilinx_phy8_sim;
     else
-      report "[Board:Software for LM32 in WR Core]  Using user-provided LM32 firmware ("&dpram_initf&")." severity note;
-      return dpram_initf;
+      assert FALSE
+      report "[Board:Software for LM32 in WR Core] Default inclussion of LM32" &
+             "binary with software is not supported yet. In your instantiation" &
+             "of the board (xwrc_board_{spec,svec,vfchd} set g_dpram_initf to the" &
+             "correct path, i.e." &
+             "<your wr-cores location>/bin/wrpc/wrc_phy8_sim.{bram, mif} " severity failure;
+      return "";
     end if;
   end function;
 
