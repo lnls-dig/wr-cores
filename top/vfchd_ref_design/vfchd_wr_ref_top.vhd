@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-01-24
--- Last update: 2017-02-22
+-- Last update: 2017-02-24
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level file for the WRPC reference design on the VFC-HD.
@@ -274,6 +274,7 @@ architecture top of vfchd_wr_ref_top is
   signal vme_ga            : std_logic_vector(5 downto 0);
 
   -- SFP
+  signal sfp_present    : std_logic;
   signal sfp_det_valid  : std_logic;
   signal sfp_data       : std_logic_vector (127 downto 0);
   signal sfp_wb_adr     : t_wishbone_address;
@@ -479,7 +480,7 @@ begin  -- architecture top
       g_WbAddrWidth      => c_wishbone_address_width)
     port map (
       Clk_ik       => clk_sys_62m5,
-      SfpPlugged_i => not sfp_los,
+      SfpPlugged_i => sfp_present,
       SfpIdValid_o => sfp_det_valid,
       SfpPN_b128   => sfp_data,
       WbCyc_o      => cnx2_master_out(c_WB_MASTER_SFPID).cyc,
@@ -585,7 +586,7 @@ begin  -- architecture top
       BstSfpRateSelect_i         => '0',
       StatusBstSfpTxDisable_oq   => open,
       StatusBstSfpRateSelect_oq  => open,
-      EthSfpPresent_oq           => open,
+      EthSfpPresent_oq           => sfp_present,
       EthSfpId_oq16              => open,
       EthSfpTxFault_oq           => sfp_tx_fault,
       EthSfpLos_oq               => sfp_los,
