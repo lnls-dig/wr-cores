@@ -174,7 +174,7 @@ package body wr_board_pkg is
     if iface_type >= always_last_invalid then
       assert FALSE
         report "WR PTP core fabric interface [" & t_board_fabric_iface'image(iface_type) & "] is not supported"
-        severity ERROR;
+        severity failure;
     end if;
   end procedure f_check_fabric_iface_type;
 
@@ -183,11 +183,11 @@ package body wr_board_pkg is
   begin
     assert (diag_id /= 1) report
       "g_diag_id=1 is reserved for wr_streamers and cannot be set by users"
-      severity error;
+      severity failure;
 
     assert (not (diag_id /= 0 and diag_ver=0)) report
       "If diag_id is set by the user (diag_id > 1), g_diag_ver must be at least 1"
-      severity error;
+      severity failure;
   end procedure f_check_diag_id;
 
   function f_str2iface_type (
@@ -245,7 +245,7 @@ package body wr_board_pkg is
   begin
     assert (diag_vector_size mod 32 = 0) report
       "g_diag_ro/w_vector_width must have value that is a mutiple of 32"
-    severity error;
+    severity failure;
     for i in 0 to diag_vector_size/32-1 loop
       result(i*32-31 downto i*32) := diag_in(i);
     end loop;
@@ -260,7 +260,7 @@ package body wr_board_pkg is
   begin
     assert (diag_vector_size mod 32 = 0) report
       "g_diag_ro/w_vector_width must have value that is a mutiple of 32"
-    severity error;
+    severity failure;
     for i in 0 to diag_vector_size/32-1 loop
       result(i) := diag_in(i*32-31 downto i*32);
     end loop;
