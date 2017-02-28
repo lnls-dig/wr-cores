@@ -113,7 +113,6 @@ add wave -noupdate -group DUT->EP-TxPCS /main/DUT/U_Endpoint/U_Wrapped_Endpoint/
 add wave -noupdate -group DUT->EP-TxPCS /main/DUT/U_Endpoint/U_Wrapped_Endpoint/U_PCS_1000BASEX/gen_8bit/U_TX_PCS/phy_tx_disparity_i
 add wave -noupdate -group DUT->EP-TxPCS /main/DUT/U_Endpoint/U_Wrapped_Endpoint/U_PCS_1000BASEX/gen_8bit/U_TX_PCS/phy_tx_enc_err_i
 add wave -noupdate -group DUT->EP-TxPCS /main/DUT/U_Endpoint/U_Wrapped_Endpoint/U_PCS_1000BASEX/gen_8bit/U_TX_PCS/phy_tx_k_o
-add wave -noupdate -group DUT->EP-TxPCS /main/DUT/U_Endpoint/U_Wrapped_Endpoint/U_PCS_1000BASEX/gen_8bit/U_TX_PCS/reset_synced_txclk
 add wave -noupdate -group DUT->EP-TxPCS /main/DUT/U_Endpoint/U_Wrapped_Endpoint/U_PCS_1000BASEX/gen_8bit/U_TX_PCS/rmon_tx_underrun
 add wave -noupdate -group DUT->EP-TxPCS /main/DUT/U_Endpoint/U_Wrapped_Endpoint/U_PCS_1000BASEX/gen_8bit/U_TX_PCS/rst_n_i
 add wave -noupdate -group DUT->EP-TxPCS /main/DUT/U_Endpoint/U_Wrapped_Endpoint/U_PCS_1000BASEX/gen_8bit/U_TX_PCS/timestamp_trigger_p_a_o
@@ -155,7 +154,6 @@ add wave -noupdate -group EP->txPCS /main/EP/U_PCS_1000BASEX/gen_8bit/U_TX_PCS/p
 add wave -noupdate -group EP->txPCS /main/EP/U_PCS_1000BASEX/gen_8bit/U_TX_PCS/phy_tx_disparity_i
 add wave -noupdate -group EP->txPCS /main/EP/U_PCS_1000BASEX/gen_8bit/U_TX_PCS/phy_tx_enc_err_i
 add wave -noupdate -group EP->txPCS /main/EP/U_PCS_1000BASEX/gen_8bit/U_TX_PCS/phy_tx_k_o
-add wave -noupdate -group EP->txPCS /main/EP/U_PCS_1000BASEX/gen_8bit/U_TX_PCS/reset_synced_txclk
 add wave -noupdate -group EP->txPCS /main/EP/U_PCS_1000BASEX/gen_8bit/U_TX_PCS/rmon_tx_underrun
 add wave -noupdate -group EP->txPCS /main/EP/U_PCS_1000BASEX/gen_8bit/U_TX_PCS/rst_n_i
 add wave -noupdate -group EP->txPCS /main/EP/U_PCS_1000BASEX/gen_8bit/U_TX_PCS/timestamp_trigger_p_a_o

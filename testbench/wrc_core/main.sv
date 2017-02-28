@@ -249,7 +249,11 @@ module main;
     .clk_ref_i                  (clk_ref),
     .clk_sys_i                  (clk_sys),
     .clk_dmtd_i                 (clk_ref),
-    .rst_n_i                    (rst_n),
+    .rst_sys_n_i                (rst_n),
+    .rst_ref_n_i                (rst_n),
+    .rst_dmtd_n_i               (rst_n),
+    .rst_txclk_n_i              (rst_n),
+    .rst_rxclk_n_i              (rst_n),
     .pps_csync_p1_i             (1'b0),
 
     .phy_sfp_tx_fault_i         (1'b0),
