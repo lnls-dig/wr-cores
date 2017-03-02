@@ -521,7 +521,7 @@ begin  -- rtl
     aligner_sample_cref(0 to g_num_outputs-1) <= (others => (others => '0'));
     aligner_sample_cin(0 to g_num_outputs-1)  <= (others => (others => '0'));
 
-    regs_out.eccr_ext_supported_i   <= '1';
+    regs_out.eccr_ext_supported_i   <= '1' when g_with_ext_clock_input else '0';
     regs_out.eccr_ext_ref_locked_i  <= clk_ext_mul_locked_i;
     regs_out.eccr_ext_ref_stopped_i <= clk_ext_stopped_i;
     clk_ext_rst_o <= regs_in.eccr_ext_ref_pllrst_o;
