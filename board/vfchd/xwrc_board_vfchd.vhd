@@ -368,7 +368,7 @@ begin  -- architecture struct
       g_simulation                => g_simulation,
       -- temporary, does not work without it (gui produces periodic message:
       -- ERROR: wr_servo_update: TimestampsIncorrect: 1 0 0 1)
-      g_with_external_clock_input => TRUE,
+      g_with_external_clock_input => g_with_external_clock_input,
       -- temporary, without it vuart receives but is not able to transmit
       g_phys_uart                 => TRUE,
       g_virtual_uart              => TRUE,

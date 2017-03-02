@@ -387,7 +387,7 @@ begin  -- architecture struct
   cmp_board_common : xwrc_board_common
     generic map (
       g_simulation                => g_simulation,
-      g_with_external_clock_input => TRUE,
+      g_with_external_clock_input => g_with_external_clock_input,
       g_phys_uart                 => TRUE,
       g_virtual_uart              => TRUE,
       g_aux_clks                  => 0,
