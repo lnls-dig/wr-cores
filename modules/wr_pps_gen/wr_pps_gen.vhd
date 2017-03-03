@@ -257,7 +257,9 @@ begin  -- behavioral
   end process;
 
   gen_without_external_clock_input : if(not g_with_ext_clock_input) generate
-    ext_sync_p <= '0';
+    ext_sync_p        <= '0';
+    sync_in_progress  <= '0';
+    ppsg_escr_sync_in <= '0';
   end generate gen_without_external_clock_input;
 
   gen_with_external_clock_input : if(g_with_ext_clock_input) generate
