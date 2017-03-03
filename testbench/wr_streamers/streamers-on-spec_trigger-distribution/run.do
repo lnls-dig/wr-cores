@@ -4,6 +4,6 @@ set NumericStdNoWarnings 1
 set StdArithNoWarnings 1
 
 do wave.do
-run 400us
+run 40000us
 wave zoomfull
 radix -hex

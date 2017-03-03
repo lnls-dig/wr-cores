@@ -505,7 +505,7 @@ begin
 
   U_The_WR_Core : xwr_core
     generic map (
-      g_simulation                => 0,
+      g_simulation                => g_simulation,
       g_with_external_clock_input => true,
       --
       g_phys_uart                 => true,
@@ -514,7 +514,7 @@ begin
       g_ep_rxbuf_size             => 1024,
       g_tx_runt_padding           => true,
       g_pcs_16bit                 => false,
-      g_dpram_initf               => "wrc-simulation.ram",
+      g_dpram_initf               => "../../../bin/wrpc/wrc_phy8_sim.bram",
 --       g_aux_sdb                   => c_etherbone_sdb, --ML
       g_dpram_size                => 131072/4,
       g_interface_mode            => PIPELINED,
@@ -762,10 +762,7 @@ begin
     generic map (
       -- data width must be identical as in the TX streamer - otherwise, we'll be receiving
       -- rubbish
-      g_data_width        => 80,
-      -- we don't care where our triggers come from. Just blindly accept them all
-      -- without checking source addresses.
-      g_filter_remote_mac => false)    
+      g_data_width        => 80)
     port map (
       clk_sys_i => clk_sys,
       rst_n_i   => rst_n,

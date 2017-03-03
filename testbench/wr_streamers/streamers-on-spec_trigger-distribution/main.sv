@@ -95,8 +95,11 @@ module main;
   initial begin
       // wait until both SPECs see the Ethernet link. Otherwise the packet we're going 
       // to send might end up in void...
+      $display("Start very looooong wait until link is OK (over 600us)");
+      #520us
       wait(link_up_a == 1'b1 && link_up_b == 1'b1);
-
+      #10us
+      $display("Stop very looooong wait until link is OK");
      forever begin // send a pulse every 30 us;
         pulse_in = 1;
         #1us;

@@ -1,5 +1,7 @@
 onerror {resume}
 quietly WaveActivateNextPane {} 0
+add wave -noupdate /main/link_up_a
+add wave -noupdate /main/link_up_b
 add wave -noupdate -divider {SPEC A-common}
 add wave -noupdate -radix hexadecimal /main/SPEC_A/U_Pulse_Stamper/clk_ref_i
 add wave -noupdate -radix hexadecimal /main/SPEC_A/U_Pulse_Stamper/clk_sys_i
@@ -55,7 +57,7 @@ add wave -noupdate -radix hexadecimal /main/SPEC_B/U_Pulse_Generator/trig_valid_
 add wave -noupdate -radix hexadecimal /main/SPEC_B/U_Pulse_Generator/trig_ready_o
 add wave -noupdate -radix hexadecimal /main/SPEC_B/U_Pulse_Generator/pulse_o
 TreeUpdate [SetDefaultTree]
-WaveRestoreCursors {{Cursor 1} {98492029160 fs} 0}
+WaveRestoreCursors {{Cursor 1} {593239379560 fs} 1} {{Cursor 2} {538394383110 fs} 0}
 configure wave -namecolwidth 150
 configure wave -valuecolwidth 152
 configure wave -justifyvalue left
@@ -70,4 +72,4 @@ configure wave -griddelta 40
 configure wave -timeline 0
 configure wave -timelineunits ns
 update
-WaveRestoreZoom {0 fs} {210 us}
+WaveRestoreZoom {0 fs} {839137496540 fs}
