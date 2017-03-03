@@ -59,6 +59,13 @@ use work.wr_vfchd_pkg.all;
 use work.vfchd_i2cmux_pkg.all;
 
 entity vfchd_wr_ref_top is
+  generic (
+    g_dpram_initf : string := "../../bin/wrpc/wrc_phy8.mif";
+    -- Simulation-mode enable parameter. Set by default (synthesis) to 0, and
+    -- changed to non-zero in the instantiation of the top level DUT in the testbench.
+    -- Its purpose is to reduce some internal counters/timeouts to speed up simulations.
+    g_simulation : integer := 0
+  );
   port (
     ---------------------------------------------------------------------------
     -- Clocks/resets
@@ -398,8 +405,9 @@ begin  -- architecture top
 
   cmp_xwrc_board_vfchd : xwrc_board_vfchd
     generic map (
+      g_simulation                => g_simulation,
       g_with_external_clock_input => FALSE,
-      g_dpram_initf               => "../../bin/wrpc/wrc_phy8.mif",
+      g_dpram_initf               => g_dpram_initf,
       g_fabric_iface              => ETHERBONE)
     port map (
       clk_board_125m_i  => clk_board_125m_i,

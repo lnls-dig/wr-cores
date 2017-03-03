@@ -61,6 +61,13 @@ library unisim;
 use unisim.vcomponents.all;
 
 entity svec_wr_ref_top is
+  generic (
+    g_dpram_initf : string := "../../bin/wrpc/wrc_phy8.bram";
+    -- Simulation-mode enable parameter. Set by default (synthesis) to 0, and
+    -- changed to non-zero in the instantiation of the top level DUT in the testbench.
+    -- Its purpose is to reduce some internal counters/timeouts to speed up simulations.
+    g_simulation : integer := 0
+  );
   port (
     ---------------------------------------------------------------------------
     -- Clocks/resets
@@ -347,8 +354,9 @@ begin  -- architecture top
 
   cmp_xwrc_board_svec : xwrc_board_svec
     generic map (
+      g_simulation                => g_simulation,
       g_with_external_clock_input => TRUE,
-      g_dpram_initf               => "../../bin/wrpc/wrc_phy8.bram",
+      g_dpram_initf               => g_dpram_initf,
       g_fabric_iface              => ETHERBONE)
     port map (
       clk_20m_vcxo_i      => clk_20m_vcxo_i,
