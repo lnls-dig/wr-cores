@@ -398,7 +398,7 @@ begin  -- architecture top
 
   cmp_xwrc_board_vfchd : xwrc_board_vfchd
     generic map (
-      g_with_external_clock_input => TRUE,
+      g_with_external_clock_input => FALSE,
       g_dpram_initf               => "../../bin/wrpc/wrc_phy8.mif",
       g_fabric_iface              => ETHERBONE)
     port map (
