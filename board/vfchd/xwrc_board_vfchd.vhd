@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2016-07-26
--- Last update: 2017-02-22
+-- Last update: 2017-03-06
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -366,8 +366,6 @@ begin  -- architecture struct
   cmp_board_common : xwrc_board_common
     generic map (
       g_simulation                => g_simulation,
-      -- temporary, does not work without it (gui produces periodic message:
-      -- ERROR: wr_servo_update: TimestampsIncorrect: 1 0 0 1)
       g_with_external_clock_input => g_with_external_clock_input,
       -- temporary, without it vuart receives but is not able to transmit
       g_phys_uart                 => TRUE,
