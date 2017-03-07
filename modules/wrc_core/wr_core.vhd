@@ -1093,7 +1093,7 @@ begin
       g_muxed_ports => 2)
     port map (
       clk_sys_i   => clk_sys_i,
-      rst_n_i     => rst_n_i,
+      rst_n_i     => rst_net_n,
       ep_src_o    => ep_snk_in,
       ep_src_i    => ep_snk_out,
       ep_snk_o    => ep_src_in,
