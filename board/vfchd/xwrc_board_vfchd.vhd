@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2016-07-26
--- Last update: 2017-03-06
+-- Last update: 2017-03-07
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -431,8 +431,8 @@ begin  -- architecture struct
       owr_pwren_o          => open,
       owr_en_o             => onewire_en,
       owr_i                => onewire_in,
-      slave_i              => wb_slave_i,
-      slave_o              => wb_slave_o,
+      wb_slave_i           => wb_slave_i,
+      wb_slave_o           => wb_slave_o,
       wrf_src_o            => wrf_src_o,
       wrf_src_i            => wrf_src_i,
       wrf_snk_o            => wrf_snk_o,

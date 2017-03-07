@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-22
--- Last update: 2017-02-22
+-- Last update: 2017-03-07
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Wrapper for WR PTP core with common features shared between
@@ -156,8 +156,8 @@ entity xwrc_board_common is
     ---------------------------------------------------------------------------
     --External WB interface
     ---------------------------------------------------------------------------
-    slave_i : in  t_wishbone_slave_in := cc_dummy_slave_in;
-    slave_o : out t_wishbone_slave_out;
+    wb_slave_i : in  t_wishbone_slave_in := cc_dummy_slave_in;
+    wb_slave_o : out t_wishbone_slave_out;
 
     aux_master_o : out t_wishbone_master_out;
     aux_master_i : in  t_wishbone_master_in := cc_dummy_master_in;

@@ -124,8 +124,8 @@ package wr_board_pkg is
       owr_pwren_o          : out std_logic_vector(1 downto 0);
       owr_en_o             : out std_logic_vector(1 downto 0);
       owr_i                : in  std_logic_vector(1 downto 0)                  := (others => '1');
-      slave_i              : in  t_wishbone_slave_in                           := cc_dummy_slave_in;
-      slave_o              : out t_wishbone_slave_out;
+      wb_slave_i           : in  t_wishbone_slave_in                           := cc_dummy_slave_in;
+      wb_slave_o           : out t_wishbone_slave_out;
       aux_master_o         : out t_wishbone_master_out;
       aux_master_i         : in  t_wishbone_master_in                          := cc_dummy_master_in;
       wrf_src_o            : out t_wrf_source_out;

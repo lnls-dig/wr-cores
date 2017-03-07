@@ -7,7 +7,7 @@
 -- Author(s)  : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2016-02-17
--- Last update: 2017-02-22
+-- Last update: 2017-03-07
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
