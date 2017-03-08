@@ -7,7 +7,7 @@
 -- Author(s)  : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-20
--- Last update: 2017-02-22
+-- Last update: 2017-03-08
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level file for the WRPC reference design on the SPEC.
@@ -428,8 +428,8 @@ begin  -- architecture top
       clk_10m_ext_ref_i   => clk_ext_10m,
       clk_sys_62m5_o      => clk_sys_62m5,
       clk_ref_125m_o      => clk_ref_125m,
-      rst_62m5_n_o        => rst_sys_62m5_n,
-      rst_125m_n_o        => rst_ref_125m_n,
+      rst_sys_62m5_n_o    => rst_sys_62m5_n,
+      rst_ref_125m_n_o    => rst_ref_125m_n,
 
       plldac_sclk_o       => plldac_sclk_o,
       plldac_din_o        => plldac_din_o,

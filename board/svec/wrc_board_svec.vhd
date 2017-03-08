@@ -6,8 +6,8 @@
 -- File       : wrc_board_svec.vhd
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
--- Created    : 2016-02-16
--- Last update: 2017-02-22
+-- Created    : 2017-02-16
+-- Last update: 2017-03-08
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -16,7 +16,7 @@
 -- instantiation).
 -- http://www.ohwr.org/projects/svec/
 -------------------------------------------------------------------------------
--- Copyright (c) 2016-2017 CERN
+-- Copyright (c) 2017 CERN
 -------------------------------------------------------------------------------
 -- GNU LESSER GENERAL PUBLIC LICENSE
 --
@@ -59,6 +59,8 @@ entity wrc_board_svec is
     g_simulation                : integer := 0;
     -- Select whether to include external ref clock input
     g_with_external_clock_input : integer := 1;
+    -- Number of aux clocks syntonized by WRPC to WR timebase
+    g_aux_clks                  : integer := 0;
     -- "plainfbrc" = expose WRC fabric interface
     -- "streamers" = attach WRC streamers to fabric interface
     -- "etherbone" = attach Etherbone slave to fabric interface
@@ -69,43 +71,36 @@ entity wrc_board_svec is
     -- memory initialisation file for embedded CPU
     g_dpram_initf               : string  := "default_xilinx";
     -- identification (id and ver) of the layout of words in the generic diag interface
-    g_diag_id                   : integer                        := 0;
-    g_diag_ver                  : integer                        := 0;
+    g_diag_id                   : integer := 0;
+    g_diag_ver                  : integer := 0;
     -- size the generic diag interface
-    g_diag_ro_vector_width      : integer                        := 0;
-    g_diag_rw_vector_width      : integer                        := 0
+    g_diag_ro_vector_width      : integer := 0;
+    g_diag_rw_vector_width      : integer := 0
     );
   port (
     ---------------------------------------------------------------------------
     -- Clocks/resets
     ---------------------------------------------------------------------------
-
     -- Reset from system fpga
-    areset_n_i : in std_logic;
-
+    areset_n_i          : in  std_logic;
     -- Clock inputs from the board
-    clk_20m_vcxo_i : in std_logic;
-
-    clk_125m_pllref_p_i : in std_logic;
-    clk_125m_pllref_n_i : in std_logic;
-
-    clk_125m_gtp_n_i : in std_logic;
-    clk_125m_gtp_p_i : in std_logic;
-
+    clk_20m_vcxo_i      : in  std_logic;
+    clk_125m_pllref_p_i : in  std_logic;
+    clk_125m_pllref_n_i : in  std_logic;
+    clk_125m_gtp_n_i    : in  std_logic;
+    clk_125m_gtp_p_i    : in  std_logic;
     -- 10MHz ext ref clock input (g_with_external_clock_input = TRUE)
-    clk_10m_ext_ref_i : in std_logic := '0';
-
+    clk_10m_ext_ref_i   : in  std_logic := '0';
+    -- External PPS input (g_with_external_clock_input = TRUE)
+    pps_ext_i           : in  std_logic := '0';
     -- 62.5MHz sys clock output
-    clk_sys_62m5_o : out std_logic;
-
+    clk_sys_62m5_o      : out std_logic;
     -- 125MHz ref clock output
-    clk_ref_125m_o : out std_logic;
+    clk_ref_125m_o      : out std_logic;
+    -- active low reset outputs, synchronous to 62m5 and 125m clocks
+    rst_sys_62m5_n_o    : out std_logic;
+    rst_ref_125m_n_o    : out std_logic;
 
-    -- active low reset output, synchronous to clk_sys_62m5_o
-    rst_sys_62m5_n_o : out std_logic;
-
-    ---------------------------------------------------------------------------
-    -- SPI interfaces to DACs
     ---------------------------------------------------------------------------
 
     pll20dac_din_o    : out std_logic;
@@ -118,7 +113,6 @@ entity wrc_board_svec is
     ---------------------------------------------------------------------------
     -- SFP I/O for transceiver and SFP management info
     ---------------------------------------------------------------------------
-
     sfp_txp_o         : out std_logic;
     sfp_txn_o         : out std_logic;
     sfp_rxp_i         : in  std_logic;
@@ -136,7 +130,6 @@ entity wrc_board_svec is
     ---------------------------------------------------------------------------
     -- I2C EEPROM
     ---------------------------------------------------------------------------
-
     eeprom_sda_i : in  std_logic;
     eeprom_sda_o : out std_logic;
     eeprom_scl_i : in  std_logic;
@@ -145,14 +138,12 @@ entity wrc_board_svec is
     ---------------------------------------------------------------------------
     -- Onewire interface
     ---------------------------------------------------------------------------
-
     onewire_i     : in  std_logic;
     onewire_oen_o : out std_logic;
 
     ---------------------------------------------------------------------------
     -- UART
     ---------------------------------------------------------------------------
-
     uart_rxd_i : in  std_logic;
     uart_txd_o : out std_logic;
 
@@ -160,7 +151,6 @@ entity wrc_board_svec is
     -- SPI (flash is connected to SFPGA and routed to AFPGA
     -- once the boot process is complete)
     ---------------------------------------------------------------------------
-
     spi_sclk_o : out std_logic;
     spi_ncs_o  : out std_logic;
     spi_mosi_o : out std_logic;
@@ -169,7 +159,6 @@ entity wrc_board_svec is
     ---------------------------------------------------------------------------
     -- External WB interface
     ---------------------------------------------------------------------------
-
     wb_adr_i   : in  std_logic_vector(c_wishbone_address_width-1 downto 0)   := (others => '0');
     wb_dat_i   : in  std_logic_vector(c_wishbone_data_width-1 downto 0)      := (others => '0');
     wb_dat_o   : out std_logic_vector(c_wishbone_data_width-1 downto 0);
@@ -186,7 +175,6 @@ entity wrc_board_svec is
     ---------------------------------------------------------------------------
     -- WR fabric interface (when g_fabric_iface = "plain")
     ---------------------------------------------------------------------------
-
     wrf_src_adr_o   : out std_logic_vector(1 downto 0);
     wrf_src_dat_o   : out std_logic_vector(15 downto 0);
     wrf_src_cyc_o   : out std_logic;
@@ -211,22 +199,20 @@ entity wrc_board_svec is
     ---------------------------------------------------------------------------
     -- WR streamers (when g_fabric_iface = "streamers")
     ---------------------------------------------------------------------------
-
     wrs_tx_data_i  : in  std_logic_vector(g_tx_streamer_width-1 downto 0) := (others => '0');
-    wrs_tx_valid_i : in  std_logic                                     := '0';
+    wrs_tx_valid_i : in  std_logic                                        := '0';
     wrs_tx_dreq_o  : out std_logic;
-    wrs_tx_last_i  : in  std_logic                                     := '1';
-    wrs_tx_flush_i : in  std_logic                                     := '0';
+    wrs_tx_last_i  : in  std_logic                                        := '1';
+    wrs_tx_flush_i : in  std_logic                                        := '0';
     wrs_rx_first_o : out std_logic;
     wrs_rx_last_o  : out std_logic;
     wrs_rx_data_o  : out std_logic_vector(g_rx_streamer_width-1 downto 0);
     wrs_rx_valid_o : out std_logic;
-    wrs_rx_dreq_i  : in  std_logic                                     := '0';
+    wrs_rx_dreq_i  : in  std_logic                                        := '0';
 
     ---------------------------------------------------------------------------
     -- Etherbone WB master interface (when g_fabric_iface = "etherbone")
     ---------------------------------------------------------------------------
-
     wb_eth_adr_o   : out std_logic_vector(c_wishbone_address_width-1 downto 0);
     wb_eth_dat_o   : out std_logic_vector(c_wishbone_data_width-1 downto 0);
     wb_eth_dat_i   : in  std_logic_vector(c_wishbone_data_width-1 downto 0) := (others => '0');
@@ -241,19 +227,57 @@ entity wrc_board_svec is
     wb_eth_stall_i : in  std_logic                                          := '0';
 
     ---------------------------------------------------------------------------
-    -- WRPC timing interface and status
+    -- Generic diagnostics interface (access from WRPC via SNMP or uart console
     ---------------------------------------------------------------------------
+    aux_diag_i : in  std_logic_vector(g_diag_ro_vector_width - 1 downto 0) := (others => '0');
+    aux_diag_o : out std_logic_vector(g_diag_rw_vector_width - 1 downto 0) := (others => '0');
 
-    pps_ext_i       : in  std_logic                                         := '0';
-    pps_p_o         : out std_logic;
-    pps_led_o       : out std_logic;
+    ---------------------------------------------------------------------------
+    -- Aux clocks control
+    ---------------------------------------------------------------------------
+    tm_dac_value_o       : out std_logic_vector(23 downto 0);
+    tm_dac_wr_o          : out std_logic_vector(g_aux_clks-1 downto 0);
+    tm_clk_aux_lock_en_i : in  std_logic_vector(g_aux_clks-1 downto 0) := (others => '0');
+    tm_clk_aux_locked_o  : out std_logic_vector(g_aux_clks-1 downto 0);
+
+    ---------------------------------------------------------------------------
+    -- External Tx Timestamping I/F
+    ---------------------------------------------------------------------------
+    tstamps_stb_o       : out std_logic;
+    tstamps_tsval_o     : out std_logic_vector(31 downto 0);
+    tstamps_port_id_o   : out std_logic_vector(5 downto 0);
+    tstamps_frame_id_o  : out std_logic_vector(15 downto 0);
+    tstamps_incorrect_o : out std_logic;
+    tstamps_ack_i       : in  std_logic := '1';
+
+    ---------------------------------------------------------------------------
+    -- Pause Frame Control
+    ---------------------------------------------------------------------------
+    fc_tx_pause_req_i   : in  std_logic                     := '0';
+    fc_tx_pause_delay_i : in  std_logic_vector(15 downto 0) := x"0000";
+    fc_tx_pause_ready_o : out std_logic;
+
+    ---------------------------------------------------------------------------
+    -- Timecode I/F
+    ---------------------------------------------------------------------------
+    tm_link_up_o    : out std_logic;
     tm_time_valid_o : out std_logic;
     tm_tai_o        : out std_logic_vector(39 downto 0);
     tm_cycles_o     : out std_logic_vector(27 downto 0);
-    led_link_o      : out std_logic;
-    aux_diag_i      : in  std_logic_vector(g_diag_ro_vector_width - 1 downto 0) := (others => '0');
-    aux_diag_o      : out std_logic_vector(g_diag_rw_vector_width - 1 downto 0) := (others => '0');
-    led_act_o       : out std_logic);
+
+    ---------------------------------------------------------------------------
+    -- Buttons, LEDs and PPS output
+    ---------------------------------------------------------------------------
+    led_act_o  : out std_logic;
+    led_link_o : out std_logic;
+    btn1_i     : in  std_logic := '1';
+    btn2_i     : in  std_logic := '1';
+    -- 1PPS output
+    pps_p_o    : out std_logic;
+    pps_led_o  : out std_logic;
+    -- Link ok indication
+    link_ok_o  : out std_logic
+    );
 
 end entity wrc_board_svec;
 
@@ -279,11 +303,14 @@ architecture std_wrapper of wrc_board_svec is
   signal wb_eth_master_in  : t_wishbone_master_in;
 
   -- Aux diagnostics
-  constant c_diag_ro_size  : integer:= g_diag_ro_vector_width/32;
-  constant c_diag_rw_size  : integer:= g_diag_rw_vector_width/32;
+  constant c_diag_ro_size : integer := g_diag_ro_vector_width/32;
+  constant c_diag_rw_size : integer := g_diag_rw_vector_width/32;
 
   signal aux_diag_in  : t_generic_word_array(c_diag_ro_size-1 downto 0);
   signal aux_diag_out : t_generic_word_array(c_diag_rw_size-1 downto 0);
+
+  -- External Tx Timestamping I/F
+  signal timestamps_out : t_txtsu_timestamp;
 
 begin  -- architecture struct
 
@@ -339,15 +366,20 @@ begin  -- architecture struct
   wb_eth_master_in.rty   <= wb_eth_rty_i;
   wb_eth_master_in.stall <= wb_eth_stall_i;
 
-  -- auxiliary diagnostics
-  aux_diag_in <= f_de_vectorize_diag(aux_diag_i,g_diag_ro_vector_width);
+  aux_diag_in <= f_de_vectorize_diag(aux_diag_i, g_diag_ro_vector_width);
   aux_diag_o  <= f_vectorize_diag(aux_diag_out, g_diag_rw_vector_width);
+
+  tstamps_stb_o      <= timestamps_out.stb;
+  tstamps_tsval_o    <= timestamps_out.tsval;
+  tstamps_port_id_o  <= timestamps_out.port_id;
+  tstamps_frame_id_o <= timestamps_out.frame_id;
 
   -- Instantiate the records-based module
   cmp_xwrc_board_svec : xwrc_board_svec
     generic map (
       g_simulation                => g_simulation,
       g_with_external_clock_input => f_int2bool(g_with_external_clock_input),
+      g_aux_clks                  => g_aux_clks,
       g_fabric_iface              => f_str2iface_type(g_fabric_iface),
       g_tx_streamer_width         => g_tx_streamer_width,
       g_rx_streamer_width         => g_rx_streamer_width,
@@ -357,74 +389,88 @@ begin  -- architecture struct
       g_diag_ro_size              => c_diag_ro_size,
       g_diag_rw_size              => c_diag_rw_size)
     port map (
-      areset_n_i          => areset_n_i,
-      clk_20m_vcxo_i      => clk_20m_vcxo_i,
-      clk_125m_pllref_p_i => clk_125m_pllref_p_i,
-      clk_125m_pllref_n_i => clk_125m_pllref_n_i,
-      clk_125m_gtp_n_i    => clk_125m_gtp_n_i,
-      clk_125m_gtp_p_i    => clk_125m_gtp_p_i,
-      clk_10m_ext_ref_i   => clk_10m_ext_ref_i,
-      clk_sys_62m5_o      => clk_sys_62m5_o,
-      clk_ref_125m_o      => clk_ref_125m_o,
-      rst_sys_62m5_n_o    => rst_sys_62m5_n_o,
-      pll20dac_din_o      => pll20dac_din_o,
-      pll20dac_sclk_o     => pll20dac_sclk_o,
-      pll20dac_sync_n_o   => pll20dac_sync_n_o,
-      pll25dac_din_o      => pll25dac_din_o,
-      pll25dac_sclk_o     => pll25dac_sclk_o,
-      pll25dac_sync_n_o   => pll25dac_sync_n_o,
-      sfp_txp_o           => sfp_txp_o,
-      sfp_txn_o           => sfp_txn_o,
-      sfp_rxp_i           => sfp_rxp_i,
-      sfp_rxn_i           => sfp_rxn_i,
-      sfp_det_i           => sfp_det_i,
-      sfp_sda_i           => sfp_sda_i,
-      sfp_sda_o           => sfp_sda_o,
-      sfp_scl_i           => sfp_scl_i,
-      sfp_scl_o           => sfp_scl_o,
-      sfp_rate_select_o   => sfp_rate_select_o,
-      sfp_tx_fault_i      => sfp_tx_fault_i,
-      sfp_tx_disable_o    => sfp_tx_disable_o,
-      sfp_los_i           => sfp_los_i,
-      eeprom_sda_i        => eeprom_sda_i,
-      eeprom_sda_o        => eeprom_sda_o,
-      eeprom_scl_i        => eeprom_scl_i,
-      eeprom_scl_o        => eeprom_scl_o,
-      onewire_i           => onewire_i,
-      onewire_oen_o       => onewire_oen_o,
-      uart_rxd_i          => uart_rxd_i,
-      uart_txd_o          => uart_txd_o,
-      spi_sclk_o          => spi_sclk_o,
-      spi_ncs_o           => spi_ncs_o,
-      spi_mosi_o          => spi_mosi_o,
-      spi_miso_i          => spi_miso_i,
-      wb_slave_o          => wb_slave_out,
-      wb_slave_i          => wb_slave_in,
-      wrf_src_o           => wrf_src_out,
-      wrf_src_i           => wrf_src_in,
-      wrf_snk_o           => wrf_snk_out,
-      wrf_snk_i           => wrf_snk_in,
-      wrs_tx_data_i       => wrs_tx_data_i,
-      wrs_tx_valid_i      => wrs_tx_valid_i,
-      wrs_tx_dreq_o       => wrs_tx_dreq_o,
-      wrs_tx_last_i       => wrs_tx_last_i,
-      wrs_tx_flush_i      => wrs_tx_flush_i,
-      wrs_rx_first_o      => wrs_rx_first_o,
-      wrs_rx_last_o       => wrs_rx_last_o,
-      wrs_rx_data_o       => wrs_rx_data_o,
-      wrs_rx_valid_o      => wrs_rx_valid_o,
-      wrs_rx_dreq_i       => wrs_rx_dreq_i,
-      wb_eth_master_o     => wb_eth_master_out,
-      wb_eth_master_i     => wb_eth_master_in,
-      pps_ext_i           => pps_ext_i,
-      pps_p_o             => pps_p_o,
-      pps_led_o           => pps_led_o,
-      tm_time_valid_o     => tm_time_valid_o,
-      tm_tai_o            => tm_tai_o,
-      tm_cycles_o         => tm_cycles_o,
-      led_link_o          => led_link_o,
-      aux_diag_i          => aux_diag_in,
-      aux_diag_o          => aux_diag_out,
-      led_act_o           => led_act_o);
+      areset_n_i           => areset_n_i,
+      clk_20m_vcxo_i       => clk_20m_vcxo_i,
+      clk_125m_pllref_p_i  => clk_125m_pllref_p_i,
+      clk_125m_pllref_n_i  => clk_125m_pllref_n_i,
+      clk_125m_gtp_n_i     => clk_125m_gtp_n_i,
+      clk_125m_gtp_p_i     => clk_125m_gtp_p_i,
+      clk_10m_ext_ref_i    => clk_10m_ext_ref_i,
+      pps_ext_i            => pps_ext_i,
+      clk_sys_62m5_o       => clk_sys_62m5_o,
+      clk_ref_125m_o       => clk_ref_125m_o,
+      rst_sys_62m5_n_o     => rst_sys_62m5_n_o,
+      rst_ref_125m_n_o     => rst_ref_125m_n_o,
+      pll20dac_din_o       => pll20dac_din_o,
+      pll20dac_sclk_o      => pll20dac_sclk_o,
+      pll20dac_sync_n_o    => pll20dac_sync_n_o,
+      pll25dac_din_o       => pll25dac_din_o,
+      pll25dac_sclk_o      => pll25dac_sclk_o,
+      pll25dac_sync_n_o    => pll25dac_sync_n_o,
+      sfp_txp_o            => sfp_txp_o,
+      sfp_txn_o            => sfp_txn_o,
+      sfp_rxp_i            => sfp_rxp_i,
+      sfp_rxn_i            => sfp_rxn_i,
+      sfp_det_i            => sfp_det_i,
+      sfp_sda_i            => sfp_sda_i,
+      sfp_sda_o            => sfp_sda_o,
+      sfp_scl_i            => sfp_scl_i,
+      sfp_scl_o            => sfp_scl_o,
+      sfp_rate_select_o    => sfp_rate_select_o,
+      sfp_tx_fault_i       => sfp_tx_fault_i,
+      sfp_tx_disable_o     => sfp_tx_disable_o,
+      sfp_los_i            => sfp_los_i,
+      eeprom_sda_i         => eeprom_sda_i,
+      eeprom_sda_o         => eeprom_sda_o,
+      eeprom_scl_i         => eeprom_scl_i,
+      eeprom_scl_o         => eeprom_scl_o,
+      onewire_i            => onewire_i,
+      onewire_oen_o        => onewire_oen_o,
+      uart_rxd_i           => uart_rxd_i,
+      uart_txd_o           => uart_txd_o,
+      spi_sclk_o           => spi_sclk_o,
+      spi_ncs_o            => spi_ncs_o,
+      spi_mosi_o           => spi_mosi_o,
+      spi_miso_i           => spi_miso_i,
+      wb_slave_o           => wb_slave_out,
+      wb_slave_i           => wb_slave_in,
+      wrf_src_o            => wrf_src_out,
+      wrf_src_i            => wrf_src_in,
+      wrf_snk_o            => wrf_snk_out,
+      wrf_snk_i            => wrf_snk_in,
+      wrs_tx_data_i        => wrs_tx_data_i,
+      wrs_tx_valid_i       => wrs_tx_valid_i,
+      wrs_tx_dreq_o        => wrs_tx_dreq_o,
+      wrs_tx_last_i        => wrs_tx_last_i,
+      wrs_tx_flush_i       => wrs_tx_flush_i,
+      wrs_rx_first_o       => wrs_rx_first_o,
+      wrs_rx_last_o        => wrs_rx_last_o,
+      wrs_rx_data_o        => wrs_rx_data_o,
+      wrs_rx_valid_o       => wrs_rx_valid_o,
+      wrs_rx_dreq_i        => wrs_rx_dreq_i,
+      wb_eth_master_o      => wb_eth_master_out,
+      wb_eth_master_i      => wb_eth_master_in,
+      aux_diag_i           => aux_diag_in,
+      aux_diag_o           => aux_diag_out,
+      tm_dac_value_o       => tm_dac_value_o,
+      tm_dac_wr_o          => tm_dac_wr_o,
+      tm_clk_aux_lock_en_i => tm_clk_aux_lock_en_i,
+      tm_clk_aux_locked_o  => tm_clk_aux_locked_o,
+      timestamps_o         => timestamps_out,
+      timestamps_ack_i     => tstamps_ack_i,
+      fc_tx_pause_req_i    => fc_tx_pause_req_i,
+      fc_tx_pause_delay_i  => fc_tx_pause_delay_i,
+      fc_tx_pause_ready_o  => fc_tx_pause_ready_o,
+      tm_link_up_o         => tm_link_up_o,
+      tm_time_valid_o      => tm_time_valid_o,
+      tm_tai_o             => tm_tai_o,
+      tm_cycles_o          => tm_cycles_o,
+      led_act_o            => led_act_o,
+      led_link_o           => led_link_o,
+      btn1_i               => btn1_i,
+      btn2_i               => btn2_i,
+      pps_p_o              => pps_p_o,
+      pps_led_o            => pps_led_o,
+      link_ok_o            => link_ok_o);
 
 end architecture std_wrapper;

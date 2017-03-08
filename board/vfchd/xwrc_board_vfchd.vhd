@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2016-07-26
--- Last update: 2017-03-07
+-- Last update: 2017-03-08
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -57,6 +57,8 @@ entity xwrc_board_vfchd is
     g_simulation                : integer              := 0;
     -- Select whether to include external ref clock input
     g_with_external_clock_input : boolean              := TRUE;
+    -- Number of aux clocks syntonized by WRPC to WR timebase
+    g_aux_clks                  : integer              := 0;
     -- set to TRUE to use 16bit PCS (instead of default 8bit PCS)
     g_pcs_16bit                 : boolean              := FALSE;
     -- plain     = expose WRC fabric interface
@@ -64,45 +66,43 @@ entity xwrc_board_vfchd is
     -- etherbone = attach Etherbone slave to fabric interface
     g_fabric_iface              : t_board_fabric_iface := plain;
     -- data width when g_fabric_iface = "streamers" (otherwise ignored)
-    g_tx_streamer_width         : integer := 32;
-    g_rx_streamer_width         : integer := 32;
+    g_tx_streamer_width         : integer              := 32;
+    g_rx_streamer_width         : integer              := 32;
     -- memory initialisation file for embedded CPU
     g_dpram_initf               : string               := "default_altera";
     -- identification (id and ver) of the layout of words in the generic diag interface
-    g_diag_id                   : integer                        := 0;
-    g_diag_ver                  : integer                        := 0;
+    g_diag_id                   : integer              := 0;
+    g_diag_ver                  : integer              := 0;
     -- size the generic diag interface
-    g_diag_ro_size              : integer                        := 0;
-    g_diag_rw_size              : integer                        := 0
+    g_diag_ro_size              : integer              := 0;
+    g_diag_rw_size              : integer              := 0
     );
   port (
     ---------------------------------------------------------------------------
     -- Clocks/resets
     ---------------------------------------------------------------------------
-
     -- Clock inputs from the board
-    clk_board_125m_i : in std_logic;
-    clk_board_20m_i  : in std_logic;
-
+    clk_board_125m_i : in  std_logic;
+    clk_board_20m_i  : in  std_logic;
+    -- Aux clocks, which can be disciplined by the WR Core
+    clk_aux_i        : in  std_logic_vector(g_aux_clks-1 downto 0) := (others => '0');
     -- 10MHz ext ref clock input (g_with_external_clock_input = TRUE)
-    clk_ext_10m_i : in std_logic := '0';
-
+    clk_ext_10m_i    : in  std_logic                               := '0';
+    -- External PPS input (g_with_external_clock_input = TRUE)
+    pps_ext_i        : in  std_logic                               := '0';
     -- Reset input (active low, can be async)
-    areset_n_i : in std_logic;
-
+    areset_n_i       : in  std_logic;
     -- 62.5MHz sys clock output
-    clk_sys_62m5_o : out std_logic;
-
+    clk_sys_62m5_o   : out std_logic;
     -- 125MHz ref clock output
-    clk_ref_125m_o : out std_logic;
-
-    -- active low reset output, synchronous to clk_sys_62m5_o
+    clk_ref_125m_o   : out std_logic;
+    -- active low reset outputs, synchronous to 62m5 and 125m clocks
     rst_sys_62m5_n_o : out std_logic;
+    rst_ref_125m_n_o : out std_logic;
 
     ---------------------------------------------------------------------------
     -- SPI interfaces to DACs
     ---------------------------------------------------------------------------
-
     dac_ref_sync_n_o  : out std_logic;
     dac_dmtd_sync_n_o : out std_logic;
     dac_din_o         : out std_logic;
@@ -111,26 +111,22 @@ entity xwrc_board_vfchd is
     ---------------------------------------------------------------------------
     -- SFP I/O for transceiver and SFP management info from VFC-HD
     ---------------------------------------------------------------------------
-
-    sfp_tx_o : out std_logic;
-    sfp_rx_i : in  std_logic;
-
+    sfp_tx_o         : out std_logic;
+    sfp_rx_i         : in  std_logic;
     -- HIGH if both of the following are true:
     -- 1. SFP is detected (plugged in)
     -- 2. The part number has been successfully read after the SFP detection
-    sfp_det_valid_i : in std_logic;
+    sfp_det_valid_i  : in  std_logic := '0';
     -- 16 byte vendor Part Number (PN)
     -- (ASCII encoded, first character byte in bits 127 downto 120)
-    sfp_data_i      : in std_logic_vector (127 downto 0);
-
-    sfp_tx_fault_i   : in  std_logic;
-    sfp_los_i        : in  std_logic;
+    sfp_data_i       : in  std_logic_vector (127 downto 0);
+    sfp_tx_fault_i   : in  std_logic := '0';
     sfp_tx_disable_o : out std_logic;
+    sfp_los_i        : in  std_logic := '0';
 
     ---------------------------------------------------------------------------
     -- I2C EEPROM
     ---------------------------------------------------------------------------
-
     eeprom_sda_i : in  std_logic;
     eeprom_sda_o : out std_logic;
     eeprom_scl_i : in  std_logic;
@@ -139,21 +135,18 @@ entity xwrc_board_vfchd is
     ---------------------------------------------------------------------------
     -- Onewire interface
     ---------------------------------------------------------------------------
-
     onewire_i     : in  std_logic;
     onewire_oen_o : out std_logic;
 
     ---------------------------------------------------------------------------
     -- External WB interface
     ---------------------------------------------------------------------------
-
     wb_slave_o : out t_wishbone_slave_out;
     wb_slave_i : in  t_wishbone_slave_in := cc_dummy_slave_in;
 
     ---------------------------------------------------------------------------
     -- WR fabric interface (when g_fabric_iface = "plain")
     ---------------------------------------------------------------------------
-
     wrf_src_o : out t_wrf_source_out;
     wrf_src_i : in  t_wrf_source_in := c_dummy_src_in;
     wrf_snk_o : out t_wrf_sink_out;
@@ -162,44 +155,71 @@ entity xwrc_board_vfchd is
     ---------------------------------------------------------------------------
     -- WR streamers (when g_fabric_iface = "streamers")
     ---------------------------------------------------------------------------
-
     wrs_tx_data_i  : in  std_logic_vector(g_tx_streamer_width-1 downto 0) := (others => '0');
-    wrs_tx_valid_i : in  std_logic                                     := '0';
+    wrs_tx_valid_i : in  std_logic                                        := '0';
     wrs_tx_dreq_o  : out std_logic;
-    wrs_tx_last_i  : in  std_logic                                     := '1';
-    wrs_tx_flush_i : in  std_logic                                     := '0';
+    wrs_tx_last_i  : in  std_logic                                        := '1';
+    wrs_tx_flush_i : in  std_logic                                        := '0';
     wrs_rx_first_o : out std_logic;
     wrs_rx_last_o  : out std_logic;
     wrs_rx_data_o  : out std_logic_vector(g_rx_streamer_width-1 downto 0);
     wrs_rx_valid_o : out std_logic;
-    wrs_rx_dreq_i  : in  std_logic                                     := '0';
+    wrs_rx_dreq_i  : in  std_logic                                        := '0';
 
     ---------------------------------------------------------------------------
     -- Etherbone WB master interface (when g_fabric_iface = "etherbone")
     ---------------------------------------------------------------------------
-
     wb_eth_master_o : out t_wishbone_master_out;
     wb_eth_master_i : in  t_wishbone_master_in := cc_dummy_master_in;
 
     ---------------------------------------------------------------------------
     -- Generic diagnostics interface (access from WRPC via SNMP or uart console
     ---------------------------------------------------------------------------
-
-    aux_diag_i           : in  t_generic_word_array(g_diag_ro_size-1 downto 0) := (others =>(others=>'0'));
-    aux_diag_o           : out t_generic_word_array(g_diag_rw_size-1 downto 0);
+    aux_diag_i : in  t_generic_word_array(g_diag_ro_size-1 downto 0) := (others => (others => '0'));
+    aux_diag_o : out t_generic_word_array(g_diag_rw_size-1 downto 0);
 
     ---------------------------------------------------------------------------
-    -- WRPC timing interface and status
+    -- Aux clocks control
     ---------------------------------------------------------------------------
+    tm_dac_value_o       : out std_logic_vector(23 downto 0);
+    tm_dac_wr_o          : out std_logic_vector(g_aux_clks-1 downto 0);
+    tm_clk_aux_lock_en_i : in  std_logic_vector(g_aux_clks-1 downto 0) := (others => '0');
+    tm_clk_aux_locked_o  : out std_logic_vector(g_aux_clks-1 downto 0);
 
-    pps_ext_i       : in  std_logic                                    := '0';
-    pps_p_o         : out std_logic;
-    pps_led_o       : out std_logic;
+    ---------------------------------------------------------------------------
+    -- External Tx Timestamping I/F
+    ---------------------------------------------------------------------------
+    timestamps_o     : out t_txtsu_timestamp;
+    timestamps_ack_i : in  std_logic := '1';
+
+    ---------------------------------------------------------------------------
+    -- Pause Frame Control
+    ---------------------------------------------------------------------------
+    fc_tx_pause_req_i   : in  std_logic                     := '0';
+    fc_tx_pause_delay_i : in  std_logic_vector(15 downto 0) := x"0000";
+    fc_tx_pause_ready_o : out std_logic;
+
+    ---------------------------------------------------------------------------
+    -- Timecode I/F
+    ---------------------------------------------------------------------------
+    tm_link_up_o    : out std_logic;
     tm_time_valid_o : out std_logic;
     tm_tai_o        : out std_logic_vector(39 downto 0);
     tm_cycles_o     : out std_logic_vector(27 downto 0);
-    led_link_o      : out std_logic;
-    led_act_o       : out std_logic);
+
+    ---------------------------------------------------------------------------
+    -- Buttons, LEDs and PPS output
+    ---------------------------------------------------------------------------
+    led_act_o  : out std_logic;
+    led_link_o : out std_logic;
+    btn1_i     : in  std_logic := '1';
+    btn2_i     : in  std_logic := '1';
+    -- 1PPS output
+    pps_p_o    : out std_logic;
+    pps_led_o  : out std_logic;
+    -- Link ok indication
+    link_ok_o  : out std_logic
+    );
 
 end entity xwrc_board_vfchd;
 
@@ -220,8 +240,8 @@ architecture struct of xwrc_board_vfchd is
   -- Reset logic
   signal rst_62m5_n       : std_logic;
   signal rstlogic_arst_n  : std_logic;
-  signal rstlogic_clk_in  : std_logic_vector(0 downto 0);
-  signal rstlogic_rst_out : std_logic_vector(0 downto 0);
+  signal rstlogic_clk_in  : std_logic_vector(1 downto 0);
+  signal rstlogic_rst_out : std_logic_vector(1 downto 0);
 
   -- PLL DAC ARB
   signal dac_sync_n       : std_logic_vector(1 downto 0);
@@ -298,10 +318,11 @@ begin  -- architecture struct
 
   -- concatenation of all clocks required to have synced resets
   rstlogic_clk_in(0) <= clk_pll_62m5;
+  rstlogic_clk_in(1) <= clk_pll_125m;
 
   cmp_rstlogic_reset : gc_reset
     generic map (
-      g_clocks    => 1,                           -- 62.5MHz
+      g_clocks    => 2,                           -- 62.5MHz, 125MHz
       g_logdelay  => 4,                           -- 16 clock cycles
       g_syncdepth => 3)                           -- length of sync chains
     port map (
@@ -314,6 +335,7 @@ begin  -- architecture struct
   rst_62m5_n <= rstlogic_rst_out(0);
 
   rst_sys_62m5_n_o <= rst_62m5_n;
+  rst_ref_125m_n_o <= rstlogic_rst_out(1);
 
   -----------------------------------------------------------------------------
   -- SPI DAC (2-channel)
@@ -370,7 +392,7 @@ begin  -- architecture struct
       -- temporary, without it vuart receives but is not able to transmit
       g_phys_uart                 => TRUE,
       g_virtual_uart              => TRUE,
-      g_aux_clks                  => 0,
+      g_aux_clks                  => g_aux_clks,
       g_ep_rxbuf_size             => 1024,
       g_tx_runt_padding           => TRUE,
       g_dpram_initf               => g_dpram_initf,
@@ -393,7 +415,7 @@ begin  -- architecture struct
       clk_sys_i            => clk_pll_62m5,
       clk_dmtd_i           => clk_pll_dmtd,
       clk_ref_i            => clk_pll_125m,
-      clk_aux_i            => (others => '0'),
+      clk_aux_i            => clk_aux_i,
       clk_ext_i            => clk_10m_ext,
       clk_ext_mul_i        => ext_ref_mul,
       clk_ext_mul_locked_i => ext_ref_mul_locked,
@@ -409,8 +431,6 @@ begin  -- architecture struct
       phy8_i               => phy8_to_wrc,
       phy16_o              => phy16_from_wrc,
       phy16_i              => phy16_to_wrc,
-      led_act_o            => led_act_o,
-      led_link_o           => led_link_o,
       scl_o                => eeprom_scl_o,
       scl_i                => eeprom_scl_i,
       sda_o                => eeprom_sda_o,
@@ -420,8 +440,6 @@ begin  -- architecture struct
       sfp_sda_o            => sfp_i2c_sda_in,
       sfp_sda_i            => not sfp_i2c_sda_en,
       sfp_det_i            => not sfp_det_valid_i,  -- WRPC-SW expects this active low
-      btn1_i               => '1',
-      btn2_i               => '1',
       spi_sclk_o           => open,
       spi_ncs_o            => open,
       spi_mosi_o           => open,
@@ -449,23 +467,27 @@ begin  -- architecture struct
       wrs_rx_dreq_i        => wrs_rx_dreq_i,
       wb_eth_master_o      => wb_eth_master_o,
       wb_eth_master_i      => wb_eth_master_i,
-      timestamps_o         => open,
-      timestamps_ack_i     => '1',
-      fc_tx_pause_req_i    => '0',
-      fc_tx_pause_delay_i  => (others => '0'),
-      fc_tx_pause_ready_o  => open,
-      tm_link_up_o         => open,
-      tm_dac_value_o       => open,
-      tm_dac_wr_o          => open,
-      tm_clk_aux_lock_en_i => (others => '0'),
-      tm_clk_aux_locked_o  => open,
+      aux_diag_i           => aux_diag_i,
+      aux_diag_o           => aux_diag_o,
+      tm_dac_value_o       => tm_dac_value_o,
+      tm_dac_wr_o          => tm_dac_wr_o,
+      tm_clk_aux_lock_en_i => tm_clk_aux_lock_en_i,
+      tm_clk_aux_locked_o  => tm_clk_aux_locked_o,
+      timestamps_o         => timestamps_o,
+      timestamps_ack_i     => timestamps_ack_i,
+      fc_tx_pause_req_i    => fc_tx_pause_req_i,
+      fc_tx_pause_delay_i  => fc_tx_pause_delay_i,
+      fc_tx_pause_ready_o  => fc_tx_pause_ready_o,
+      tm_link_up_o         => tm_link_up_o,
       tm_time_valid_o      => tm_time_valid_o,
       tm_tai_o             => tm_tai_o,
       tm_cycles_o          => tm_cycles_o,
+      led_act_o            => led_act_o,
+      led_link_o           => led_link_o,
+      btn1_i               => btn1_i,
+      btn2_i               => btn2_i,
       pps_p_o              => pps_p_o,
       pps_led_o            => pps_led_o,
-      aux_diag_i           => aux_diag_i,
-      aux_diag_o           => aux_diag_o,
-      link_ok_o            => open);
+      link_ok_o            => link_ok_o);
 
 end architecture struct;

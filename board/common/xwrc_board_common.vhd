@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-22
--- Last update: 2017-03-07
+-- Last update: 2017-03-08
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Wrapper for WR PTP core with common features shared between
@@ -120,21 +120,25 @@ entity xwrc_board_common is
     phy16_i : in  t_phy_16bits_to_wrc := c_dummy_phy16_to_wrc;
 
     ---------------------------------------------------------------------------
-    --GPIO
+    -- I2C EEPROM
     ---------------------------------------------------------------------------
-    led_act_o  : out std_logic;
-    led_link_o : out std_logic;
-    scl_o      : out std_logic;
-    scl_i      : in  std_logic := '1';
-    sda_o      : out std_logic;
-    sda_i      : in  std_logic := '1';
-    sfp_scl_o  : out std_logic;
-    sfp_scl_i  : in  std_logic := '1';
-    sfp_sda_o  : out std_logic;
-    sfp_sda_i  : in  std_logic := '1';
-    sfp_det_i  : in  std_logic;
-    btn1_i     : in  std_logic := '1';
-    btn2_i     : in  std_logic := '1';
+    scl_o : out std_logic;
+    scl_i : in  std_logic := '1';
+    sda_o : out std_logic;
+    sda_i : in  std_logic := '1';
+
+    ---------------------------------------------------------------------------
+    -- SFP management info
+    ---------------------------------------------------------------------------
+    sfp_scl_o : out std_logic;
+    sfp_scl_i : in  std_logic := '1';
+    sfp_sda_o : out std_logic;
+    sfp_sda_i : in  std_logic := '1';
+    sfp_det_i : in  std_logic;
+
+    ---------------------------------------------------------------------------
+    -- Flash memory SPI interface
+    ---------------------------------------------------------------------------
     spi_sclk_o : out std_logic;
     spi_ncs_o  : out std_logic;
     spi_mosi_o : out std_logic;
@@ -174,21 +178,35 @@ entity xwrc_board_common is
     -- WR streamers (when g_fabric_iface = STREAMERS)
     ---------------------------------------------------------------------------
     wrs_tx_data_i  : in  std_logic_vector(g_tx_streamer_width-1 downto 0) := (others => '0');
-    wrs_tx_valid_i : in  std_logic                                     := '0';
+    wrs_tx_valid_i : in  std_logic                                        := '0';
     wrs_tx_dreq_o  : out std_logic;
-    wrs_tx_last_i  : in  std_logic                                     := '1';
-    wrs_tx_flush_i : in  std_logic                                     := '0';
+    wrs_tx_last_i  : in  std_logic                                        := '1';
+    wrs_tx_flush_i : in  std_logic                                        := '0';
     wrs_rx_first_o : out std_logic;
     wrs_rx_last_o  : out std_logic;
     wrs_rx_data_o  : out std_logic_vector(g_rx_streamer_width-1 downto 0);
     wrs_rx_valid_o : out std_logic;
-    wrs_rx_dreq_i  : in  std_logic                                     := '0';
+    wrs_rx_dreq_i  : in  std_logic                                        := '0';
 
     ---------------------------------------------------------------------------
     -- Etherbone WB master interface (when g_fabric_iface = ETHERBONE)
     ---------------------------------------------------------------------------
     wb_eth_master_o : out t_wishbone_master_out;
     wb_eth_master_i : in  t_wishbone_master_in := cc_dummy_master_in;
+
+    ---------------------------------------------------------------------------
+    -- Generic diagnostics interface (access from WRPC via SNMP or uart console
+    ---------------------------------------------------------------------------
+    aux_diag_i : in  t_generic_word_array(g_diag_ro_size-1 downto 0) := (others => (others => '0'));
+    aux_diag_o : out t_generic_word_array(g_diag_rw_size-1 downto 0);
+
+    ---------------------------------------------------------------------------
+    -- Aux clocks control
+    ---------------------------------------------------------------------------
+    tm_dac_value_o       : out std_logic_vector(23 downto 0);
+    tm_dac_wr_o          : out std_logic_vector(g_aux_clks-1 downto 0);
+    tm_clk_aux_lock_en_i : in  std_logic_vector(g_aux_clks-1 downto 0) := (others => '0');
+    tm_clk_aux_locked_o  : out std_logic_vector(g_aux_clks-1 downto 0);
 
     ---------------------------------------------------------------------------
     -- External Tx Timestamping I/F
@@ -204,29 +222,25 @@ entity xwrc_board_common is
     fc_tx_pause_ready_o : out std_logic;
 
     ---------------------------------------------------------------------------
-    -- Timecode/Servo Control
+    -- Timecode I/F
     ---------------------------------------------------------------------------
-    tm_link_up_o         : out std_logic;
-    -- DAC Control
-    tm_dac_value_o       : out std_logic_vector(23 downto 0);
-    tm_dac_wr_o          : out std_logic_vector(g_aux_clks-1 downto 0);
-    -- Aux clock lock enable
-    tm_clk_aux_lock_en_i : in  std_logic_vector(g_aux_clks-1 downto 0) := (others => '0');
-    -- Aux clock locked flag
-    tm_clk_aux_locked_o  : out std_logic_vector(g_aux_clks-1 downto 0);
-    -- Timecode output
-    tm_time_valid_o      : out std_logic;
-    tm_tai_o             : out std_logic_vector(39 downto 0);
-    tm_cycles_o          : out std_logic_vector(27 downto 0);
+    tm_link_up_o    : out std_logic;
+    tm_time_valid_o : out std_logic;
+    tm_tai_o        : out std_logic_vector(39 downto 0);
+    tm_cycles_o     : out std_logic_vector(27 downto 0);
+
+    ---------------------------------------------------------------------------
+    -- Buttons, LEDs and PPS output
+    ---------------------------------------------------------------------------
+    led_act_o  : out std_logic;
+    led_link_o : out std_logic;
+    btn1_i     : in  std_logic := '1';
+    btn2_i     : in  std_logic := '1';
     -- 1PPS output
-    pps_p_o              : out std_logic;
-    pps_led_o            : out std_logic;
-
-    -- access from WRPC (via SNMP or uart console) to applications for diagnostics (generic)
-    aux_diag_i           : in  t_generic_word_array(g_diag_ro_size-1 downto 0) := (others =>(others=>'0'));
-    aux_diag_o           : out t_generic_word_array(g_diag_rw_size-1 downto 0);
-
-    link_ok_o : out std_logic
+    pps_p_o    : out std_logic;
+    pps_led_o  : out std_logic;
+    -- Link ok indication
+    link_ok_o  : out std_logic
     );
 
 end entity xwrc_board_common;
@@ -262,16 +276,16 @@ architecture struct of xwrc_board_common is
   -- Application diagnostic words are added after streamer's diagnostics in the array that
   -- goes to/from WRPC
 
-  constant c_streamers_diag_id  : integer := 1; -- id reserved for streamers
-  constant c_streamers_diag_ver : integer := 1; -- version that will be probably increased
-                                                -- when more diagnostics is added to streamers
+  constant c_streamers_diag_id  : integer := 1;   -- id reserved for streamers
+  constant c_streamers_diag_ver : integer := 1;  -- version that will be probably increased
+  -- when more diagnostics is added to streamers
 
   -- final values that go to WRPC generics (depend on configuration)
-  constant c_diag_id      : integer := f_pick_diag_val(g_fabric_iface,c_streamers_diag_id, g_diag_id);
-  constant c_diag_ver     : integer := f_pick_diag_val(g_fabric_iface,c_streamers_diag_id, g_diag_id);
+  constant c_diag_id  : integer := f_pick_diag_val(g_fabric_iface, c_streamers_diag_id, g_diag_id);
+  constant c_diag_ver : integer := f_pick_diag_val(g_fabric_iface, c_streamers_diag_id, g_diag_id);
 
   constant c_diag_ro_size : integer := f_pick_diag_size(g_fabric_iface, c_WR_TRANS_ARR_SIZE_OUT, g_diag_ro_size);
-  constant c_diag_rw_size : integer := f_pick_diag_size(g_fabric_iface, c_WR_TRANS_ARR_SIZE_IN,  g_diag_rw_size);
+  constant c_diag_rw_size : integer := f_pick_diag_size(g_fabric_iface, c_WR_TRANS_ARR_SIZE_IN, g_diag_rw_size);
 
   -- WR SNMP
   signal aux_diag_in  : t_generic_word_array(c_diag_ro_size-1 downto 0);
@@ -285,7 +299,7 @@ begin  -- architecture struct
   -- check whether diag id and version are correct, i.e.:
   -- * diag_id =1 is reserved for wr_streamers and cannot be used
   -- * diag_ver values should start with 1
-  f_check_diag_id(g_diag_id,g_diag_ver);
+  f_check_diag_id(g_diag_id, g_diag_ver);
 
   -----------------------------------------------------------------------------
   -- The WR PTP core itself
@@ -300,7 +314,7 @@ begin  -- architecture struct
       g_aux_clks                  => g_aux_clks,
       g_ep_rxbuf_size             => g_ep_rxbuf_size,
       g_tx_runt_padding           => g_tx_runt_padding,
-      g_dpram_initf               => f_find_default_lm32_firmware(g_dpram_initf,g_simulation,g_pcs_16bit),
+      g_dpram_initf               => f_find_default_lm32_firmware(g_dpram_initf, g_simulation, g_pcs_16bit),
       g_dpram_size                => g_dpram_size,
       g_interface_mode            => g_interface_mode,
       g_address_granularity       => g_address_granularity,
@@ -373,8 +387,8 @@ begin  -- architecture struct
       owr_pwren_o          => owr_pwren_o,
       owr_en_o             => owr_en_o,
       owr_i                => owr_i,
-      slave_i              => slave_i,
-      slave_o              => slave_o,
+      slave_i              => wb_slave_i,
+      slave_o              => wb_slave_o,
       aux_master_o         => aux_master_out,
       aux_master_i         => aux_master_in,
       wrf_src_o            => wrf_src_out,
@@ -444,8 +458,8 @@ begin  -- architecture struct
     aux_master_o    <= cc_dummy_master_out;
     wb_eth_master_o <= cc_dummy_master_out;
 
-    aux_diag_in(c_diag_ro_size-1 downto c_WR_TRANS_ARR_SIZE_OUT)  <= aux_diag_i;
-    aux_diag_o <= aux_diag_out(c_diag_rw_size-1 downto c_WR_TRANS_ARR_SIZE_IN);
+    aux_diag_in(c_diag_ro_size-1 downto c_WR_TRANS_ARR_SIZE_OUT) <= aux_diag_i;
+    aux_diag_o                                                   <= aux_diag_out(c_diag_rw_size-1 downto c_WR_TRANS_ARR_SIZE_IN);
 
   end generate gen_wr_streamers;
 
