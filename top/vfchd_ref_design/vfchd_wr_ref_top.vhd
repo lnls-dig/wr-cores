@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-01-24
--- Last update: 2017-02-24
+-- Last update: 2017-03-10
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level file for the WRPC reference design on the VFC-HD.
@@ -404,7 +404,7 @@ begin  -- architecture top
     port map (
       clk_board_125m_i  => clk_board_125m_i,
       clk_board_20m_i   => clk_board_20m_i,
-      clk_ext_10m_i     => clk_ext_ref,
+      clk_10m_ext_i     => clk_ext_ref,
       areset_n_i        => areset_n_i,
       clk_sys_62m5_o    => clk_sys_62m5,
       clk_ref_125m_o    => clk_ref_125m,

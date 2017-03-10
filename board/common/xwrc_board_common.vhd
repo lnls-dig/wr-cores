@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-22
--- Last update: 2017-03-08
+-- Last update: 2017-03-10
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Wrapper for WR PTP core with common features shared between
@@ -90,7 +90,7 @@ entity xwrc_board_common is
     clk_aux_i : in std_logic_vector(g_aux_clks-1 downto 0) := (others => '0');
 
     -- External 10 MHz reference (cesium, GPSDO, etc.), used in Grandmaster mode
-    clk_ext_i : in std_logic := '0';
+    clk_10m_ext_i : in std_logic := '0';
 
     clk_ext_mul_i        : in  std_logic := '0';
     clk_ext_mul_locked_i : in  std_logic := '1';
@@ -332,7 +332,7 @@ begin  -- architecture struct
       clk_dmtd_i           => clk_dmtd_i,
       clk_ref_i            => clk_ref_i,
       clk_aux_i            => clk_aux_i,
-      clk_ext_i            => clk_ext_i,
+      clk_ext_i            => clk_10m_ext_i,
       clk_ext_mul_i        => clk_ext_mul_i,
       clk_ext_mul_locked_i => clk_ext_mul_locked_i,
       clk_ext_stopped_i    => clk_ext_stopped_i,

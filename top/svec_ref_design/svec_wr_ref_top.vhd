@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-16
--- Last update: 2017-02-22
+-- Last update: 2017-03-10
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level file for the WRPC reference design on the SVEC.
@@ -356,7 +356,7 @@ begin  -- architecture top
       clk_125m_pllref_n_i => clk_125m_pllref_n_i,
       clk_125m_gtp_n_i    => clk_125m_gtp_n_i,
       clk_125m_gtp_p_i    => clk_125m_gtp_p_i,
-      clk_10m_ext_ref_i   => clk_ext_ref,
+      clk_10m_ext_i       => clk_ext_ref,
       areset_n_i          => areset_n,
       clk_sys_62m5_o      => clk_sys_62m5,
       clk_ref_125m_o      => clk_ref_125m,

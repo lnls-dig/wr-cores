@@ -28,7 +28,7 @@ package wr_vfchd_pkg is
       clk_board_125m_i     : in  std_logic;
       clk_board_20m_i      : in  std_logic;
       clk_aux_i            : in  std_logic_vector(g_aux_clks-1 downto 0)          := (others => '0');
-      clk_ext_10m_i        : in  std_logic                                        := '0';
+      clk_10m_ext_i        : in  std_logic                                        := '0';
       pps_ext_i            : in  std_logic                                        := '0';
       areset_n_i           : in  std_logic;
       clk_sys_62m5_o       : out std_logic;
@@ -112,7 +112,7 @@ package wr_vfchd_pkg is
       clk_board_125m_i     : in  std_logic;
       clk_board_20m_i      : in  std_logic;
       clk_aux_i            : in  std_logic_vector(g_aux_clks-1 downto 0)                 := (others => '0');
-      clk_ext_10m_i        : in  std_logic                                               := '0';
+      clk_10m_ext_i        : in  std_logic                                               := '0';
       pps_ext_i            : in  std_logic                                               := '0';
       areset_n_i           : in  std_logic;
       clk_sys_62m5_o       : out std_logic;

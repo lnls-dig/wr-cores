@@ -7,7 +7,7 @@
 -- Author(s)  : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-17
--- Last update: 2017-03-08
+-- Last update: 2017-03-10
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -90,7 +90,7 @@ entity wrc_board_spec is
     clk_125m_gtp_n_i    : in  std_logic;
     clk_125m_gtp_p_i    : in  std_logic;
     -- 10MHz ext ref clock input (g_with_external_clock_input = TRUE)
-    clk_10m_ext_ref_i   : in  std_logic := '0';
+    clk_10m_ext_i       : in  std_logic := '0';
     -- External PPS input (g_with_external_clock_input = TRUE)
     pps_ext_i           : in  std_logic := '0';
     -- 62.5MHz sys clock output
@@ -393,7 +393,7 @@ begin  -- architecture struct
       clk_125m_pllref_n_i  => clk_125m_pllref_n_i,
       clk_125m_gtp_n_i     => clk_125m_gtp_n_i,
       clk_125m_gtp_p_i     => clk_125m_gtp_p_i,
-      clk_10m_ext_ref_i    => clk_10m_ext_ref_i,
+      clk_10m_ext_i        => clk_10m_ext_i,
       pps_ext_i            => pps_ext_i,
       clk_sys_62m5_o       => clk_sys_62m5_o,
       clk_ref_125m_o       => clk_ref_125m_o,

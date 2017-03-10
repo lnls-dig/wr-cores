@@ -7,7 +7,7 @@
 -- Author(s)  : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-17
--- Last update: 2017-03-08
+-- Last update: 2017-03-10
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -93,7 +93,7 @@ entity xwrc_board_spec is
     -- Aux clocks, which can be disciplined by the WR Core
     clk_aux_i           : in  std_logic_vector(g_aux_clks-1 downto 0) := (others => '0');
     -- 10MHz ext ref clock input (g_with_external_clock_input = TRUE)
-    clk_10m_ext_ref_i   : in  std_logic                               := '0';
+    clk_10m_ext_i       : in  std_logic                               := '0';
     -- External PPS input (g_with_external_clock_input = TRUE)
     pps_ext_i           : in  std_logic                               := '0';
     -- 62.5MHz sys clock output
@@ -309,7 +309,7 @@ begin  -- architecture struct
       g_simulation                => g_simulation)
     port map (
       areset_n_i            => areset_n_i,
-      clk_10m_ext_i         => clk_10m_ext_ref_i,
+      clk_10m_ext_i         => clk_10m_ext_i,
       clk_20m_vcxo_i        => clk_20m_vcxo_i,
       clk_125m_pllref_i     => clk_125m_pllref_buf,
       clk_125m_gtp_p_i      => clk_125m_gtp_p_i,
@@ -418,7 +418,7 @@ begin  -- architecture struct
       clk_dmtd_i           => clk_pll_dmtd,
       clk_ref_i            => clk_pll_125m,
       clk_aux_i            => clk_aux_i,
-      clk_ext_i            => clk_10m_ext,
+      clk_10m_ext_i        => clk_10m_ext,
       clk_ext_mul_i        => ext_ref_mul,
       clk_ext_mul_locked_i => ext_ref_mul_locked,
       clk_ext_stopped_i    => ext_ref_mul_stopped,

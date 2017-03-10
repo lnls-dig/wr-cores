@@ -31,7 +31,7 @@ package wr_spec_pkg is
       clk_125m_gtp_n_i     : in  std_logic;
       clk_125m_gtp_p_i     : in  std_logic;
       clk_aux_i            : in  std_logic_vector(g_aux_clks-1 downto 0)          := (others => '0');
-      clk_10m_ext_ref_i    : in  std_logic                                        := '0';
+      clk_10m_ext_i        : in  std_logic                                        := '0';
       pps_ext_i            : in  std_logic                                        := '0';
       clk_sys_62m5_o       : out std_logic;
       clk_ref_125m_o       : out std_logic;
@@ -129,7 +129,7 @@ package wr_spec_pkg is
       clk_125m_pllref_n_i  : in  std_logic;
       clk_125m_gtp_n_i     : in  std_logic;
       clk_125m_gtp_p_i     : in  std_logic;
-      clk_10m_ext_ref_i    : in  std_logic                                               := '0';
+      clk_10m_ext_i        : in  std_logic                                               := '0';
       pps_ext_i            : in  std_logic                                               := '0';
       clk_sys_62m5_o       : out std_logic;
       clk_ref_125m_o       : out std_logic;

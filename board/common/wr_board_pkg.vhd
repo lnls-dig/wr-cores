@@ -87,7 +87,7 @@ package wr_board_pkg is
       clk_dmtd_i           : in  std_logic;
       clk_ref_i            : in  std_logic;
       clk_aux_i            : in  std_logic_vector(g_aux_clks-1 downto 0)          := (others => '0');
-      clk_ext_i            : in  std_logic                                        := '0';
+      clk_10m_ext_i        : in  std_logic                                        := '0';
       clk_ext_mul_i        : in  std_logic                                        := '0';
       clk_ext_mul_locked_i : in  std_logic                                        := '1';
       clk_ext_stopped_i    : in  std_logic                                        := '0';
