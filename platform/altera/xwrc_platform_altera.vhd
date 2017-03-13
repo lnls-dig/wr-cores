@@ -329,7 +329,7 @@ begin  -- architecture rtl
     phy_rst          <= phy16_i.rst;
     phy_tx_data      <= phy16_i.tx_data;
     phy_tx_k         <= phy16_i.tx_k;
-    sfp_tx_disable_o <= phy8_i.sfp_tx_disable;
+    sfp_tx_disable_o <= phy16_i.sfp_tx_disable;
 
     phy16_o.ref_clk      <= phy_tx_clk;
     phy16_o.tx_disparity <= phy_tx_disparity;
