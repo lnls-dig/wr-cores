@@ -3,8 +3,8 @@
 #  http://ohwr.org/projects/hdl-make/  #
 ########################################
 
-PROJECT := spec_wr_ref.xise
-ISE_CRAP := *.b spec_wr_ref_top_summary.html *.tcl spec_wr_ref_top.bld spec_wr_ref_top.cmd_log *.drc spec_wr_ref_top.lso *.ncd spec_wr_ref_top.ngc spec_wr_ref_top.ngd spec_wr_ref_top.ngr spec_wr_ref_top.pad spec_wr_ref_top.par spec_wr_ref_top.pcf spec_wr_ref_top.prj spec_wr_ref_top.ptwx spec_wr_ref_top.stx spec_wr_ref_top.syr spec_wr_ref_top.twr spec_wr_ref_top.twx spec_wr_ref_top.gise $(PROJECT).gise spec_wr_ref_top.bgn spec_wr_ref_top.unroutes spec_wr_ref_top.ut spec_wr_ref_top.xpi spec_wr_ref_top.xst spec_wr_ref_top_bitgen.xwbt spec_wr_ref_top_envsettings.html spec_wr_ref_top_guide.ncd spec_wr_ref_top_map.map spec_wr_ref_top_map.mrp spec_wr_ref_top_map.ncd spec_wr_ref_top_map.ngm spec_wr_ref_top_map.xrpt spec_wr_ref_top_ngdbuild.xrpt spec_wr_ref_top_pad.csv spec_wr_ref_top_pad.txt spec_wr_ref_top_par.xrpt spec_wr_ref_top_summary.xml spec_wr_ref_top_usage.xml spec_wr_ref_top_xst.xrpt usage_statistics_webtalk.html par_usage_statistics.html webtalk.log webtalk_pn.xml run.tcl
+PROJECT := svec_wr_ref.xise
+ISE_CRAP := *.b svec_wr_ref_top_summary.html *.tcl svec_wr_ref_top.bld svec_wr_ref_top.cmd_log *.drc svec_wr_ref_top.lso *.ncd svec_wr_ref_top.ngc svec_wr_ref_top.ngd svec_wr_ref_top.ngr svec_wr_ref_top.pad svec_wr_ref_top.par svec_wr_ref_top.pcf svec_wr_ref_top.prj svec_wr_ref_top.ptwx svec_wr_ref_top.stx svec_wr_ref_top.syr svec_wr_ref_top.twr svec_wr_ref_top.twx svec_wr_ref_top.gise $(PROJECT).gise svec_wr_ref_top.bgn svec_wr_ref_top.unroutes svec_wr_ref_top.ut svec_wr_ref_top.xpi svec_wr_ref_top.xst svec_wr_ref_top_bitgen.xwbt svec_wr_ref_top_envsettings.html svec_wr_ref_top_guide.ncd svec_wr_ref_top_map.map svec_wr_ref_top_map.mrp svec_wr_ref_top_map.ncd svec_wr_ref_top_map.ngm svec_wr_ref_top_map.xrpt svec_wr_ref_top_ngdbuild.xrpt svec_wr_ref_top_pad.csv svec_wr_ref_top_pad.txt svec_wr_ref_top_par.xrpt svec_wr_ref_top_summary.xml svec_wr_ref_top_usage.xml svec_wr_ref_top_xst.xrpt usage_statistics_webtalk.html par_usage_statistics.html webtalk.log webtalk_pn.xml run.tcl
 
 #target for performing local synthesis
 local: syn_pre_cmd check_tool generate_tcl synthesis syn_post_cmd
@@ -43,7 +43,7 @@ mrproper:
 USER:=$(HDLMAKE_RSYNTH_USER)# take the value from the environment
 SERVER:=$(HDLMAKE_RSYNTH_SERVER)# take the value from the environment
 ISE_PATH:=$(HDLMAKE_RSYNTH_ISE_PATH)
-R_NAME:=greg/spec_wr_ref
+R_NAME:=greg/svec_wr_ref
 PORT:=22
 
 __test_for_remote_synthesis_variables:
@@ -73,14 +73,11 @@ FILES := ../../modules/wr_pps_gen/wr_pps_gen.vhd \
 ../../modules/wr_softpll_ng/spll_aligner.vhd \
 ../../modules/wr_eca/eca_msi.vhd \
 ../../modules/wr_endpoint/wr_endpoint.vhd \
-run.tcl \
 ../../modules/wr_tlu/tlu_fsm.vhd \
-../../ip_cores/gn4124-core/hdl/gn4124core/rtl/spartan6/l2p_ser.vhd \
+../../ip_cores/general-cores/modules/genrams/generic/generic_sync_fifo.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_irq/wb_irq_timer.vhd \
 ../../modules/wr_eca/eca_ac_wbm_auto.vhd \
 ../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_eth_rx.vhd \
-../../board/spec/xwrc_board_spec.vhd \
-spec_wr_ref.xise \
 ../../ip_cores/general-cores/modules/genrams/xilinx/generic_simple_dpram.vhd \
 ../../modules/timing/dmtd_phase_meas.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_uart/uart_async_tx.vhd \
@@ -98,6 +95,7 @@ spec_wr_ref.xise \
 ../../ip_cores/general-cores/modules/wishbone/wb_i2c_master/wb_i2c_master.vhd \
 ../../ip_cores/general-cores/modules/common/gc_async_signals_input_stage.vhd \
 ../../modules/wr_tlu/tlu.vhd \
+../../top/svec_ref_design/svec_wr_ref_top.ucf \
 ../../modules/wr_softpll_ng/spll_wb_slave.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_simple_pwm/wb_simple_pwm.vhd \
 ../../modules/wr_streamers/rx_streamer.vhd \
@@ -133,8 +131,8 @@ spec_wr_ref.xise \
 ../../modules/wrc_core/wb_reset.vhd \
 ../../modules/wr_eca/eca_tag_channel.vhd \
 ../../ip_cores/vme64x-core/hdl/vme64x-core/rtl/VME_CSR_pack.vhd \
+../../board/svec/wr_svec_pkg.vhd \
 ../../ip_cores/general-cores/modules/common/gc_serial_dac.vhd \
-../../top/spec_ref_design/spec_wr_ref_top.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_uart/xwb_simple_uart.vhd \
 ../../modules/wr_endpoint/ep_leds_controller.vhd \
 ../../modules/wr_endpoint/ep_packet_filter.vhd \
@@ -148,7 +146,6 @@ spec_wr_ref.xise \
 ../../modules/wr_endpoint/ep_tx_pcs_16bit.vhd \
 ../../modules/wrc_core/wrc_periph.vhd \
 ../../modules/wr_eca/eca_pkg.vhd \
-../../board/spec/wr_spec_pkg.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_gpio_port/xwb_gpio_port.vhd \
 ../../ip_cores/general-cores/modules/common/gc_pulse_synchronizer2.vhd \
 ../../ip_cores/general-cores/modules/common/gc_prio_encoder.vhd \
@@ -159,6 +156,7 @@ spec_wr_ref.xise \
 ../../ip_cores/general-cores/platform/xilinx/wb_xilinx_fpga_loader/wb_xilinx_fpga_loader.vhd \
 ../../modules/fabric/xwrf_loopback/lbk_pkg.vhd \
 ../../ip_cores/gn4124-core/hdl/gn4124core/rtl/spartan6/gn4124_core_pkg.vhd \
+../../ip_cores/gn4124-core/hdl/gn4124core/rtl/spartan6/l2p_ser.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wishbone_pkg.vhd \
 ../../modules/wr_endpoint/ep_rx_crc_size_check.vhd \
 ../../modules/wr_streamers/wr_transmission_wb.vhd \
@@ -190,6 +188,7 @@ spec_wr_ref.xise \
 ../../modules/wr_softpll_ng/spll_wbgen2_pkg.vhd \
 ../../modules/wr_streamers/wr_transmission_wbgen2_pkg.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_i2c_bridge/wb_i2c_bridge.vhd \
+../../board/svec/xwrc_board_svec.vhd \
 ../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_wbm_fifo.vhd \
 ../../modules/wr_eca/eca.vhd \
 ../../modules/wr_endpoint/endpoint_private_pkg.vhd \
@@ -202,6 +201,7 @@ spec_wr_ref.xise \
 ../../modules/wr_softpll_ng/spll_period_detect.vhd \
 ../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_internals_pkg.vhd \
 ../../modules/wr_eca/eca_ac_wbm.vhd \
+svec_wr_ref.xise \
 ../../platform/xilinx/wr_gtp_phy/wr_gtx_phy_virtex6.vhd \
 ../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_stream_narrow.vhd \
 ../../modules/wr_endpoint/ep_clock_alignment_fifo.vhd \
@@ -224,7 +224,7 @@ spec_wr_ref.xise \
 ../../modules/wr_streamers/tx_streamer.vhd \
 ../../platform/xilinx/wr_gtp_phy/whiterabbit_gtxe2_channel_wrapper_gt.vhd \
 ../../ip_cores/etherbone-core/hdl/eb_master_core/eb_master_slave_wrapper.vhd \
-../../ip_cores/general-cores/modules/genrams/generic/generic_sync_fifo.vhd \
+../../top/svec_ref_design/svec_wr_ref_top.vhd \
 ../../modules/fabric/xwrf_loopback/wrf_loopback.vhd \
 ../../modules/wr_endpoint/ep_tx_inject_ctrl.vhd \
 ../../modules/wr_tlu/tlu_pkg.vhd \
@@ -262,7 +262,6 @@ spec_wr_ref.xise \
 ../../modules/wr_eca/eca_piso_fifo.vhd \
 ../../modules/wrc_core/wrc_dpram.vhd \
 ../../ip_cores/general-cores/platform/xilinx/wb_xilinx_fpga_loader/xloader_registers_pkg.vhd \
-../../top/spec_ref_design/spec_wr_ref_top.ucf \
 ../../ip_cores/vme64x-core/hdl/vme64x-core/rtl/vme64x_pack.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_dpram/xwb_dpram.vhd \
 ../../modules/wr_dacs/spec_serial_dac.vhd \
@@ -280,6 +279,7 @@ spec_wr_ref.xise \
 ../../ip_cores/general-cores/modules/common/gc_word_packer.vhd \
 ../../platform/xilinx/wr_gtp_phy/whiterabbitgtx_wrapper_gtx.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wbgen2/wbgen2_pkg.vhd \
+../../board/svec/wrc_board_svec.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_lm32/platform/spartan6/jtag_tap.v \
 ../../ip_cores/general-cores/modules/common/gc_i2c_slave.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_vic/wb_slave_vic.vhd \
@@ -374,6 +374,7 @@ spec_wr_ref.xise \
 ../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_eth_tx.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_uart/simple_uart_wb.vhd \
 ../../ip_cores/general-cores/modules/common/gc_extend_pulse.vhd \
+run.tcl \
 ../../ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_adder.v \
 ../../ip_cores/general-cores/modules/wishbone/wb_lm32/platform/spartan6/lm32_multiplier.v \
 ../../ip_cores/general-cores/modules/common/gc_delay_gen.vhd \
@@ -390,7 +391,6 @@ spec_wr_ref.xise \
 ../../ip_cores/general-cores/modules/wishbone/wb_crossbar/xwb_sdb_crossbar.vhd \
 ../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_ethernet_slave.vhd \
 ../../ip_cores/gn4124-core/hdl/gn4124core/rtl/spartan6/serdes_1_to_n_data_s2_se.vhd \
-../../board/spec/wrc_board_spec.vhd \
 ../../ip_cores/vme64x-core/hdl/vme64x-core/rtl/VME_swapper.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_vic/wb_vic.vhd \
 ../../ip_cores/general-cores/modules/wishbone/wb_i2c_master/i2c_master_top.vhd \
