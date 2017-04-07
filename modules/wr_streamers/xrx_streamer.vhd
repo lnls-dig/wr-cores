@@ -235,7 +235,6 @@ architecture rtl of xrx_streamer is
   signal tx_tag_valid, rx_tag_valid   : std_logic;
 
   signal got_next_subframe : std_logic;
-  signal rst : std_logic;
   signal is_frame_seq_id : std_logic;
   signal word_count                                                        : unsigned(11 downto 0);
   signal sync_seq_no : std_logic;
@@ -255,7 +254,6 @@ architecture rtl of xrx_streamer is
 
 begin  -- rtl
 
-  rst <= not rst_n_i;
   U_rx_crc_generator : gc_crc_gen
     generic map (
       g_polynomial              => x"1021",

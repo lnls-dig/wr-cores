@@ -199,7 +199,6 @@ architecture rtl of xtx_streamer is
 
   signal tx_fifo_last, tx_fifo_we, tx_fifo_full, tx_fifo_empty, tx_fifo_rd : std_logic;
   signal tx_fifo_q, tx_fifo_d                                              : std_logic_vector(g_data_width downto 0);
-  signal tx_fifo_valid                                                     : std_logic;
   signal state                                                             : t_tx_state;
   signal seq_no, count                                                     : unsigned(14 downto 0);
   signal ser_count                                                         : unsigned(7 downto 0);
@@ -225,10 +224,9 @@ architecture rtl of xtx_streamer is
   signal tag_valid, tag_valid_latched : std_logic;
 
   signal reset_dly : std_logic;
-  signal rst : std_logic;
+
 begin  -- rtl
   
-  rst <= not rst_n_i;
   U_tx_crc_generator : gc_crc_gen
     generic map (
       g_polynomial              => x"1021",
@@ -360,17 +358,6 @@ begin  -- rtl
       end if;
     end if;
 
-  end process;
-
-  p_tx_fifo_valid : process(clk_sys_i)
-  begin
-    if rising_edge(clk_sys_i) then
-      if rst_n_i = '0' then
-        tx_fifo_valid <= '0';
-      else
-        tx_fifo_valid <= tx_fifo_rd and not tx_fifo_empty;
-      end if;
-    end if;
   end process;
 
   p_tx_timeout : process(clk_sys_i)
