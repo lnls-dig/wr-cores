@@ -5,7 +5,8 @@ sim_tool="modelsim"
 top_module="main"
 
 fetchto="../../../ip_cores"
-vlog_opt="+incdir+../../../sim"
+
+include_dirs=["../../../sim"]
 
 modules = { "local" : ["../../..",
                        "../../../modules/wr_streamers",

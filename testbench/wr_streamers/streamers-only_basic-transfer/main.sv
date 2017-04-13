@@ -14,7 +14,7 @@
 // in the RX streamer module.
 //
 
-`include "../../../sim/if_wb_link.svh"
+`include "if_wb_link.svh"
 
 `timescale 1ns/1ns
 
@@ -71,9 +71,11 @@ module main;
 
    // transfer queue. Used to pass sent data to the verification process.
    logic [g_record_size-1:0] queue[$];
+   
+   //generate 125 MHz WR Clock
+   always #4ns clk_ref <= ~clk_ref; 
 
-   always #4ns clk_ref <= ~clk_ref; //generate 125 MHz WR Clock
-
+   // WR clock cycle counter
    always@(posedge clk_ref)
      tm_cycle_counter <= tm_cycle_counter + 1;
    
@@ -86,7 +88,7 @@ module main;
           tx_counter <= 0;
        end else  begin
           // TX streamer is fed with a subsequent data word at random intervals (you can
-          // change the probability in the contition below). New value is sent only when
+          // change the probability in the condition below). New value is sent only when
           // the streamer can accept it (i.e. its tx_dreq_o output is active)
           if({$random} % 100 < 50 && tx_streamer_dreq) begin
              queue.push_back(tx_counter);
@@ -113,7 +115,7 @@ module main;
      (
       .clk_sys_i(clk),
       .rst_n_i  (rst),
-
+ 
       .src_dat_o  (mac.dat_i),
       .src_adr_o  (mac.adr),
       .src_sel_o  (mac.sel),
@@ -181,7 +183,7 @@ module main;
           rx_streamer_dreq <= 0;
        end else begin
           // throttle the RX path a little bit
-          rx_streamer_dreq <= {$random}%100 < 80;
+          rx_streamer_dreq  <= {$random}%100 < 80;
 
           if(rx_streamer_dvalid)
             begin
