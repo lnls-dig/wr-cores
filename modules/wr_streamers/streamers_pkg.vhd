@@ -9,9 +9,10 @@ package streamers_pkg is
   component xtx_streamer
     generic (
       g_data_width             : integer := 32;
-      g_tx_threshold           : integer := 16;
-      g_tx_max_words_per_frame : integer := 128;
-      g_tx_timeout             : integer := 128;
+      g_tx_buffer_size         : integer := 256;
+      g_tx_threshold           : integer := 128;
+      g_tx_max_words_per_frame : integer := 256;
+      g_tx_timeout             : integer := 1024;
       g_escape_code_disable    : boolean := FALSE);
     port (
       clk_sys_i        : in  std_logic;
@@ -37,7 +38,7 @@ package streamers_pkg is
   component xrx_streamer
     generic (
       g_data_width        : integer := 32;
-      g_buffer_size       : integer := 16;
+      g_buffer_size       : integer := 256;
       g_escape_code_disable : boolean := FALSE;
       g_expected_words_number : integer := 0);
     port (
@@ -114,67 +115,22 @@ package streamers_pkg is
 
   component xwr_transmission is
   generic (
-    -----------------------------------------------------------------------------------------
-    -- Transmission (tx)
-    -----------------------------------------------------------------------------------------
-    -- Width of data words on tx_data_i.
-    g_tx_data_width           : integer := 32;
-
-    -- Minimum number of data words in the TX buffer that will trigger transmission of an
-    -- Ethernet frame. Also defines the buffer size (2 * g_tx_threshold). Note
-    -- that in order for a frame to be transmitted, the buffer must conatain at
-    -- least one complete block.
-    g_tx_threshold            : integer := 128;
-
-    -- Maximum number of data words in a single Ethernet frame. It also defines
-    -- the maximum block size (since blocks can't be currently split across
-    -- multiple frames). 
-    g_tx_max_words_per_frame  : integer := 128;
-
-    -- Transmission timeout (in clk_sys_i cycles), after which the contents
-    -- of TX buffer are sent regardless of the amount of data that is currently
-    -- stored in the buffer, so that data in the buffer does not get stuck.
+    --tx
+    g_tx_data_width            : integer := 32;
+    g_tx_buffer_size           : integer := 256;
+    g_tx_threshold             : integer := 128;
+    g_tx_max_words_per_frame   : integer := 256;
     g_tx_timeout               : integer := 1024;
-
-    -- DO NOT USE unless you know what you are doing
-    -- legacy stuff: the streamers initially used in Btrain did not check/insert the escape
-    -- code. This is justified if only one block of a known number of words is sent/expected
     g_tx_escape_code_disable   : boolean := FALSE;
-
-    -----------------------------------------------------------------------------------------
-    -- Reception (rx)
-    -----------------------------------------------------------------------------------------
-    -- Width of the data words. Must be same as in the TX streamer.
+    -- tx
     g_rx_data_width            : integer := 32;
-
-    -- Size of RX buffer, in data words.
-    g_rx_buffer_size           : integer := 16;
-
-    -- DO NOT USE unless you know what you are doing
-    -- legacy stuff: the streamers that were initially used in Btrain did not check/insert 
-    -- the escape code. This is justified if only one block of a known number of words is 
-    -- sent/expected.
+    g_rx_buffer_size           : integer := 256;
     g_rx_escape_code_disable   : boolean := FALSE;
-
-    -- DO NOT USE unless you know what you are doing
-    -- legacy stuff: the streamers that were initially used in Btrain accepted only a fixed
-    -- number of words, regardless of the frame content. If this generic is set to number
-    -- other than zero, only a fixed number of words is accepted. 
-    -- In combination with the g_escape_code_disable generic set to TRUE, the behaviour of
-    -- the "Btrain streamers" can be recreated.
     g_rx_expected_words_number : integer := 0;
-
-    -----------------------------------------------------------------------------------------
-    -- Statistics config
-    -----------------------------------------------------------------------------------------
-    -- width of counters: frame rx/tx/lost, block lost, counter of accumuted latency
-    -- (minimum 15 bits, max 32)
+    -- stats
     g_stats_cnt_width          : integer := 32;
-    -- width of latency accumulator (max value 64)
     g_stats_acc_width          : integer := 64;
-    -----------------------------------------------------------------------------------------
-    -- WB I/F configuration
-    -----------------------------------------------------------------------------------------
+    -- WB i/f
     g_slave_mode               : t_wishbone_interface_mode      := CLASSIC;
     g_slave_granularity        : t_wishbone_address_granularity := BYTE
     );

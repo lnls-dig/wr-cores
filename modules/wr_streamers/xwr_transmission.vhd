@@ -64,16 +64,21 @@ entity xwr_transmission is
     -- Width of data words on tx_data_i, must be multiple of 16 bits.
     g_tx_data_width           : integer := 32;
 
+    -- Size of Tx buffer, in data words.
+    g_tx_buffer_size : integer := 256;
+
     -- Minimum number of data words in the TX buffer that will trigger transmission of an
-    -- Ethernet frame. Also defines the buffer size (2 * g_tx_threshold). Note
-    -- that in order for a frame to be transmitted, the buffer must conatain at
+    -- Ethernet frame. It cannot be breater than g_tx_buffer_size; it is recommended that
+    -- g_tx_buffer_size = 2 * g_tx_threshold.
+    -- Note that in order for a frame to be transmitted, the buffer must conatain at
+    -- least one complete block.ransmitted, the buffer must conatain at
     -- least one complete block.
     g_tx_threshold            : integer := 128;
 
     -- Maximum number of data words in a single Ethernet frame. It also defines
     -- the maximum block size (since blocks can't be currently split across
-    -- multiple frames). 
-    g_tx_max_words_per_frame  : integer := 128;
+    -- multiple frames). It cannot be greater than g_tx_buffer_size
+    g_tx_max_words_per_frame : integer := 256;
 
     -- Transmission timeout (in clk_sys_i cycles), after which the contents
     -- of TX buffer are sent regardless of the amount of data that is currently
@@ -97,7 +102,7 @@ entity xwr_transmission is
     g_rx_data_width            : integer := 32;
 
     -- Size of RX buffer, in data words.
-    g_rx_buffer_size           : integer := 16;
+    g_rx_buffer_size           : integer := 256;
 
     -- DO NOT USE unless you know what you are doing
     -- legacy stuff: the streamers that were initially used in Btrain did not check/insert 
@@ -300,6 +305,7 @@ begin
   U_TX: xtx_streamer
     generic map(
       g_data_width             => g_tx_data_width,
+      g_tx_buffer_size         => g_tx_buffer_size,
       g_tx_threshold           => g_tx_threshold,
       g_tx_max_words_per_frame => g_tx_max_words_per_frame,
       g_tx_timeout             => g_tx_timeout,

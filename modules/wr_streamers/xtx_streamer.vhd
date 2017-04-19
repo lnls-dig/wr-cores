@@ -38,23 +38,26 @@ entity xtx_streamer is
     -- Width of data words on tx_data_i, must be multiple of 16 bits.
     g_data_width : integer := 32;
 
+    -- Size of Tx buffer, in data words.
+    g_tx_buffer_size : integer := 256;
+
     -- Minimum number of data words in the TX buffer that will trigger transmission of an
-    -- Ethernet frame. Also defines the buffer size (2 * g_tx_threshold). Note
-    -- that in order for a frame to be transmitted, the buffer must conatain at
+    -- Ethernet frame. It cannot be breater than g_tx_buffer_size; it is recommended that
+    -- g_tx_buffer_size = 2 * g_tx_threshold.
+    -- Note that in order for a frame to be transmitted, the buffer must conatain at
     -- least one complete block.
     g_tx_threshold : integer := 128;
 
-
     -- Maximum number of data words in a single Ethernet frame. It also defines
     -- the maximum block size (since blocks can't be currently split across
-    -- multiple frames). 
-    g_tx_max_words_per_frame : integer := 128;
-    
+    -- multiple frames). It cannot be greater than g_tx_buffer_size
+    g_tx_max_words_per_frame : integer := 256;
+
     -- Transmission timeout (in clk_sys_i cycles), after which the contents
     -- of TX buffer are sent regardless of the amount of data that is currently
     -- stored in the buffer, so that data in the buffer does not get stuck.
     g_tx_timeout : integer := 1024;
-    
+
     -- DO NOT USE unless you know what you are doing
     -- legacy stuff: the streamers initially used in Btrain did not check/insert the escape
     -- code. This is justified if only one block of a known number of words is sent/expected
@@ -226,7 +229,19 @@ architecture rtl of xtx_streamer is
   signal reset_dly : std_logic;
 
 begin  -- rtl
-  
+
+  -------------------------------------------------------------------------------------------
+  -- check sanity of input generics
+  -------------------------------------------------------------------------------------------
+  assert g_tx_buffer_size >= g_tx_threshold
+    report "The size of the tx buffer must be greater or equal the tx threashold"
+    severity FAILURE;
+
+  assert g_tx_buffer_size >= g_tx_max_words_per_frame
+    report "The size of tx buffer must be greater or equal the max number of words in frame"
+    severity FAILURE;
+  -------------------------------------------------------------------------------------------
+
   U_tx_crc_generator : gc_crc_gen
     generic map (
       g_polynomial              => x"1021",
@@ -298,11 +313,11 @@ begin  -- rtl
   U_TX_Buffer : generic_sync_fifo
     generic map (
       g_data_width             => g_data_width + 1,
-      g_size                   => 2 * g_tx_threshold,
+      g_size                   => g_tx_buffer_size,
       g_with_almost_full       => true,
       g_with_almost_empty      => true,
       g_almost_empty_threshold => g_tx_threshold,
-      g_almost_full_threshold  => 2*g_tx_threshold - 2,
+      g_almost_full_threshold  => g_tx_buffer_size - 2,
       g_show_ahead             => true)
     port map (
       rst_n_i        => rst_n_i,

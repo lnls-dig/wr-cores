@@ -45,7 +45,7 @@ entity xrx_streamer is
     g_data_width        : integer := 32;
 
     -- Size of RX buffer, in data words.
-    g_buffer_size       : integer := 16;
+    g_buffer_size       : integer := 256;
 
     -- DO NOT USE unless you know what you are doing
     -- legacy stuff: the streamers that were initially used in Btrain did not check/insert 
