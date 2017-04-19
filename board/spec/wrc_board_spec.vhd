@@ -65,9 +65,9 @@ entity wrc_board_spec is
     -- "streamers" = attach WRC streamers to fabric interface
     -- "etherbone" = attach Etherbone slave to fabric interface
     g_fabric_iface              : string  := "plainfbrc";
-    -- data width when g_fabric_iface = "streamers" (otherwise ignored)
-    g_tx_streamer_width         : integer := 32;
-    g_rx_streamer_width         : integer := 32;
+    -- parameters configuration when g_fabric_iface = "streamers" (otherwise ignored)
+    g_tx_streamer_params       : t_tx_streamer_params := c_tx_streamer_params_defaut;
+    g_rx_streamer_params       : t_rx_streamer_params := c_rx_streamer_params_defaut;
     -- memory initialisation file for embedded CPU
     g_dpram_initf               : string  := "default_xilinx";
     -- identification (id and ver) of the layout of words in the generic diag interface
@@ -197,14 +197,14 @@ entity wrc_board_spec is
     ---------------------------------------------------------------------------
     -- WR streamers (when g_fabric_iface = "streamers")
     ---------------------------------------------------------------------------
-    wrs_tx_data_i  : in  std_logic_vector(g_tx_streamer_width-1 downto 0) := (others => '0');
+    wrs_tx_data_i  : in  std_logic_vector(g_tx_streamer_params.data_width-1 downto 0) := (others => '0');
     wrs_tx_valid_i : in  std_logic                                        := '0';
     wrs_tx_dreq_o  : out std_logic;
     wrs_tx_last_i  : in  std_logic                                        := '1';
     wrs_tx_flush_i : in  std_logic                                        := '0';
     wrs_rx_first_o : out std_logic;
     wrs_rx_last_o  : out std_logic;
-    wrs_rx_data_o  : out std_logic_vector(g_rx_streamer_width-1 downto 0);
+    wrs_rx_data_o  : out std_logic_vector(g_rx_streamer_params.data_width-1 downto 0);
     wrs_rx_valid_o : out std_logic;
     wrs_rx_dreq_i  : in  std_logic                                        := '0';
 
@@ -379,8 +379,8 @@ begin  -- architecture struct
       g_with_external_clock_input => f_int2bool(g_with_external_clock_input),
       g_aux_clks                  => g_aux_clks,
       g_fabric_iface              => f_str2iface_type(g_fabric_iface),
-      g_tx_streamer_width         => g_tx_streamer_width,
-      g_rx_streamer_width         => g_rx_streamer_width,
+      g_tx_streamer_params        => g_tx_streamer_params,
+      g_rx_streamer_params        => g_rx_streamer_params,
       g_dpram_initf               => g_dpram_initf,
       g_diag_id                   => g_diag_id,
       g_diag_ver                  => g_diag_ver,

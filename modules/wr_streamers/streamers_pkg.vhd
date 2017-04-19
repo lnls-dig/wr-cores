@@ -5,6 +5,83 @@ use work.wrcore_pkg.all;
 use work.wishbone_pkg.all;  -- needed for t_wishbone_slave_in, etc
 
 package streamers_pkg is
+  -----------------------------------------------------------------------------------------
+  -- Transmission parameters (tx)
+  -----------------------------------------------------------------------------------------
+  type t_tx_streamer_params is record
+    -- Width of data words on tx_data_i, must be multiple of 16 bits.
+    data_width            : integer;
+
+    -- Size of Tx buffer, in data words.
+    buffer_size           : integer;
+
+    -- Minimum number of data words in the TX buffer that will trigger transmission of an
+    -- Ethernet frame. It cannot be breater than g_tx_buffer_size; it is recommended that
+    -- g_tx_buffer_size = 2 * g_tx_threshold.
+    -- Note that in order for a frame to be transmitted, the buffer must conatain at
+    -- least one complete block.ransmitted, the buffer must conatain at
+    -- least one complete block.
+    threshold             : integer;
+
+    -- Maximum number of data words in a single Ethernet frame. It also defines
+    -- the maximum block size (since blocks can't be currently split across
+    -- multiple frames). It cannot be greater than g_tx_buffer_size
+    max_words_per_frame   : integer;
+
+    -- Transmission timeout (in clk_sys_i cycles), after which the contents
+    -- of TX buffer are sent regardless of the amount of data that is currently
+    -- stored in the buffer, so that data in the buffer does not get stuck.
+    timeout               : integer;
+
+    -- DO NOT USE unless you know what you are doing
+    -- legacy stuff: the streamers initially used in Btrain did not check/insert the escape
+    -- code. This is justified if only one block of a known number of words is sent/expected
+    escape_code_disable   : boolean;
+  end record;
+
+  -----------------------------------------------------------------------------------------
+  -- Reception parameters (rx)
+  -----------------------------------------------------------------------------------------
+  type t_rx_streamer_params is record
+    -- Width of the data words, must be multiple of 16 bits. This value set to this generic
+    -- on the receviving device must be the same as the value of g_tx_data_width set on the
+    -- transmitting node. The g_rx_data_width and g_tx_data_width can be set to different
+    -- values in the same device (i.e. instantiation of xwr_transmission entity). It is the
+    -- responsibility of a network designer to make sure these parameters are properly set 
+    -- in the network.
+    data_width            : integer;
+
+    -- Size of RX buffer, in data words.
+    buffer_size           : integer;
+
+    -- DO NOT USE unless you know what you are doing
+    -- legacy stuff: the streamers that were initially used in Btrain did not check/insert 
+    -- the escape code. This is justified if only one block of a known number of words is 
+    -- sent/expected.
+    escape_code_disable   : boolean;
+
+    -- DO NOT USE unless you know what you are doing
+    -- legacy stuff: the streamers that were initially used in Btrain accepted only a fixed
+    -- number of words, regardless of the frame content. If this generic is set to number
+    -- other than zero, only a fixed number of words is accepted. 
+    -- In combination with the g_escape_code_disable generic set to TRUE, the behaviour of
+    -- the "Btrain streamers" can be recreated.
+    expected_words_number : integer;
+  end record;
+
+  constant c_tx_streamer_params_defaut: t_tx_streamer_params :=(
+      data_width            => 32,
+      buffer_size           => 256,
+      threshold             => 128,
+      max_words_per_frame   => 256,
+      timeout               => 1024,
+      escape_code_disable   => FALSE);
+
+  constant c_rx_streamer_params_defaut: t_rx_streamer_params :=(
+      data_width            => 32,
+      buffer_size           => 256,
+      escape_code_disable   => FALSE,
+      expected_words_number => 0);
 
   component xtx_streamer
     generic (
@@ -115,18 +192,9 @@ package streamers_pkg is
 
   component xwr_transmission is
   generic (
-    --tx
-    g_tx_data_width            : integer := 32;
-    g_tx_buffer_size           : integer := 256;
-    g_tx_threshold             : integer := 128;
-    g_tx_max_words_per_frame   : integer := 256;
-    g_tx_timeout               : integer := 1024;
-    g_tx_escape_code_disable   : boolean := FALSE;
-    -- tx
-    g_rx_data_width            : integer := 32;
-    g_rx_buffer_size           : integer := 256;
-    g_rx_escape_code_disable   : boolean := FALSE;
-    g_rx_expected_words_number : integer := 0;
+    --tx/rx
+    g_tx_streamer_params       : t_tx_streamer_params := c_tx_streamer_params_defaut;
+    g_rx_streamer_params       : t_rx_streamer_params := c_rx_streamer_params_defaut;
     -- stats
     g_stats_cnt_width          : integer := 32;
     g_stats_acc_width          : integer := 64;
@@ -144,7 +212,7 @@ package streamers_pkg is
     snk_i                      : in  t_wrf_sink_in;
     snk_o                      : out t_wrf_sink_out;
     -- User tx interface
-    tx_data_i                  : in std_logic_vector(g_tx_data_width-1 downto 0);
+    tx_data_i                  : in std_logic_vector(g_tx_streamer_params.data_width-1 downto 0);
     tx_valid_i                 : in std_logic;
     tx_dreq_o                  : out std_logic;
     tx_last_p1_i               : in std_logic := '1';
@@ -152,7 +220,7 @@ package streamers_pkg is
     -- User rx interface
     rx_first_p1_o              : out std_logic;
     rx_last_p1_o               : out std_logic;
-    rx_data_o                  : out std_logic_vector(g_rx_data_width-1 downto 0);
+    rx_data_o                  : out std_logic_vector(g_rx_streamer_params.data_width-1 downto 0);
     rx_valid_o                 : out std_logic;
     rx_dreq_i                  : in  std_logic;
     -- WRC Timing interface, used for latency measurement

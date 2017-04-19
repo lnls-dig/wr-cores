@@ -66,9 +66,9 @@ entity xwrc_board_svec is
     -- streamers = attach WRC streamers to fabric interface
     -- etherbone = attach Etherbone slave to fabric interface
     g_fabric_iface              : t_board_fabric_iface := plain;
-    -- data width when g_fabric_iface = "streamers" (otherwise ignored)
-    g_tx_streamer_width         : integer              := 32;
-    g_rx_streamer_width         : integer              := 32;
+    -- parameters configuration when g_fabric_iface = "streamers" (otherwise ignored)
+    g_tx_streamer_params       : t_tx_streamer_params := c_tx_streamer_params_defaut;
+    g_rx_streamer_params       : t_rx_streamer_params := c_rx_streamer_params_defaut;
     -- memory initialisation file for embedded CPU
     g_dpram_initf               : string               := "default_xilinx";
     -- identification (id and ver) of the layout of words in the generic diag interface
@@ -177,14 +177,14 @@ entity xwrc_board_svec is
     ---------------------------------------------------------------------------
     -- WR streamers (when g_fabric_iface = "streamers")
     ---------------------------------------------------------------------------
-    wrs_tx_data_i  : in  std_logic_vector(g_tx_streamer_width-1 downto 0) := (others => '0');
+    wrs_tx_data_i  : in  std_logic_vector(g_tx_streamer_params.data_width-1 downto 0) := (others => '0');
     wrs_tx_valid_i : in  std_logic                                        := '0';
     wrs_tx_dreq_o  : out std_logic;
     wrs_tx_last_i  : in  std_logic                                        := '1';
     wrs_tx_flush_i : in  std_logic                                        := '0';
     wrs_rx_first_o : out std_logic;
     wrs_rx_last_o  : out std_logic;
-    wrs_rx_data_o  : out std_logic_vector(g_rx_streamer_width-1 downto 0);
+    wrs_rx_data_o  : out std_logic_vector(g_rx_streamer_params.data_width-1 downto 0);
     wrs_rx_valid_o : out std_logic;
     wrs_rx_dreq_i  : in  std_logic                                        := '0';
 
@@ -421,8 +421,8 @@ begin  -- architecture struct
       g_diag_ver                  => g_diag_ver,
       g_diag_ro_size              => g_diag_ro_size,
       g_diag_rw_size              => g_diag_rw_size,
-      g_tx_streamer_width         => g_tx_streamer_width,
-      g_rx_streamer_width         => g_rx_streamer_width,
+      g_tx_streamer_params        => g_tx_streamer_params,
+      g_rx_streamer_params        => g_rx_streamer_params,
       g_fabric_iface              => g_fabric_iface
       )
     port map (

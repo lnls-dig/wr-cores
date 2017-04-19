@@ -59,65 +59,10 @@ use work.wr_transmission_wbgen2_pkg.all;
 entity xwr_transmission is
   generic (
     -----------------------------------------------------------------------------------------
-    -- Transmission (tx)
+    -- Transmission/reception parameters
     -----------------------------------------------------------------------------------------
-    -- Width of data words on tx_data_i, must be multiple of 16 bits.
-    g_tx_data_width           : integer := 32;
-
-    -- Size of Tx buffer, in data words.
-    g_tx_buffer_size : integer := 256;
-
-    -- Minimum number of data words in the TX buffer that will trigger transmission of an
-    -- Ethernet frame. It cannot be breater than g_tx_buffer_size; it is recommended that
-    -- g_tx_buffer_size = 2 * g_tx_threshold.
-    -- Note that in order for a frame to be transmitted, the buffer must conatain at
-    -- least one complete block.ransmitted, the buffer must conatain at
-    -- least one complete block.
-    g_tx_threshold            : integer := 128;
-
-    -- Maximum number of data words in a single Ethernet frame. It also defines
-    -- the maximum block size (since blocks can't be currently split across
-    -- multiple frames). It cannot be greater than g_tx_buffer_size
-    g_tx_max_words_per_frame : integer := 256;
-
-    -- Transmission timeout (in clk_sys_i cycles), after which the contents
-    -- of TX buffer are sent regardless of the amount of data that is currently
-    -- stored in the buffer, so that data in the buffer does not get stuck.
-    g_tx_timeout               : integer := 1024;
-
-    -- DO NOT USE unless you know what you are doing
-    -- legacy stuff: the streamers initially used in Btrain did not check/insert the escape
-    -- code. This is justified if only one block of a known number of words is sent/expected
-    g_tx_escape_code_disable   : boolean := FALSE;
-
-    -----------------------------------------------------------------------------------------
-    -- Reception (rx)
-    -----------------------------------------------------------------------------------------
-    -- Width of the data words, must be multiple of 16 bits. This value set to this generic
-    -- on the receviving device must be the same as the value of g_tx_data_width set on the
-    -- transmitting node. The g_rx_data_width and g_tx_data_width can be set to different
-    -- values in the same device (i.e. instantiation of xwr_transmission entity). It is the
-    -- responsibility of a network designer to make sure these parameters are properly set 
-    -- in the network.
-    g_rx_data_width            : integer := 32;
-
-    -- Size of RX buffer, in data words.
-    g_rx_buffer_size           : integer := 256;
-
-    -- DO NOT USE unless you know what you are doing
-    -- legacy stuff: the streamers that were initially used in Btrain did not check/insert 
-    -- the escape code. This is justified if only one block of a known number of words is 
-    -- sent/expected.
-    g_rx_escape_code_disable   : boolean := FALSE;
-
-    -- DO NOT USE unless you know what you are doing
-    -- legacy stuff: the streamers that were initially used in Btrain accepted only a fixed
-    -- number of words, regardless of the frame content. If this generic is set to number
-    -- other than zero, only a fixed number of words is accepted. 
-    -- In combination with the g_escape_code_disable generic set to TRUE, the behaviour of
-    -- the "Btrain streamers" can be recreated.
-    g_rx_expected_words_number : integer := 0;
-
+    g_tx_streamer_params       : t_tx_streamer_params := c_tx_streamer_params_defaut;
+    g_rx_streamer_params       : t_rx_streamer_params := c_rx_streamer_params_defaut;
     -----------------------------------------------------------------------------------------
     -- Statistics config
     -----------------------------------------------------------------------------------------
@@ -151,7 +96,7 @@ entity xwr_transmission is
     -- User tx interface
     ---------------------------------------------------------------------------
     -- Data word to be sent.
-    tx_data_i                  : in std_logic_vector(g_tx_data_width-1 downto 0);
+    tx_data_i                  : in std_logic_vector(g_tx_streamer_params.data_width-1 downto 0);
     -- 1 indicates that the tx_data_i contains a valid data word.
     tx_valid_i                 : in std_logic;
     -- Synchronous data request: if active, the user may send a data word in
@@ -172,7 +117,7 @@ entity xwr_transmission is
     -- 1 indicates the last word of the data block on rx_data_o.
     rx_last_p1_o               : out std_logic;
     -- Received data.
-    rx_data_o                  : out std_logic_vector(g_rx_data_width-1 downto 0);
+    rx_data_o                  : out std_logic_vector(g_rx_streamer_params.data_width-1 downto 0);
     -- 1 indicted that rx_data_o is outputting a valid data word.
     rx_valid_o                 : out std_logic;
     -- Synchronous data request input: when 1, the streamer may output another
@@ -262,7 +207,7 @@ architecture rtl of xwr_transmission is
   signal dbg_tx_bfield           : std_logic_vector(31 downto 0);
   signal dbg_rx_bfield           : std_logic_vector(31 downto 0);
   signal start_bit               : std_logic_vector(from_wb.dbg_ctrl_start_byte_o'length-1+3 downto 0);
-  signal rx_data                 : std_logic_vector(g_rx_data_width-1 downto 0);
+  signal rx_data                 : std_logic_vector(g_rx_streamer_params.data_width-1 downto 0);
   signal wb_regs_slave_in        : t_wishbone_slave_in;
   signal wb_regs_slave_out       : t_wishbone_slave_out;  
   signal rx_latency_valid        : std_logic;
@@ -304,12 +249,12 @@ begin
 
   U_TX: xtx_streamer
     generic map(
-      g_data_width             => g_tx_data_width,
-      g_tx_buffer_size         => g_tx_buffer_size,
-      g_tx_threshold           => g_tx_threshold,
-      g_tx_max_words_per_frame => g_tx_max_words_per_frame,
-      g_tx_timeout             => g_tx_timeout,
-      g_escape_code_disable    => g_tx_escape_code_disable)
+      g_data_width             => g_tx_streamer_params.data_width,
+      g_tx_buffer_size         => g_tx_streamer_params.buffer_size,
+      g_tx_threshold           => g_tx_streamer_params.threshold,
+      g_tx_max_words_per_frame => g_tx_streamer_params.max_words_per_frame,
+      g_tx_timeout             => g_tx_streamer_params.timeout,
+      g_escape_code_disable    => g_tx_streamer_params.escape_code_disable)
     port map(
       clk_sys_i                => clk_sys_i,
       rst_n_i                  => rst_n_i,
@@ -332,10 +277,10 @@ begin
 
   U_RX: xrx_streamer
     generic map(
-      g_data_width             => g_rx_data_width,
-      g_buffer_size            => g_rx_buffer_size,
-      g_escape_code_disable    => g_rx_escape_code_disable,
-      g_expected_words_number  => g_rx_expected_words_number
+      g_data_width             => g_rx_streamer_params.data_width,
+      g_buffer_size            => g_rx_streamer_params.buffer_size,
+      g_escape_code_disable    => g_rx_streamer_params.escape_code_disable,
+      g_expected_words_number  => g_rx_streamer_params.expected_words_number
       )
     port map(
       clk_sys_i                => clk_sys_i,
@@ -451,18 +396,18 @@ begin
       else
         if(from_wb.dbg_ctrl_mux_o = '1') then --rx
           if(rx_valid = '1') then
-            dbg_word <= f_dbg_word_starting_at_bit(rx_data,start_bit,g_rx_data_width);
+            dbg_word <= f_dbg_word_starting_at_bit(rx_data,start_bit,g_rx_streamer_params.data_width);
           end if;
         else -- tx
           if(tx_valid_i = '1') then
-            dbg_word <= f_dbg_word_starting_at_bit(tx_data_i,start_bit,g_tx_data_width);
+            dbg_word <= f_dbg_word_starting_at_bit(tx_data_i,start_bit,g_tx_streamer_params.data_width);
           end if;
         end if;
       end if;
     end if;
   end process;
 
-  gen_btrain_debug: if(g_tx_data_width > 47 and g_rx_data_width > 47) generate
+  gen_btrain_debug: if(g_tx_streamer_params.data_width > 47 and g_rx_streamer_params.data_width > 47) generate
     -- this is b-train specific stuff that allows snooping bfield easily. Btrain is
     -- the main (and currently) only application of streamers
     p_bfield_for_SNMP: process(clk_sys_i)

@@ -7,6 +7,7 @@ use work.wrcore_pkg.all;
 use work.wr_fabric_pkg.all;
 use work.endpoint_pkg.all;
 use work.wr_board_pkg.all;
+use work.streamers_pkg.all;
 
 package wr_spec_pkg is
 
@@ -16,8 +17,8 @@ package wr_spec_pkg is
       g_with_external_clock_input : boolean              := TRUE;
       g_aux_clks                  : integer              := 0;
       g_fabric_iface              : t_board_fabric_iface := plain;
-      g_tx_streamer_width         : integer              := 32;
-      g_rx_streamer_width         : integer              := 32;
+      g_tx_streamer_params        : t_tx_streamer_params := c_tx_streamer_params_defaut;
+      g_rx_streamer_params        : t_rx_streamer_params := c_rx_streamer_params_defaut;
       g_dpram_initf               : string               := "default_xilinx";
       g_diag_id                   : integer              := 0;
       g_diag_ver                  : integer              := 0;
@@ -72,14 +73,14 @@ package wr_spec_pkg is
       wrf_src_i            : in  t_wrf_source_in                                  := c_dummy_src_in;
       wrf_snk_o            : out t_wrf_sink_out;
       wrf_snk_i            : in  t_wrf_sink_in                                    := c_dummy_snk_in;
-      wrs_tx_data_i        : in  std_logic_vector(g_tx_streamer_width-1 downto 0) := (others => '0');
+      wrs_tx_data_i        : in  std_logic_vector(g_tx_streamer_params.data_width-1 downto 0) := (others => '0');
       wrs_tx_valid_i       : in  std_logic                                        := '0';
       wrs_tx_dreq_o        : out std_logic;
       wrs_tx_last_i        : in  std_logic                                        := '1';
       wrs_tx_flush_i       : in  std_logic                                        := '0';
       wrs_rx_first_o       : out std_logic;
       wrs_rx_last_o        : out std_logic;
-      wrs_rx_data_o        : out std_logic_vector(g_rx_streamer_width-1 downto 0);
+      wrs_rx_data_o        : out std_logic_vector(g_rx_streamer_params.data_width-1 downto 0);
       wrs_rx_valid_o       : out std_logic;
       wrs_rx_dreq_i        : in  std_logic                                        := '0';
       wb_eth_master_o      : out t_wishbone_master_out;
