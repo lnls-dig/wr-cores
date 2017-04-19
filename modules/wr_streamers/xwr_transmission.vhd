@@ -61,7 +61,7 @@ entity xwr_transmission is
     -----------------------------------------------------------------------------------------
     -- Transmission (tx)
     -----------------------------------------------------------------------------------------
-    -- Width of data words on tx_data_i.
+    -- Width of data words on tx_data_i, must be multiple of 16 bits.
     g_tx_data_width           : integer := 32;
 
     -- Minimum number of data words in the TX buffer that will trigger transmission of an
@@ -88,7 +88,12 @@ entity xwr_transmission is
     -----------------------------------------------------------------------------------------
     -- Reception (rx)
     -----------------------------------------------------------------------------------------
-    -- Width of the data words. Must be same as in the TX streamer.
+    -- Width of the data words, must be multiple of 16 bits. This value set to this generic
+    -- on the receviving device must be the same as the value of g_tx_data_width set on the
+    -- transmitting node. The g_rx_data_width and g_tx_data_width can be set to different
+    -- values in the same device (i.e. instantiation of xwr_transmission entity). It is the
+    -- responsibility of a network designer to make sure these parameters are properly set 
+    -- in the network.
     g_rx_data_width            : integer := 32;
 
     -- Size of RX buffer, in data words.
@@ -275,7 +280,7 @@ architecture rtl of xwr_transmission is
   signal rx_cfg_filter_remote    : std_logic;
   signal rx_cfg_fixed_latency    : std_logic_vector(27 downto 0);
 
-  function f_dbg_word_starting_at_byte(data_in, start_bit : std_logic_vector; g_data_width: integer) return std_logic_vector is
+  function f_dbg_word_starting_at_bit(data_in, start_bit : std_logic_vector; g_data_width: integer) return std_logic_vector is
     variable sb     : integer := 0;
     variable result : std_logic_vector(31 downto 0);
   begin
@@ -288,7 +293,7 @@ architecture rtl of xwr_transmission is
       end if;
     end loop;
     return result;
-  end f_dbg_word_starting_at_byte;
+  end f_dbg_word_starting_at_bit;
 
 begin
 
@@ -440,11 +445,11 @@ begin
       else
         if(from_wb.dbg_ctrl_mux_o = '1') then --rx
           if(rx_valid = '1') then
-            dbg_word <= f_dbg_word_starting_at_byte(rx_data,start_bit,g_tx_data_width);
+            dbg_word <= f_dbg_word_starting_at_bit(rx_data,start_bit,g_rx_data_width);
           end if;
         else -- tx
           if(tx_valid_i = '1') then
-            dbg_word <= f_dbg_word_starting_at_byte(tx_data_i,start_bit,g_tx_data_width);
+            dbg_word <= f_dbg_word_starting_at_bit(tx_data_i,start_bit,g_tx_data_width);
           end if;
         end if;
       end if;

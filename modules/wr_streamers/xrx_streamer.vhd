@@ -36,7 +36,12 @@ use work.genram_pkg.all;
 entity xrx_streamer is
   
   generic (
-    -- Width of the data words. Must be same as in the TX streamer.
+    -- Width of the data words, must be multiple of 16 bits. This value set to this generic
+    -- on the receviving device must be the same as the value of g_tx_data_width set on the
+    -- transmitting node. The g_rx_data_width and g_tx_data_width can be set to different
+    -- values in the same device (i.e. instantiation of xwr_transmission entity). It is the
+    -- responsibility of a network designer to make sure these parameters are properly set 
+    -- in the network.
     g_data_width        : integer := 32;
 
     -- Size of RX buffer, in data words.

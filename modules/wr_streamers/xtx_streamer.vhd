@@ -35,7 +35,7 @@ use work.genram_pkg.all;
 entity xtx_streamer is
   
   generic (
-    -- Width of data words on tx_data_i.
+    -- Width of data words on tx_data_i, must be multiple of 16 bits.
     g_data_width : integer := 32;
 
     -- Minimum number of data words in the TX buffer that will trigger transmission of an
