@@ -70,6 +70,7 @@ entity xwrc_board_common is
     g_diag_ver                  : integer                        := 0;
     g_diag_ro_size              : integer                        := 0;
     g_diag_rw_size              : integer                        := 0;
+    g_streamers_op_mode         : t_streamers_op_mode            := TX_AND_RX;
     g_tx_streamer_params        : t_tx_streamer_params           := c_tx_streamer_params_defaut;
     g_rx_streamer_params        : t_rx_streamer_params           := c_rx_streamer_params_defaut;
     g_fabric_iface              : t_board_fabric_iface           := PLAIN);
@@ -423,6 +424,7 @@ begin  -- architecture struct
 
     cmp_xwr_transmission : xwr_transmission
       generic map (
+        g_streamers_op_mode  => g_streamers_op_mode,
         g_tx_streamer_params => g_tx_streamer_params,
         g_rx_streamer_params => g_rx_streamer_params)
       port map (

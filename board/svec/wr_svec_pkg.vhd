@@ -17,6 +17,7 @@ package wr_svec_pkg is
       g_with_external_clock_input : boolean              := TRUE;
       g_aux_clks                  : integer              := 0;
       g_fabric_iface              : t_board_fabric_iface := plain;
+      g_streamers_op_mode         : t_streamers_op_mode  := TX_AND_RX;
       g_tx_streamer_params        : t_tx_streamer_params := c_tx_streamer_params_defaut;
       g_rx_streamer_params        : t_rx_streamer_params := c_rx_streamer_params_defaut;
       g_dpram_initf               : string               := "default_xilinx";
@@ -117,8 +118,9 @@ package wr_svec_pkg is
       g_with_external_clock_input : integer := 1;
       g_aux_clks                  : integer := 0;
       g_fabric_iface              : string  := "plainfbrc";
-      g_tx_streamer_width         : integer := 32;
-      g_rx_streamer_width         : integer := 32;
+      g_streamers_op_mode         : t_streamers_op_mode  := TX_AND_RX;
+      g_tx_streamer_params        : t_tx_streamer_params := c_tx_streamer_params_defaut;
+      g_rx_streamer_params        : t_rx_streamer_params := c_rx_streamer_params_defaut;
       g_dpram_initf               : string  := "default_xilinx";
       g_diag_id                   : integer := 0;
       g_diag_ver                  : integer := 0;
@@ -200,14 +202,14 @@ package wr_svec_pkg is
       wrf_snk_stall_o      : out std_logic;
       wrf_snk_err_o        : out std_logic;
       wrf_snk_rty_o        : out std_logic;
-      wrs_tx_data_i        : in  std_logic_vector(g_tx_streamer_width-1 downto 0)        := (others => '0');
+      wrs_tx_data_i        : in  std_logic_vector(g_tx_streamer_params.data_width-1 downto 0)        := (others => '0');
       wrs_tx_valid_i       : in  std_logic                                               := '0';
       wrs_tx_dreq_o        : out std_logic;
       wrs_tx_last_i        : in  std_logic                                               := '1';
       wrs_tx_flush_i       : in  std_logic                                               := '0';
       wrs_rx_first_o       : out std_logic;
       wrs_rx_last_o        : out std_logic;
-      wrs_rx_data_o        : out std_logic_vector(g_rx_streamer_width-1 downto 0);
+      wrs_rx_data_o        : out std_logic_vector(g_rx_streamer_params.data_width-1 downto 0);
       wrs_rx_valid_o       : out std_logic;
       wrs_rx_dreq_i        : in  std_logic                                               := '0';
       wb_eth_adr_o         : out std_logic_vector(c_wishbone_address_width-1 downto 0);

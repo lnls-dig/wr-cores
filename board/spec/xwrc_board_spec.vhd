@@ -67,6 +67,7 @@ entity xwrc_board_spec is
     -- etherbone = attach Etherbone slave to fabric interface
     g_fabric_iface              : t_board_fabric_iface := plain;
     -- parameters configuration when g_fabric_iface = "streamers" (otherwise ignored)
+    g_streamers_op_mode        : t_streamers_op_mode  := TX_AND_RX;
     g_tx_streamer_params       : t_tx_streamer_params := c_tx_streamer_params_defaut;
     g_rx_streamer_params       : t_rx_streamer_params := c_rx_streamer_params_defaut;
     -- memory initialisation file for embedded CPU
@@ -409,6 +410,7 @@ begin  -- architecture struct
       g_diag_ver                  => g_diag_ver,
       g_diag_ro_size              => g_diag_ro_size,
       g_diag_rw_size              => g_diag_rw_size,
+      g_streamers_op_mode         => g_streamers_op_mode,
       g_tx_streamer_params        => g_tx_streamer_params,
       g_rx_streamer_params        => g_rx_streamer_params,
       g_fabric_iface              => g_fabric_iface

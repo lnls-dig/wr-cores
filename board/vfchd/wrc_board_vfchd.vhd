@@ -68,6 +68,7 @@ entity wrc_board_vfchd is
     -- "etherbone" = attach Etherbone slave to fabric interface
     g_fabric_iface              : string  := "plainfbrc";
     -- parameters configuration when g_fabric_iface = "streamers" (otherwise ignored)
+    g_streamers_op_mode         : t_streamers_op_mode := TX_AND_RX;
     g_tx_streamer_params       : t_tx_streamer_params := c_tx_streamer_params_defaut;
     g_rx_streamer_params       : t_rx_streamer_params := c_rx_streamer_params_defaut;
     -- memory initialisation file for embedded CPU
@@ -366,6 +367,7 @@ begin  -- architecture struct
       g_aux_clks                  => g_aux_clks,
       g_pcs_16bit                 => f_int2bool(g_pcs_16bit),
       g_fabric_iface              => f_str2iface_type(g_fabric_iface),
+      g_streamers_op_mode         => g_streamers_op_mode,
       g_tx_streamer_params        => g_tx_streamer_params,
       g_rx_streamer_params        => g_rx_streamer_params,
       g_dpram_initf               => g_dpram_initf,
