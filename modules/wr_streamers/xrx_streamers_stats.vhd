@@ -10,7 +10,9 @@
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
 -- Description:
--- 
+-- This module provies the reception portion of statistics and
+-- allows to snapshot their values. See xrtx_streamers_stats for
+-- more detailed description.
 -------------------------------------------------------------------------------
 --
 -- Copyright (c) 2016 CERN/BE-CO-HT

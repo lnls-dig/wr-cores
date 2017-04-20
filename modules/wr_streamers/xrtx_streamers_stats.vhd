@@ -1,20 +1,35 @@
 -------------------------------------------------------------------------------
 -- Title      : WR Streamers statistics
--- Project    : White Rabbit Streamers
+-- Project    : WR Streamers
+-- URL        : http://www.ohwr.org/projects/wr-cores/wiki/WR_Streamers
 -------------------------------------------------------------------------------
 -- File       : xrtx_streamers_stats.vhd
 -- Author     : Maciej Lipinski
 -- Company    : CERN
 -- Created    : 2016-06-08
--- Last update: 2016-06-12
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
 -- Description:
--- 
+-- Module to collect, reset, snapshot statistics from the streamers. The
+-- statistics are made available through wishbone I/F (outside this entity)
+-- and diags_i/o (generic input/output arrays of 32-bit registers). Wishbone I/F
+-- can be read via bus (PCI, VME,...). Diags can be read via wrpc commands and 
+-- SNMP.
+--
+-- The module provides basic statistics such as:
+-- * number of sent/received streamer frames
+-- * number of lost frames/blocks
+-- * accumulated latency of streamer frames
+-- * count of the accumulated latencies
+-- * max/min latency
+-- * timestamp of the reset pulse
+--
+-- The module allows to snapshot the statistics values as to have a coherent
+-- view.
 -------------------------------------------------------------------------------
 --
--- Copyright (c) 2016 CERN/BE-CO-HT
+-- Copyright (c) 2016-2017CERN/BE-CO-HT
 --
 -- This source file is free software; you can redistribute it   
 -- and/or modify it under the terms of the GNU Lesser General   
@@ -33,11 +48,7 @@
 -- from http://www.gnu.org/licenses/lgpl-2.1.html
 --
 -------------------------------------------------------------------------------
--- Revisions  :
--- Date        Version  Author          Description
--- 2016-06-08  1.0      mlipinsk        created
--- 2016-06-12  1.1      mlipinsk        added generic word arrays for SNMP
----------------------------------------------------------------------------------
+
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;

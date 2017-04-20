@@ -1,12 +1,14 @@
 -------------------------------------------------------------------------------
--- Title      : Btrain over White Rabbit
--- Project    : Btrain
+-- Title      : WR Streamrs
+-- Project    : WR Streamers
+-- URL        : http://www.ohwr.org/projects/wr-cores/wiki/WR_Streamers
 -------------------------------------------------------------------------------
 -- File       : xwr_transmission.vhd
 -- Author     : Maciej Lipinski
 -- Company    : CERN
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
+-- Created    : 2016-05-30
 -------------------------------------------------------------------------------
 -- Description:
 --
@@ -39,10 +41,6 @@
 -- Public License along with this source; if not, download it
 -- from http://www.gnu.org/licenses/lgpl-2.1.html
 --
--------------------------------------------------------------------------------
--- Revisions  :
--- Date        Version  Author          Description
--- 2016-05-30  1.0      mlipinsk        created
 ---------------------------------------------------------------------------------
 
 library IEEE;

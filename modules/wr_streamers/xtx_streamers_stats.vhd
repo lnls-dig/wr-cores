@@ -1,6 +1,7 @@
 -------------------------------------------------------------------------------
--- Title      : WR tx Streamers statistics
--- Project    : White Rabbit Streamers
+-- Title      : WR tx streamers statistics
+-- Project    : WR streamers
+-- URL        : http://www.ohwr.org/projects/wr-cores/wiki/WR_Streamers
 -------------------------------------------------------------------------------
 -- File       : xrtx_streamers_stats.vhd
 -- Author     : Maciej Lipinski
@@ -10,7 +11,9 @@
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
 -- Description:
--- 
+-- This module provies the reception portion of statistics and
+-- allows to snapshot their values. See xrtx_streamers_stats for
+-- more detailed description.
 -------------------------------------------------------------------------------
 --
 -- Copyright (c) 2017 CERN/BE-CO-HT

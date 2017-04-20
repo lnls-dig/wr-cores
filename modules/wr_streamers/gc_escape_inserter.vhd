@@ -1,12 +1,12 @@
 -------------------------------------------------------------------------------
 -- Title      : Escape insertion unit
--- Project    : General cores library
+-- Project    : WR Streamers
+-- URL        : http://www.ohwr.org/projects/wr-cores/wiki/WR_Streamers
 -------------------------------------------------------------------------------
 -- File       : gc_escape_inserter.vhd
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2012-10-01
--- Last update: 2012-10-10
 -- Platform   : FPGA-generic
 -- Standard   : VHDL '93
 ------------------------------------------------------------------------------
