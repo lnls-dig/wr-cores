@@ -58,6 +58,10 @@ use work.wr_transmission_wbgen2_pkg.all;
 
 entity xwr_transmission is
   generic (
+    -- Indicates whether this module instantiates both streamers (rx and tx) or only one
+    -- of them. An application that only receives or only transmits might want to use
+    -- RX_ONLY or TX_ONLY mode to save resources.
+    g_streamers_op_mode        : t_streamers_op_mode  := TX_AND_RX;
     -----------------------------------------------------------------------------------------
     -- Transmission/reception parameters
     -----------------------------------------------------------------------------------------
@@ -210,16 +214,18 @@ architecture rtl of xwr_transmission is
   signal rx_data                 : std_logic_vector(g_rx_streamer_params.data_width-1 downto 0);
   signal wb_regs_slave_in        : t_wishbone_slave_in;
   signal wb_regs_slave_out       : t_wishbone_slave_out;  
-  signal rx_latency_valid        : std_logic;
-  signal rx_latency              : std_logic_vector(27 downto 0);
-  signal rx_lost_frames          : std_logic;
-  signal rx_lost_blocks          : std_logic;
-  signal rx_frame                : std_logic;
   signal tx_frame                : std_logic;
   signal reset_time_tai          : std_logic_vector(39 downto 0);
   signal latency_acc             : std_logic_vector(63 downto 0);
   signal rx_valid                : std_logic;
+
+  signal rx_latency_valid        : std_logic;
+  signal rx_latency              : std_logic_vector(27 downto 0);
+  signal rx_lost_frames          : std_logic;
   signal rx_lost_frames_cnt      : std_logic_vector(14 downto 0);
+  signal rx_lost_blocks          : std_logic;
+  signal rx_frame                : std_logic;
+
   signal tx_cfg_mac_local        : std_logic_vector(47 downto 0);
   signal tx_cfg_mac_target       : std_logic_vector(47 downto 0);
   signal tx_cfg_ethertype        : std_logic_vector(15 downto 0);
@@ -247,73 +253,98 @@ architecture rtl of xwr_transmission is
 
 begin
 
-  U_TX: xtx_streamer
-    generic map(
-      g_data_width             => g_tx_streamer_params.data_width,
-      g_tx_buffer_size         => g_tx_streamer_params.buffer_size,
-      g_tx_threshold           => g_tx_streamer_params.threshold,
-      g_tx_max_words_per_frame => g_tx_streamer_params.max_words_per_frame,
-      g_tx_timeout             => g_tx_streamer_params.timeout,
-      g_escape_code_disable    => g_tx_streamer_params.escape_code_disable)
-    port map(
-      clk_sys_i                => clk_sys_i,
-      rst_n_i                  => rst_n_i,
-      src_i                    => src_i,
-      src_o                    => src_o,
-      clk_ref_i                => clk_ref_i,
-      tm_time_valid_i          => tm_time_valid_i,
-      tm_tai_i                 => tm_tai_i,
-      tm_cycles_i              => tm_cycles_i,
-      tx_data_i                => tx_data_i,
-      tx_valid_i               => tx_valid_i,
-      tx_dreq_o                => tx_dreq_o,
-      tx_last_p1_i             => tx_last_p1_i,
-      tx_flush_p1_i            => tx_flush_p1_i,
-      tx_reset_seq_i           => from_wb.sscr1_rst_seq_id_o,
-      tx_frame_p1_o            => tx_frame,
-      cfg_mac_local_i          => tx_cfg_mac_local_i,
-      cfg_mac_target_i         => tx_cfg_mac_target_i,
-      cfg_ethertype_i          => tx_cfg_ethertype_i);
+  -------------------------------------------------------------------------------------------
+  -- transmission
+  -------------------------------------------------------------------------------------------
+  gen_tx: if(g_streamers_op_mode=TX_ONLY OR g_streamers_op_mode=TX_AND_RX) generate
+    U_TX: xtx_streamer
+      generic map(
+        g_data_width             => g_tx_streamer_params.data_width,
+        g_tx_buffer_size         => g_tx_streamer_params.buffer_size,
+        g_tx_threshold           => g_tx_streamer_params.threshold,
+        g_tx_max_words_per_frame => g_tx_streamer_params.max_words_per_frame,
+        g_tx_timeout             => g_tx_streamer_params.timeout,
+        g_escape_code_disable    => g_tx_streamer_params.escape_code_disable)
+      port map(
+        clk_sys_i                => clk_sys_i,
+        rst_n_i                  => rst_n_i,
+        src_i                    => src_i,
+        src_o                    => src_o,
+        clk_ref_i                => clk_ref_i,
+        tm_time_valid_i          => tm_time_valid_i,
+        tm_tai_i                 => tm_tai_i,
+        tm_cycles_i              => tm_cycles_i,
+        tx_data_i                => tx_data_i,
+        tx_valid_i               => tx_valid_i,
+        tx_dreq_o                => tx_dreq_o,
+        tx_last_p1_i             => tx_last_p1_i,
+        tx_flush_p1_i            => tx_flush_p1_i,
+        tx_reset_seq_i           => from_wb.sscr1_rst_seq_id_o,
+        tx_frame_p1_o            => tx_frame,
+        cfg_mac_local_i          => tx_cfg_mac_local_i,
+        cfg_mac_target_i         => tx_cfg_mac_target_i,
+        cfg_ethertype_i          => tx_cfg_ethertype_i);
+  end generate gen_tx;
 
-  U_RX: xrx_streamer
-    generic map(
-      g_data_width             => g_rx_streamer_params.data_width,
-      g_buffer_size            => g_rx_streamer_params.buffer_size,
-      g_escape_code_disable    => g_rx_streamer_params.escape_code_disable,
-      g_expected_words_number  => g_rx_streamer_params.expected_words_number
-      )
-    port map(
-      clk_sys_i                => clk_sys_i,
-      rst_n_i                  => rst_n_i,
-      snk_i                    => snk_i,
-      snk_o                    => snk_o,
-      clk_ref_i                => clk_ref_i,
-      tm_time_valid_i          => tm_time_valid_i,
-      tm_tai_i                 => tm_tai_i,
-      tm_cycles_i              => tm_cycles_i,
-      rx_first_p1_o            => rx_first_p1_o,
-      rx_last_p1_o             => rx_last_p1_o,
-      rx_data_o                => rx_data,
-      rx_valid_o               => rx_valid,
-      rx_dreq_i                => rx_dreq_i,
-      rx_lost_p1_o             => rx_lost_blocks,
-      rx_lost_frames_p1_o      => rx_lost_frames,
-      rx_lost_frames_cnt_o     => rx_lost_frames_cnt,
-      rx_latency_o             => rx_latency,
-      rx_latency_valid_o       => rx_latency_valid,
-      rx_frame_p1_o            => rx_frame,
-      cfg_mac_local_i          => rx_cfg_mac_local_i,
-      cfg_mac_remote_i         => rx_cfg_mac_remote_i,
-      cfg_ethertype_i          => rx_cfg_ethertype_i,
-      cfg_accept_broadcasts_i  => rx_cfg_accept_broadcasts_i,
-      cfg_filter_remote_i      => rx_cfg_filter_remote,
-      cfg_fixed_latency_i      => rx_cfg_fixed_latency);
+  gen_not_tx: if(g_streamers_op_mode=RX_ONLY) generate
+    src_o      <= c_dummy_snk_in;
+    tx_dreq_o  <= '0';
+    tx_frame   <= '0';
+  end generate gen_not_tx;
 
-  rx_data_o  <= rx_data;
-  rx_valid_o <= rx_valid;
+  -------------------------------------------------------------------------------------------
+  -- reception
+  -------------------------------------------------------------------------------------------
+  gen_rx: if(g_streamers_op_mode=RX_ONLY OR g_streamers_op_mode=TX_AND_RX) generate
+    U_RX: xrx_streamer
+      generic map(
+        g_data_width             => g_rx_streamer_params.data_width,
+        g_buffer_size            => g_rx_streamer_params.buffer_size,
+        g_escape_code_disable    => g_rx_streamer_params.escape_code_disable,
+        g_expected_words_number  => g_rx_streamer_params.expected_words_number
+        )
+      port map(
+        clk_sys_i                => clk_sys_i,
+        rst_n_i                  => rst_n_i,
+        snk_i                    => snk_i,
+        snk_o                    => snk_o,
+        clk_ref_i                => clk_ref_i,
+        tm_time_valid_i          => tm_time_valid_i,
+        tm_tai_i                 => tm_tai_i,
+        tm_cycles_i              => tm_cycles_i,
+        rx_first_p1_o            => rx_first_p1_o,
+        rx_last_p1_o             => rx_last_p1_o,
+        rx_data_o                => rx_data,
+        rx_valid_o               => rx_valid,
+        rx_dreq_i                => rx_dreq_i,
+        rx_lost_p1_o             => rx_lost_blocks,
+        rx_lost_frames_p1_o      => rx_lost_frames,
+        rx_lost_frames_cnt_o     => rx_lost_frames_cnt,
+        rx_latency_o             => rx_latency,
+        rx_latency_valid_o       => rx_latency_valid,
+        rx_frame_p1_o            => rx_frame,
+        cfg_mac_local_i          => rx_cfg_mac_local_i,
+        cfg_mac_remote_i         => rx_cfg_mac_remote_i,
+        cfg_ethertype_i          => rx_cfg_ethertype_i,
+        cfg_accept_broadcasts_i  => rx_cfg_accept_broadcasts_i,
+        cfg_filter_remote_i      => rx_cfg_filter_remote,
+        cfg_fixed_latency_i      => rx_cfg_fixed_latency);
+  end generate gen_rx;
+  gen_not_rx: if(g_streamers_op_mode=TX_ONLY) generate
+    snk_o         <= c_dummy_src_in;
+    rx_first_p1_o <= '0';
+    rx_last_p1_o  <= '0';
+    rx_data       <= (others => '0');
+    rx_valid      <= '0';
+  end generate gen_not_rx;
 
+  -------------------------------------------------------------------------------------------
+  -- statistics for both
+  -------------------------------------------------------------------------------------------
+  -- statistics are useful only for 
   U_STATS: xrtx_streamers_stats
     generic map(
+      g_streamers_op_mode      => g_streamers_op_mode,
       g_cnt_width              => g_stats_cnt_width,
       g_acc_width              => g_stats_acc_width
       )
@@ -352,6 +383,8 @@ begin
   to_wb.rx_stat5_rx_latency_acc_lsb_i <= latency_acc(31 downto 0);
   to_wb.rx_stat6_rx_latency_acc_msb_i <= latency_acc(63 downto 32);
 
+  rx_data_o  <= rx_data;
+  rx_valid_o <= rx_valid;
 
   U_WB_ADAPTER : wb_slave_adapter
     generic map (

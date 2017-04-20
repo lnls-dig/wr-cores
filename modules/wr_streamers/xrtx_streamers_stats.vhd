@@ -47,11 +47,15 @@ use work.wishbone_pkg.all;  -- needed for t_wishbone_slave_in, etc
 use work.streamers_pkg.all; -- needed for streamers
 use work.wr_fabric_pkg.all; -- neede for :t_wrf_source_in, etc
 use work.wrcore_pkg.all;    -- needed for t_generic_word_array
--- use work.wr_transmission_wbgen2_pkg.all;
+use work.streamers_priv_pkg.all;
 
 entity xrtx_streamers_stats is
   
   generic (
+    -- Indicates whether this module instantiates both streamers (rx and tx) or only one
+    -- of them. An application that only receives or only transmits might want to use
+    -- RX_ONLY or TX_ONLY mode to save resources.
+    g_streamers_op_mode    : t_streamers_op_mode  := TX_AND_RX;
     -- Width of frame counters
     g_cnt_width            : integer := 32; -- minimum 15 bits, max 32
     g_acc_width            : integer := 64  -- max value 64
@@ -98,7 +102,7 @@ entity xrtx_streamers_stats is
     );
 
 end xrtx_streamers_stats;
-  
+
 architecture rtl of xrtx_streamers_stats is
 
   component pulse_stamper
@@ -217,69 +221,6 @@ begin
   reset_time_cycles_o <= reset_time_cycles;
 
   -------------------------------------------------------------------------------------------
-  -- frame/block statistics, i.e. lost, sent, received
-  -------------------------------------------------------------------------------------------
-  -- process that counts stuff: receved/send/lost frames
-  p_cnts: process(clk_i)
-  begin
-    if rising_edge(clk_i) then
-      if (rst_n_i = '0' or reset_stats = '1') then
-        sent_frame_cnt        <= (others => '0');
-        rcvd_frame_cnt        <= (others => '0');
-        lost_frame_cnt        <= (others => '0');
-        lost_block_cnt        <= (others => '0');
-      else
-        -- count sent frames
-        if(sent_frame_i = '1') then
-          sent_frame_cnt <= sent_frame_cnt + 1;
-        end if;
-        -- count received frames
-        if(rcvd_frame_i = '1') then
-          rcvd_frame_cnt <= rcvd_frame_cnt + 1;
-        end if;
-        -- count lost frames
-        if(lost_frame_i = '1') then
-          lost_frame_cnt <= lost_frame_cnt + resize(unsigned(lost_frames_cnt_i),lost_frame_cnt'length);
-        end if;
-        -- count lost blocks
-        if(lost_block_i = '1') then
-          lost_block_cnt <= lost_block_cnt + 1;
-        end if;
-      end if;
-    end if;
-  end process;
-
-  -------------------------------------------------------------------------------------------
-  -- latency statistics
-  -------------------------------------------------------------------------------------------
-  p_latency_stats: process(clk_i)
-  begin
-    if rising_edge(clk_i) then
-      if (rst_n_i = '0' or reset_stats = '1') then
-        latency_max            <= (others => '0');
-        latency_min            <= (others => '1');
-        latency_acc            <= (others => '0');
-        latency_cnt            <= (others => '0');
-        latency_acc_overflow   <= '0';
-      else
-        if(rcvd_latency_valid_i = '1' and tm_time_valid_i = '1') then
-          if(latency_max < rcvd_latency_i) then
-            latency_max <= rcvd_latency_i;
-          end if;
-          if(latency_min > rcvd_latency_i) then
-            latency_min <= rcvd_latency_i;
-          end if;
-          if(latency_acc(g_acc_width) ='1') then
-            latency_acc_overflow   <= '1';
-          end if;
-          latency_cnt <= latency_cnt + 1;
-          latency_acc <= latency_acc + resize(unsigned(rcvd_latency_i),latency_acc'length);
-        end if;
-      end if;
-    end if;
-  end process;
-
-  -------------------------------------------------------------------------------------------
   -- snapshot 
   -------------------------------------------------------------------------------------------
   -- snapshot is used to expose to user coherent value, so that the count for accumulated
@@ -288,61 +229,61 @@ begin
   -------------------------------------------------------------------------------------------
   snapshot_ena <= snapshot_ena_i or snapshot_remote_ena;
   -- snapshot
-  p_stats_snapshot: process(clk_i)
-  begin
-    if rising_edge(clk_i) then
-      if (rst_n_i = '0') then
-         snapshot_ena_d1         <= '0';
-         sent_frame_cnt_d1       <= (others=>'0');
-         rcvd_frame_cnt_d1       <= (others=>'0');
-         lost_frame_cnt_d1       <= (others=>'0');
-         lost_block_cnt_d1       <= (others=>'0');
-         latency_cnt_d1          <= (others=>'0');
 
-         latency_max_d1          <= (others=>'0');
-         latency_min_d1          <= (others=>'0');
-         latency_acc_d1          <= (others=>'0');
-         latency_acc_overflow_d1 <= '0';
-      else
-        if(snapshot_ena = '1' and snapshot_ena_d1 = '0') then
-         sent_frame_cnt_d1       <= sent_frame_cnt;
-         rcvd_frame_cnt_d1       <= rcvd_frame_cnt;
-         lost_frame_cnt_d1       <= lost_frame_cnt;
-         lost_block_cnt_d1       <= lost_block_cnt;
-         latency_cnt_d1          <= latency_cnt;
+  gen_tx_stats: if(g_streamers_op_mode=TX_ONLY OR g_streamers_op_mode=TX_AND_RX) generate
+    U_TX_STATS: xtx_streamers_stats
+      generic map (
+        g_cnt_width            => g_cnt_width
+        )
+      port map(
+        clk_i                  => clk_i,
+        rst_n_i                => rst_n_i,
+        sent_frame_i           => sent_frame_i,
+        reset_stats_i          => reset_stats,
+        snapshot_ena_i         => snapshot_ena,
+        sent_frame_cnt_o       => sent_frame_cnt_out);
+  end generate gen_tx_stats;
+  gen_not_tx_stats: if(g_streamers_op_mode=RX_ONLY) generate
+    sent_frame_cnt_out <= (others => '0');
+  end generate gen_not_tx_stats;
 
-         latency_max_d1          <= latency_max;
-         latency_min_d1          <= latency_min;
-         latency_acc_d1          <= latency_acc;
-         latency_acc_overflow_d1 <= latency_acc_overflow;
-        end if;
-        snapshot_ena_d1 <= snapshot_ena;
-      end if;
-    end if;
-  end process;
-
-  -------------------------------------------------------------------------------------------
-  -- snapshot or current value
-  -------------------------------------------------------------------------------------------
-  sent_frame_cnt_out       <= std_logic_vector(sent_frame_cnt_d1) when (snapshot_ena_d1 = '1') else
-                              std_logic_vector(sent_frame_cnt);
-  rcvd_frame_cnt_out       <= std_logic_vector(rcvd_frame_cnt_d1) when (snapshot_ena_d1 = '1') else
-                              std_logic_vector(rcvd_frame_cnt);
-  lost_frame_cnt_out       <= std_logic_vector(lost_frame_cnt_d1) when (snapshot_ena_d1 = '1') else
-                              std_logic_vector(lost_frame_cnt);
-  lost_block_cnt_out       <= std_logic_vector(lost_block_cnt_d1) when (snapshot_ena_d1 = '1') else
-                              std_logic_vector(lost_block_cnt);
-  latency_max_out          <= latency_max_d1 when (snapshot_ena_d1 = '1') else
-                              latency_max;
-  latency_min_out          <= latency_min_d1 when (snapshot_ena_d1 = '1') else
-                              latency_min;
-  latency_acc_out          <= std_logic_vector(latency_acc_d1(g_acc_width-1 downto 0)) when (snapshot_ena_d1 = '1') else
-                              std_logic_vector(latency_acc(g_acc_width-1 downto 0));
-  latency_cnt_out          <= std_logic_vector(latency_cnt_d1) when (snapshot_ena_d1 = '1') else
-                              std_logic_vector(latency_cnt);
-  latency_acc_overflow_out <= latency_acc_overflow_d1  when (snapshot_ena_d1 = '1') else
-                              latency_acc_overflow;
-
+  gen_rx_stats: if(g_streamers_op_mode=RX_ONLY OR g_streamers_op_mode=TX_AND_RX) generate
+    U_RX_STATS: xrx_streamers_stats
+      generic map(
+        g_cnt_width            => g_cnt_width,
+        g_acc_width            => g_acc_width
+        )
+      port map(
+        clk_i                  => clk_i,
+        rst_n_i                => rst_n_i,
+        rcvd_frame_i           => rcvd_frame_i,
+        lost_block_i           => lost_block_i,
+        lost_frame_i           => lost_frame_i,
+        lost_frames_cnt_i      => lost_frames_cnt_i,
+        rcvd_latency_i         => rcvd_latency_i,
+        rcvd_latency_valid_i   => rcvd_latency_valid_i,
+        tm_time_valid_i        => tm_time_valid_i,
+        snapshot_ena_i         => snapshot_ena,
+        reset_stats_i          => reset_stats,
+        rcvd_frame_cnt_o       => rcvd_frame_cnt_out,
+        lost_frame_cnt_o       => lost_frame_cnt_out,
+        lost_block_cnt_o       => lost_block_cnt_out,
+        latency_cnt_o          => latency_cnt_out,
+        latency_acc_overflow_o => latency_acc_overflow_out,
+        latency_acc_o          => latency_acc_out,
+        latency_max_o          => latency_max_out,
+        latency_min_o          => latency_min_out);
+  end generate gen_rx_stats;
+  gen_not_rx_stats: if(g_streamers_op_mode=TX_ONLY) generate
+    rcvd_frame_cnt_out       <= (others => '0');
+    lost_frame_cnt_out       <= (others => '0');
+    lost_block_cnt_out       <= (others => '0');
+    latency_cnt_out          <= (others => '0');
+    latency_acc_overflow_out <= '0';
+    latency_acc_out          <= (others => '0');
+    latency_max_out          <= (others => '0');
+    latency_min_out          <= (others => '0');
+  end generate gen_not_rx_stats;
   -------------------------------------------------------------------------------------------
   -- wishbone local output
   -------------------------------------------------------------------------------------------

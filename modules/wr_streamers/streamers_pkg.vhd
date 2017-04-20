@@ -5,6 +5,7 @@ use work.wrcore_pkg.all;
 use work.wishbone_pkg.all;  -- needed for t_wishbone_slave_in, etc
 
 package streamers_pkg is
+  type t_streamers_op_mode is (RX_ONLY, TX_ONLY, TX_AND_RX);
   -----------------------------------------------------------------------------------------
   -- Transmission parameters (tx)
   -----------------------------------------------------------------------------------------
@@ -152,6 +153,7 @@ package streamers_pkg is
 
   component xrtx_streamers_stats is
     generic (
+      g_streamers_op_mode    : t_streamers_op_mode  := TX_AND_RX;
       g_cnt_width            : integer := 32;
       g_acc_width            : integer := 64
       );
@@ -192,6 +194,7 @@ package streamers_pkg is
 
   component xwr_transmission is
   generic (
+    g_streamers_op_mode        : t_streamers_op_mode  := TX_AND_RX;
     --tx/rx
     g_tx_streamer_params       : t_tx_streamer_params := c_tx_streamer_params_defaut;
     g_rx_streamer_params       : t_rx_streamer_params := c_rx_streamer_params_defaut;

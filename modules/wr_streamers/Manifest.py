@@ -8,5 +8,9 @@ files = ["streamers_pkg.vhd",
          "gc_escape_detector.vhd",
          "dropping_buffer.vhd",
          "wr_transmission_wbgen2_pkg.vhd", 
-         "xwr_transmission.vhd", 
-         "wr_transmission_wb.vhd"]
+         "xwr_transmission.vhd",
+         "wr_transmission_wb.vhd",
+         "streamers_priv_pkg.vhd",
+         "xtx_streamers_stats.vhd",
+         "xrx_streamers_stats.vhd"
+         ]
