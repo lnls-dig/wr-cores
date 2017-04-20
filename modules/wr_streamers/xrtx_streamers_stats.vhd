@@ -50,7 +50,6 @@ use work.wrcore_pkg.all;    -- needed for t_generic_word_array
 use work.streamers_priv_pkg.all;
 
 entity xrtx_streamers_stats is
-  
   generic (
     -- Indicates whether this module instantiates both streamers (rx and tx) or only one
     -- of them. An application that only receives or only transmits might want to use
@@ -104,20 +103,6 @@ entity xrtx_streamers_stats is
 end xrtx_streamers_stats;
 
 architecture rtl of xrtx_streamers_stats is
-
-  component pulse_stamper
-    port (
-      clk_ref_i       : in  std_logic;
-      clk_sys_i       : in  std_logic;
-      rst_n_i         : in  std_logic;
-      pulse_a_i       : in  std_logic;
-      tm_time_valid_i : in  std_logic;
-      tm_tai_i        : in  std_logic_vector(39 downto 0);
-      tm_cycles_i     : in  std_logic_vector(27 downto 0);
-      tag_tai_o       : out std_logic_vector(39 downto 0);
-      tag_cycles_o    : out std_logic_vector(27 downto 0);
-      tag_valid_o     : out std_logic);
-  end component;
 
   signal reset_time_tai    : std_logic_vector(39 downto 0);
   signal reset_time_cycles : std_logic_vector(27 downto 0);

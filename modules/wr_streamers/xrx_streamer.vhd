@@ -32,6 +32,7 @@ use work.wishbone_pkg.all;
 use work.wr_fabric_pkg.all;
 use work.gencores_pkg.all;
 use work.genram_pkg.all;
+use work.streamers_priv_pkg.all;
 
 entity xrx_streamer is
   
@@ -137,81 +138,6 @@ entity xrx_streamer is
 end xrx_streamer;
 
 architecture rtl of xrx_streamer is
-
-  type t_pipe is record
-    dvalid  : std_logic;
-    dreq    : std_logic;
-    sof     : std_logic;
-    eof     : std_logic;
-    error   : std_logic;
-    data    : std_logic_vector(15 downto 0);
-    addr    : std_logic_vector(1 downto 0);
-    bytesel : std_logic;
-  end record;
-
-  component escape_detector
-    generic (
-      g_data_width  : integer;
-      g_escape_code : std_logic_vector);
-    port (
-      clk_i             : in  std_logic;
-      rst_n_i           : in  std_logic;
-      d_i               : in  std_logic_vector(g_data_width-1 downto 0);
-      d_detect_enable_i : in  std_logic;
-      d_valid_i         : in  std_logic;
-      d_req_o           : out std_logic;
-      d_o               : out std_logic_vector(g_data_width-1 downto 0);
-      d_escape_o        : out std_logic;
-      d_valid_o         : out std_logic;
-      d_req_i           : in  std_logic);
-  end component;
-
-  component dropping_buffer
-    generic (
-      g_size       : integer;
-      g_data_width : integer);
-    port (
-      clk_i      : in  std_logic;
-      rst_n_i    : in  std_logic;
-      d_i        : in  std_logic_vector(g_data_width-1 downto 0);
-      d_req_o    : out std_logic;
-      d_drop_i   : in  std_logic;
-      d_accept_i : in  std_logic;
-      d_valid_i  : in  std_logic;
-      d_o        : out std_logic_vector(g_data_width-1 downto 0);
-      d_valid_o  : out std_logic;
-      d_req_i    : in  std_logic);
-  end component;
-
-  component pulse_stamper
-    port (
-      clk_ref_i       : in  std_logic;
-      clk_sys_i       : in  std_logic;
-      rst_n_i         : in  std_logic;
-      pulse_a_i       : in  std_logic;
-      tm_time_valid_i : in  std_logic;
-      tm_tai_i        : in  std_logic_vector(39 downto 0);
-      tm_cycles_i     : in  std_logic_vector(27 downto 0);
-      tag_tai_o       : out std_logic_vector(39 downto 0);
-      tag_cycles_o    : out std_logic_vector(27 downto 0);
-      tag_valid_o     : out std_logic);
-  end component;
-
-  component xwb_fabric_sink
-    port (
-      clk_i     : in  std_logic;
-      rst_n_i   : in  std_logic;
-      snk_i     : in  t_wrf_sink_in;
-      snk_o     : out t_wrf_sink_out;
-      addr_o    : out std_logic_vector(1 downto 0);
-      data_o    : out std_logic_vector(15 downto 0);
-      dvalid_o  : out std_logic;
-      sof_o     : out std_logic;
-      eof_o     : out std_logic;
-      error_o   : out std_logic;
-      bytesel_o : out std_logic;
-      dreq_i    : in  std_logic);
-  end component;
 
   type t_rx_state is (IDLE, HEADER, FRAME_SEQ_ID, PAYLOAD, SUBFRAME_HEADER, EOF);
 

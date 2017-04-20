@@ -31,9 +31,9 @@ use work.wishbone_pkg.all;
 use work.wr_fabric_pkg.all;
 use work.gencores_pkg.all;
 use work.genram_pkg.all;
+use work.streamers_priv_pkg.all;
 
 entity xtx_streamer is
-  
   generic (
     -- Width of data words on tx_data_i, must be multiple of 16 bits.
     g_data_width : integer := 32;
@@ -135,62 +135,6 @@ entity xtx_streamer is
 end xtx_streamer;
 
 architecture rtl of xtx_streamer is
-
-  type t_pipe is record
-    dvalid : std_logic;
-    dreq   : std_logic;
-    sof    : std_logic;
-    eof    : std_logic;
-    error  : std_logic;
-    data   : std_logic_vector(15 downto 0);
-  end record;
-
-  component xwb_fabric_source
-    port (
-      clk_i     : in  std_logic;
-      rst_n_i   : in  std_logic;
-      src_i     : in  t_wrf_source_in;
-      src_o     : out t_wrf_source_out;
-      addr_i    : in  std_logic_vector(1 downto 0);
-      data_i    : in  std_logic_vector(15 downto 0);
-      dvalid_i  : in  std_logic;
-      sof_i     : in  std_logic;
-      eof_i     : in  std_logic;
-      error_i   : in  std_logic;
-      bytesel_i : in  std_logic;
-      dreq_o    : out std_logic);
-  end component;
-
-  component gc_escape_inserter
-    generic (
-      g_data_width  : integer;
-      g_escape_code : std_logic_vector);
-    port (
-      clk_i             : in  std_logic;
-      rst_n_i           : in  std_logic;
-      d_i               : in  std_logic_vector(g_data_width-1 downto 0);
-      d_insert_enable_i : in  std_logic;
-      d_escape_i        : in  std_logic;
-      d_valid_i         : in  std_logic;
-      d_req_o           : out std_logic;
-      d_o               : out std_logic_vector (g_data_width-1 downto 0);
-      d_valid_o         : out std_logic;
-      d_req_i           : in  std_logic);
-  end component;
-
-  component pulse_stamper
-    port (
-      clk_ref_i       : in  std_logic;
-      clk_sys_i       : in  std_logic;
-      rst_n_i         : in  std_logic;
-      pulse_a_i       : in  std_logic;
-      tm_time_valid_i : in  std_logic;
-      tm_tai_i        : in  std_logic_vector(39 downto 0);
-      tm_cycles_i     : in  std_logic_vector(27 downto 0);
-      tag_tai_o       : out std_logic_vector(39 downto 0);
-      tag_cycles_o    : out std_logic_vector(27 downto 0);
-      tag_valid_o     : out std_logic);
-  end component;
 
   type t_tx_state is (IDLE, SOF, ETH_HEADER, FRAME_SEQ_ID, SUBFRAME_HEADER, PAYLOAD, CRC_WORD, PADDING, EOF);
 

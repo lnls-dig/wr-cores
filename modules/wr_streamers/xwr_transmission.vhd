@@ -55,6 +55,7 @@ use work.streamers_pkg.all; -- needed for streamers and  c_WR_TRANS_ARR_SIZE_*
 use work.wr_fabric_pkg.all; -- needed for :t_wrf_source_in, etc
 use work.wrcore_pkg.all;    -- needed for t_generic_word_array
 use work.wr_transmission_wbgen2_pkg.all;
+use work.streamers_priv_pkg.all;
 
 entity xwr_transmission is
   generic (
@@ -187,24 +188,6 @@ end xwr_transmission;
 
 architecture rtl of xwr_transmission is
 
-  component  wr_transmission_wb is
-    port (
-      rst_n_i                                  : in     std_logic;
-      clk_sys_i                                : in     std_logic;
-      wb_adr_i                                 : in     std_logic_vector(4 downto 0);
-      wb_dat_i                                 : in     std_logic_vector(31 downto 0);
-      wb_dat_o                                 : out    std_logic_vector(31 downto 0);
-      wb_cyc_i                                 : in     std_logic;
-      wb_sel_i                                 : in     std_logic_vector(3 downto 0);
-      wb_stb_i                                 : in     std_logic;
-      wb_we_i                                  : in     std_logic;
-      wb_ack_o                                 : out    std_logic;
-      wb_stall_o                               : out    std_logic;
-      regs_i                                   : in     t_wr_transmission_in_registers;
-      regs_o                                   : out    t_wr_transmission_out_registers
-    );
-  end component;
-
   signal to_wb              : t_wr_transmission_in_registers;
   signal from_wb            : t_wr_transmission_out_registers;
   signal dbg_word                : std_logic_vector(31 downto 0);
@@ -235,21 +218,6 @@ architecture rtl of xwr_transmission is
   signal rx_cfg_accept_broadcasts: std_logic;
   signal rx_cfg_filter_remote    : std_logic;
   signal rx_cfg_fixed_latency    : std_logic_vector(27 downto 0);
-
-  function f_dbg_word_starting_at_bit(data_in, start_bit : std_logic_vector; g_data_width: integer) return std_logic_vector is
-    variable sb     : integer := 0;
-    variable result : std_logic_vector(31 downto 0);
-  begin
-    sb     := to_integer(unsigned(start_bit));
-    for i in 0 to 31 loop
-      if (sb + i < g_data_width) then 
-        result(i) := data_in(sb + i);
-      else 
-        result(i) := '0';
-      end if;
-    end loop;
-    return result;
-  end f_dbg_word_starting_at_bit;
 
 begin
 

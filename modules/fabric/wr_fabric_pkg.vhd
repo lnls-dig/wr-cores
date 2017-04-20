@@ -125,6 +125,38 @@ package wr_fabric_pkg is
       wb_o : out t_wishbone_slave_out);
   end component;
 
+  component xwb_fabric_sink
+    port (
+      clk_i     : in  std_logic;
+      rst_n_i   : in  std_logic;
+      snk_i     : in  t_wrf_sink_in;
+      snk_o     : out t_wrf_sink_out;
+      addr_o    : out std_logic_vector(1 downto 0);
+      data_o    : out std_logic_vector(15 downto 0);
+      dvalid_o  : out std_logic;
+      sof_o     : out std_logic;
+      eof_o     : out std_logic;
+      error_o   : out std_logic;
+      bytesel_o : out std_logic;
+      dreq_i    : in  std_logic);
+  end component;
+
+  component xwb_fabric_source
+    port (
+      clk_i     : in  std_logic;
+      rst_n_i   : in  std_logic;
+      src_i     : in  t_wrf_source_in;
+      src_o     : out t_wrf_source_out;
+      addr_i    : in  std_logic_vector(1 downto 0);
+      data_i    : in  std_logic_vector(15 downto 0);
+      dvalid_i  : in  std_logic;
+      sof_i     : in  std_logic;
+      eof_i     : in  std_logic;
+      error_i   : in  std_logic;
+      bytesel_i : in  std_logic;
+      dreq_o    : out std_logic);
+  end component;
+
 end wr_fabric_pkg;
 
 package body wr_fabric_pkg is
