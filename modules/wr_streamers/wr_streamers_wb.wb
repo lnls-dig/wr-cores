@@ -496,28 +496,6 @@ peripheral {
     };
    };
   reg {
-    name = "DBG RX_BVALUE";
-    prefix = "DBG_RX_BVALUE";
-    field {
-      name = "Debug content";
-      size = 32;
-      type =SLV;
-      access_bus = READ_ONLY;
-      access_dev = WRITE_ONLY;
-    };
-   };
-  reg {
-    name = "DBG tx bvalue";
-    prefix = "DBG_TX_BVALUE";
-    field {
-      name = "Debug content";
-      size = 32;
-      type = SLV;
-      access_bus = READ_ONLY;
-      access_dev = WRITE_ONLY;
-    };
-   };
-  reg {
     name = "Test value";
     prefix = "DUMMY";
     field {
