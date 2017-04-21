@@ -148,38 +148,10 @@ entity xwr_transmission is
     snmp_array_i               : in  t_generic_word_array(c_WR_TRANS_ARR_SIZE_IN -1 downto 0);
 
     -----------------------------------------------------------------------------------------
-    -- Transmission (tx) configuration
+    -- Transmission and Reception configuration
     -----------------------------------------------------------------------------------------
-    -- Local MAC address. Leave at 0x0...0 when using with the WR MAC/Core, it will
-    -- insert its own source MAC.
-    tx_cfg_mac_local_i         : in std_logic_vector(47 downto 0) := x"000000000000";
-    -- Destination MAC address, i.e. MAC of a device to which data is streamed.
-    tx_cfg_mac_target_i        : in std_logic_vector(47 downto 0):= x"ffffffffffff";
-    -- Ethertype of our frames. Default value is accepted by standard
-    -- configuration of the WR PTP Core
-    tx_cfg_ethertype_i         : in std_logic_vector(15 downto 0) := x"dbff";
-
-    -----------------------------------------------------------------------------------------
-    -- Reception (rx)configuration
-    -----------------------------------------------------------------------------------------
-    -- Local MAC address. Leave at 0x0...0 when using with the WR MAC/Core, it will
-    -- insert its own source MAC.
-    rx_cfg_mac_local_i         : in std_logic_vector(47 downto 0) := x"000000000000";
-    -- Remote MAC address, i.e. MAC of the device from which the data should be accpated
-    rx_cfg_mac_remote_i        : in std_logic_vector(47 downto 0) := x"000000000000";
-    -- Ethertype of our frames. Default value is accepted by standard
-    -- configuration of the WR PTP Core
-    rx_cfg_ethertype_i         : in std_logic_vector(15 downto 0) := x"dbff";
-    -- 1: accept all broadcast packets
-    -- 0: accept only unicasts
-    rx_cfg_accept_broadcasts_i : in std_logic                     := '1';
-    -- filtering of streamer frames on reception by source MAC address
-    -- 0: accept frames from any source
-    -- 1: accept frames only from the source MAC address defined in cfg_mac_remote_i
-    rx_cfg_filter_remote_i     : in std_logic                     := '0';
-    -- value in cycles of fixed-latency enforced on data
-    rx_cfg_fixed_latency_i     : in std_logic_vector(27 downto 0) := x"0000000"
-
+    tx_streamer_cfg_i          : in t_tx_streamer_cfg := c_tx_streamer_cfg_default;
+    rx_streamer_cfg_i          : in t_rx_streamer_cfg := c_rx_streamer_cfg_default
     );
 
 end xwr_transmission;
@@ -189,8 +161,6 @@ architecture rtl of xwr_transmission is
   signal to_wb              : t_wr_transmission_in_registers;
   signal from_wb            : t_wr_transmission_out_registers;
   signal dbg_word                : std_logic_vector(31 downto 0);
-  signal dbg_tx_bfield           : std_logic_vector(31 downto 0);
-  signal dbg_rx_bfield           : std_logic_vector(31 downto 0);
   signal start_bit               : std_logic_vector(from_wb.dbg_ctrl_start_byte_o'length-1+3 downto 0);
   signal rx_data                 : std_logic_vector(g_rx_streamer_params.data_width-1 downto 0);
   signal wb_regs_slave_in        : t_wishbone_slave_in;
@@ -207,15 +177,17 @@ architecture rtl of xwr_transmission is
   signal rx_lost_blocks          : std_logic;
   signal rx_frame                : std_logic;
 
-  signal tx_cfg_mac_local        : std_logic_vector(47 downto 0);
-  signal tx_cfg_mac_target       : std_logic_vector(47 downto 0);
-  signal tx_cfg_ethertype        : std_logic_vector(15 downto 0);
-  signal rx_cfg_mac_local        : std_logic_vector(47 downto 0);
-  signal rx_cfg_mac_remote       : std_logic_vector(47 downto 0);
-  signal rx_cfg_ethertype        : std_logic_vector(15 downto 0);
-  signal rx_cfg_accept_broadcasts: std_logic;
-  signal rx_cfg_filter_remote    : std_logic;
-  signal rx_cfg_fixed_latency    : std_logic_vector(27 downto 0);
+--   signal tx_cfg_mac_local        : std_logic_vector(47 downto 0);
+--   signal tx_cfg_mac_target       : std_logic_vector(47 downto 0);
+--   signal tx_cfg_ethertype        : std_logic_vector(15 downto 0);
+--   signal rx_cfg_mac_local        : std_logic_vector(47 downto 0);
+--   signal rx_cfg_mac_remote       : std_logic_vector(47 downto 0);
+--   signal rx_cfg_ethertype        : std_logic_vector(15 downto 0);
+--   signal rx_cfg_accept_broadcasts: std_logic;
+--   signal rx_cfg_filter_remote    : std_logic;
+--   signal rx_cfg_fixed_latency    : std_logic_vector(27 downto 0);
+  signal tx_streamer_cfg         : t_tx_streamer_cfg;
+  signal rx_streamer_cfg         : t_rx_streamer_cfg;
 
 begin
 
@@ -247,9 +219,7 @@ begin
         tx_flush_p1_i            => tx_flush_p1_i,
         tx_reset_seq_i           => from_wb.sscr1_rst_seq_id_o,
         tx_frame_p1_o            => tx_frame,
-        cfg_mac_local_i          => tx_cfg_mac_local_i,
-        cfg_mac_target_i         => tx_cfg_mac_target_i,
-        cfg_ethertype_i          => tx_cfg_ethertype_i);
+        tx_streamer_cfg_i        => tx_streamer_cfg);
   end generate gen_tx;
 
   gen_not_tx: if(g_streamers_op_mode=RX_ONLY) generate
@@ -289,12 +259,7 @@ begin
         rx_latency_o             => rx_latency,
         rx_latency_valid_o       => rx_latency_valid,
         rx_frame_p1_o            => rx_frame,
-        cfg_mac_local_i          => rx_cfg_mac_local_i,
-        cfg_mac_remote_i         => rx_cfg_mac_remote_i,
-        cfg_ethertype_i          => rx_cfg_ethertype_i,
-        cfg_accept_broadcasts_i  => rx_cfg_accept_broadcasts_i,
-        cfg_filter_remote_i      => rx_cfg_filter_remote,
-        cfg_fixed_latency_i      => rx_cfg_fixed_latency);
+        rx_streamer_cfg_i        => rx_streamer_cfg);
   end generate gen_rx;
   gen_not_rx: if(g_streamers_op_mode=TX_ONLY) generate
     snk_o         <= c_dummy_src_in;
@@ -406,61 +371,33 @@ begin
     end if;
   end process;
 
-  gen_btrain_debug: if(g_tx_streamer_params.data_width > 47 and g_rx_streamer_params.data_width > 47) generate
-    -- this is b-train specific stuff that allows snooping bfield easily. Btrain is
-    -- the main (and currently) only application of streamers
-    p_bfield_for_SNMP: process(clk_sys_i)
-    begin
-      if rising_edge(clk_sys_i) then
-        if rst_n_i = '0' then
-          dbg_tx_bfield <= (others =>'0');
-          dbg_rx_bfield <= (others =>'0');
-        else
-          if(rx_valid = '1') then
-            dbg_rx_bfield <= rx_data(15+16 downto 0+16) & rx_data(31+16 downto 16+16);
-          end if;
-          if(tx_valid_i = '1') then
-            dbg_tx_bfield <= tx_data_i(15+16 downto 0+16) & tx_data_i(31+16 downto 16+16);
-          end if;
-        end if;
-      end if;
-    end process;
-    snmp_array_o(c_STREAMERS_ARR_SIZE_OUT+1) <= dbg_rx_bfield;
-    snmp_array_o(c_STREAMERS_ARR_SIZE_OUT+2) <= dbg_tx_bfield;
-  end generate gen_btrain_debug;
-
   snmp_array_o(c_STREAMERS_ARR_SIZE_OUT)   <= dbg_word;
 
   to_wb.dbg_data_i      <= dbg_word;
-  to_wb.dbg_rx_bvalue_i <= dbg_rx_bfield;
-  to_wb.dbg_tx_bvalue_i <= dbg_tx_bfield;
   to_wb.dummy_dummy_i   <= x"DEADBEEF";
 
-  tx_cfg_ethertype               <= from_wb.tx_cfg0_ethertype_o      when (from_wb.cfg_or_tx_ethtype_o='1') else
-                                            tx_cfg_ethertype_i;
-  tx_cfg_mac_local(31 downto 0)  <= from_wb.tx_cfg1_mac_local_lsb_o  when (from_wb.cfg_or_tx_mac_loc_o='1') else
-                                            tx_cfg_mac_local_i(31 downto 0);
-  tx_cfg_mac_local(47 downto 32) <= from_wb.tx_cfg2_mac_local_msb_o  when (from_wb.cfg_or_tx_mac_loc_o='1') else
-                                            tx_cfg_mac_local_i(47 downto 32);
-  tx_cfg_mac_target(31 downto 0) <= from_wb.tx_cfg3_mac_target_lsb_o when (from_wb.cfg_or_tx_mac_tar_o='1') else
-                                            tx_cfg_mac_target_i(31 downto 0);
-  tx_cfg_mac_target(47 downto 32)<= from_wb.tx_cfg4_mac_target_msb_o when (from_wb.cfg_or_tx_mac_tar_o='1') else
-                                            tx_cfg_mac_target_i(47 downto 32);
-
-  rx_cfg_ethertype               <= from_wb.rx_cfg0_ethertype_o      when (from_wb.cfg_or_rx_ethertype_o='1') else
-                                            rx_cfg_ethertype_i;
-  rx_cfg_mac_local(31 downto 0)  <= from_wb.rx_cfg1_mac_local_lsb_o  when (from_wb.cfg_or_rx_mac_loc_o='1') else
-                                            rx_cfg_mac_local_i(31 downto 0);
-  rx_cfg_mac_local(47 downto 32) <= from_wb.rx_cfg2_mac_local_msb_o  when (from_wb.cfg_or_rx_mac_loc_o='1') else
-                                            rx_cfg_mac_local_i(47 downto 32);
-  rx_cfg_mac_remote(31 downto 0) <= from_wb.rx_cfg3_mac_remote_lsb_o when (from_wb.cfg_or_rx_mac_rem_o='1') else
-                                            rx_cfg_mac_remote_i(31 downto 0);
-  rx_cfg_mac_remote(47 downto 32)<= from_wb.rx_cfg4_mac_remote_msb_o when (from_wb.cfg_or_rx_mac_rem_o='1') else
-                                            rx_cfg_mac_remote_i(47 downto 32);
-  rx_cfg_accept_broadcasts       <= from_wb.rx_cfg0_accept_broadcast_o when (from_wb.cfg_or_rx_acc_broadcast_o='1') else
-                                            rx_cfg_accept_broadcasts_i;
-  rx_cfg_filter_remote           <= from_wb.rx_cfg0_filter_remote_o    when (from_wb.cfg_or_rx_ftr_remote_o='1') else
-                                            rx_cfg_filter_remote_i;
-  rx_cfg_fixed_latency           <= from_wb.rx_cfg5_fixed_latency_o    when (from_wb.cfg_or_rx_fix_lat_o='1') else
-                                            rx_cfg_fixed_latency_i;
+  -- tx config
+  tx_streamer_cfg.ethertype         <= from_wb.tx_cfg0_ethertype_o        when (from_wb.cfg_or_tx_ethtype_o='1') else
+                                       tx_streamer_cfg_i.ethertype;
+  tx_streamer_cfg.mac_local         <= from_wb.tx_cfg2_mac_local_msb_o &
+                                       from_wb.tx_cfg1_mac_local_lsb_o    when (from_wb.cfg_or_tx_mac_loc_o='1') else
+                                       tx_streamer_cfg_i.mac_local;
+  tx_streamer_cfg.mac_target        <= from_wb.tx_cfg4_mac_target_msb_o &
+                                       from_wb.tx_cfg3_mac_target_lsb_o   when (from_wb.cfg_or_tx_mac_tar_o='1') else
+                                       tx_streamer_cfg_i.mac_target;
+  -- rx config
+  rx_streamer_cfg.ethertype         <= from_wb.rx_cfg0_ethertype_o        when (from_wb.cfg_or_rx_ethertype_o='1') else
+                                       rx_streamer_cfg_i.ethertype;
+  rx_streamer_cfg.mac_local         <= from_wb.rx_cfg2_mac_local_msb_o &
+                                       from_wb.rx_cfg1_mac_local_lsb_o    when (from_wb.cfg_or_rx_mac_loc_o='1') else
+                                       rx_streamer_cfg_i.mac_local;
+  rx_streamer_cfg.mac_remote        <= from_wb.rx_cfg4_mac_remote_msb_o &
+                                       from_wb.rx_cfg3_mac_remote_lsb_o   when (from_wb.cfg_or_rx_mac_rem_o='1') else
+                                       rx_streamer_cfg_i.mac_remote;
+  rx_streamer_cfg.accept_broadcasts <= from_wb.rx_cfg0_accept_broadcast_o when (from_wb.cfg_or_rx_acc_broadcast_o='1') else
+                                       rx_streamer_cfg_i.accept_broadcasts;
+  rx_streamer_cfg.filter_remote     <= from_wb.rx_cfg0_filter_remote_o    when (from_wb.cfg_or_rx_ftr_remote_o='1') else
+                                       rx_streamer_cfg_i.filter_remote;
+  rx_streamer_cfg.fixed_latency     <= from_wb.rx_cfg5_fixed_latency_o    when (from_wb.cfg_or_rx_fix_lat_o='1') else
+                                       rx_streamer_cfg_i.fixed_latency;
 end rtl;

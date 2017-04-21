@@ -121,6 +121,50 @@ package streamers_pkg is
       escape_code_disable   => FALSE,
       expected_words_number => 0);
 
+  type t_rx_streamer_cfg is record
+    -- Local MAC address. Leave at 0x0...0 when using with the WR MAC/Core, it will
+    -- insert its own source MAC.
+    mac_local              : std_logic_vector(47 downto 0);
+    -- Remote MAC address, i.e. MAC of the device from which the data should be accpated
+    mac_remote             : std_logic_vector(47 downto 0);
+    -- Ethertype of our frames. Default value is accepted by standard
+    -- configuration of the WR PTP Core
+    ethertype              : std_logic_vector(15 downto 0);
+    -- 1: accept all broadcast packets
+    -- 0: accept only unicasts
+    accept_broadcasts      : std_logic;
+    -- filtering of streamer frames on reception by source MAC address
+    -- 0: accept frames from any source
+    -- 1: accept frames only from the source MAC address defined in cfg_mac_remote_i
+    filter_remote          : std_logic;
+    -- value in cycles of fixed-latency enforced on data
+    fixed_latency          : std_logic_vector(27 downto 0);
+  end record;
+
+  type t_tx_streamer_cfg is record
+    -- Local MAC address. Leave at 0x0...0 when using with the WR MAC/Core, it will
+    -- insert its own source MAC.
+    mac_local              : std_logic_vector(47 downto 0);
+    -- Destination MAC address, i.e. MAC of a device to which data is streamed.
+    mac_target             : std_logic_vector(47 downto 0);
+    -- Ethertype of our frames. Default value is accepted by standard
+    -- configuration of the WR PTP Core
+    ethertype              : std_logic_vector(15 downto 0);
+  end record;
+
+  constant c_rx_streamer_cfg_default: t_rx_streamer_cfg :=(
+    mac_local              => x"000000000000",
+    mac_remote             => x"000000000000",
+    ethertype              => x"dbff",
+    accept_broadcasts      => '1',
+    filter_remote          => '0',
+    fixed_latency          => x"0000000");
+
+  constant c_tx_streamer_cfg_default: t_tx_streamer_cfg :=(
+    mac_local              => x"000000000000",
+    mac_target             => x"ffffffffffff",
+    ethertype              => x"dbff");
+
   component xtx_streamer
     generic (
       g_data_width             : integer := 32;
@@ -145,9 +189,7 @@ package streamers_pkg is
       tx_flush_p1_i    : in  std_logic                     := '0';
       tx_reset_seq_i   : in  std_logic                     := '0';
       tx_frame_p1_o    : out std_logic;
-      cfg_mac_local_i  : in  std_logic_vector(47 downto 0) := x"000000000000";
-      cfg_mac_target_i : in  std_logic_vector(47 downto 0);
-      cfg_ethertype_i  : in  std_logic_vector(15 downto 0) := x"dbff");
+      tx_streamer_cfg_i: in t_tx_streamer_cfg := c_tx_streamer_cfg_default);
   end component;
   
   component xrx_streamer
@@ -177,12 +219,7 @@ package streamers_pkg is
       rx_latency_o            : out std_logic_vector(27 downto 0);
       rx_latency_valid_o      : out std_logic;
       rx_frame_p1_o           : out std_logic;
-      cfg_mac_local_i         : in  std_logic_vector(47 downto 0) := x"000000000000";
-      cfg_mac_remote_i        : in  std_logic_vector(47 downto 0) := x"000000000000";
-      cfg_ethertype_i         : in  std_logic_vector(15 downto 0) := x"dbff";
-      cfg_accept_broadcasts_i : in  std_logic                     := '1';
-      cfg_filter_remote_i     : in std_logic                      := '0';
-      cfg_fixed_latency_i     : in  std_logic_vector(27 downto 0) := x"0000000");
+      rx_streamer_cfg_i       : in t_rx_streamer_cfg := c_rx_streamer_cfg_default);
   end component;
 
   constant c_STREAMERS_ARR_SIZE_OUT : integer := 14;
@@ -273,16 +310,8 @@ package streamers_pkg is
     snmp_array_o               : out t_generic_word_array(c_WR_TRANS_ARR_SIZE_OUT-1 downto 0);
     snmp_array_i               : in  t_generic_word_array(c_WR_TRANS_ARR_SIZE_IN -1 downto 0);
     -- Transmission (tx) configuration
-    tx_cfg_mac_local_i         : in std_logic_vector(47 downto 0) := x"000000000000";
-    tx_cfg_mac_target_i        : in std_logic_vector(47 downto 0):= x"ffffffffffff";
-    tx_cfg_ethertype_i         : in std_logic_vector(15 downto 0) := x"dbff";
-    -- Reception (rx)configuration
-    rx_cfg_mac_local_i         : in std_logic_vector(47 downto 0) := x"000000000000";
-    rx_cfg_mac_remote_i        : in std_logic_vector(47 downto 0) := x"000000000000";
-    rx_cfg_ethertype_i         : in std_logic_vector(15 downto 0) := x"dbff";
-    rx_cfg_accept_broadcasts_i : in std_logic                     := '1';
-    rx_cfg_filter_remote_i     : in std_logic                     := '0';
-    rx_cfg_fixed_latency_i     : in std_logic_vector(27 downto 0) := x"0000000"
+    tx_streamer_cfg_i          : in  t_tx_streamer_cfg := c_tx_streamer_cfg_default;
+    rx_streamer_cfg_i          : in  t_rx_streamer_cfg := c_rx_streamer_cfg_default
     );
   end component;
 

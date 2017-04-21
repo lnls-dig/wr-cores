@@ -98,10 +98,9 @@ end rx_streamer;
 
 architecture wrapper of rx_streamer is
 
-
   signal snk_in  : t_wrf_sink_in;
   signal snk_out : t_wrf_sink_out;
-
+  signal rx_streamer_cfg : t_rx_streamer_cfg;
 begin  -- rtl
 
   U_Wrapped_Streamer : xrx_streamer
@@ -131,12 +130,7 @@ begin  -- rtl
       rx_latency_valid_o      => rx_latency_valid_o,
       rx_latency_o            => rx_latency_o,
       rx_frame_p1_o           => rx_frame_p1_o,
-      cfg_mac_local_i         => cfg_mac_local_i,
-      cfg_mac_remote_i        => cfg_mac_remote_i,
-      cfg_ethertype_i         => cfg_ethertype_i,
-      cfg_accept_broadcasts_i => cfg_accept_broadcasts_i,
-      cfg_filter_remote_i     => cfg_filter_remote_i,
-      cfg_fixed_latency_i     => cfg_fixed_latency_i);
+      rx_streamer_cfg_i       => rx_streamer_cfg);
 
   snk_in.dat  <= snk_dat_i;
   snk_in.adr  <= snk_adr_i;
@@ -148,5 +142,12 @@ begin  -- rtl
   snk_ack_o   <= snk_out.ack;
   snk_err_o   <= snk_out.err;
   snk_rty_o   <= snk_out.rty;
+
+  rx_streamer_cfg.mac_local         <= cfg_mac_local_i;
+  rx_streamer_cfg.mac_remote        <= cfg_mac_remote_i;
+  rx_streamer_cfg.ethertype         <= cfg_ethertype_i;
+  rx_streamer_cfg.accept_broadcasts <= cfg_accept_broadcasts_i;
+  rx_streamer_cfg.filter_remote     <= cfg_filter_remote_i;
+  rx_streamer_cfg.fixed_latency     <= cfg_fixed_latency_i;
 
 end wrapper;

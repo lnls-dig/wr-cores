@@ -43,6 +43,7 @@ use work.wr_fabric_pkg.all;
 use work.gencores_pkg.all;
 use work.genram_pkg.all;
 use work.streamers_priv_pkg.all;
+use work.streamers_pkg.all;
 
 entity xrx_streamer is
   
@@ -129,20 +130,8 @@ entity xrx_streamer is
     rx_latency_valid_o : out std_logic;
     -- received 	streamer frame (counts all frames, corrupted and not)
     rx_frame_p1_o         : out std_logic;
-
-    -- MAC address
-    cfg_mac_local_i         : in std_logic_vector(47 downto 0);
-    cfg_mac_remote_i        : in std_logic_vector(47 downto 0);
-    cfg_ethertype_i         : in std_logic_vector(15 downto 0) := x"dbff";
-    -- 1: accept all broadcast packets
-    -- 0: accept only unicasts
-    cfg_accept_broadcasts_i : in std_logic                     := '1';
-    -- filtering of streamer frames on reception by source MAC address
-    -- 0: accept frames from any source
-    -- 1: accept frames only from the source MAC address defined in cfg_mac_remote_i
-    cfg_filter_remote_i     : in std_logic                     := '0';
-    -- value in cycles of fixed-latency enforced on data
-    cfg_fixed_latency_i     : in std_logic_vector(27 downto 0) := x"0000000"
+    -- configuration
+    rx_streamer_cfg_i     : in t_rx_streamer_cfg := c_rx_streamer_cfg_default
     );
 
 end xrx_streamer;
@@ -329,7 +318,7 @@ begin  -- rtl
   p_fixed_latency_fsm : process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
-      if rst_n_i = '0' or cfg_fixed_latency_i = fixed_latency_zero then
+      if rst_n_i = '0' or rx_streamer_cfg_i.fixed_latency = fixed_latency_zero then
         delay_state        <= ALLOW;
         rx_latency_stored  <= (others=>'0');
         rx_dreq_mask       <= '1';
@@ -342,7 +331,7 @@ begin  -- rtl
               delay_state       <= DELAY;
             end if;
           when DELAY =>
-            if(fixed_latency_cnt >= cfg_fixed_latency_i) then
+            if(fixed_latency_cnt >= rx_streamer_cfg_i.fixed_latency) then
               rx_dreq_mask <= '1';
               delay_state  <= ALLOW;
             end if;
@@ -413,37 +402,37 @@ begin  -- rtl
             elsif(fsm_in.dvalid = '1') then
               case count(7 downto 0) is
                 when x"00" =>
-                  if(fsm_in.data /= cfg_mac_local_i(47 downto 32) nor (cfg_accept_broadcasts_i = '1' and fsm_in.data /= x"ffff")) then
+                  if(fsm_in.data /= rx_streamer_cfg_i.mac_local(47 downto 32) nor (rx_streamer_cfg_i.accept_broadcasts = '1' and fsm_in.data /= x"ffff")) then
                     state <= IDLE;
                   end if;
                   count <= count + 1;
                 when x"01" =>
-                  if(fsm_in.data /= cfg_mac_local_i(31 downto 16) nor (cfg_accept_broadcasts_i = '1' and fsm_in.data /= x"ffff")) then
+                  if(fsm_in.data /= rx_streamer_cfg_i.mac_local(31 downto 16) nor (rx_streamer_cfg_i.accept_broadcasts = '1' and fsm_in.data /= x"ffff")) then
                     state <= IDLE;
                   end if;
                   count <= count + 1;
                 when x"02" =>
-                  if(fsm_in.data /= cfg_mac_local_i(15 downto 0) nor (cfg_accept_broadcasts_i = '1' and fsm_in.data /= x"ffff")) then
+                  if(fsm_in.data /= rx_streamer_cfg_i.mac_local(15 downto 0) nor (rx_streamer_cfg_i.accept_broadcasts = '1' and fsm_in.data /= x"ffff")) then
                     state <= IDLE;
                   end if;
                   count <= count + 1;
                 when x"03" =>
-                  if(fsm_in.data /= cfg_mac_remote_i(47 downto 32) and cfg_filter_remote_i ='1') then
+                  if(fsm_in.data /= rx_streamer_cfg_i.mac_remote(47 downto 32) and rx_streamer_cfg_i.filter_remote ='1') then
                     state <= IDLE;
                   end if;
                   count <= count + 1;
                 when x"04" =>
-                  if(fsm_in.data /= cfg_mac_remote_i(31 downto 16) and cfg_filter_remote_i ='1') then
+                  if(fsm_in.data /= rx_streamer_cfg_i.mac_remote(31 downto 16) and rx_streamer_cfg_i.filter_remote ='1') then
                     state <= IDLE;
                   end if;
                   count <= count + 1;
                 when x"05" =>
-                  if(fsm_in.data /= cfg_mac_remote_i(15 downto 0) and cfg_filter_remote_i ='1') then
+                  if(fsm_in.data /= rx_streamer_cfg_i.mac_remote(15 downto 0) and rx_streamer_cfg_i.filter_remote ='1') then
                     state <= IDLE;
                   end if;
                   count <= count + 1;
                 when x"06" =>
-                  if(fsm_in.data /= cfg_ethertype_i) then
+                  if(fsm_in.data /= rx_streamer_cfg_i.ethertype) then
                     state <= IDLE;
                   end if;
                   count <= count + 1;

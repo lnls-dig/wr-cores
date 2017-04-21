@@ -93,9 +93,10 @@ architecture rtl of tx_streamer is
 
   signal src_in  : t_wrf_source_in;
   signal src_out : t_wrf_source_out;
+  signal tx_streamer_cfg: t_tx_streamer_cfg;
   
 begin  -- rtl
-  
+
   U_Wrapped_Streamer : xtx_streamer
     generic map (
       g_data_width             => g_data_width,
@@ -122,9 +123,7 @@ begin  -- rtl
       tx_reset_seq_i   => tx_reset_seq_i,
       tx_frame_p1_o    => tx_frame_p1_o,
 
-      cfg_mac_local_i  => cfg_mac_local_i,
-      cfg_mac_target_i => cfg_mac_target_i,
-      cfg_ethertype_i  => cfg_ethertype_i);
+      tx_streamer_cfg_i=> tx_streamer_cfg);
 
   src_adr_o    <= src_out.adr;
   src_dat_o    <= src_out.dat;
@@ -135,5 +134,9 @@ begin  -- rtl
   src_in.ack   <= src_ack_i;
   src_in.stall <= src_stall_i;
   src_in.err   <= src_err_i;
-  
+
+  tx_streamer_cfg.mac_local  <= cfg_mac_local_i;
+  tx_streamer_cfg.mac_target <= cfg_mac_target_i;
+  tx_streamer_cfg.ethertype  <= cfg_ethertype_i;
+
 end rtl;

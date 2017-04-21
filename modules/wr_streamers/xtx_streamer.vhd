@@ -42,6 +42,7 @@ use work.wr_fabric_pkg.all;
 use work.gencores_pkg.all;
 use work.genram_pkg.all;
 use work.streamers_priv_pkg.all;
+use work.streamers_pkg.all;
 
 entity xtx_streamer is
   generic (
@@ -126,20 +127,8 @@ entity xtx_streamer is
     tx_reset_seq_i : in std_logic := '0';
     -- successfully sent streamer frame
     tx_frame_p1_o : out std_logic;
-    ---------------------------------------------------------------------------
     -- Configuration
-    ---------------------------------------------------------------------------
-
-    -- Local MAC address. Leave at 0 when using with the WR MAC/Core, it will
-    -- insert its own source MAC.
-    cfg_mac_local_i : in std_logic_vector(47 downto 0) := x"000000000000";
-
-    -- Destination MAC address.
-    cfg_mac_target_i : in std_logic_vector(47 downto 0);
-
-    -- Ethertype of our frames. Default value is accepted by standard
-    -- configuration of the WR PTP Core
-    cfg_ethertype_i : in std_logic_vector(15 downto 0) := x"dbff"
+    tx_streamer_cfg_i : in t_tx_streamer_cfg := c_tx_streamer_cfg_default
     );
 
 end xtx_streamer;
@@ -410,25 +399,25 @@ begin  -- rtl
             if(fsm_out.dreq = '1') then
               case count(7 downto 0) is
                 when x"00" =>
-                  fsm_out.data <= cfg_mac_target_i(47 downto 32);
+                  fsm_out.data <= tx_streamer_cfg_i.mac_target(47 downto 32);
                   count        <= count + 1;
                 when x"01" =>
-                  fsm_out.data <= cfg_mac_target_i(31 downto 16);
+                  fsm_out.data <= tx_streamer_cfg_i.mac_target(31 downto 16);
                   count        <= count + 1;
                 when x"02" =>
-                  fsm_out.data <= cfg_mac_target_i(15 downto 0);
+                  fsm_out.data <= tx_streamer_cfg_i.mac_target(15 downto 0);
                   count        <= count + 1;
                 when x"03" =>
-                  fsm_out.data <= cfg_mac_local_i(47 downto 32);
+                  fsm_out.data <= tx_streamer_cfg_i.mac_local(47 downto 32);
                   count        <= count + 1;
                 when x"04" =>
-                  fsm_out.data <= cfg_mac_local_i(31 downto 16);
+                  fsm_out.data <= tx_streamer_cfg_i.mac_local(31 downto 16);
                   count        <= count + 1;
                 when x"05" =>
-                  fsm_out.data <= cfg_mac_local_i(15 downto 0);
+                  fsm_out.data <= tx_streamer_cfg_i.mac_local(15 downto 0);
                   count        <= count + 1;
                 when x"06" =>
-                  fsm_out.data <= cfg_ethertype_i;
+                  fsm_out.data <= tx_streamer_cfg_i.ethertype;
                   count        <= count + 1;
                 when x"07" =>
                   fsm_out.data <= tag_valid_latched & "000" & tag_cycles(27 downto 16);
