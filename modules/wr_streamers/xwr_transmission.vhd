@@ -12,8 +12,18 @@
 -------------------------------------------------------------------------------
 -- Description:
 --
+-- This module is a top-level entity for WR streamers to be used conveniently
+-- in application. It is inlcluded in the board top entity of wr-cores as one
+-- of transportation means.
+--
+-- It allows to send and receive streames of data over Ethernet network. In
+-- other words, it provides communication over Ethernet network that looks as
+-- FIFO: one one node (e.g. SPEC, the user writes to tx streamer words of 
+-- configureable size. These words are received by the rx streamer in another
+-- node (e.g. SVEC) in the same order. 
+--
 -- This module wraps WR_Streamers-related stuff: i.e.
--- 1) IP core modules provided in wr-cores: xtx_streamer, xrx_streamer, 
+-- 1) IP core modules provided in wr-cores: xtx_streamer, xrx_streamer,
 --    xrtx_streamers_stats
 -- 2) wishbone registers that provide access to the statistics and streamer's
 --    control/status registers.
@@ -177,22 +187,13 @@ architecture rtl of xwr_transmission is
   signal rx_lost_blocks          : std_logic;
   signal rx_frame                : std_logic;
 
---   signal tx_cfg_mac_local        : std_logic_vector(47 downto 0);
---   signal tx_cfg_mac_target       : std_logic_vector(47 downto 0);
---   signal tx_cfg_ethertype        : std_logic_vector(15 downto 0);
---   signal rx_cfg_mac_local        : std_logic_vector(47 downto 0);
---   signal rx_cfg_mac_remote       : std_logic_vector(47 downto 0);
---   signal rx_cfg_ethertype        : std_logic_vector(15 downto 0);
---   signal rx_cfg_accept_broadcasts: std_logic;
---   signal rx_cfg_filter_remote    : std_logic;
---   signal rx_cfg_fixed_latency    : std_logic_vector(27 downto 0);
   signal tx_streamer_cfg         : t_tx_streamer_cfg;
   signal rx_streamer_cfg         : t_rx_streamer_cfg;
 
 begin
 
   -------------------------------------------------------------------------------------------
-  -- transmission
+  -- Instantiate transmission streamer, if configured to do so
   -------------------------------------------------------------------------------------------
   gen_tx: if(g_streamers_op_mode=TX_ONLY OR g_streamers_op_mode=TX_AND_RX) generate
     U_TX: xtx_streamer
@@ -229,7 +230,7 @@ begin
   end generate gen_not_tx;
 
   -------------------------------------------------------------------------------------------
-  -- reception
+  -- -- Instantiate reception streamer, if configured to do so
   -------------------------------------------------------------------------------------------
   gen_rx: if(g_streamers_op_mode=RX_ONLY OR g_streamers_op_mode=TX_AND_RX) generate
     U_RX: xrx_streamer
@@ -270,9 +271,8 @@ begin
   end generate gen_not_rx;
 
   -------------------------------------------------------------------------------------------
-  -- statistics for both
+  -- Instantiate statistics module - it calculates statistics of rx/tx frames
   -------------------------------------------------------------------------------------------
-  -- statistics are useful only for 
   U_STATS: xrtx_streamers_stats
     generic map(
       g_streamers_op_mode      => g_streamers_op_mode,
@@ -317,6 +317,9 @@ begin
   rx_data_o  <= rx_data;
   rx_valid_o <= rx_valid;
 
+  -------------------------------------------------------------------------------------------
+  -- Wishbone access to statistics and configuration
+  -------------------------------------------------------------------------------------------
   U_WB_ADAPTER : wb_slave_adapter
     generic map (
       g_master_use_struct  => true,
@@ -350,8 +353,16 @@ begin
       regs_o       => from_wb
     );
 
+  -------------------------------------------------------------------------------------------
+  -- Provide generic debugging through WB - user can read 32 bits from each send or received
+  -- word. It is possible to configure through WB which 32-bits of each word should be 
+  -- "snooped". In particular, user can sent:
+  -- * whether he/she wishes to look at received or sent words
+  -- * the byte number at which the snooping shall start, i.e. say users sets byte=2, it means
+  --   that he will be able to read through wishbone bytes 3-6 of each word, provided the
+  --   word is of sufficient width
+  -------------------------------------------------------------------------------------------
   start_bit <= from_wb.dbg_ctrl_start_byte_o & "000";
-
   p_debug_mux: process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
@@ -376,6 +387,21 @@ begin
   to_wb.dbg_data_i      <= dbg_word;
   to_wb.dummy_dummy_i   <= x"DEADBEEF";
 
+  -------------------------------------------------------------------------------------------
+  -- set configuration: the user can access configuration through two channels:
+  -- 1) records (tx_streamer_cfg & rx_streamer_cfg) with input signals
+  -- 2) wishbone write
+  -- By default, the input signals are used. A user can overwrite this default
+  -- configuration using WB access. To override the default configuration two 
+  -- values needs to be written:
+  -- 1) the value of a proper configuration, e.g.: tx_cfg0_ethertype, rx_cfg0_filter_remote
+  -- 2) bit that enables overriding of the configuration, e.g. cfg_or_tx_ethtype and
+  --    cfg_or_rx_ftr_remote_o respectively
+  -- The latter (overriding bit) is the so that user can first configure all values
+  -- that he wishes to and then enable all his desired configuration at the same instant.
+  -- Otherwise, during the transition (e.g. between writing lsb and msb of MAC), the
+  -- behaviour could be unpredictable.
+  -------------------------------------------------------------------------------------------
   -- tx config
   tx_streamer_cfg.ethertype         <= from_wb.tx_cfg0_ethertype_o        when (from_wb.cfg_or_tx_ethtype_o='1') else
                                        tx_streamer_cfg_i.ethertype;
