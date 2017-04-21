@@ -140,6 +140,8 @@ package wr_board_pkg is
       wrs_rx_data_o        : out std_logic_vector(g_rx_streamer_params.data_width-1 downto 0);
       wrs_rx_valid_o       : out std_logic;
       wrs_rx_dreq_i        : in  std_logic                                        := '0';
+      wrs_tx_cfg_i         : in t_tx_streamer_cfg := c_tx_streamer_cfg_default;
+      wrs_rx_cfg_i         : in t_rx_streamer_cfg := c_rx_streamer_cfg_default;
       wb_eth_master_o      : out t_wishbone_master_out;
       wb_eth_master_i      : in  t_wishbone_master_in                             := cc_dummy_master_in;
       aux_diag_i           : in  t_generic_word_array(g_diag_ro_size-1 downto 0)  := (others => (others => '0'));

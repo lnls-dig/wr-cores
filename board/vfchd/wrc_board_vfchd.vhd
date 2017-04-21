@@ -189,12 +189,20 @@ entity wrc_board_vfchd is
     wrs_tx_dreq_o  : out std_logic;
     wrs_tx_last_i  : in  std_logic                                        := '1';
     wrs_tx_flush_i : in  std_logic                                        := '0';
+    wrs_tx_cfg_mac_l_i : in  std_logic_vector(47 downto 0)                := x"000000000000";
+    wrs_tx_cfg_mac_t_i : in  std_logic_vector(47 downto 0)                := x"ffffffffffff";
+    wrs_tx_cfg_etype_i : in  std_logic_vector(15 downto 0)                := x"dbff";
     wrs_rx_first_o : out std_logic;
     wrs_rx_last_o  : out std_logic;
     wrs_rx_data_o  : out std_logic_vector(g_rx_streamer_params.data_width-1 downto 0);
     wrs_rx_valid_o : out std_logic;
     wrs_rx_dreq_i  : in  std_logic                                        := '0';
-
+    wrs_rx_cfg_mac_l_i : in std_logic_vector(47 downto 0)                 := x"000000000000";
+    wrs_rx_cfg_mac_r_i : in std_logic_vector(47 downto 0)                 := x"000000000000";
+    wrs_rx_cfg_etype_i : in std_logic_vector(15 downto 0)                 := x"dbff";
+    wrs_rx_cfg_acc_b_i : in std_logic                                     := '1';
+    wrs_rx_cfg_flt_r_i : in std_logic                                     := '0';
+    wrs_rx_cfg_fix_l_i : in std_logic_vector(27 downto 0)                 := x"0000000";
     ---------------------------------------------------------------------------
     -- Etherbone WB master interface (when g_fabric_iface = "etherbone")
     ---------------------------------------------------------------------------
@@ -297,6 +305,10 @@ architecture std_wrapper of wrc_board_vfchd is
   -- External Tx Timestamping I/F
   signal timestamps_out : t_txtsu_timestamp;
 
+  -- streamers config
+  signal wrs_tx_cfg_in  : t_tx_streamer_cfg;
+  signal wrs_rx_cfg_in  : t_rx_streamer_cfg;
+
 begin  -- architecture struct
 
   -- Map top-level signals to internal records
@@ -359,6 +371,17 @@ begin  -- architecture struct
   tstamps_port_id_o  <= timestamps_out.port_id;
   tstamps_frame_id_o <= timestamps_out.frame_id;
 
+  wrs_tx_cfg_in.mac_local         <= wrs_tx_cfg_mac_l_i;
+  wrs_tx_cfg_in.mac_target        <= wrs_tx_cfg_mac_t_i;
+  wrs_tx_cfg_in.ethertype         <= wrs_tx_cfg_etype_i;
+
+  wrs_rx_cfg_in.mac_local         <= wrs_rx_cfg_mac_l_i;
+  wrs_rx_cfg_in.mac_remote        <= wrs_rx_cfg_mac_r_i;
+  wrs_rx_cfg_in.ethertype         <= wrs_rx_cfg_etype_i;
+  wrs_rx_cfg_in.accept_broadcasts <= wrs_rx_cfg_acc_b_i;
+  wrs_rx_cfg_in.filter_remote     <= wrs_rx_cfg_flt_r_i;
+  wrs_rx_cfg_in.fixed_latency     <= wrs_rx_cfg_fix_l_i;
+
   -- Instantiate the records-based module
   cmp_xwrc_board_vfchd : xwrc_board_vfchd
     generic map (
@@ -413,11 +436,13 @@ begin  -- architecture struct
       wrs_tx_dreq_o        => wrs_tx_dreq_o,
       wrs_tx_last_i        => wrs_tx_last_i,
       wrs_tx_flush_i       => wrs_tx_flush_i,
+      wrs_tx_cfg_i         => wrs_tx_cfg_in,
       wrs_rx_first_o       => wrs_rx_first_o,
       wrs_rx_last_o        => wrs_rx_last_o,
       wrs_rx_data_o        => wrs_rx_data_o,
       wrs_rx_valid_o       => wrs_rx_valid_o,
       wrs_rx_dreq_i        => wrs_rx_dreq_i,
+      wrs_rx_cfg_i         => wrs_rx_cfg_in,
       wb_eth_master_o      => wb_eth_master_out,
       wb_eth_master_i      => wb_eth_master_in,
       aux_diag_i           => aux_diag_in,

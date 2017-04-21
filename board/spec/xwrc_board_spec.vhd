@@ -180,12 +180,13 @@ entity xwrc_board_spec is
     wrs_tx_dreq_o  : out std_logic;
     wrs_tx_last_i  : in  std_logic                                        := '1';
     wrs_tx_flush_i : in  std_logic                                        := '0';
+    wrs_tx_cfg_i   : in  t_tx_streamer_cfg                                := c_tx_streamer_cfg_default;
     wrs_rx_first_o : out std_logic;
     wrs_rx_last_o  : out std_logic;
     wrs_rx_data_o  : out std_logic_vector(g_rx_streamer_params.data_width-1 downto 0);
     wrs_rx_valid_o : out std_logic;
     wrs_rx_dreq_i  : in  std_logic                                        := '0';
-
+    wrs_rx_cfg_i   : in t_rx_streamer_cfg                                 := c_rx_streamer_cfg_default;
     ---------------------------------------------------------------------------
     -- Etherbone WB master interface (when g_fabric_iface = "etherbone")
     ---------------------------------------------------------------------------
@@ -462,11 +463,13 @@ begin  -- architecture struct
       wrs_tx_dreq_o        => wrs_tx_dreq_o,
       wrs_tx_last_i        => wrs_tx_last_i,
       wrs_tx_flush_i       => wrs_tx_flush_i,
+      wrs_tx_cfg_i         => wrs_tx_cfg_i,
       wrs_rx_first_o       => wrs_rx_first_o,
       wrs_rx_last_o        => wrs_rx_last_o,
       wrs_rx_data_o        => wrs_rx_data_o,
       wrs_rx_valid_o       => wrs_rx_valid_o,
       wrs_rx_dreq_i        => wrs_rx_dreq_i,
+      wrs_rx_cfg_i         => wrs_rx_cfg_i,
       wb_eth_master_o      => wb_eth_master_o,
       wb_eth_master_i      => wb_eth_master_i,
       aux_diag_i           => aux_diag_i,
