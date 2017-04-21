@@ -79,7 +79,7 @@ begin
   -------------------------------------------------------------------------------------------
   -- frame/block statistics, i.e. lost, sent, received
   -------------------------------------------------------------------------------------------
-  -- process that counts stuff: receved/send/lost frames
+  -- process that counts
   p_cnts: process(clk_i)
   begin
     if rising_edge(clk_i) then

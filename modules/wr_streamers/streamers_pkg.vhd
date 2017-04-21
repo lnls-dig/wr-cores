@@ -72,7 +72,7 @@ package streamers_pkg is
     timeout               : integer;
 
     -- DO NOT USE unless you know what you are doing
-    -- legacy stuff: the streamers initially used in Btrain did not check/insert the escape
+    -- legacy: the streamers initially used in Btrain did not check/insert the escape
     -- code. This is justified if only one block of a known number of words is sent/expected
     escape_code_disable   : boolean;
   end record;
@@ -93,13 +93,13 @@ package streamers_pkg is
     buffer_size           : integer;
 
     -- DO NOT USE unless you know what you are doing
-    -- legacy stuff: the streamers that were initially used in Btrain did not check/insert 
+    -- legacy: the streamers that were initially used in Btrain did not check/insert 
     -- the escape code. This is justified if only one block of a known number of words is 
     -- sent/expected.
     escape_code_disable   : boolean;
 
     -- DO NOT USE unless you know what you are doing
-    -- legacy stuff: the streamers that were initially used in Btrain accepted only a fixed
+    -- legacy: the streamers that were initially used in Btrain accepted only a fixed
     -- number of words, regardless of the frame content. If this generic is set to number
     -- other than zero, only a fixed number of words is accepted. 
     -- In combination with the g_escape_code_disable generic set to TRUE, the behaviour of

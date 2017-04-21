@@ -1,6 +1,7 @@
 -------------------------------------------------------------------------------
 -- Title      : WR Streamers Private Packages
 -- Project    : WR Streamers
+-- URL        : http://www.ohwr.org/projects/wr-cores/wiki/WR_Streamers
 -------------------------------------------------------------------------------
 -- File       : streamers_priv_pkg.vhd
 -- Author     : Maciej Lipinski

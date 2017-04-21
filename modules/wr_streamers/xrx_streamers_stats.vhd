@@ -1,6 +1,7 @@
 -------------------------------------------------------------------------------
 -- Title      : WR Recpetion Streamers statistics
 -- Project    : White Rabbit Streamers
+-- URL        : http://www.ohwr.org/projects/wr-cores/wiki/WR_Streamers
 -------------------------------------------------------------------------------
 -- File       : xrx_streamers_stats.vhd
 -- Author     : Maciej Lipinski
@@ -112,7 +113,7 @@ begin
   -------------------------------------------------------------------------------------------
   -- frame/block statistics, i.e. lost, sent, received
   -------------------------------------------------------------------------------------------
-  -- process that counts stuff: receved/lost frames
+  -- process that counts: receved/lost frames
   p_cnts: process(clk_i)
   begin
     if rising_edge(clk_i) then

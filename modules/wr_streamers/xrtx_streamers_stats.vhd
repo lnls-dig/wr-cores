@@ -161,8 +161,8 @@ architecture rtl of xrtx_streamers_stats is
   signal snapshot_ena_d1   : std_logic;
   
   -- for code cleanness
-  constant cw              : integer := g_cnt_width;
-  constant aw              : integer := g_acc_width;
+  constant c_cw              : integer := g_cnt_width;
+  constant c_aw              : integer := g_acc_width;
 begin
 
   -- reset statistics when receiving signal from SNMP or Wishbone
@@ -185,14 +185,8 @@ begin
          reset_stats_p  <= '0';
          reset_stats_d1 <= '0';
       else
-        if(reset_stats = '0' and reset_stats_d1 = '1') then
-          reset_stats_p <='1';
-        elsif(reset_stats = '1' and reset_stats_d1 = '0') then
-          reset_stats_p <='1';
-        else
-          reset_stats_p <='0';
-        end if;
         reset_stats_d1 <= reset_stats;
+        reset_stats_p  <= reset_stats xor reset_stats_d1;
       end if;
     end if;
   end process;
@@ -295,51 +289,50 @@ begin
 
   -------------------------------------------------------------------------------------------
   -- SNMP remote output
-  -------------------------------------------------------------------------------------------
-
   -- Generic communication with WRPC that allows SNMP access via generic array of 32-bits 
-  -- std_logic_vectors
-  assert (cw <= 32) 
+  -- std_logic_vectors. The mapping of the generic vectors to meaningful information needs
+  -- to be made available to the user of SNMP
+  -------------------------------------------------------------------------------------------
+  -- check sanity of values
+  assert (c_cw <= 32) 
     report "g_cnt_width value not suppported by f_pack_streamers_statistics" severity error;
-  assert (aw <= 64) 
+  assert (c_aw <= 64) 
     report "g_cnt_width value not suppported by f_pack_streamers_statistics" severity error;
 
-  reset_stats_remote                <= snmp_array_i(0)(0);
-  snapshot_remote_ena               <= snmp_array_i(0)(1);
+  -- translate generic input vectors to meaningful signals
+  reset_stats_remote                  <= snmp_array_i(0)(0);
+  snapshot_remote_ena                 <= snmp_array_i(0)(1);
 
-  snmp_array_o(0)(             0)   <= reset_stats;                   -- loop back for diagnostics
-  snmp_array_o(0)(             1)   <= latency_acc_overflow_out;
-  snmp_array_o(1)(   31 downto 0)   <= x"0" & reset_time_cycles( 27 downto 0);
-  snmp_array_o(2)(   31 downto 0)   <= reset_time_tai(    31 downto 0);
-  snmp_array_o(3)(   31 downto 0)   <= x"000000" & reset_time_tai(    39 downto 32);
+  snmp_array_o(0)(             0)     <= reset_stats;                   -- loop back for diagnostics
+  snmp_array_o(0)(             1)     <= latency_acc_overflow_out;
+  snmp_array_o(1)(   31 downto 0)     <= x"0" & reset_time_cycles( 27 downto 0);
+  snmp_array_o(2)(   31 downto 0)     <= reset_time_tai(    31 downto 0);
+  snmp_array_o(3)(   31 downto 0)     <= x"000000" & reset_time_tai(    39 downto 32);
 
-  -- output to the 
-  snmp_array_o(4 )(cw-1 downto 0)   <= sent_frame_cnt_out;
-  snmp_array_o(5 )(cw-1 downto 0)   <= rcvd_frame_cnt_out;
-  snmp_array_o(6 )(cw-1 downto 0)   <= lost_frame_cnt_out;
-  snmp_array_o(7 )(cw-1 downto 0)   <= lost_block_cnt_out;
-  snmp_array_o(8 )(cw-1 downto 0)   <= latency_cnt_out;
-  snmp_array_o(9 )(31   downto 0)   <= x"0" & latency_max_out(27 downto 0);
-  snmp_array_o(10)(31   downto 0)   <= x"0" & latency_min_out(27 downto 0); 
+  -- translate meaningful signals (statistics values) to generic output vectors
+  snmp_array_o(4 )(c_cw-1 downto 0)   <= sent_frame_cnt_out;
+  snmp_array_o(5 )(c_cw-1 downto 0)   <= rcvd_frame_cnt_out;
+  snmp_array_o(6 )(c_cw-1 downto 0)   <= lost_frame_cnt_out;
+  snmp_array_o(7 )(c_cw-1 downto 0)   <= lost_block_cnt_out;
+  snmp_array_o(8 )(c_cw-1 downto 0)   <= latency_cnt_out;
+  snmp_array_o(9 )(31   downto 0)     <= x"0" & latency_max_out(27 downto 0);
+  snmp_array_o(10)(31   downto 0)     <= x"0" & latency_min_out(27 downto 0); 
 
-  snmp_array_o(0) (31   downto 2)   <= (others => '0');
-  snmp_array_o(4 )(31   downto cw)  <= (others => '0');
-  snmp_array_o(5 )(31   downto cw)  <= (others => '0');
-  snmp_array_o(6 )(31   downto cw)  <= (others => '0');
-  snmp_array_o(7 )(31   downto cw)  <= (others => '0');
-  snmp_array_o(8 )(31   downto cw)  <= (others => '0');
+  snmp_array_o(0) (31   downto 2)     <= (others => '0');
+  snmp_array_o(4 )(31   downto c_cw)  <= (others => '0');
+  snmp_array_o(5 )(31   downto c_cw)  <= (others => '0');
+  snmp_array_o(6 )(31   downto c_cw)  <= (others => '0');
+  snmp_array_o(7 )(31   downto c_cw)  <= (others => '0');
+  snmp_array_o(8 )(31   downto c_cw)  <= (others => '0');
 
-  CNT_SINGLE_WORD_gen: if(aw < 33) generate
-    snmp_array_o(11)(aw-1    downto  0) <= latency_acc_out;
-    snmp_array_o(11)(31      downto aw) <= (others => '0');
+  CNT_SINGLE_WORD_gen: if(c_aw < 33) generate
+    snmp_array_o(11)(c_aw-1    downto  0) <= latency_acc_out;
+    snmp_array_o(11)(31      downto c_aw) <= (others => '0');
   end generate;
-  CNT_TWO_WORDs_gen:   if(aw > 32) generate
-    snmp_array_o(11)(31      downto 0)     <= latency_acc_out(31    downto 0);
-    snmp_array_o(12)(aw-32-1 downto 0)     <= latency_acc_out(aw-1 downto 32) ;
-    snmp_array_o(12)(31      downto aw-32) <= (others => '0'); 
+  CNT_TWO_WORDs_gen:   if(c_aw > 32) generate
+    snmp_array_o(11)(31      downto 0)       <= latency_acc_out(31    downto 0);
+    snmp_array_o(12)(c_aw-32-1 downto 0)     <= latency_acc_out(c_aw-1 downto 32) ;
+    snmp_array_o(12)(31      downto c_aw-32) <= (others => '0'); 
   end generate;
-
-  -- tmp debug
-   snmp_array_o(13)(31 downto 0) <= snmp_array_i(0)(31 downto 0);
 
 end rtl;
