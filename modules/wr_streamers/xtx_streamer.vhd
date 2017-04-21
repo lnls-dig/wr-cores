@@ -291,17 +291,6 @@ begin  -- rtl
       tag_cycles_o    => tag_cycles,
       tag_valid_o     => tag_valid);
 
-  p_latch_tx_tag : process(clk_sys_i)
-  begin
-    if rising_edge(clk_sys_i) then
-      if rst_n_i = '0' or state = IDLE then
-        tag_valid_latched <= '0';
-      elsif(tag_valid = '1') then
-        tag_valid_latched <= '1';
-      end if;
-    end if;
-  end process;
-
   p_frame_counter : process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
@@ -340,21 +329,6 @@ begin  -- rtl
     end if;
   end process;
 
-  p_latch_tx_flush : process(clk_sys_i)
-  begin
-    if rising_edge(clk_sys_i) then
-      if rst_n_i = '0' then
-        tx_flush_latched <= '0';
-      else
-        if(state = IDLE) then
-          tx_flush_latched <= tx_flush_p1_i or tx_timeout_hit;
-        else
-          tx_flush_latched <= '0';
-        end if;
-      end if;
-    end if;
-  end process;
-
   p_fsm : process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
@@ -368,13 +342,21 @@ begin  -- rtl
         word_count     <= (others => '0');
         crc_reset      <= '1';
         tx_frame_p1_o     <= '0';
+        tag_valid_latched <= '0';
+        tx_flush_latched  <= '0';
       else
         if(tx_reset_seq_i = '1') then
           seq_no <= (others => '0');
         end if;
+        if(tag_valid = '1') then 
+          tag_valid_latched <= '1'; -- overriden in IDLE
+        end if;
+        tx_flush_latched <= '0';-- overriden in IDLE
 
         case state is
           when IDLE =>
+            tag_valid_latched <= '0';
+            tx_flush_latched  <= tx_flush_p1_i or tx_timeout_hit;
             crc_en         <= '0';
             crc_reset      <= '0';
             fsm_out.eof    <= '0';
@@ -542,14 +524,9 @@ begin  -- rtl
     end if;
   end process;
 
-  p_comb_fx_fifo_read : process(state, fsm_out, ser_count)
-  begin
-    if(state = PAYLOAD and ser_count = g_data_width/16-1 and fsm_out.dreq = '1' and tx_fifo_empty = '0') then
-      tx_fifo_rd <= '1';
-    else
-      tx_fifo_rd <= '0';
-    end if;
-  end process;
+  tx_fifo_rd <= '1' when (state = PAYLOAD    and ser_count = g_data_width/16-1 and 
+                          fsm_out.dreq = '1' and tx_fifo_empty = '0')         else
+                '0';
 
   p_delay_reset: process(clk_sys_i)
     begin
@@ -557,7 +534,7 @@ begin  -- rtl
         reset_dly <= rst_n_i;
       end if;
     end process;
-    
+
   tx_dreq_o <= (not tx_almost_full) and reset_dly;
 
 end rtl;
