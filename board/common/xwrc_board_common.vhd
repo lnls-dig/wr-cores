@@ -423,7 +423,7 @@ begin  -- architecture struct
 
   gen_wr_streamers : if (g_fabric_iface = STREAMERS) generate
 
-    cmp_xwr_transmission : xwr_transmission
+    cmp_xwr_streamers : xwr_streamers
       generic map (
         g_streamers_op_mode  => g_streamers_op_mode,
         g_tx_streamer_params => g_tx_streamer_params,

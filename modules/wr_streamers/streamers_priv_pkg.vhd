@@ -40,7 +40,7 @@ use ieee.std_logic_1164.all;
 use IEEE.NUMERIC_STD.ALL;
 use work.wishbone_pkg.all;  -- needed for t_wishbone_slave_in, etc
 use work.streamers_pkg.all;
-use work.wr_transmission_wbgen2_pkg.all;
+use work.wr_streamers_wbgen2_pkg.all;
 
 package streamers_priv_pkg is
 
@@ -82,7 +82,7 @@ package streamers_priv_pkg is
       latency_min_o          : out std_logic_vector(27  downto 0));
   end component;
 
-  component  wr_transmission_wb is
+  component  wr_streamers_wb is
     port (
       rst_n_i                                  : in     std_logic;
       clk_sys_i                                : in     std_logic;
@@ -95,8 +95,8 @@ package streamers_priv_pkg is
       wb_we_i                                  : in     std_logic;
       wb_ack_o                                 : out    std_logic;
       wb_stall_o                               : out    std_logic;
-      regs_i                                   : in     t_wr_transmission_in_registers;
-      regs_o                                   : out    t_wr_transmission_out_registers
+      regs_i                                   : in     t_wr_streamers_in_registers;
+      regs_o                                   : out    t_wr_streamers_out_registers
     );
   end component;
 

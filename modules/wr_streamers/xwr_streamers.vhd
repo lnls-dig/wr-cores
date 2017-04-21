@@ -3,7 +3,7 @@
 -- Project    : WR Streamers
 -- URL        : http://www.ohwr.org/projects/wr-cores/wiki/WR_Streamers
 -------------------------------------------------------------------------------
--- File       : xwr_transmission.vhd
+-- File       : xwr_streamers.vhd (renamed from xwr_transmission.vhd)
 -- Author     : Maciej Lipinski
 -- Company    : CERN
 -- Platform   : FPGA-generics
@@ -62,10 +62,10 @@ use work.wishbone_pkg.all;  -- needed for t_wishbone_slave_in, etc
 use work.streamers_pkg.all; -- needed for streamers and  c_WR_TRANS_ARR_SIZE_*
 use work.wr_fabric_pkg.all; -- needed for :t_wrf_source_in, etc
 use work.wrcore_pkg.all;    -- needed for t_generic_word_array
-use work.wr_transmission_wbgen2_pkg.all;
+use work.wr_streamers_wbgen2_pkg.all;
 use work.streamers_priv_pkg.all;
 
-entity xwr_transmission is
+entity xwr_streamers is
   generic (
     -- Indicates whether this module instantiates both streamers (rx and tx) or only one
     -- of them. An application that only receives or only transmits might want to use
@@ -164,12 +164,12 @@ entity xwr_transmission is
     rx_streamer_cfg_i          : in t_rx_streamer_cfg := c_rx_streamer_cfg_default
     );
 
-end xwr_transmission;
+end xwr_streamers;
 
-architecture rtl of xwr_transmission is
+architecture rtl of xwr_streamers is
 
-  signal to_wb              : t_wr_transmission_in_registers;
-  signal from_wb            : t_wr_transmission_out_registers;
+  signal to_wb              : t_wr_streamers_in_registers;
+  signal from_wb            : t_wr_streamers_out_registers;
   signal dbg_word                : std_logic_vector(31 downto 0);
   signal start_bit               : std_logic_vector(from_wb.dbg_ctrl_start_byte_o'length-1+3 downto 0);
   signal rx_data                 : std_logic_vector(g_rx_streamer_params.data_width-1 downto 0);
@@ -336,7 +336,7 @@ begin
       master_i   => wb_regs_slave_out,
       master_o   => wb_regs_slave_in);
 
-  U_WB:  wr_transmission_wb
+  U_WB:  wr_streamers_wb
     port map (
       rst_n_i      => rst_n_i,
       clk_sys_i    => clk_sys_i,

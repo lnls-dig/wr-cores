@@ -1,4 +1,4 @@
 #!/bin/bash
 
 mkdir -p doc
-wbgen2  -C ./doc/wr_transmission.h -D ./doc/wr_transmission_wb.html -p wr_transmission_wbgen2_pkg.vhd -H record -V wr_transmission_wb.vhd --cstyle defines --lang vhdl -K ../../sim/wr_transmission_wb.svh wr_transmission_wb.wb
+wbgen2  -C ./doc/wr_streamers.h -D ./doc/wr_streamers_wb.html -p wr_streamers_wbgen2_pkg.vhd -H record -V wr_streamers_wb.vhd --cstyle defines --lang vhdl -K ../../sim/wr_streamers_wb.svh wr_streamers_wb.wb

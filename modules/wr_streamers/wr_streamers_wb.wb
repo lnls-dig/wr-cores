@@ -27,8 +27,8 @@ peripheral {
   Public License along with this source; if not, download it       \
   from http://www.gnu.org/licenses/lgpl-2.1.html                   \
   -----------------------------------------------------------------";
-  prefix = "wr_transmission";
-  hdl_entity = "wr_transmission_wb";
+  prefix = "wr_streamers";
+  hdl_entity = "wr_streamers_wb";
 
   reg {
     name = "Statistics status and ctrl register";
