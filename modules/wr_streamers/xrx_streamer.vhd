@@ -170,18 +170,19 @@ architecture rtl of xrx_streamer is
   signal sync_seq_no : std_logic;
 
   -- fixed latency signals
-  type   t_rx_delay_state is (DELAY, ALLOW);
+  type   t_rx_delay_state is (DISABLED, DELAY, ALLOW);
   signal timestamped        : std_logic;
-  signal delay_cnt          : std_logic_vector(27 downto 0);
-  signal fixed_latency_zero : std_logic_vector(27 downto 0);
-  signal fixed_latency_cnt  : std_logic_vector(27 downto 0);
-  signal rx_dreq_mask       : std_logic;
-  signal rx_latency         : std_logic_vector(27 downto 0);
-  signal rx_latency_stored  : std_logic_vector(27 downto 0);
+  signal delay_cnt          : unsigned(27 downto 0);
+  signal rx_dreq_allow      : std_logic;
+  signal rx_latency         : unsigned(27 downto 0);
+  signal rx_latency_stored  : unsigned(27 downto 0);
   signal rx_latency_valid   : std_logic;
   signal delay_state        : t_rx_delay_state;
   signal rx_dreq            : std_logic;
 
+  constant c_fixed_latency_zero : unsigned(27 downto 0) := (others => '0');
+  constant c_timestamper_delay  : unsigned(27 downto 0) := to_unsigned(3, 28); -- cycles
+  
 begin  -- rtl
 
   U_rx_crc_generator : gc_crc_gen
@@ -288,7 +289,7 @@ begin  -- rtl
   -------------------------------------------------------------------------------------------
 
   -- mask rx_dreq to prevent reception
-  rx_dreq                           <= rx_dreq_i and rx_dreq_mask;
+  rx_dreq                           <= rx_dreq_i and rx_dreq_allow;
   -- produce a pulse when SOF is timestamped, this pulse starts counter in clk_sys clock 
   -- domain
   U_sync_with_clk : gc_sync_ffs
@@ -303,37 +304,45 @@ begin  -- rtl
   begin
     if rising_edge(clk_sys_i) then
       if rst_n_i = '0' or timestamped = '1' then
-        delay_cnt <= (others=>'0');
+        delay_cnt <= c_timestamper_delay;
       else
        -- increase by two since the latency value reported by streamers is
        -- expressed in 8ns cycles and we work here in 16ns cycles 
-        delay_cnt <= std_logic_vector(unsigned(delay_cnt) + 2);
+        delay_cnt <= delay_cnt + 2;
       end if;
     end if;
   end process;
 
-  fixed_latency_zero <= (others => '0');
-  fixed_latency_cnt  <= std_logic_vector(unsigned(delay_cnt) + unsigned(rx_latency_stored));
   -- introduce fixed latency, if configured to do so
   p_fixed_latency_fsm : process(clk_sys_i)
   begin
+
     if rising_edge(clk_sys_i) then
-      if rst_n_i = '0' or rx_streamer_cfg_i.fixed_latency = fixed_latency_zero then
-        delay_state        <= ALLOW;
+      if rst_n_i = '0' then
+        delay_state        <= DISABLED;
         rx_latency_stored  <= (others=>'0');
-        rx_dreq_mask       <= '1';
+        rx_dreq_allow      <= '1';
       else
         case delay_state is
+          when DISABLED => 
+            if unsigned(rx_streamer_cfg_i.fixed_latency) /= c_fixed_latency_zero then
+              delay_state        <= ALLOW;
+            end if;
+            rx_latency_stored  <= (others=>'0');
+            rx_dreq_allow      <= '1';
           when ALLOW =>
-            if(rx_latency_valid ='1') then
-              rx_dreq_mask      <= '0';
+            if unsigned(rx_streamer_cfg_i.fixed_latency) = c_fixed_latency_zero then
+              delay_state        <= DISABLED;
+            elsif(rx_latency_valid ='1') then
+              rx_dreq_allow     <= '0';
               rx_latency_stored <= rx_latency;
               delay_state       <= DELAY;
             end if;
           when DELAY =>
-            if(fixed_latency_cnt >= rx_streamer_cfg_i.fixed_latency) then
-              rx_dreq_mask <= '1';
-              delay_state  <= ALLOW;
+            if unsigned(rx_streamer_cfg_i.fixed_latency) <= delay_cnt + rx_latency_stored then
+              rx_latency_stored  <= (others=>'0');
+              rx_dreq_allow      <= '1';
+              delay_state        <= ALLOW;
             end if;
         end case;
       end if;
@@ -468,9 +477,9 @@ begin  -- rtl
               if(tx_tag_valid = '1') then
                 rx_latency_valid <= '1';
                 if(unsigned(tx_tag_cycles) > unsigned(rx_tag_cycles)) then
-                  rx_latency <= std_logic_vector(unsigned(rx_tag_cycles) - unsigned(tx_tag_cycles) + to_unsigned(125000000, 28));
+                  rx_latency <= unsigned(rx_tag_cycles) - unsigned(tx_tag_cycles) + to_unsigned(125000000, 28);
                 else
-                  rx_latency <= std_logic_vector(unsigned(rx_tag_cycles) - unsigned(tx_tag_cycles));
+                  rx_latency <= unsigned(rx_tag_cycles) - unsigned(tx_tag_cycles);
                 end if;
                 tx_tag_valid <= '0';
               else
@@ -568,7 +577,6 @@ begin  -- rtl
                   fifo_accept <= '0';
                 end if;
 
---                fifo_dvalid <= '0';
               else --of:  if(is_escape = '1' or word_count = g_expected_words_number) then
 
                 fifo_last   <= '0';
@@ -640,11 +648,10 @@ begin  -- rtl
     end if;
   end process;
 
---  fifo_data <= pack_data;
   rx_lost_p1_o        <= frames_lost or blocks_lost;
   rx_lost_blocks_p1_o <= blocks_lost;
   rx_lost_frames_p1_o <= frames_lost;
-  rx_latency_o        <= rx_latency;
+  rx_latency_o        <= std_logic_vector(rx_latency);
   rx_latency_valid_o  <= rx_latency_valid;
   crc_restart <= '1' when (state = FRAME_SEQ_ID or (is_escape = '1' and fsm_in.data(15) = '1')) else not rst_n_i;
 
