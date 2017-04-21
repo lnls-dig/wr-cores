@@ -249,7 +249,6 @@ begin  -- rtl
     fsm_out.dreq   <= fab_src.dreq;
   end generate gen_no_escape;
 
-
   tx_fifo_we <= tx_valid_i and not tx_fifo_full;
   tx_fifo_d  <= tx_last_p1_i & tx_data_i;
 
@@ -274,7 +273,9 @@ begin  -- rtl
       almost_empty_o => tx_almost_empty,
       almost_full_o  => tx_almost_full
       );
-
+  tx_fifo_rd       <= '1' when (state = PAYLOAD    and ser_count = g_data_width/16-1 and 
+                          fsm_out.dreq = '1' and tx_fifo_empty = '0')         else
+                      '0';
   tx_threshold_hit <= '1' when tx_almost_empty = '0' and (buf_frame_count /= 0) else '0';
   tx_fifo_last     <= tx_fifo_q(g_data_width);
 
@@ -304,7 +305,6 @@ begin  -- rtl
         end if;
       end if;
     end if;
-
   end process;
 
   p_tx_timeout : process(clk_sys_i)
@@ -337,13 +337,18 @@ begin  -- rtl
         fsm_out.sof    <= '0';
         fsm_out.eof    <= '0';
         fsm_out.dvalid <= '0';
+        fsm_out.data   <= (others => '0');
         count          <= (others => '0');
         seq_no         <= (others => '0');
         word_count     <= (others => '0');
+        crc_en         <= '0';
         crc_reset      <= '1';
         tx_frame_p1_o     <= '0';
         tag_valid_latched <= '0';
         tx_flush_latched  <= '0';
+        fsm_escape_enable <= '0';
+        fsm_escape        <= '0';
+        ser_count         <= (others => '0');
       else
         if(tx_reset_seq_i = '1') then
           seq_no <= (others => '0');
@@ -516,17 +521,17 @@ begin  -- rtl
   p_count_words : process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
-      if fsm_out.sof = '1' then
+      if rst_n_i = '0' then
         total_words <= (others => '0');
-      elsif fsm_out.dvalid = '1' then
-        total_words <= total_words +1;
+      else
+        if fsm_out.sof = '1' then
+          total_words <= (others => '0');
+        elsif fsm_out.dvalid = '1' then
+          total_words <= total_words +1;
+        end if;
       end if;
     end if;
   end process;
-
-  tx_fifo_rd <= '1' when (state = PAYLOAD    and ser_count = g_data_width/16-1 and 
-                          fsm_out.dreq = '1' and tx_fifo_empty = '0')         else
-                '0';
 
   p_delay_reset: process(clk_sys_i)
     begin

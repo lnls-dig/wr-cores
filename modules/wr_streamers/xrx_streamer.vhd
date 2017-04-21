@@ -364,11 +364,13 @@ begin  -- rtl
         ser_count              <= (others => '0');
         word_count             <= (others => '0');
         sync_seq_no            <= '1';
-        rx_frame_p1_o             <= '0';
+        rx_frame_p1_o          <= '0';
         rx_lost_frames_cnt_o   <= (others => '0');
         frames_lost            <= '0';
         rx_latency             <= (others=>'0');
         rx_latency_valid       <= '0';
+        blocks_lost            <= '0';
+        pack_data              <= (others=>'0');
       else
         case state is
           when IDLE =>
