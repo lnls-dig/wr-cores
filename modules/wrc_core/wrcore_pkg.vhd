@@ -5,6 +5,7 @@ library work;
 use work.genram_pkg.all;
 use work.wishbone_pkg.all;
 use work.sysc_wbgen2_pkg.all;
+use work.wrc_diags_wbgen2_pkg.all;
 use work.wr_fabric_pkg.all;
 use work.endpoint_pkg.all;
 use work.softpll_pkg.all;
@@ -124,6 +125,23 @@ package wrcore_pkg is
       );
   end component;
 
+  component xwr_diags_wb is
+    generic(
+      g_interface_mode      : t_wishbone_interface_mode      := CLASSIC;
+      g_address_granularity : t_wishbone_address_granularity := WORD
+    );
+    port (
+      rst_n_i   : in  std_logic;
+      clk_sys_i : in  std_logic;
+
+      slave_i   : in  t_wishbone_slave_in;
+      slave_o   : out t_wishbone_slave_out;
+
+      regs_i    : in  t_wrc_diags_in_registers;
+      regs_o    : out t_wrc_diags_out_registers
+    );
+  end component;
+
   constant c_wrc_periph0_sdb : t_sdb_device := (
     abi_class     => x"0000",              -- undocumented device
     abi_ver_major => x"01",
@@ -189,6 +207,22 @@ package wrcore_pkg is
         date      => x"20120615",
         name      => "WR-Periph-AuxWB    ")));
 
+  constant c_wrc_periph4_sdb : t_sdb_device := (
+    abi_class     => x"0000",              -- undocumented device
+    abi_ver_major => x"01",
+    abi_ver_minor => x"01",
+    wbd_endian    => c_sdb_endian_big,
+    wbd_width     => x"7",                 -- 8/16/32-bit port granularity
+    sdb_component => (
+      addr_first  => x"0000000000000000",
+      addr_last   => x"00000000000000ff",
+      product     => (
+        vendor_id => x"000000000000CE42",  -- CERN
+        device_id => x"779c5446",
+        version   => x"00000001",
+        date      => x"20170424",
+        name      => "WR-Periph-WRPC-DIAG")));
+
   component wrc_periph is
     generic(
       g_phys_uart       : boolean := true;
@@ -224,8 +258,8 @@ package wrcore_pkg is
       spi_ncs_o   : out std_logic;
       spi_mosi_o  : out std_logic;
       spi_miso_i  : in  std_logic;
-      slave_i     : in  t_wishbone_slave_in_array(0 to 2);
-      slave_o     : out t_wishbone_slave_out_array(0 to 2);
+      slave_i     : in  t_wishbone_slave_in_array(0 to 3);
+      slave_o     : out t_wishbone_slave_out_array(0 to 3);
       uart_rxd_i  : in  std_logic;
       uart_txd_o  : out std_logic;
       owr_pwren_o : out std_logic_vector(1 downto 0);

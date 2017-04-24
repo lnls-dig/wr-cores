@@ -1,33 +1,46 @@
 -------------------------------------------------------------------------------
--- Title      : WhiteRabbit Syscon
+-- Title      : WR PTP Core Diagnostics
 -- Project    : WhiteRabbit
 -------------------------------------------------------------------------------
--- File       : xwr_syscon_wb.vhd
--- Author     : Grzegorz Daniluk
--- Company    : Elproma
--- Created    : 2011-11-07
--- Last update: 2017-04-20
+-- File       : xwrc_diags_wb.vhd
+-- Author     : Maciej Lipinski <maciej.lipinski@cern.ch>
+-- Company    : CERN
+-- Created    : 2017-04-24
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
 -- Description:
--- Wrapper for wrc_syscon_wb. Uses types instead of std_logic signals and
+-- Wrapper for wrc_diags_wb. Uses types instead of std_logic signals and
 -- can use pipelined or classic wishbone.
 --
 -------------------------------------------------------------------------------
--- Copyright (c) 2011 Grzegorz Daniluk
--------------------------------------------------------------------------------
--- Revisions  :
--- Date        Version  Author          Description
--- 2011-11-07  1.0      greg.d          Created
+--
+-- Copyright (c) 2017 CERN
+--
+-- This source file is free software; you can redistribute it
+-- and/or modify it under the terms of the GNU Lesser General
+-- Public License as published by the Free Software Foundation;
+-- either version 2.1 of the License, or (at your option) any
+-- later version.
+--
+-- This source is distributed in the hope that it will be
+-- useful, but WITHOUT ANY WARRANTY; without even the implied
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+-- PURPOSE.  See the GNU Lesser General Public License for more
+-- details.
+--
+-- You should have received a copy of the GNU Lesser General
+-- Public License along with this source; if not, download it
+-- from http://www.gnu.org/licenses/lgpl-2.1.html
+--
 -------------------------------------------------------------------------------
 
 library ieee;
 use ieee.std_logic_1164.all;
 use work.wishbone_pkg.all;
-use work.sysc_wbgen2_pkg.all;
+use work.wrc_diags_wbgen2_pkg.all;
 
-entity xwr_syscon_wb is
+entity xwr_diags_wb is
   generic(
     g_interface_mode      : t_wishbone_interface_mode      := CLASSIC;
     g_address_granularity : t_wishbone_address_granularity := WORD
@@ -39,14 +52,14 @@ entity xwr_syscon_wb is
     slave_i   : in  t_wishbone_slave_in;
     slave_o   : out t_wishbone_slave_out;
 
-    regs_i    : in  t_sysc_in_registers;
-    regs_o    : out t_sysc_out_registers
+    regs_i    : in  t_wrc_diags_in_registers;
+    regs_o    : out t_wrc_diags_out_registers
   );
-end xwr_syscon_wb;
+end xwr_diags_wb;
 
-architecture syn of xwr_syscon_wb is
+architecture syn of xwr_diags_wb is
 
-  component wrc_syscon_wb
+  component wrc_diags_wb is
     port (
       rst_n_i                                  : in     std_logic;
       clk_sys_i                                : in     std_logic;
@@ -59,10 +72,11 @@ architecture syn of xwr_syscon_wb is
       wb_we_i                                  : in     std_logic;
       wb_ack_o                                 : out    std_logic;
       wb_stall_o                               : out    std_logic;
-      regs_i                                   : in     t_sysc_in_registers;
-      regs_o                                   : out    t_sysc_out_registers
+      regs_i                                   : in     t_wrc_diags_in_registers;
+      regs_o                                   : out    t_wrc_diags_out_registers
     );
   end component;
+
 
   signal wb_out : t_wishbone_slave_out;
   signal wb_in  : t_wishbone_slave_in;
@@ -92,7 +106,7 @@ begin
       sl_ack_o   => slave_o.ack,
       sl_stall_o => slave_o.stall);
 
-  WRAPPED_SYSCON: wrc_syscon_wb
+  WRAPPED_DIAGS: wrc_diags_wb
     port map(
       rst_n_i    => rst_n_i,
       clk_sys_i  => clk_sys_i,
@@ -110,8 +124,7 @@ begin
 
   slave_o.err <= '0';
   slave_o.rty <= '0';
-  slave_o.int <= '0';
-
+  
 end syn;
 
 

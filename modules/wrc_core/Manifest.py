@@ -6,5 +6,8 @@ files = [ "xwr_core.vhd",
           "wb_reset.vhd",
           "wrc_syscon_wb.vhd",
           "wrc_syscon_pkg.vhd",
-          "xwr_syscon_wb.vhd"];
+          "xwr_syscon_wb.vhd",
+          "wrc_diags_wb.vhd",
+          "wrc_diags_pkg.vhd",
+          "xwrc_diags_wb.vhd"];
 

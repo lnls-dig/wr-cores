@@ -6,12 +6,12 @@
 -- Author     : Grzegorz Daniluk
 -- Company    : Elproma
 -- Created    : 2011-04-04
--- Last update: 2017-02-03
+-- Last update: 2017-04-25
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
 -- Description:
--- WRC_PERIPH integrates WRC_SYSCON, UART/VUART, 1-Wire Master
+-- WRC_PERIPH integrates WRC_SYSCON, UART/VUART, 1-Wire Master, WRPC_DIAGS
 -- 
 -------------------------------------------------------------------------------
 -- Copyright (c) 2011 Grzegorz Daniluk
@@ -30,6 +30,7 @@ library work;
 use work.wrcore_pkg.all;
 use work.wishbone_pkg.all;
 use work.sysc_wbgen2_pkg.all;
+use work.wrc_diags_wbgen2_pkg.all;
 
 entity wrc_periph is
   generic(
@@ -69,8 +70,8 @@ entity wrc_periph is
     spi_mosi_o  : out std_logic;
     spi_miso_i  : in  std_logic;
 
-    slave_i : in  t_wishbone_slave_in_array(0 to 2);
-    slave_o : out t_wishbone_slave_out_array(0 to 2);
+    slave_i : in  t_wishbone_slave_in_array(0 to 3);
+    slave_o : out t_wishbone_slave_out_array(0 to 3);
 
     uart_rxd_i : in  std_logic;
     uart_txd_o : out std_logic;
@@ -108,7 +109,8 @@ architecture struct of wrc_periph is
   signal diag_dat : std_logic_vector(31 downto 0);
   signal diag_out_regs : t_generic_word_array(g_diag_rw_size - 1 downto 0);
   signal diag_in       : t_generic_word_array(g_diag_ro_size + g_diag_rw_size-1 downto 0);
-
+  signal wrpc_diag_regs_in     : t_wrc_diags_in_registers;
+  signal wrpc_diag_regs_out    : t_wrc_diags_out_registers;
 
 begin
 
@@ -422,5 +424,57 @@ begin
       owr_en_o => owr_en_o,
       owr_i    => owr_i
       );
+
+  --------------------------------------
+  -- WRPC Diags
+  --------------------------------------
+
+  -- access through WB (PCI/VME/application) to diagnostics of WRPC
+  DIAGS: xwr_diags_wb
+    generic map(
+      g_interface_mode      => PIPELINED,
+      g_address_granularity => BYTE
+    )
+    port map(
+      rst_n_i   => rst_n_i,
+      clk_sys_i => clk_sys_i,
+
+      slave_i   => slave_i(3),
+      slave_o   => slave_o(3),
+
+      regs_i    => wrpc_diag_regs_in,
+      regs_o    => wrpc_diag_regs_out
+    );
+
+   -- the information written to syscon WB registers by LM32 are available to the
+   -- user via diag WB registers
+   -- It might look strange that we use two WB modules for that. Since both LM32
+   -- and user application need to access these registers through the same
+   -- wishbone interface we would needed these registers to be R/W. By creating
+   -- another module (xwr_diags_wb) we make read-only registers to be read by
+   -- the external tool. We want to minimize the possibility of user application
+   -- overwriting these values, thus we want them to be read-only.
+   sysc_regs_i.wdiag_ctrl_data_snapshot_i      <= wrpc_diag_regs_out.ctrl_data_snapshot_o;
+   wrpc_diag_regs_in.ctrl_data_valid_i         <= sysc_regs_o.wdiag_ctrl_data_valid_o;
+   wrpc_diag_regs_in.wdiag_sstat_wr_mode_i     <= sysc_regs_o.wdiag_sstat_wr_mode_o;
+   wrpc_diag_regs_in.wdiag_sstat_servostate_i  <= sysc_regs_o.wdiag_sstat_servostate_o;
+   wrpc_diag_regs_in.wdiag_pstat_link_i        <= sysc_regs_o.wdiag_pstat_link_o;
+   wrpc_diag_regs_in.wdiag_pstat_locked_i      <= sysc_regs_o.wdiag_pstat_locked_o;
+   wrpc_diag_regs_in.wdiag_ptpstat_ptpstate_i  <= sysc_regs_o.wdiag_ptpstat_ptpstate_o;
+   wrpc_diag_regs_in.wdiag_astat_aux_i         <= sysc_regs_o.wdiag_astat_aux_o;
+   wrpc_diag_regs_in.wdiag_txfcnt_i            <= sysc_regs_o.wdiag_txfcnt_o;
+   wrpc_diag_regs_in.wdiag_rxfcnt_i            <= sysc_regs_o.wdiag_rxfcnt_o;
+   wrpc_diag_regs_in.wdiag_sec_msb_i           <= sysc_regs_o.wdiag_sec_msb_o;
+   wrpc_diag_regs_in.wdiag_sec_lsb_i           <= sysc_regs_o.wdiag_sec_lsb_o;
+   wrpc_diag_regs_in.wdiag_ns_i                <= sysc_regs_o.wdiag_ns_o;
+   wrpc_diag_regs_in.wdiag_mu_msb_i            <= sysc_regs_o.wdiag_mu_msb_o;
+   wrpc_diag_regs_in.wdiag_mu_lsb_i            <= sysc_regs_o.wdiag_mu_lsb_o;
+   wrpc_diag_regs_in.wdiag_dms_msb_i           <= sysc_regs_o.wdiag_dms_msb_o;
+   wrpc_diag_regs_in.wdiag_dms_lsb_i           <= sysc_regs_o.wdiag_dms_lsb_o;
+   wrpc_diag_regs_in.wdiag_asym_i              <= sysc_regs_o.wdiag_asym_o;
+   wrpc_diag_regs_in.wdiag_cko_i               <= sysc_regs_o.wdiag_cko_o;
+   wrpc_diag_regs_in.wdiag_setp_i              <= sysc_regs_o.wdiag_setp_o;
+   wrpc_diag_regs_in.wdiag_ucnt_i              <= sysc_regs_o.wdiag_ucnt_o;
+   wrpc_diag_regs_in.wdiag_temp_i              <= sysc_regs_o.wdiag_temp_o;
 
 end struct;
