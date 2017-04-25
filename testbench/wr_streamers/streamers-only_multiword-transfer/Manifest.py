@@ -9,7 +9,6 @@ vlog_opt="+incdir+../../../sim +incdir"
 
 modules = { "local" : ["../../..",
                        "../../../modules/wr_streamers",
-                       "../../../top/spec_1_1/wr_streamers_demo",
                        "../../../ip_cores/general-cores"]}
 
 files = ["main.sv"]

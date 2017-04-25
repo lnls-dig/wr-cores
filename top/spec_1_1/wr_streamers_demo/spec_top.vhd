@@ -693,6 +693,7 @@ begin
       tag_valid_o  => tx_tag_valid);
 
   -- Streamer instantiation. 
+  -- default config: accept broadcast and streamers' Ethertype
   U_TX_Streamer : xtx_streamer
     generic map (
       -- We send each timestamp (40 TAI bits + 28
@@ -724,12 +725,7 @@ begin
       tx_dreq_o  => tx_dreq,
       -- every data word we send is the last one, as a single transfer in our
       -- case contains only one 80-bit data word.
-      tx_last_p1_i  => '1',
-
-      -- send broadcast packets, so that many receivers can use triggers sent
-      -- by us.
-      cfg_mac_target_i => x"ffffffffffff",
-      cfg_ethertype_i  => c_STREAMER_ETHERTYPE);
+      tx_last_p1_i  => '1');
 
 
   -- Pack the time stamp into a 80-bit data word for the streamer
@@ -758,6 +754,7 @@ begin
   -----------------------------------------------------------------------------
 
   -- Streamer instantiation
+  -- default config: accept broadcast and streamers' Ethertype
   U_RX_Streamer : xrx_streamer
     generic map (
       -- data width must be identical as in the TX streamer - otherwise, we'll be receiving
@@ -780,9 +777,7 @@ begin
       rx_valid_o              => rx_valid,
       rx_dreq_i               => '1',
       rx_latency_o            => rx_latency,
-      rx_latency_valid_o      => rx_latency_valid,
-      cfg_ethertype_i         => c_STREAMER_ETHERTYPE,
-      cfg_accept_broadcasts_i => '1');
+      rx_latency_valid_o      => rx_latency_valid);
 
   -- Add a fixed delay to the reveived trigger timestamp
   U_Add_Delay1 : timestamp_adder
