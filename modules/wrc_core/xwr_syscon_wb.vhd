@@ -6,7 +6,7 @@
 -- Author     : Grzegorz Daniluk
 -- Company    : Elproma
 -- Created    : 2011-11-07
--- Last update: 2012-08-02
+-- Last update: 2017-04-20
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -110,7 +110,8 @@ begin
 
   slave_o.err <= '0';
   slave_o.rty <= '0';
-  
+  slave_o.int <= '0';
+
 end syn;
 
 

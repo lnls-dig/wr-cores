@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2016-11-21
--- Last update: 2017-02-22
+-- Last update: 2017-04-27
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: This module instantiates platform-specific modules that are
@@ -18,22 +18,22 @@
 -------------------------------------------------------------------------------
 -- GNU LESSER GENERAL PUBLIC LICENSE
 --
--- This source file is free software; you can redistribute it   
--- and/or modify it under the terms of the GNU Lesser General   
--- Public License as published by the Free Software Foundation; 
--- either version 2.1 of the License, or (at your option) any   
--- later version.                                               
+-- This source file is free software; you can redistribute it
+-- and/or modify it under the terms of the GNU Lesser General
+-- Public License as published by the Free Software Foundation;
+-- either version 2.1 of the License, or (at your option) any
+-- later version.
 --
--- This source is distributed in the hope that it will be       
--- useful, but WITHOUT ANY WARRANTY; without even the implied   
--- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      
--- PURPOSE.  See the GNU Lesser General Public License for more 
--- details.                                                     
+-- This source is distributed in the hope that it will be
+-- useful, but WITHOUT ANY WARRANTY; without even the implied
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+-- PURPOSE.  See the GNU Lesser General Public License for more
+-- details.
 --
--- You should have received a copy of the GNU Lesser General    
--- Public License along with this source; if not, download it   
+-- You should have received a copy of the GNU Lesser General
+-- Public License along with this source; if not, download it
 -- from http://www.gnu.org/licenses/lgpl-2.1.html
--- 
+--
 -------------------------------------------------------------------------------
 
 library ieee;
@@ -234,9 +234,14 @@ begin  -- architecture rtl
 
       end generate gen_arria5_ext_ref_pll;
 
+      gen_arria5_no_ext_ref_pll : if (g_with_external_clock_input = FALSE) generate
+        ext_ref_mul_o         <= '0';
+        ext_ref_mul_locked_o  <= '1';
+      end generate gen_arria5_no_ext_ref_pll;
+
       -- not provided by Altera PLL
       ext_ref_mul_stopped_o <= '0';
-      
+
     end generate gen_arria5_default_plls;
 
   end generate gen_default_plls;

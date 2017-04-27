@@ -334,6 +334,13 @@ begin  -- architecture rtl
 
       end generate gen_spartan6_ext_ref_pll;
 
+      gen_spartan6_no_ext_ref_pll : if (g_with_external_clock_input = FALSE) generate
+        clk_10m_ext_o         <= '0';
+        ext_ref_mul_o         <= '0';
+        ext_ref_mul_locked_o  <= '1';
+        ext_ref_mul_stopped_o <= '1';
+      end generate gen_spartan6_no_ext_ref_pll;
+
     end generate gen_spartan6_default_plls;
 
   end generate gen_default_plls;
@@ -344,7 +351,6 @@ begin  -- architecture rtl
     clk_62m5_sys_o  <= clk_62m5_sys_i;
     clk_62m5_dmtd_o <= clk_62m5_dmtd_i;
     clk_125m_ref_o  <= clk_125m_ref_i;
-    clk_10m_ext_o   <= clk_10m_ext_i;
 
     pll_locked_o <= clk_sys_locked_i and clk_dmtd_locked_i;
 
