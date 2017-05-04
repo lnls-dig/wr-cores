@@ -1,8 +1,4 @@
-<<<<<<< Updated upstream
-Tue Apr 04 11:10:53 W. Europe Daylight Time 2017
-=======
-Tue Apr 25 14:55:16 W. Europe Daylight Time 2017
->>>>>>> Stashed changes
+Wed May 03 16:18:04 W. Europe Daylight Time 2017
 Trace back: invalid command name ""
     while executing
 "$tree expandeditems -worm"
