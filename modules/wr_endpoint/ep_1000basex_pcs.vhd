@@ -241,6 +241,7 @@ architecture rtl of ep_1000basex_pcs is
 
   signal pcs_enable        : std_logic;
   signal synced, sync_lost : std_logic;
+  signal synced_d1         : std_logic;
 
   signal txpcs_busy_int : std_logic;
   signal link_ok        : std_logic;
@@ -548,7 +549,25 @@ begin  -- rtl
     end if;
   end process;
 
-  link_ok_o <= link_ok and synced;
+  -- The process delays by 1 cyc synced signal. This delayed synced, called synced_d1
+  -- is then used to produce link_ok_o (below he process).
+  -- This is done to avoid 1-cycle glitches of link_ok_o. Such glitch happened after
+  -- the autonegotation FSM was in pseudo AN_ENABLED state caused by synced=LOW (in
+  -- this state, link_ok is HIGH). When synced goes HIGH, the FSM enters "proper" 
+  -- AN_ENABLED state, it drives link_ok LOW.s All in all, this glitch is avoided
+  -- when we use delayed synced_d1 to produce the final link_ok_o
+  p_delay_synced: process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if(pcs_reset_n = '0') then
+        synced_d1 <= '0';
+      else
+        synced_d1 <= synced;
+      end if;
+    end if;
+  end process;
+
+  link_ok_o <= link_ok and synced_d1;
 
   --RMON events
   U_sync_tx_underrun: gc_sync_ffs
