@@ -299,29 +299,15 @@ begin  -- rtl
       data_i         => fsm_in.sof,
       synced_o       => timestamped);
 
-  -- count delay after reception of frame
-  p_delay_cnt : process(clk_sys_i)
-  begin
-    if rising_edge(clk_sys_i) then
-      if rst_n_i = '0' or timestamped = '1' then
-        delay_cnt <= c_timestamper_delay;
-      else
-       -- increase by two since the latency value reported by streamers is
-       -- expressed in 8ns cycles and we work here in 16ns cycles 
-        delay_cnt <= delay_cnt + 2;
-      end if;
-    end if;
-  end process;
-
   -- introduce fixed latency, if configured to do so
   p_fixed_latency_fsm : process(clk_sys_i)
   begin
-
     if rising_edge(clk_sys_i) then
       if rst_n_i = '0' then
         delay_state        <= DISABLED;
         rx_latency_stored  <= (others=>'0');
         rx_dreq_allow      <= '1';
+        delay_cnt          <= c_timestamper_delay;
       else
         case delay_state is
           when DISABLED => 
@@ -329,6 +315,7 @@ begin  -- rtl
               delay_state        <= ALLOW;
             end if;
             rx_latency_stored  <= (others=>'0');
+            delay_cnt          <= c_timestamper_delay;
             rx_dreq_allow      <= '1';
           when ALLOW =>
             if unsigned(rx_streamer_cfg_i.fixed_latency) = c_fixed_latency_zero then
@@ -338,11 +325,18 @@ begin  -- rtl
               rx_latency_stored <= rx_latency;
               delay_state       <= DELAY;
             end if;
+            if(timestamped = '1') then
+              delay_cnt         <= c_timestamper_delay;
+            else
+              delay_cnt <= delay_cnt + 2;
+            end if;
           when DELAY =>
             if unsigned(rx_streamer_cfg_i.fixed_latency) <= delay_cnt + rx_latency_stored then
               rx_latency_stored  <= (others=>'0');
               rx_dreq_allow      <= '1';
               delay_state        <= ALLOW;
+            else
+              delay_cnt <= delay_cnt + 2;
             end if;
         end case;
       end if;
