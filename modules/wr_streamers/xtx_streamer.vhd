@@ -72,7 +72,10 @@ entity xtx_streamer is
     -- DO NOT USE unless you know what you are doing
     -- legacy stuff: the streamers initially used in Btrain did not check/insert the escape
     -- code. This is justified if only one block of a known number of words is sent/expected
-    g_escape_code_disable : boolean := FALSE
+    g_escape_code_disable : boolean := FALSE;
+
+    -- simulation mode (used for startaup-timer)
+    g_simulation : integer :=0
     );
 
   port (
@@ -100,6 +103,8 @@ entity xtx_streamer is
     -- Fractional part of the second (in clk_ref_i cycles)
     tm_cycles_i : in std_logic_vector(27 downto 0) := x"0000000";
 
+    -- status of the link, in principle the tx can be done only if link is oK
+    link_ok_i                  : in std_logic := '1';
     ---------------------------------------------------------------------------
     -- User interface
     ---------------------------------------------------------------------------
@@ -169,7 +174,9 @@ architecture rtl of xtx_streamer is
   signal tag_cycles                   : std_logic_vector(27 downto 0);
   signal tag_valid, tag_valid_latched : std_logic;
 
-  signal reset_dly : std_logic;
+  signal link_ok_delay_cnt         : unsigned(25 downto 0);
+  constant c_link_ok_rst_delay     : unsigned(25 downto 0) := to_unsigned(62500000, 26);-- 1s
+  constant c_link_ok_rst_delay_sim : unsigned(25 downto 0) := to_unsigned(6250    , 26);    -- 100us
 
 begin  -- rtl
 
@@ -533,13 +540,33 @@ begin  -- rtl
     end if;
   end process;
 
+  -- after reset, leave some time before accepting requests. This delay 
+  -- is dependent on link_ok signal. This is because after startup (and
+  -- any reset possibly) the PHY first shows link_ok but it is latter 
+  -- restarted by softare... it is a bit of a mess in which we better
+  -- not send anything. Once this startup is done, we only relay on 
+  -- link_ok, i.e. we do not accept requests when link_ok is false.
+  -- During operation (i.e. after start-up/reset, the behaviour of link_ok
+  -- signal is satisfactory
   p_delay_reset: process(clk_sys_i)
     begin
       if rising_edge(clk_sys_i) then
-        reset_dly <= rst_n_i;
+        if rst_n_i = '0' then
+          if(g_simulation = 1) then
+            link_ok_delay_cnt     <= c_link_ok_rst_delay_sim;
+          else
+            link_ok_delay_cnt     <= c_link_ok_rst_delay;
+          end if;
+        else
+          -- first initial moments of link_ok_i high are ignored
+          if(link_ok_i = '1' and link_ok_delay_cnt > 0) then
+            link_ok_delay_cnt     <= link_ok_delay_cnt-1;
+          end if;
+        end if;
       end if;
     end process;
 
-  tx_dreq_o <= (not tx_almost_full) and reset_dly;
+  tx_dreq_o <= '0' when (link_ok_delay_cnt > 0) else
+               (not tx_almost_full) and link_ok_i;
 
 end rtl;

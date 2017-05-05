@@ -88,7 +88,8 @@ entity xwr_streamers is
     -- WB I/F configuration
     -----------------------------------------------------------------------------------------
     g_slave_mode               : t_wishbone_interface_mode      := CLASSIC;
-    g_slave_granularity        : t_wishbone_address_granularity := BYTE
+    g_slave_granularity        : t_wishbone_address_granularity := BYTE;
+    g_simulation               : integer := 0
     );
 
   port (
@@ -150,6 +151,8 @@ entity xwr_streamers is
     -- Fractional part of the second (in clk_ref_i cycles)
     tm_cycles_i                : in std_logic_vector(27 downto 0) := x"0000000";
 
+    -- status of the link, in principle the tx can be done only if link is oK
+    link_ok_i                  : in std_logic;
     -- wishbone interface 
     wb_slave_i                 : in  t_wishbone_slave_in := cc_dummy_slave_in;
     wb_slave_o                 : out t_wishbone_slave_out;
@@ -203,7 +206,8 @@ begin
         g_tx_threshold           => g_tx_streamer_params.threshold,
         g_tx_max_words_per_frame => g_tx_streamer_params.max_words_per_frame,
         g_tx_timeout             => g_tx_streamer_params.timeout,
-        g_escape_code_disable    => g_tx_streamer_params.escape_code_disable)
+        g_escape_code_disable    => g_tx_streamer_params.escape_code_disable,
+        g_simulation             => g_simulation)
       port map(
         clk_sys_i                => clk_sys_i,
         rst_n_i                  => rst_n_i,
@@ -213,6 +217,7 @@ begin
         tm_time_valid_i          => tm_time_valid_i,
         tm_tai_i                 => tm_tai_i,
         tm_cycles_i              => tm_cycles_i,
+        link_ok_i                => link_ok_i,
         tx_data_i                => tx_data_i,
         tx_valid_i               => tx_valid_i,
         tx_dreq_o                => tx_dreq_o,

@@ -172,7 +172,8 @@ package streamers_pkg is
       g_tx_threshold           : integer := 128;
       g_tx_max_words_per_frame : integer := 256;
       g_tx_timeout             : integer := 1024;
-      g_escape_code_disable    : boolean := FALSE);
+      g_escape_code_disable    : boolean := FALSE;
+      g_simulation             : integer := 0);
     port (
       clk_sys_i        : in  std_logic;
       rst_n_i          : in  std_logic;
@@ -182,6 +183,7 @@ package streamers_pkg is
       tm_time_valid_i  : in  std_logic                     := '0';
       tm_tai_i         : in  std_logic_vector(39 downto 0) := x"0000000000";
       tm_cycles_i      : in  std_logic_vector(27 downto 0) := x"0000000";
+      link_ok_i        : in  std_logic                     := '1';
       tx_data_i        : in  std_logic_vector(g_data_width-1 downto 0);
       tx_valid_i       : in  std_logic;
       tx_dreq_o        : out std_logic;
@@ -277,7 +279,8 @@ package streamers_pkg is
     g_stats_acc_width          : integer := 64;
     -- WB i/f
     g_slave_mode               : t_wishbone_interface_mode      := CLASSIC;
-    g_slave_granularity        : t_wishbone_address_granularity := BYTE
+    g_slave_granularity        : t_wishbone_address_granularity := BYTE;
+    g_simulation               : integer := 0
     );
 
   port (
@@ -305,6 +308,7 @@ package streamers_pkg is
     tm_time_valid_i            : in std_logic := '0';
     tm_tai_i                   : in std_logic_vector(39 downto 0) := x"0000000000";
     tm_cycles_i                : in std_logic_vector(27 downto 0) := x"0000000";
+    link_ok_i                  : in std_logic := '1';
     wb_slave_i                 : in  t_wishbone_slave_in := cc_dummy_slave_in;
     wb_slave_o                 : out t_wishbone_slave_out;
     snmp_array_o               : out t_generic_word_array(c_WR_TRANS_ARR_SIZE_OUT-1 downto 0);

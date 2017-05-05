@@ -293,6 +293,9 @@ architecture struct of xwrc_board_common is
   signal aux_diag_in  : t_generic_word_array(c_diag_ro_size-1 downto 0);
   signal aux_diag_out : t_generic_word_array(c_diag_rw_size-1 downto 0);
 
+  -- link state
+  signal link_ok      : std_logic;
+
 begin  -- architecture struct
 
   -- Check for unsupported fabric interface type
@@ -415,8 +418,9 @@ begin  -- architecture struct
       rst_aux_n_o          => aux_rst_n,
       aux_diag_i           => aux_diag_in,
       aux_diag_o           => aux_diag_out,
-      link_ok_o            => link_ok_o);
+      link_ok_o            => link_ok);
 
+  link_ok_o       <= link_ok;
   tm_time_valid_o <= tm_time_valid;
   tm_tai_o        <= tm_tai;
   tm_cycles_o     <= tm_cycles;
@@ -427,7 +431,8 @@ begin  -- architecture struct
       generic map (
         g_streamers_op_mode  => g_streamers_op_mode,
         g_tx_streamer_params => g_tx_streamer_params,
-        g_rx_streamer_params => g_rx_streamer_params)
+        g_rx_streamer_params => g_rx_streamer_params,
+        g_simulation         => g_simulation)
       port map (
         clk_sys_i       => clk_sys_i,
         rst_n_i         => rst_n_i,
@@ -449,6 +454,7 @@ begin  -- architecture struct
         tm_time_valid_i => tm_time_valid,
         tm_tai_i        => tm_tai,
         tm_cycles_i     => tm_cycles,
+        link_ok_i       => link_ok,
         wb_slave_i      => aux_master_out,
         wb_slave_o      => aux_master_in,
         snmp_array_o    => aux_diag_in(c_WR_TRANS_ARR_SIZE_OUT-1 downto 0),
