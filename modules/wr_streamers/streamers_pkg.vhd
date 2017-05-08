@@ -150,6 +150,12 @@ package streamers_pkg is
     -- Ethertype of our frames. Default value is accepted by standard
     -- configuration of the WR PTP Core
     ethertype              : std_logic_vector(15 downto 0);
+    -- enable tagging with VLAN tags
+    qtag_ena               : std_logic;
+    ---VLAN used to tag
+    qtag_vid               : std_logic_vector(11 downto 0);
+    -- priority used to tag
+    qtag_prio              : std_logic_vector(2  downto 0);
   end record;
 
   constant c_rx_streamer_cfg_default: t_rx_streamer_cfg :=(
@@ -163,7 +169,10 @@ package streamers_pkg is
   constant c_tx_streamer_cfg_default: t_tx_streamer_cfg :=(
     mac_local              => x"000000000000",
     mac_target             => x"ffffffffffff",
-    ethertype              => x"dbff");
+    ethertype              => x"dbff",
+    qtag_ena               => '0',
+    qtag_vid               => x"000",
+    qtag_prio              => "000");
 
   component xtx_streamer
     generic (

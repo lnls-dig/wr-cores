@@ -179,6 +179,7 @@ architecture rtl of xrx_streamer is
   signal rx_latency_valid   : std_logic;
   signal delay_state        : t_rx_delay_state;
   signal rx_dreq            : std_logic;
+  signal is_vlan            : std_logic;
 
   constant c_fixed_latency_zero : unsigned(27 downto 0) := (others => '0');
   constant c_timestamper_delay  : unsigned(27 downto 0) := to_unsigned(3, 28); -- cycles
@@ -374,6 +375,7 @@ begin  -- rtl
         rx_latency_valid       <= '0';
         blocks_lost            <= '0';
         pack_data              <= (others=>'0');
+        is_vlan                <= '0';
       else
         case state is
           when IDLE =>
@@ -396,6 +398,7 @@ begin  -- rtl
             blocks_lost          <= '0';
             rx_latency           <= (others=>'0');
             rx_latency_valid     <= '0';
+            is_vlan              <= '0';
 
             if(fsm_in.sof = '1') then
               state            <= HEADER;
@@ -437,21 +440,43 @@ begin  -- rtl
                   end if;
                   count <= count + 1;
                 when x"06" =>
-                  if(fsm_in.data /= rx_streamer_cfg_i.ethertype) then
-                    state <= IDLE;
+                  if(fsm_in.data = x"8100") then
+                    is_vlan <='1';
+                  elsif(fsm_in.data /= rx_streamer_cfg_i.ethertype) then
+                    state   <= IDLE;
+                    is_vlan <='0';
                   end if;
                   count <= count + 1;
                 when x"07" =>
-                  tx_tag_valid               <= fsm_in.data(15);
-                  tx_tag_cycles(27 downto 16)<= fsm_in.data(11 downto 0);
+                  if(is_vlan = '0') then
+                    tx_tag_valid               <= fsm_in.data(15);
+                    tx_tag_cycles(27 downto 16)<= fsm_in.data(11 downto 0);
+                  end if;
                   count <= count + 1;
                 when x"08" =>
+                  if(is_vlan = '0') then
+                    tx_tag_cycles(15 downto 0) <= fsm_in.data;
+                    count                      <= count + 1;
+                    crc_en                     <= '1';
+                    detect_escapes             <= '1';
+                    state                      <= FRAME_SEQ_ID;
+                    rx_frame_p1_o              <= '1';
+                  elsif(fsm_in.data /= rx_streamer_cfg_i.ethertype) then
+                    state <= IDLE;
+                  end if;
+                  count <= count + 1;
+                when x"09" =>
+                  tx_tag_valid               <= fsm_in.data(15);
+                  tx_tag_cycles(27 downto 16)<= fsm_in.data(11 downto 0);
+                   count <= count + 1;
+                when x"0A" =>
                   tx_tag_cycles(15 downto 0) <= fsm_in.data;
                   count                      <= count + 1;
                   crc_en                     <= '1';
                   detect_escapes             <= '1';
                   state                      <= FRAME_SEQ_ID;
-                  rx_frame_p1_o                 <= '1';
+                  rx_frame_p1_o              <= '1';
+                  count <= count + 1;
                 when others => null;
               end case;
             end if;

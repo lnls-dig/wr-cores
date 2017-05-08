@@ -269,6 +269,35 @@ peripheral {
       };
   };
   reg {
+    name = "Tx Config Reg 4";
+    prefix = "TX_CFG5";
+    field {
+      name = "Enable tagging with Qtags";
+      prefix = "qtag_ena";
+      type = BIT;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+    field {
+      name = "VLAN ID";
+      prefix = "qtag_vid";
+      type = SLV;
+      size = 12;
+      align= 8;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+    field {
+      name = "Priority";
+      prefix = "qtag_prio";
+      type = SLV;
+      size = 3;
+      align= 8;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+  };
+  reg {
     name = "Rx Config Reg 0";
     prefix = "RX_CFG0";
     field {
@@ -388,6 +417,16 @@ peripheral {
       0: Default/set by application; \
       1: Value from WB register";
       prefix = "or_tx_mac_tar";
+      type = BIT;
+      access_bus = READ_WRITE;
+      access_dev = READ_ONLY;
+      };
+    field {
+      name = "QTAG";
+      description = "Overrides default/application QTAG values with configuration in the proper register:\
+      0: Default/set by application; \
+      1: Value from WB register";
+      prefix = "or_tx_qtag";
       type = BIT;
       access_bus = READ_WRITE;
       access_dev = READ_ONLY;

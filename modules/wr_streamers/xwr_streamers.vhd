@@ -416,6 +416,13 @@ begin
   tx_streamer_cfg.mac_target        <= from_wb.tx_cfg4_mac_target_msb_o &
                                        from_wb.tx_cfg3_mac_target_lsb_o   when (from_wb.cfg_or_tx_mac_tar_o='1') else
                                        tx_streamer_cfg_i.mac_target;
+  tx_streamer_cfg.qtag_ena          <= from_wb.tx_cfg5_qtag_ena_o         when (from_wb.cfg_or_tx_qtag_o='1') else
+                                       tx_streamer_cfg_i.qtag_ena;
+  tx_streamer_cfg.qtag_vid          <= from_wb.tx_cfg5_qtag_vid_o         when (from_wb.cfg_or_tx_qtag_o='1') else
+                                       tx_streamer_cfg_i.qtag_vid;
+  tx_streamer_cfg.qtag_prio         <= from_wb.tx_cfg5_qtag_prio_o        when (from_wb.cfg_or_tx_qtag_o='1') else
+                                       tx_streamer_cfg_i.qtag_prio;
+
   -- rx config
   rx_streamer_cfg.ethertype         <= from_wb.rx_cfg0_ethertype_o        when (from_wb.cfg_or_rx_ethertype_o='1') else
                                        rx_streamer_cfg_i.ethertype;

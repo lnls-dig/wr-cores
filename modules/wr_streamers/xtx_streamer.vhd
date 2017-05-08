@@ -176,7 +176,8 @@ architecture rtl of xtx_streamer is
 
   signal link_ok_delay_cnt         : unsigned(25 downto 0);
   constant c_link_ok_rst_delay     : unsigned(25 downto 0) := to_unsigned(62500000, 26);-- 1s
-  constant c_link_ok_rst_delay_sim : unsigned(25 downto 0) := to_unsigned(6250    , 26);    -- 100us
+  constant c_link_ok_rst_delay_sim : unsigned(25 downto 0) := to_unsigned(6250    , 26);-- 100us
+
 
 begin  -- rtl
 
@@ -411,15 +412,34 @@ begin  -- rtl
                   fsm_out.data <= tx_streamer_cfg_i.mac_local(15 downto 0);
                   count        <= count + 1;
                 when x"06" =>
-                  fsm_out.data <= tx_streamer_cfg_i.ethertype;
+                  if(tx_streamer_cfg_i.qtag_ena = '0') then
+                    fsm_out.data <= tx_streamer_cfg_i.ethertype;
+                  else
+                    fsm_out.data <= x"8100";
+                  end if;
                   count        <= count + 1;
                 when x"07" =>
-                  fsm_out.data <= tag_valid_latched & "000" & tag_cycles(27 downto 16);
+                  if(tx_streamer_cfg_i.qtag_ena = '0') then
+                    fsm_out.data <= tag_valid_latched & "000" & tag_cycles(27 downto 16);
+                  else
+                    fsm_out.data <= tx_streamer_cfg_i.qtag_prio & '0' & tx_streamer_cfg_i.qtag_vid;
+                  end if;
                   count        <= count + 1;
                 when x"08" =>
-                  fsm_out.data <= tag_cycles(15 downto 0);
+                  if(tx_streamer_cfg_i.qtag_ena = '0') then
+                    fsm_out.data <= tag_cycles(15 downto 0);
+                    state        <= FRAME_SEQ_ID;
+                  else
+                    fsm_out.data <= tx_streamer_cfg_i.ethertype;
+                  end if;
                   count        <= count + 1;
+                when x"09" =>
+                  fsm_out.data <= tag_valid_latched & "000" & tag_cycles(27 downto 16);
+                  count        <= count + 1;
+                when x"0A" =>
+                  fsm_out.data <= tag_cycles(15 downto 0);
                   state        <= FRAME_SEQ_ID;
+                  count        <= count + 1;
                 when others =>
                   fsm_out.data <= (others => 'X');
                   count        <= (others => 'X');
