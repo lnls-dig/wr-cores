@@ -129,18 +129,6 @@ architecture rtl of xrtx_streamers_stats is
   signal latency_acc       : unsigned(g_acc_width-1+1  downto 0);
   signal latency_acc_overflow: std_logic;
 
-  -- snaphsot
-  signal sent_frame_cnt_d1    : unsigned(g_cnt_width-1  downto 0);
-  signal rcvd_frame_cnt_d1    : unsigned(g_cnt_width-1  downto 0);
-  signal lost_frame_cnt_d1    : unsigned(g_cnt_width-1  downto 0);
-  signal lost_block_cnt_d1    : unsigned(g_cnt_width-1  downto 0);
-  signal latency_cnt_d1       : unsigned(g_cnt_width-1  downto 0);
-
-  signal latency_max_d1       : std_logic_vector(27  downto 0);
-  signal latency_min_d1       : std_logic_vector(27  downto 0);
-  signal latency_acc_d1       : unsigned(g_acc_width-1+1  downto 0);
-  signal latency_acc_overflow_d1: std_logic;
-
   signal sent_frame_cnt_out       : std_logic_vector(g_cnt_width-1 downto 0);
   signal rcvd_frame_cnt_out       : std_logic_vector(g_cnt_width-1 downto 0);
   signal lost_frame_cnt_out       : std_logic_vector(g_cnt_width-1 downto 0);
