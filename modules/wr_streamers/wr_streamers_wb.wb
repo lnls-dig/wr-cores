@@ -91,47 +91,21 @@ peripheral {
     };
   };
   reg {
-    name = "Tx statistics";
-    prefix = "TX_STAT";
+    name = "Statistics status and ctrl register";
+    prefix = "SSCR3";
     field {
-      name = "WR Streamer frame sent count";
-      description = "Number of sent wr streamer frames since reset";
-      prefix = "TX_SENT_CNT";
+      name = "Reset timestamp 8 MSB of TAI";
+      prefix = "RST_TS_TAI_MSB";
+      description = "Timestamp of the last reset of stats (RST_STAT)  -- MSB 8 bits of TAI";
       type = SLV;
-      size = 32;
+      size = 8;
       access_bus = READ_ONLY;
-      access_dev = WRITE_ONLY;
-      };
+      access_dev = WRITE_ONLY; 
+    };
   };
   reg {
     name = "Rx statistics";
-    prefix = "RX_STAT1";
-    field {
-      name = "WR Streamer frame received count";
-      description = "Number of received wr streamer frames since reset";
-      prefix = "RX_RCVD_CNT";
-      type = SLV;
-      size = 32;
-      access_bus = READ_ONLY;
-      access_dev = WRITE_ONLY;
-      };
-  };
-  reg {
-    name = "Rx statistics";
-    prefix = "RX_STAT2";
-    field {
-      name = "WR Streamer frame loss count";
-      description = "Number of lost wr streamer frames since reset";
-      prefix = "RX_LOSS_CNT";
-      type = SLV;
-      size = 32;
-      access_bus = READ_ONLY;
-      access_dev = WRITE_ONLY;
-      };
-  };
-  reg {
-    name = "Rx statistics";
-    prefix = "RX_STAT3";
+    prefix = "RX_STAT0";
     field {
       name = "WR Streamer frame latency";
       description = "Maximum latency of received frames since reset";
@@ -144,7 +118,7 @@ peripheral {
   };
   reg {
     name = "Rx statistics";
-    prefix = "RX_STAT4";
+    prefix = "RX_STAT1";
     field {
       name = "WR Streamer frame latency";
       description = "Minimum latency of received frames since reset";
@@ -156,12 +130,25 @@ peripheral {
       };
   };
   reg {
-    name = "Rx statistics";
-    prefix = "RX_STAT5";
+    name = "Tx statistics";
+    prefix = "TX_STAT2";
     field {
-      name = "WR Streamer frame latency";
-      description = "Accumulated latency (LSB) of received frames since reset";
-      prefix = "RX_LATENCY_ACC_LSB";
+      name = "WR Streamer frame sent count (LSB)";
+      description = "Number of sent wr streamer frames since reset";
+      prefix = "TX_SENT_CNT_LSB";
+      type = SLV;
+      size = 32;
+      access_bus = READ_ONLY;
+      access_dev = WRITE_ONLY;
+      };
+  };
+  reg {
+    name = "Tx statistics";
+    prefix = "TX_STAT3";
+    field {
+      name = "WR Streamer frame sent count (MSB)";
+      description = "Number of sent wr streamer frames since reset";
+      prefix = "TX_SENT_CNT_MSB";
       type = SLV;
       size = 32;
       access_bus = READ_ONLY;
@@ -170,11 +157,38 @@ peripheral {
   };
   reg {
     name = "Rx statistics";
+    prefix = "RX_STAT4";
+    field {
+      name = "WR Streamer frame received count (LSB)";
+      description = "Number of received wr streamer frames since reset";
+      prefix = "RX_RCVD_CNT_LSB";
+      type = SLV;
+      size = 32;
+      access_bus = READ_ONLY;
+      access_dev = WRITE_ONLY;
+      };
+  };
+  reg {
+    name = "Rx statistics";
+    prefix = "RX_STAT5";
+    field {
+      name = "WR Streamer frame received count (MSB)";
+      description = "Number of received wr streamer frames since reset";
+      prefix = "RX_RCVD_CNT_MSB";
+      type = SLV;
+      size = 32;
+      access_bus = READ_ONLY;
+      access_dev = WRITE_ONLY;
+      };
+  };
+
+  reg {
+    name = "Rx statistics";
     prefix = "RX_STAT6";
     field {
-      name = "WR Streamer frame latency";
-      description = "Accumulated latency (MSB) of received frames since reset";
-      prefix = "RX_LATENCY_ACC_MSB";
+      name = "WR Streamer frame loss count (LSB)";
+      description = "Number of lost wr streamer frames since reset";
+      prefix = "RX_LOSS_CNT_LSB";
       type = SLV;
       size = 32;
       access_bus = READ_ONLY;
@@ -185,9 +199,9 @@ peripheral {
     name = "Rx statistics";
     prefix = "RX_STAT7";
     field {
-      name = "WR Streamer frame latency counter";
-      description = "Counter of the accumulated frequency (so avg can be calculated in SW) since reset";
-      prefix = "RX_LATENCY_ACC_CNT";
+      name = "WR Streamer frame loss count (MSB)";
+      description = "Number of lost wr streamer frames since reset";
+      prefix = "RX_LOSS_CNT_MSB";
       type = SLV;
       size = 32;
       access_bus = READ_ONLY;
@@ -198,16 +212,83 @@ peripheral {
     name = "Rx statistics";
     prefix = "RX_STAT8";
     field {
-      name = "WR Streamer block loss count";
+      name = "WR Streamer block loss count (LSB)";
       description = "Number of indications that one or more blocks in a frame were lost (probably CRC\
                      error) since reset";
-      prefix = "RX_LOST_BLOCK_CNT";
+      prefix = "RX_LOST_BLOCK_CNT_LSB";
       type = SLV;
       size = 32;
       access_bus = READ_ONLY;
       access_dev = WRITE_ONLY;
       };
   };
+  reg {
+    name = "Rx statistics";
+    prefix = "RX_STAT9";
+    field {
+      name = "WR Streamer block loss count (MSB)";
+      description = "Number of indications that one or more blocks in a frame were lost (probably CRC\
+                     error) since reset";
+      prefix = "RX_LOST_BLOCK_CNT_MSB";
+      type = SLV;
+      size = 32;
+      access_bus = READ_ONLY;
+      access_dev = WRITE_ONLY;
+      };
+  };
+  reg {
+    name = "Rx statistics";
+    prefix = "RX_STAT10";
+    field {
+      name = "WR Streamer frame latency (LSB)";
+      description = "Accumulated latency of received frames since reset";
+      prefix = "RX_LATENCY_ACC_LSB";
+      type = SLV;
+      size = 32;
+      access_bus = READ_ONLY;
+      access_dev = WRITE_ONLY;
+      };
+  };
+  reg {
+    name = "Rx statistics";
+    prefix = "RX_STAT11";
+    field {
+      name = "WR Streamer frame latency (MSB)";
+      description = "Accumulated latency of received frames since reset";
+      prefix = "RX_LATENCY_ACC_MSB";
+      type = SLV;
+      size = 32;
+      access_bus = READ_ONLY;
+      access_dev = WRITE_ONLY;
+      };
+  };
+  reg {
+    name = "Rx statistics";
+    prefix = "RX_STAT12";
+    field {
+      name = "WR Streamer frame latency counter (LSB)";
+      description = "Counter of the accumulated frequency (so avg can be calculated in SW) since reset";
+      prefix = "RX_LATENCY_ACC_CNT_LSB";
+      type = SLV;
+      size = 32;
+      access_bus = READ_ONLY;
+      access_dev = WRITE_ONLY;
+      };
+  };
+  reg {
+    name = "Rx statistics";
+    prefix = "RX_STAT13";
+    field {
+      name = "WR Streamer frame latency counter (MSB)";
+      description = "Counter of the accumulated frequency (so avg can be calculated in SW) since reset";
+      prefix = "RX_LATENCY_ACC_CNT_MSB";
+      type = SLV;
+      size = 32;
+      access_bus = READ_ONLY;
+      access_dev = WRITE_ONLY;
+      };
+  };
+
   reg {
     name = "Tx Config Reg 0";
     prefix = "TX_CFG0";

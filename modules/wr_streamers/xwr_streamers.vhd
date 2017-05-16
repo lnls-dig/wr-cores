@@ -80,8 +80,8 @@ entity xwr_streamers is
     -- Statistics config
     -----------------------------------------------------------------------------------------
     -- width of counters: frame rx/tx/lost, block lost, counter of accumuted latency
-    -- (minimum 15 bits, max 32)
-    g_stats_cnt_width          : integer := 32;
+    -- (min:15, max:64, 50 bits should be ok for 50 years)
+    g_stats_cnt_width          : integer := 50;
     -- width of latency accumulator (max value 64)
     g_stats_acc_width          : integer := 64;
     -----------------------------------------------------------------------------------------
@@ -157,8 +157,8 @@ entity xwr_streamers is
     wb_slave_i                 : in  t_wishbone_slave_in := cc_dummy_slave_in;
     wb_slave_o                 : out t_wishbone_slave_out;
 
-    snmp_array_o               : out t_generic_word_array(c_WR_TRANS_ARR_SIZE_OUT-1 downto 0);
-    snmp_array_i               : in  t_generic_word_array(c_WR_TRANS_ARR_SIZE_IN -1 downto 0);
+    snmp_array_o               : out t_generic_word_array(c_WR_STREAMERS_ARR_SIZE_OUT-1 downto 0);
+    snmp_array_i               : in  t_generic_word_array(c_WR_STREAMERS_ARR_SIZE_IN -1 downto 0);
 
     -----------------------------------------------------------------------------------------
     -- Transmission and Reception configuration
@@ -180,7 +180,12 @@ architecture rtl of xwr_streamers is
   signal wb_regs_slave_out       : t_wishbone_slave_out;  
   signal tx_frame                : std_logic;
   signal reset_time_tai          : std_logic_vector(39 downto 0);
-  signal latency_acc             : std_logic_vector(63 downto 0);
+  signal latency_acc             : std_logic_vector(g_stats_acc_width-1 downto 0);
+  signal latency_cnt             : std_logic_vector(g_stats_cnt_width-1 downto 0);
+  signal sent_frame_cnt_out      : std_logic_vector(g_stats_cnt_width-1 downto 0);
+  signal rcvd_frame_cnt_out      : std_logic_vector(g_stats_cnt_width-1 downto 0);
+  signal lost_frame_cnt_out      : std_logic_vector(g_stats_cnt_width-1 downto 0);
+  signal lost_block_cnt_out      : std_logic_vector(g_stats_cnt_width-1 downto 0);
   signal rx_valid                : std_logic;
 
   signal rx_latency_valid        : std_logic;
@@ -193,6 +198,9 @@ architecture rtl of xwr_streamers is
   signal tx_streamer_cfg         : t_tx_streamer_cfg;
   signal rx_streamer_cfg         : t_rx_streamer_cfg;
 
+  -- for code cleanness
+  constant c_cw              : integer := g_stats_cnt_width;
+  constant c_aw              : integer := g_stats_acc_width;
 begin
 
   -------------------------------------------------------------------------------------------
@@ -302,22 +310,39 @@ begin
       snapshot_ena_i           => from_wb.sscr1_snapshot_stats_o,
       reset_time_tai_o         => reset_time_tai,
       reset_time_cycles_o      => to_wb.sscr1_rst_ts_cyc_i,
-      sent_frame_cnt_o         => to_wb.tx_stat_tx_sent_cnt_i,
-      rcvd_frame_cnt_o         => to_wb.rx_stat1_rx_rcvd_cnt_i,
-      lost_frame_cnt_o         => to_wb.rx_stat2_rx_loss_cnt_i,
-      lost_block_cnt_o         => to_wb.rx_stat8_rx_lost_block_cnt_i,
-      latency_cnt_o            => to_wb.rx_stat7_rx_latency_acc_cnt_i,
+      sent_frame_cnt_o         => sent_frame_cnt_out,
+      rcvd_frame_cnt_o         => rcvd_frame_cnt_out,
+      lost_frame_cnt_o         => lost_frame_cnt_out,
+      lost_block_cnt_o         => lost_block_cnt_out,
+      latency_cnt_o            => latency_cnt,
       latency_acc_o            => latency_acc,
-      latency_max_o            => to_wb.rx_stat3_rx_latency_max_i,
-      latency_min_o            => to_wb.rx_stat4_rx_latency_min_i,
+      latency_max_o            => to_wb.rx_stat0_rx_latency_max_i,
+      latency_min_o            => to_wb.rx_stat1_rx_latency_min_i,
       latency_acc_overflow_o   => to_wb.sscr1_rx_latency_acc_overflow_i,
-      snmp_array_o             => snmp_array_o(c_STREAMERS_ARR_SIZE_OUT-1 downto 0),
+      snmp_array_o             => snmp_array_o(c_WRS_STATS_ARR_SIZE_OUT-1 downto 0),
       snmp_array_i             => snmp_array_i
       );
 
-  to_wb.sscr2_rst_ts_tai_lsb_i        <= reset_time_tai(31 downto 0);
-  to_wb.rx_stat5_rx_latency_acc_lsb_i <= latency_acc(31 downto 0);
-  to_wb.rx_stat6_rx_latency_acc_msb_i <= latency_acc(63 downto 32);
+  to_wb.sscr2_rst_ts_tai_lsb_i             <= reset_time_tai(31 downto 0);
+  to_wb.sscr3_rst_ts_tai_msb_i             <= reset_time_tai(39 downto 32);
+
+  assert (g_stats_acc_width <= 64 and g_stats_acc_width > 32)
+    report "g_stats_acc_width (c_aw) must be between 33 and 64" severity error;
+  assert (g_stats_cnt_width <= 64 and g_stats_cnt_width > 32)
+    report "g_stats_cnt_width (c_cw) must be between 33 and 64" severity error;
+
+  to_wb.tx_stat2_tx_sent_cnt_lsb_i                             <= sent_frame_cnt_out(31     downto 0);
+  to_wb.tx_stat3_tx_sent_cnt_msb_i        (c_cw-32-1 downto 0) <= sent_frame_cnt_out(c_cw-1 downto 32);
+  to_wb.rx_stat4_rx_rcvd_cnt_lsb_i                             <= rcvd_frame_cnt_out(31     downto 0);
+  to_wb.rx_stat5_rx_rcvd_cnt_msb_i        (c_cw-32-1 downto 0) <= rcvd_frame_cnt_out(c_cw-1 downto 32);
+  to_wb.rx_stat6_rx_loss_cnt_lsb_i                             <= lost_frame_cnt_out(31     downto 0);
+  to_wb.rx_stat7_rx_loss_cnt_msb_i        (c_cw-32-1 downto 0) <= lost_frame_cnt_out(c_cw-1 downto 32);
+  to_wb.rx_stat8_rx_lost_block_cnt_lsb_i                       <= lost_block_cnt_out(31     downto 0);
+  to_wb.rx_stat9_rx_lost_block_cnt_msb_i  (c_cw-32-1 downto 0) <= lost_block_cnt_out(c_cw-1 downto 32);
+  to_wb.rx_stat10_rx_latency_acc_lsb_i                         <= latency_acc       (31     downto 0);
+  to_wb.rx_stat11_rx_latency_acc_msb_i    (c_aw-32-1 downto 0) <= latency_acc       (c_aw-1 downto 32);
+  to_wb.rx_stat12_rx_latency_acc_cnt_lsb_i                     <= latency_cnt       (31     downto 0);
+  to_wb.rx_stat13_rx_latency_acc_cnt_msb_i(c_cw-32-1 downto 0) <= latency_cnt       (c_cw-1 downto 32);
 
   rx_data_o  <= rx_data;
   rx_valid_o <= rx_valid;
@@ -345,7 +370,7 @@ begin
     port map (
       rst_n_i      => rst_n_i,
       clk_sys_i    => clk_sys_i,
-      wb_adr_i     => wb_regs_slave_in.adr(4 downto 0),
+      wb_adr_i     => wb_regs_slave_in.adr(5 downto 0),
       wb_dat_i     => wb_regs_slave_in.dat,
       wb_dat_o     => wb_regs_slave_out.dat,
       wb_cyc_i     => wb_regs_slave_in.cyc,
@@ -387,7 +412,8 @@ begin
     end if;
   end process;
 
-  snmp_array_o(c_STREAMERS_ARR_SIZE_OUT)   <= dbg_word;
+  snmp_array_o(c_WRS_STATS_ARR_SIZE_OUT)   <= dbg_word;
+  snmp_array_o(c_WRS_STATS_ARR_SIZE_OUT+1) <= x"DEADBEEF";
 
   to_wb.dbg_data_i      <= dbg_word;
   to_wb.dummy_dummy_i   <= x"DEADBEEF";

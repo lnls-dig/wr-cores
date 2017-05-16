@@ -279,15 +279,15 @@ architecture struct of xwrc_board_common is
   -- goes to/from WRPC
 
   constant c_streamers_diag_id  : integer := 1;   -- id reserved for streamers
-  constant c_streamers_diag_ver : integer := 1;  -- version that will be probably increased
+  constant c_streamers_diag_ver : integer := 2;  -- version that will be probably increased
   -- when more diagnostics is added to streamers
 
   -- final values that go to WRPC generics (depend on configuration)
   constant c_diag_id  : integer := f_pick_diag_val(g_fabric_iface, c_streamers_diag_id, g_diag_id);
-  constant c_diag_ver : integer := f_pick_diag_val(g_fabric_iface, c_streamers_diag_id, g_diag_id);
+  constant c_diag_ver : integer := f_pick_diag_val(g_fabric_iface, c_streamers_diag_ver, g_diag_id);
 
-  constant c_diag_ro_size : integer := f_pick_diag_size(g_fabric_iface, c_WR_TRANS_ARR_SIZE_OUT, g_diag_ro_size);
-  constant c_diag_rw_size : integer := f_pick_diag_size(g_fabric_iface, c_WR_TRANS_ARR_SIZE_IN, g_diag_rw_size);
+  constant c_diag_ro_size : integer := f_pick_diag_size(g_fabric_iface, c_WR_STREAMERS_ARR_SIZE_OUT, g_diag_ro_size);
+  constant c_diag_rw_size : integer := f_pick_diag_size(g_fabric_iface, c_WR_STREAMERS_ARR_SIZE_IN, g_diag_rw_size);
 
   -- WR SNMP
   signal aux_diag_in  : t_generic_word_array(c_diag_ro_size-1 downto 0);
@@ -457,8 +457,8 @@ begin  -- architecture struct
         link_ok_i       => link_ok,
         wb_slave_i      => aux_master_out,
         wb_slave_o      => aux_master_in,
-        snmp_array_o    => aux_diag_in(c_WR_TRANS_ARR_SIZE_OUT-1 downto 0),
-        snmp_array_i    => aux_diag_out(c_WR_TRANS_ARR_SIZE_IN-1 downto 0),
+        snmp_array_o    => aux_diag_in(c_WR_STREAMERS_ARR_SIZE_OUT-1 downto 0),
+        snmp_array_i    => aux_diag_out(c_WR_STREAMERS_ARR_SIZE_IN-1 downto 0),
         tx_streamer_cfg_i=> wrs_tx_cfg_i,
         rx_streamer_cfg_i=> wrs_rx_cfg_i);
 
@@ -469,8 +469,8 @@ begin  -- architecture struct
     aux_master_o    <= cc_dummy_master_out;
     wb_eth_master_o <= cc_dummy_master_out;
 
-    aux_diag_in(c_diag_ro_size-1 downto c_WR_TRANS_ARR_SIZE_OUT) <= aux_diag_i;
-    aux_diag_o                                                   <= aux_diag_out(c_diag_rw_size-1 downto c_WR_TRANS_ARR_SIZE_IN);
+    aux_diag_in(c_diag_ro_size-1 downto c_WR_STREAMERS_ARR_SIZE_OUT) <= aux_diag_i;
+    aux_diag_o                                                   <= aux_diag_out(c_diag_rw_size-1 downto c_WR_STREAMERS_ARR_SIZE_IN);
 
   end generate gen_wr_streamers;
 

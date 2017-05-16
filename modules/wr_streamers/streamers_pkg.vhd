@@ -233,13 +233,13 @@ package streamers_pkg is
       rx_streamer_cfg_i       : in t_rx_streamer_cfg := c_rx_streamer_cfg_default);
   end component;
 
-  constant c_STREAMERS_ARR_SIZE_OUT : integer := 14;
-  constant c_STREAMERS_ARR_SIZE_IN  : integer := 1;
+  constant c_WRS_STATS_ARR_SIZE_OUT : integer := 18;
+  constant c_WRS_STATS_ARR_SIZE_IN  : integer := 1;
 
   component xrtx_streamers_stats is
     generic (
       g_streamers_op_mode    : t_streamers_op_mode  := TX_AND_RX;
-      g_cnt_width            : integer := 32;
+      g_cnt_width            : integer := 50;
       g_acc_width            : integer := 64
       );
     port (
@@ -269,13 +269,13 @@ package streamers_pkg is
       latency_acc_o          : out std_logic_vector(g_acc_width-1  downto 0);
       latency_max_o          : out std_logic_vector(27  downto 0);
       latency_min_o          : out std_logic_vector(27  downto 0);
-      snmp_array_o           : out t_generic_word_array(c_STREAMERS_ARR_SIZE_OUT-1 downto 0);
-      snmp_array_i           : in  t_generic_word_array(c_STREAMERS_ARR_SIZE_IN -1 downto 0) := (others => (others=>'0'))
+      snmp_array_o           : out t_generic_word_array(c_WRS_STATS_ARR_SIZE_OUT-1 downto 0);
+      snmp_array_i           : in  t_generic_word_array(c_WRS_STATS_ARR_SIZE_IN -1 downto 0) := (others => (others=>'0'))
       );
   end component;
 
-  constant c_WR_TRANS_ARR_SIZE_OUT : integer := c_STREAMERS_ARR_SIZE_OUT+3;
-  constant c_WR_TRANS_ARR_SIZE_IN  : integer := c_STREAMERS_ARR_SIZE_IN;
+  constant c_WR_STREAMERS_ARR_SIZE_OUT : integer := c_WRS_STATS_ARR_SIZE_OUT+2;
+  constant c_WR_STREAMERS_ARR_SIZE_IN  : integer := c_WRS_STATS_ARR_SIZE_IN;
 
   component xwr_streamers is
   generic (
@@ -284,7 +284,7 @@ package streamers_pkg is
     g_tx_streamer_params       : t_tx_streamer_params := c_tx_streamer_params_defaut;
     g_rx_streamer_params       : t_rx_streamer_params := c_rx_streamer_params_defaut;
     -- stats
-    g_stats_cnt_width          : integer := 32;
+    g_stats_cnt_width          : integer := 50;
     g_stats_acc_width          : integer := 64;
     -- WB i/f
     g_slave_mode               : t_wishbone_interface_mode      := CLASSIC;
@@ -320,8 +320,8 @@ package streamers_pkg is
     link_ok_i                  : in std_logic := '1';
     wb_slave_i                 : in  t_wishbone_slave_in := cc_dummy_slave_in;
     wb_slave_o                 : out t_wishbone_slave_out;
-    snmp_array_o               : out t_generic_word_array(c_WR_TRANS_ARR_SIZE_OUT-1 downto 0);
-    snmp_array_i               : in  t_generic_word_array(c_WR_TRANS_ARR_SIZE_IN -1 downto 0);
+    snmp_array_o               : out t_generic_word_array(c_WR_STREAMERS_ARR_SIZE_OUT-1 downto 0);
+    snmp_array_i               : in  t_generic_word_array(c_WR_STREAMERS_ARR_SIZE_IN -1 downto 0);
     -- Transmission (tx) configuration
     tx_streamer_cfg_i          : in  t_tx_streamer_cfg := c_tx_streamer_cfg_default;
     rx_streamer_cfg_i          : in  t_rx_streamer_cfg := c_rx_streamer_cfg_default

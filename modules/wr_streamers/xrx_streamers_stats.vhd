@@ -49,7 +49,7 @@ entity xrx_streamers_stats is
   
   generic (
     -- Width of frame counters
-    g_cnt_width            : integer := 32; -- minimum 15 bits, max 32
+    g_cnt_width            : integer := 50; -- min:15, max:64, 50 bits should be ok for 50 years
     g_acc_width            : integer := 64  -- max value 64
     );
   port (
