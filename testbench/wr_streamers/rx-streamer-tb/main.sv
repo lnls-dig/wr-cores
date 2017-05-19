@@ -478,8 +478,12 @@ endtask //delay_frame
    tx_streamer
      #( 
         .g_data_width   (g_word_width),
+        .g_tx_buffer_size(8),
         .g_tx_threshold  (4),
-        .g_tx_timeout    (128)
+        .g_tx_timeout    (128),
+        .g_tx_max_words_per_frame(8),
+        .g_simulation(1),
+        .g_sim_startup_cnt(0)
      ) 
    U_TX_Streamer
      (
@@ -574,10 +578,10 @@ endtask //delay_frame
      if(rst_n)
        begin
           
-          
           block_t rblk;
           streamer_frame_t tfrm, l_tfrm;
           automatic int done = 0;            
+          #10us;
           if (rx_streamer_lost_frm == 1) 
                   begin
                     int i,  n_lost_frames;

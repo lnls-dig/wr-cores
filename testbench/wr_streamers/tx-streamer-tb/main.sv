@@ -158,9 +158,12 @@ module main;
    tx_streamer
      #( 
         .g_data_width   (g_word_width),
+        .g_tx_buffer_size(2*g_tx_thr),
         .g_tx_threshold  (g_tx_thr),
         .g_tx_timeout    (g_tx_tm_out),
-        .g_tx_max_words_per_frame (g_max_wrds_pr_frm)
+        .g_tx_max_words_per_frame (g_max_wrds_pr_frm),
+        .g_simulation(1),
+        .g_sim_startup_cnt(0)
      ) 
    U_TX_Streamer
      (
@@ -323,7 +326,7 @@ module main;
               // assert the TX_LAST line on the last word in the current block
               tx_streamer_last <= (i == (blk.words.size() - 1)) ? 1 : 0;
               tx_streamer_data <= blk.words[i];
-              //$display("Data to be sent is %d*****\n", tx_streamer_data);
+              $display("Data to be sent is %d*****\n", tx_streamer_data);
               tx_streamer_dvalid <= 1;
               //clk_cycle_counter_before = clk_cycle_counter;
               i++;
@@ -404,14 +407,16 @@ module main;
     initial forever 
         begin
             int blk_size;
-              
-
+            
             streamer_frame_t frm;
             block_t blk;
             
             blk.words = {};
             blk.wrd_cnt = {};
             
+            wait(rst_n == 1'b0);
+            #10us;
+
             rx_streamer_dreq  <= 1;//({$random} % 100 < 90) ? 1 : 
             thr_test = 0;  
             timeout_test = 0;        
