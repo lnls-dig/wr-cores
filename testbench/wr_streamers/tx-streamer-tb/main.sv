@@ -414,8 +414,8 @@ module main;
             blk.words = {};
             blk.wrd_cnt = {};
             
-            wait(rst_n == 1'b0);
-            #10us;
+            wait(rst_n == 1'b1);
+            
 
             rx_streamer_dreq  <= 1;//({$random} % 100 < 90) ? 1 : 
             thr_test = 0;  
