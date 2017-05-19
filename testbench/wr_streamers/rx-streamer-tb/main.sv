@@ -50,7 +50,10 @@ module main;
    
    // Size of data record to be used by the streamers.
    // In this case, a 64-bit word.
-   parameter g_word_width = 64;     
+   parameter g_word_width = 64; 
+   parameter g_tx_thr = 16;     
+   parameter g_tx_tm_out = 128;   
+   parameter g_max_wrds_pr_frm = 16;    
    
    // Min and max block size
    parameter g_block_size_min = 1; 
@@ -90,6 +93,9 @@ module main;
    // Clock & reset
    reg clk = 0;
    reg rst_n = 0;
+   reg [27:0] clk_cycle_counter = 0;           
+   int clk_cycle_counter_before = 0;
+   int clk_cycle_counter_after = 0;
 
    // TX Streamer signals
    reg                    tx_streamer_dvalid = 0;
@@ -148,7 +154,10 @@ module main;
    always #10   clk     <= ~clk;
    always #4ns  clk_ref <= ~clk_ref; //generate 125 MHz WR Clock
   
-   always@(posedge clk_ref) tm_cycle_counter <= tm_cycle_counter + 1;
+   always@(posedge clk_ref) tm_cycle_counter <= tm_cycle_counter + 1;   
+   always@(posedge clk) clk_cycle_counter <= clk_cycle_counter + 1;
+   always@(posedge tx_frame_sent) clk_cycle_counter_before = clk_cycle_counter;
+   always@(posedge rx_frame_received) clk_cycle_counter_after = clk_cycle_counter;
      
    /////////////////////////////////////////////////////////////////////////////
    // Struct definition
@@ -272,7 +281,8 @@ module main;
 
     task automatic link_good ();
         int frm_counter = 0;
-        link_ok = 1;
+        $display ("LINKOK---------");
+        @(posedge tx_frame_sent) link_ok = 1;
         corrupt_mask = 16'h0000;
         drop_frm = 0;
         delay_link= 0;
@@ -291,26 +301,19 @@ module main;
         corrupt_mask = 16'h0000;
         link_ok= 0;
         n={$random} % 2; //number of frames to be corrupted
-        //corrupt = ({$random} % 1000 < 500) ? 1 : 0;
-        // break_bit = ({$random} % 100 <1) ? 1 : 0;
-        
-        // while (frm_counter < 3 ) 
-         // begin
-            j = {$random} % 15;
-            $display("=====BIT FLIP================");
-            @(negedge rx_frame_received) 
-            corrupt_mask [j] = ~corrupt_mask [j];
-            @(negedge rx_wb_ack) link_good ();
-        // end
+        j = {$random} % 15;
+        $display("=====BIT FLIP================");
+        @(negedge rx_frame_received) 
+        corrupt_mask [j] = ~corrupt_mask [j];
+        @(negedge rx_wb_ack) link_good ();
+
     endtask //corrupt_data
       
 task automatic drop_frame ();
     int n, i;
     link_ok= 0;
     n={$random} % 5; //number of frames to be dropped
-//    drop_or_delay = 0;//  {$random} % 1;
-
-        for (i=0; i<n; i++) 
+       for (i=0; i<n; i++) 
          begin
                 @(negedge tx_wb_cyc)
                 drop_frm = 1;  
@@ -323,49 +326,28 @@ task automatic drop_frame ();
      
     
     task automatic delay_frame ();
-      link_ok= 0;
-        
-            delay_link = 0;
-        // fork begin
-        
+        link_ok= 0;
+        delay_link = 0;        
         wait (rx_wb_stall == 1)  //to avoid changes at startup
-    //----------Random stall asserted------------------------------
-            // delay_link = ({$random} % 10 < 2) ? 1 : 0;
-            // delay_link = delay_link & tx_wb_stb;
-            // #150;
-            // delay_link = 0;//----------------------------------------------------------- 
         // @(negedge rx_wb_stall)
-        @(negedge tx_wb_cyc)
+        @(posedge tx_frame_sent)
             delay_link = 1;
             
-            #10000;
-
-            delay_link = 0;
-         // end
-        // begin            
-            // @(negedge rx_wb_ack);
-            // delay_link = 1;
-            
-            // #1000;
-            // delay_link = 0;
-            
-        // join
-      // end
-
+        #10000;
+        delay_link = 0;
+        link_good ();
     
 endtask //delay_frame
-    //always @(posedge clk)
-    //if (data_to_rx != 16'b0)
-        assign data_to_rx = data_from_tx ^ corrupt_mask;
-    
-    
+
+
+    assign data_to_rx = data_from_tx ^ corrupt_mask;
     assign rx_wb_stb = tx_wb_stb & ~drop_frm;
     assign rx_wb_cyc = tx_wb_cyc & ~drop_frm;
+    assign tx_wb_stall = rx_wb_stall | delay_link; //extend pulse
+    assign tx_wb_ack = rx_wb_ack;// & ~delay_link;   
     
     // assign tx_wb_stall = delay_link; //extend pulse
-    assign tx_wb_stall = rx_wb_stall | delay_link; //extend pulse
-   // assign tx_wb_stall = ~rx_wb_cyc ? (1'b0 | delay_link)  : (~rx_wb_ack | delay_link);
-    assign tx_wb_ack = rx_wb_ack;// & ~delay_link;        
+   // assign tx_wb_stall = ~rx_wb_cyc ? (1'b0 | delay_link)  : (~rx_wb_ack | delay_link);     
   
     /////////////////////////////
     time delay=0;
@@ -402,10 +384,13 @@ endtask //delay_frame
     word1=blk.first_wrd;
     wordn=blk.last_wrd;
    
+            $display("BEFORE valid streamer block--------");
     if(rx_streamer_dvalid)
         begin
+            $display("valid streamer block--------");
             if(rx_streamer_first && new_block == 1) 
                 begin
+                    $display("streamer first---------");
                      new_block = 0;
                      wrd = {};
                      blk.wrd_cnt = {};
@@ -420,6 +405,7 @@ endtask //delay_frame
             wrd.push_back(rx_streamer_data);
             if (rx_streamer_last && new_block == 0)
                 begin
+            $display(" streamer last-------------");
                     wordn = rx_streamer_data;
                     if (wrd.size() > 1) 
                         blk.wrd_cnt.push_back(wrd.size());  //Last word in block           
@@ -448,11 +434,11 @@ endtask //delay_frame
                 frm.blocks[i].dropped = drop_frm;
                 tx_blk_queue.push_back(frm.blocks[i]);
                 
-            end  
-            tx_frm_queue.push_back(frm);            
+            end             
             send_frame(frm);
             @(posedge clk) tx_flush = 1;
             @(posedge clk) tx_flush = 0;
+            tx_frm_queue.push_back(frm); 
             
             wait(tx_frame_sent) 
             $display("PUSH FRAME Tx q are %p\n#########", tx_frm_queue);
@@ -478,13 +464,15 @@ endtask //delay_frame
    tx_streamer
      #( 
         .g_data_width   (g_word_width),
-        .g_tx_buffer_size(8),
-        .g_tx_threshold  (4),
-        .g_tx_timeout    (128),
-        .g_tx_max_words_per_frame(8),
+
+        .g_tx_buffer_size(2*g_tx_thr),
+        .g_tx_threshold  (g_tx_thr),
+        .g_tx_timeout    (g_tx_tm_out),
+        .g_tx_max_words_per_frame (g_max_wrds_pr_frm),
         .g_simulation(1),
         .g_sim_startup_cnt(0)
      ) 
+     //
    U_TX_Streamer
      (
       .clk_sys_i(clk),
@@ -585,16 +573,17 @@ endtask //delay_frame
           if (rx_streamer_lost_frm == 1) 
                   begin
                     int i,  n_lost_frames;
-                    
                     n_lost_frames = rx_streamer_lost_frm_cnt;
-                    
                     for (i = 0; i < n_lost_frames; i++) begin
                         l_tfrm = tx_frm_queue.pop_front();
                     $display ("%d have been lost, frame %p is POPPED\n=====", n_lost_frames, l_tfrm );
                     end
                     $display ("%d have been lost, the new Tx queue is %p\n=====", n_lost_frames, tx_frm_queue );
                   end
-          receive_block(rblk, new_block, done);  
+          
+               $display(" &&&&&&&&&&&&&&&&&&&&&block RECEIVED  before is %p \n********",  rblk);        
+                receive_block(rblk, new_block, done);  
+               $display(" &&&&&&&&&&&&&&&&&&&&&block RECEIVED  is %p \n********",  rblk);
           if(done)
             begin
                //automatic streamer_frame_t frm ;
@@ -618,7 +607,7 @@ endtask //delay_frame
                $display(" block OUT is %p \n********",  tblk);
                
                //$display("Received block of %d words....\n", tblk_size);
-               new_block = 1;
+               //new_block = 1;
                 
                 // ===============================================================
               // TEST : Check that no frames have been lost:
@@ -692,8 +681,9 @@ endtask //delay_frame
        end // else: !if(!rst_n)
 
   always@(posedge clk)
-    if(rst_n && rx_latency_valid)
+    if(rst_n && rx_latency_valid) begin
          $display("*************This frame's latency: %.3f microseconds*************************************************\n", real'(rx_latency) * 0.008);
-   
+         $display ("Latency calculated %d\n", clk_cycle_counter_before-clk_cycle_counter_after);
+   end
 endmodule // main
 
