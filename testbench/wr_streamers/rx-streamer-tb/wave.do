@@ -6,6 +6,11 @@ add wave -noupdate /main/U_TX_Streamer/tx_data_i
 add wave -noupdate /main/U_TX_Streamer/tx_reset_seq_i
 add wave -noupdate /main/U_TX_Streamer/tx_valid_i
 add wave -noupdate /main/U_TX_Streamer/tx_dreq_o
+add wave -position 7  sim:/main/data_from_tx
+add wave -position 8  sim:/main/data_to_rx
+add wave -position 8  sim:/main/rx_streamer_lost_blks
+add wave -position 9  sim:/main/rx_streamer_lost_frm
+add wave -position 10  sim:/main/rx_streamer_lost_frm_cnt
 add wave -noupdate /main/mac/adr
 add wave -noupdate /main/mac/dat_o
 add wave -noupdate /main/mac/dat_i
@@ -23,6 +28,16 @@ add wave -noupdate /main/U_RX_Streamer/rx_data_o
 add wave -noupdate /main/U_RX_Streamer/rx_valid_o
 add wave -noupdate /main/U_RX_Streamer/rx_dreq_i
 add wave -noupdate /main/U_RX_Streamer/rx_lost_p1_o
+add wave -position end  sim:/main/break_link
+add wave -position end  sim:/main/delay_link
+add wave -position end  sim:/main/tx_wb_ack
+add wave -position end  sim:/main/tx_wb_cyc
+add wave -position end  sim:/main/tx_wb_stall
+add wave -position end  sim:/main/tx_wb_stb
+add wave -position end  sim:/main/rx_wb_ack
+add wave -position end  sim:/main/rx_wb_cyc
+add wave -position end  sim:/main/rx_wb_stall
+add wave -position end  sim:/main/rx_wb_stb
 TreeUpdate [SetDefaultTree]
 WaveRestoreCursors {{Cursor 1} {867 ns} 0}
 configure wave -namecolwidth 150
