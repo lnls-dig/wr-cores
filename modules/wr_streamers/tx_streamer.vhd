@@ -47,10 +47,13 @@ entity tx_streamer is
   
   generic (
     g_data_width             : integer := 32;
+    g_tx_buffer_size         : integer := 32;
     g_tx_threshold           : integer := 16;
     g_tx_max_words_per_frame : integer := 128;
     g_tx_timeout             : integer := 1024;
-    g_escape_code_disable    : boolean := FALSE
+    g_escape_code_disable    : boolean := FALSE;
+    g_simulation             : integer := 0;
+    g_sim_startup_cnt        : integer := 6250
     );
 
   port (
@@ -100,10 +103,13 @@ begin  -- rtl
   U_Wrapped_Streamer : xtx_streamer
     generic map (
       g_data_width             => g_data_width,
+      g_tx_buffer_size         => g_tx_buffer_size,
       g_tx_threshold           => g_tx_threshold,
       g_tx_max_words_per_frame => g_tx_max_words_per_frame,
       g_tx_timeout             => g_tx_timeout,
-      g_escape_code_disable    => g_escape_code_disable)
+      g_escape_code_disable    => g_escape_code_disable,
+      g_simulation             => g_simulation,
+      g_sim_startup_cnt        => g_sim_startup_cnt)
     port map (
       clk_sys_i        => clk_sys_i,
       rst_n_i          => rst_n_i,
