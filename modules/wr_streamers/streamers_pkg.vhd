@@ -182,7 +182,8 @@ package streamers_pkg is
       g_tx_max_words_per_frame : integer := 256;
       g_tx_timeout             : integer := 1024;
       g_escape_code_disable    : boolean := FALSE;
-      g_simulation             : integer := 0);
+      g_simulation             : integer := 0;
+      g_sim_startup_cnt        : integer := 6250);--100us
     port (
       clk_sys_i        : in  std_logic;
       rst_n_i          : in  std_logic;

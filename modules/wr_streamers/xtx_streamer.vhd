@@ -74,8 +74,11 @@ entity xtx_streamer is
     -- code. This is justified if only one block of a known number of words is sent/expected
     g_escape_code_disable : boolean := FALSE;
 
-    -- simulation mode (used for startaup-timer)
-    g_simulation : integer :=0
+    -- simulation mode: it is set to override the startaup-timer, the value with which 
+    -- the timer is overriden is set in the second generic 
+    g_simulation : integer :=0;
+    -- startup counter, used only in simulatin mode (value in 16ns cycles)
+    g_sim_startup_cnt : integer := 6250-- 100us
     );
 
   port (
@@ -176,8 +179,7 @@ architecture rtl of xtx_streamer is
 
   signal link_ok_delay_cnt         : unsigned(25 downto 0);
   constant c_link_ok_rst_delay     : unsigned(25 downto 0) := to_unsigned(62500000, 26);-- 1s
-  constant c_link_ok_rst_delay_sim : unsigned(25 downto 0) := to_unsigned(6250    , 26);-- 100us
-
+  constant c_link_ok_rst_delay_sim : unsigned(25 downto 0) := to_unsigned(g_sim_startup_cnt, 26);
 
 begin  -- rtl
 
