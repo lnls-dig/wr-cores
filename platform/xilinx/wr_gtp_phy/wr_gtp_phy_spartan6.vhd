@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2012-08-13
+-- Last update: 2017-05-24
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -510,21 +510,21 @@ begin  -- rtl
     p_gen_output_ch0 : process(ch0_rx_rec_clk, ch0_gtp_reset)
     begin
       if(ch0_gtp_reset = '1') then
-        ch0_rx_data_o    <= (others => '0');
-        ch0_rx_k_o       <= '0';
-        ch0_rx_enc_err_o <= '0';
+        ch0_rx_data      <= (others => '0');
+        ch0_rx_k         <= '0';
+        ch0_rx_enc_err   <= '0';
         
       elsif rising_edge(ch0_rx_rec_clk) then
         if(ch0_rx_enable_output_synced = '0') then
 -- make sure the output data is invalid when the link is down and that it will
 -- trigger the sync loss detection
-          ch0_rx_data_o    <= (others => '0');
-          ch0_rx_k_o       <= '1';
-          ch0_rx_enc_err_o <= '1';
+          ch0_rx_data      <= (others => '0');
+          ch0_rx_k         <= '1';
+          ch0_rx_enc_err   <= '1';
         else
-          ch0_rx_data_o    <= ch0_rx_data_int;
-          ch0_rx_k_o       <= ch0_rx_k_int;
-          ch0_rx_enc_err_o <= ch0_rx_disperr or ch0_rx_invcode;
+          ch0_rx_data      <= ch0_rx_data_int;
+          ch0_rx_k         <= ch0_rx_k_int;
+          ch0_rx_enc_err   <= ch0_rx_disperr or ch0_rx_invcode;
         end if;
       end if;
     end process;
