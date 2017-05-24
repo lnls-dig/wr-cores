@@ -465,12 +465,6 @@ module main;
             tx_blk_queue.push_back(blk);   
             wait(tx_frame_sent) flush_test = 1;
             $display ("Frame transmitted after flush asserted");
-            
-                        
-            
-            
-
-        
 
      assert (flush_test == 1 && timeout_test == 1 && thr_test == 1) 
      else begin

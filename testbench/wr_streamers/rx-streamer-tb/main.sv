@@ -77,18 +77,16 @@ module main;
    // of both streamers
    IWishboneLink #(16, 2) mac();
 
-   
-     logic [1 : 0]   adr_d1;
-     logic [1 : 0] sel_d1 ;     
-     logic cyc_d1;
-     logic stb_d1;
-     logic we_d1 ;
-     
-     logic [1 : 0]   adr;
-     logic [1 : 0] sel ;     
-     logic cyc;
-     logic stb;
-     logic we;
+   logic [1 : 0]   adr_d1;
+   logic [1 : 0] sel_d1 ;     
+   logic cyc_d1;
+   logic stb_d1;
+   logic we_d1 ;
+   logic [1 : 0]   adr;
+   logic [1 : 0] sel ;     
+   logic cyc;
+   logic stb;
+   logic we;
 
    // Clock & reset
    reg clk = 0;
@@ -118,6 +116,9 @@ module main;
    wire [27:0]             rx_latency;
    wire                    rx_latency_valid;
    wire                    rx_frame_received;
+   
+   //Fixed latency
+   reg  [27:0] fixed_latency = 28'h0;
 
 
    // Fake White Rabbit reference clock (125 MHz) and cycle counter (we don't use 
@@ -133,14 +134,14 @@ module main;
    int                      seed = 0;
    
    // Wishbone link interface 
-    bit [15 : 0] data_from_tx;
-    logic [15 : 0] data_to_rx ;
-    logic tx_wb_cyc, rx_wb_cyc;
-    logic tx_wb_stb, rx_wb_stb;
-    logic tx_wb_ack;
-    logic tx_wb_stall;
-    wire rx_wb_stall;
-    wire rx_wb_ack;
+   bit [15 : 0] data_from_tx;
+   logic [15 : 0] data_to_rx ;
+   logic tx_wb_cyc, rx_wb_cyc;
+   logic tx_wb_stb, rx_wb_stb;
+   logic tx_wb_ack;
+   logic tx_wb_stall;
+   wire rx_wb_stall;
+   wire rx_wb_ack;
     
    /////////////////////////////////////////////////////////////////////////////
    // Initialise and set, reset, clocks and clk counter
@@ -177,7 +178,110 @@ module main;
 
 // Transfer queue. Used to pass sent data to the verification process.
    block_t tx_blk_queue[$];
-   streamer_frame_t tx_frm_queue[$]; /////////////////////////////////////////////////////////////////////////////
+   streamer_frame_t tx_frm_queue[$];    
+
+    
+   // Instantiation of the streamers. The TX streamer will assemble packets
+   // containing max. 8 records, or flush the buffer after 128 clk cycles if
+   // it contains less than 8 records to prevent latency buildup.
+   
+   
+     tx_streamer
+     #( 
+        .g_data_width   (g_word_width),
+
+        .g_tx_buffer_size(2*g_tx_thr),
+        .g_tx_threshold  (g_tx_thr),
+        .g_tx_timeout    (g_tx_tm_out),
+        .g_tx_max_words_per_frame (g_max_wrds_pr_frm),
+        .g_simulation(1),
+        .g_sim_startup_cnt(0)
+     ) 
+     //
+   U_TX_Streamer
+     (
+      .clk_sys_i(clk),
+      .rst_n_i  (rst_n),
+
+      .src_dat_o  (data_from_tx),// (mac.dat_i),
+      .src_adr_o  (mac.adr),
+      .src_sel_o  (mac.sel),
+      .src_cyc_o  (tx_wb_cyc),
+      .src_stb_o  (tx_wb_stb),
+      .src_we_o   (mac.we),
+      .src_stall_i(tx_wb_stall),
+      .src_err_i  (mac.err),
+      .src_ack_i  (tx_wb_ack),
+
+      .clk_ref_i(clk_ref), // fake WR time
+      .tm_time_valid_i(1'b1),
+      .tm_cycles_i(tm_cycle_counter),
+
+      .tx_data_i      (tx_streamer_data),
+      .tx_valid_i     (tx_streamer_dvalid),
+      .tx_dreq_o      (tx_streamer_dreq),
+      .tx_last_p1_i   (tx_streamer_last),
+      .tx_flush_p1_i   (tx_flush),
+      .tx_reset_seq_i (),
+      .tx_frame_p1_o  (tx_frame_sent),
+      
+      .cfg_mac_local_i  (g_mac_tx),
+      .cfg_mac_target_i (g_mac_rx),
+      .cfg_ethertype_i  (g_ethertype)
+      );
+
+  
+
+   rx_streamer
+     #(
+       .g_data_width        (g_word_width)
+       ) 
+   U_RX_Streamer 
+     (
+      .clk_sys_i (clk),
+      .rst_n_i   (rst_n),
+
+      .snk_dat_i (data_to_rx),
+      .snk_adr_i (mac.adr),
+      .snk_sel_i (mac.sel),
+      .snk_cyc_i (rx_wb_cyc),
+      .snk_stb_i (rx_wb_stb),
+      .snk_we_i  (mac.we),
+      .snk_stall_o (rx_wb_stall),
+      .snk_ack_o  (rx_wb_ack),
+      .snk_err_o (mac.err),
+      .snk_rty_o (mac.rty),
+
+      .clk_ref_i(clk_ref), // fake WR time
+      .tm_time_valid_i(1'b1),
+      .tm_cycles_i(tm_cycle_counter),
+      
+      .rx_first_p1_o (rx_streamer_first),
+      .rx_last_p1_o (rx_streamer_last),
+      .rx_data_o  (rx_streamer_data),
+      .rx_valid_o (rx_streamer_dvalid),
+      .rx_dreq_i  (rx_streamer_dreq),
+      
+      //.rx_lost_p1_o (rx_streamer_lost),
+      .rx_lost_blocks_p1_o (rx_streamer_lost_blks),
+      .rx_lost_frames_p1_o (rx_streamer_lost_frm), 
+      .rx_lost_frames_cnt_o (rx_streamer_lost_frm_cnt),
+
+      .rx_latency_o (rx_latency),
+      .rx_latency_valid_o (rx_latency_valid),
+      
+      .rx_frame_p1_o (rx_frame_received),
+   
+      .cfg_mac_local_i  (g_mac_rx),
+      .cfg_mac_remote_i (g_mac_tx),
+      .cfg_ethertype_i  (g_ethertype),
+      .cfg_accept_broadcasts_i (),
+      .cfg_filter_remote_i     (),
+      .cfg_fixed_latency_i     (fixed_latency) //(28'd2000)
+      
+      );
+
+   /////////////////////////////////////////////////////////////////////////////
    // Task definitions
    /////////////////////////////////////////////////////////////////////////////
    
@@ -274,14 +378,10 @@ module main;
       logic link_ok= 1;
       logic delay_link= 0;
       
-      
-
-
-      
 
     task automatic link_good ();
         int frm_counter = 0;
-        $display ("LINKOK---------");
+        //$display ("LINKOK---------");
         @(posedge tx_frame_sent) link_ok = 1;
         corrupt_mask = 16'h0000;
         drop_frm = 0;
@@ -349,23 +449,6 @@ endtask //delay_frame
     // assign tx_wb_stall = delay_link; //extend pulse
    // assign tx_wb_stall = ~rx_wb_cyc ? (1'b0 | delay_link)  : (~rx_wb_ack | delay_link);     
   
-    /////////////////////////////
-    time delay=0;
-    
-    // task automatic add_latency();
-        
-        
-        // delay = ({$random}%10);
-        // tx_wb_stall = 1;
-        // tx_wb_ack = 1;
-        // #100;
-        // tx_wb_stall = rx_wb_stall;
-        // tx_wb_ack = rx_wb_ack;
-        // $display("Added latency %t \n", delay);
-    
-    // endtask //add_latency
-    
-
 
       
 ///////////////////////////////////////////////////////////////////
@@ -384,10 +467,10 @@ endtask //delay_frame
     word1=blk.first_wrd;
     wordn=blk.last_wrd;
    
-            $display("BEFORE valid streamer block--------");
+            //$display("BEFORE valid streamer block--------");
     if(rx_streamer_dvalid)
         begin
-            $display("valid streamer block--------");
+            //$display("valid streamer block--------");
             if(rx_streamer_first && new_block == 1) 
                 begin
                     $display("streamer first---------");
@@ -405,7 +488,7 @@ endtask //delay_frame
             wrd.push_back(rx_streamer_data);
             if (rx_streamer_last && new_block == 0)
                 begin
-            $display(" streamer last-------------");
+            //$display(" streamer last-------------");
                     wordn = rx_streamer_data;
                     if (wrd.size() > 1) 
                         blk.wrd_cnt.push_back(wrd.size());  //Last word in block           
@@ -429,128 +512,42 @@ endtask //delay_frame
             //int i;
             streamer_frame_t frm;
             frm.blocks = {};
+            
+            wait(rst_n == 1'b1);
+            
+            rx_streamer_dreq  <= 1;//({$random} % 100 < 90) ? 1 : 0;
+            
+            //Rx Test1 fixed latency test
+            
+            //fixed_latency <= 28'h200;
             generate_frame(frm);
             for (int i=0; i < frm.blocks.size(); i++) begin
                 frm.blocks[i].dropped = drop_frm;
                 tx_blk_queue.push_back(frm.blocks[i]);
-                
+               
             end             
             send_frame(frm);
             @(posedge clk) tx_flush = 1;
             @(posedge clk) tx_flush = 0;
             tx_frm_queue.push_back(frm); 
             
-            wait(tx_frame_sent) 
-            $display("PUSH FRAME Tx q are %p\n#########", tx_frm_queue);
+            wait(tx_frame_sent);
+            //wait (rx_latency_valid) $display("Latency received is %d---\n", rx_latency);
+            
 
-            rx_streamer_dreq  <= 1;//({$random} % 100 < 90) ? 1 : 0;
-            $display ("Time is %d\n", $time); 
         end
-    initial forever 
+        
+/*     initial forever 
         begin 
-            randcase
-               10 : drop_frame ();
+            //randcase
+               //10 : drop_frame ();
                //10 : corrupt_data ();
-               10 : link_good ();
-               10 : delay_frame ();
-             endcase;
-        end
-    
- // Instantiation of the streamers. The TX streamer will assemble packets
-   // containing max. 8 records, or flush the buffer after 128 clk cycles if
-   // it contains less than 8 records to prevent latency buildup.
+               // link_good ();
+               //10 : delay_frame ();
+             //endcase;
+        end */
+
    
-   
-   tx_streamer
-     #( 
-        .g_data_width   (g_word_width),
-
-        .g_tx_buffer_size(2*g_tx_thr),
-        .g_tx_threshold  (g_tx_thr),
-        .g_tx_timeout    (g_tx_tm_out),
-        .g_tx_max_words_per_frame (g_max_wrds_pr_frm),
-        .g_simulation(1),
-        .g_sim_startup_cnt(0)
-     ) 
-     //
-   U_TX_Streamer
-     (
-      .clk_sys_i(clk),
-      .rst_n_i  (rst_n),
-
-      .src_dat_o  (data_from_tx),// (mac.dat_i),
-      .src_adr_o  (mac.adr),
-      .src_sel_o  (mac.sel),
-      .src_cyc_o  (tx_wb_cyc),
-      .src_stb_o  (tx_wb_stb),
-      .src_we_o   (mac.we),
-      .src_stall_i(tx_wb_stall),
-      .src_err_i  (mac.err),
-      .src_ack_i  (tx_wb_ack),
-
-      .clk_ref_i(clk_ref), // fake WR time
-      .tm_time_valid_i(1'b1),
-      .tm_cycles_i(tm_cycle_counter),
-
-      .tx_data_i      (tx_streamer_data),
-      .tx_valid_i     (tx_streamer_dvalid),
-      .tx_dreq_o      (tx_streamer_dreq),
-      .tx_last_p1_i   (tx_streamer_last),
-      .tx_flush_p1_i   (tx_flush),
-      .tx_reset_seq_i (),
-      .tx_frame_p1_o  (tx_frame_sent),
-      
-      .cfg_mac_local_i  (g_mac_tx),
-      .cfg_mac_target_i (g_mac_rx),
-      .cfg_ethertype_i  (g_ethertype)
-      );
-
-  
-
-   rx_streamer
-     #(
-       .g_data_width        (g_word_width)
-       ) 
-   U_RX_Streamer 
-     (
-      .clk_sys_i (clk),
-      .rst_n_i   (rst_n),
-
-      .snk_dat_i (data_to_rx),
-      .snk_adr_i (mac.adr),
-      .snk_sel_i (mac.sel),
-      .snk_cyc_i (rx_wb_cyc),
-      .snk_stb_i (rx_wb_stb),
-      .snk_we_i  (mac.we),
-      .snk_stall_o (rx_wb_stall),
-      .snk_ack_o  (rx_wb_ack),
-      .snk_err_o (mac.err),
-      .snk_rty_o (mac.rty),
-
-      .clk_ref_i(clk_ref), // fake WR time
-      .tm_time_valid_i(1'b1),
-      .tm_cycles_i(tm_cycle_counter),
-      
-      .rx_first_p1_o (rx_streamer_first),
-      .rx_last_p1_o (rx_streamer_last),
-      .rx_data_o  (rx_streamer_data),
-      .rx_valid_o (rx_streamer_dvalid),
-      .rx_dreq_i  (rx_streamer_dreq),
-      
-      //.rx_lost_p1_o (rx_streamer_lost),
-      .rx_lost_blocks_p1_o (rx_streamer_lost_blks),
-      .rx_lost_frames_p1_o (rx_streamer_lost_frm), 
-      .rx_lost_frames_cnt_o (rx_streamer_lost_frm_cnt),
-
-      .rx_latency_o (rx_latency),
-      .rx_latency_valid_o (rx_latency_valid),
-      
-      .rx_frame_p1_o (rx_frame_received),
-   
-      .cfg_mac_local_i  (g_mac_rx),
-      .cfg_mac_remote_i (g_mac_tx),
-      .cfg_ethertype_i  (g_ethertype)
-      );
 
 
    
@@ -569,53 +566,45 @@ endtask //delay_frame
           block_t rblk;
           streamer_frame_t tfrm, l_tfrm;
           automatic int done = 0;            
-          #10us;
           if (rx_streamer_lost_frm == 1) 
-                  begin
+                  begin 
                     int i,  n_lost_frames;
                     n_lost_frames = rx_streamer_lost_frm_cnt;
                     for (i = 0; i < n_lost_frames; i++) begin
                         l_tfrm = tx_frm_queue.pop_front();
-                    $display ("%d have been lost, frame %p is POPPED\n=====", n_lost_frames, l_tfrm );
+                    //$display ("%d have been lost, frame %p is POPPED\n=====", n_lost_frames, l_tfrm );
                     end
-                    $display ("%d have been lost, the new Tx queue is %p\n=====", n_lost_frames, tx_frm_queue );
+                    //$display ("%d have been lost, the new Tx queue is %p\n=====", n_lost_frames, tx_frm_queue );
                   end
-          
-               $display(" &&&&&&&&&&&&&&&&&&&&&block RECEIVED  before is %p \n********",  rblk);        
+                
                 receive_block(rblk, new_block, done);  
-               $display(" &&&&&&&&&&&&&&&&&&&&&block RECEIVED  is %p \n********",  rblk);
+          
           if(done)
             begin
-               //automatic streamer_frame_t frm ;
-               automatic block_t tblk;
-               //automatic int tblk_size = tblk.words.size();                    
-               $display(" frame OUT is %p \n********",  tx_blk_queue);
+               automatic block_t tblk;                  
+               //$display(" frame OUT is %p \n********",  tx_blk_queue);
                //if (tx_blk_queue.size() != 0) 
                //else begin
-                tblk = tx_blk_queue.pop_front();               $display(" OLD TBLK is %p \n********",  tblk);
-                $display(" FRAME size is  %d \n%%%%%%%%%%%%",  tfrm.blocks.size());
+                tblk = tx_blk_queue.pop_front();              // $display(" OLD TBLK is %p \n********",  tblk);
+                //$display(" FRAME size is  %d \n%%%%%%%%%%%%",  tfrm.blocks.size());
                 if (tfrm.blocks.size() == 0) begin
                     tfrm = tx_frm_queue.pop_front();
-                    $display(" FRAME is  %p \n%%%%%%%%%%%%",  tfrm); end
-                tblk = tfrm.blocks.pop_front();               $display(" NEW TBLK is %p \n********",  tblk);
-                $display(" FRAME AFTER POP is  %p \n%%%%%%%%%%%%",  tfrm);
-               $display(" QUEUE is  %p \n%%%%%%%%%%%%",  tx_blk_queue);
+                    //$display(" FRAME is  %p \n%%%%%%%%%%%%",  tfrm); end
+                tblk = tfrm.blocks.pop_front();               //$display(" NEW TBLK is %p \n********",  tblk);
+                //$display(" FRAME AFTER POP is  %p \n%%%%%%%%%%%%",  tfrm);
+              // $display(" QUEUE is  %p \n%%%%%%%%%%%%",  tx_blk_queue);
                  
                //end
                
                
-               $display(" block OUT is %p \n********",  tblk);
+              // $display(" block OUT is %p \n********",  tblk);
                
                //$display("Received block of %d words....\n", tblk_size);
-               //new_block = 1;
+               new_block = 1;
                 
-                // ===============================================================
-              // TEST : Check that no frames have been lost:
-              
-
                 
               // ===============================================================
-              // TEST 1: Check Txed and Rxed blocks match
+              // TEST 1: Check Txed and Rxed blocks match, first and last word are signalled correctly
                if(tblk.words != rblk.words)
                  begin
                     $error("TEST 1 ---> FAILED\n####Sent block does not match received block\n");
@@ -624,39 +613,8 @@ endtask //delay_frame
                  end else begin 
                  $display("****\nTEST 1 ---> PASSED\n****Correct words received\n");
                  end
-              // ================================================================   
-              // TEST 2: Check number of Received words in block is correct      
-               if (tblk.words.size() != rblk.words.size())
-                 begin
-                    $error("TEST 2 ---> FAILED\n####Sent and received blocks do not have the same number of words\n");
-                    $stop;
-                 end else 
-                 $display("****\nTEST 2 ---> PASSED\n****Correct number of words received\n");
-              // ================================================================ 
-              // TEST 3: Check that first word is asserted correctly at first word
 
-               // if (tblk.first_wrd != rblk.first_wrd)
-               if (tblk.wrd_cnt != rblk.wrd_cnt)
-                 begin
-                    $error("TEST 3 ---> FAILED: First word pulse incorrect.\n");
-                    //$display("Txed is %p, Rxed equals %p", tblk, rblk);
-                    $stop;
-                 end else 
-                 $display("****\nTEST 3 ---> PASSED\n****First word signalled correctly\n");
-               
-              // =================================================================
-              // TEST 4: Check that first word is asserted correctly at first word
-               // if (tblk.last_wrd != rblk.last_wrd)
-               if (tblk.wrd_cnt != rblk.wrd_cnt)
-                 begin
-                    //$display("test4 txed equals %p, rxed %p", tblk, rblk);
-                    $error("TEST 4 ---> FAILED: Last word pulse incorrect.\n");
-                    $stop;
-                 end else
-                    $display("test4 txed equals %p, rxed %p", tblk, rblk);
-                    $display("****\nTEST 4 ---> PASSED\n****Last word signalled correctly\n");
-                 
-              // =================================================================
+
               // TEST 5: Check that when rx_dreq is not asserted data stops at the next clk cycle
                if (rx_streamer_dreq == 1) 
                  no_curr_req = 0;
@@ -671,19 +629,25 @@ endtask //delay_frame
                  $display("****\nTEST 5 ---> PASSED\n****No data output when Rx_request is not asserted\n");
                end
                  
-                    
-               
-                    
-               
-
-               
+                                   
             end
        end // else: !if(!rst_n)
+end
+
 
   always@(posedge clk)
-    if(rst_n && rx_latency_valid) begin
-         $display("*************This frame's latency: %.3f microseconds*************************************************\n", real'(rx_latency) * 0.008);
-         $display ("Latency calculated %d\n", clk_cycle_counter_before-clk_cycle_counter_after);
+
+    if (delay_link == 0) 
+        begin
+         
+            if(rst_n && rx_latency_valid) 
+                begin
+                wait (rx_frame_received)
+                $display ("Latency calculated %d\n", clk_cycle_counter_before-clk_cycle_counter_after);
+                $display("*************This frame's latency: %.3f microseconds*************************************************\n", (rx_latency));
+             
+         end
+   
    end
 endmodule // main
 
