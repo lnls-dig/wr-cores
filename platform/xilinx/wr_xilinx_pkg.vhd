@@ -11,6 +11,8 @@ package wr_xilinx_pkg is
       g_fpga_family               : string  := "spartan6";
       g_with_external_clock_input : boolean := FALSE;
       g_use_default_plls          : boolean := TRUE;
+      g_gtp_enable_ch0            : integer := 0;
+      g_gtp_enable_ch1            : integer := 1;
       g_simulation                : integer := 0);
     port (
       areset_n_i            : in  std_logic             := '1';

@@ -60,6 +60,9 @@ entity xwrc_platform_xilinx is
       g_with_external_clock_input : boolean := FALSE;
       -- Set to FALSE if you want to instantiate your own PLLs
       g_use_default_plls          : boolean := TRUE;
+      -- Select GTP channel to use (only one can be active)
+      g_gtp_enable_ch0            : integer := 0;
+      g_gtp_enable_ch1            : integer := 1;
       -- Set to TRUE will speed up some initialization processes
       g_simulation                : integer := 0
       );
@@ -136,9 +139,9 @@ end entity xwrc_platform_xilinx;
 
 architecture rtl of xwrc_platform_xilinx is
 
-  -------------------------------------------------------------------------------------------
+  -----------------------------------------------------------------------------
   -- Signals declaration
-  -------------------------------------------------------------------------------------------
+  -----------------------------------------------------------------------------
 
   signal pll_arst            : std_logic := '0';
   signal clk_125m_pllref_buf : std_logic;
@@ -153,6 +156,13 @@ begin  -- architecture rtl
       report "Xilinx FPGA family [" & g_fpga_family & "] is not supported"
       severity ERROR;
   end generate gen_unknown_fpga;
+
+  gen_single_gtp_channel : if (g_gtp_enable_ch0 /= 0 and g_gtp_enable_ch1 /= 0)
+  generate
+    assert FALSE
+      report "Cannot enable both GTP channels simultaneously"
+      severity ERROR;
+  end generate gen_single_gtp_channel;
 
   -----------------------------------------------------------------------------
   -- Clock PLLs
@@ -371,6 +381,13 @@ begin  -- architecture rtl
 
     signal clk_125m_gtp_buf : std_logic;
 
+    signal ch0_phy8_out, ch1_phy8_out : t_phy_8bits_to_wrc;
+
+    signal ch0_sfp_txn, ch0_sfp_txp : std_logic;
+    signal ch1_sfp_txn, ch1_sfp_txp : std_logic;
+    signal ch0_sfp_rxn, ch0_sfp_rxp : std_logic;
+    signal ch1_sfp_rxn, ch1_sfp_rxp : std_logic;
+
   begin
 
     cmp_ibufgds_gtp : IBUFGDS
@@ -387,50 +404,71 @@ begin  -- architecture rtl
     cmp_gtp : wr_gtp_phy_spartan6
       generic map (
         g_simulation => g_simulation,
-        g_enable_ch0 => 0,
-        g_enable_ch1 => 1)
+        g_enable_ch0 => g_gtp_enable_ch0,
+        g_enable_ch1 => g_gtp_enable_ch1)
       port map (
         gtp_clk_i          => clk_125m_gtp_buf,
         ch0_ref_clk_i      => clk_125m_pllref_buf,
-        ch0_tx_data_i      => x"00",
-        ch0_tx_k_i         => '0',
-        ch0_tx_disparity_o => open,
-        ch0_tx_enc_err_o   => open,
-        ch0_rx_rbclk_o     => open,
-        ch0_rx_data_o      => open,
-        ch0_rx_k_o         => open,
-        ch0_rx_enc_err_o   => open,
-        ch0_rx_bitslide_o  => open,
-        ch0_rst_i          => '1',
-        ch0_loopen_i       => '0',
+        ch0_tx_data_i      => phy8_i.tx_data,
+        ch0_tx_k_i         => phy8_i.tx_k(0),
+        ch0_tx_disparity_o => ch0_phy8_out.tx_disparity,
+        ch0_tx_enc_err_o   => ch0_phy8_out.tx_enc_err,
+        ch0_rx_data_o      => ch0_phy8_out.rx_data,
+        ch0_rx_rbclk_o     => ch0_phy8_out.rx_clk,
+        ch0_rx_k_o         => ch0_phy8_out.rx_k(0),
+        ch0_rx_enc_err_o   => ch0_phy8_out.rx_enc_err,
+        ch0_rx_bitslide_o  => ch0_phy8_out.rx_bitslide,
+        ch0_rst_i          => phy8_i.rst,
+        ch0_loopen_i       => phy8_i.loopen,
+        ch0_loopen_vec_i   => phy8_i.loopen_vec,
+        ch0_tx_prbs_sel_i  => phy8_i.tx_prbs_sel,
+        ch0_rdy_o          => ch0_phy8_out.rdy,
         ch1_ref_clk_i      => clk_125m_pllref_buf,
         ch1_tx_data_i      => phy8_i.tx_data,
         ch1_tx_k_i         => phy8_i.tx_k(0),
-        ch1_tx_disparity_o => phy8_o.tx_disparity,
-        ch1_tx_enc_err_o   => phy8_o.tx_enc_err,
-        ch1_rx_data_o      => phy8_o.rx_data,
-        ch1_rx_rbclk_o     => phy8_o.rx_clk,
-        ch1_rx_k_o         => phy8_o.rx_k(0),
-        ch1_rx_enc_err_o   => phy8_o.rx_enc_err,
-        ch1_rx_bitslide_o  => phy8_o.rx_bitslide,
+        ch1_tx_disparity_o => ch1_phy8_out.tx_disparity,
+        ch1_tx_enc_err_o   => ch1_phy8_out.tx_enc_err,
+        ch1_rx_data_o      => ch1_phy8_out.rx_data,
+        ch1_rx_rbclk_o     => ch1_phy8_out.rx_clk,
+        ch1_rx_k_o         => ch1_phy8_out.rx_k(0),
+        ch1_rx_enc_err_o   => ch1_phy8_out.rx_enc_err,
+        ch1_rx_bitslide_o  => ch1_phy8_out.rx_bitslide,
         ch1_rst_i          => phy8_i.rst,
         ch1_loopen_i       => phy8_i.loopen,
         ch1_loopen_vec_i   => phy8_i.loopen_vec,
         ch1_tx_prbs_sel_i  => phy8_i.tx_prbs_sel,
-        ch1_rdy_o          => phy8_o.rdy,
-        pad_txn0_o         => open,
-        pad_txp0_o         => open,
-        pad_rxn0_i         => '0',
-        pad_rxp0_i         => '0',
-        pad_txn1_o         => sfp_txn_o,
-        pad_txp1_o         => sfp_txp_o,
-        pad_rxn1_i         => sfp_rxn_i,
-        pad_rxp1_i         => sfp_rxp_i
+        ch1_rdy_o          => ch1_phy8_out.rdy,
+        pad_txn0_o         => ch0_sfp_txn,
+        pad_txp0_o         => ch0_sfp_txp,
+        pad_rxn0_i         => ch0_sfp_rxn,
+        pad_rxp0_i         => ch0_sfp_rxp,
+        pad_txn1_o         => ch1_sfp_txn,
+        pad_txp1_o         => ch1_sfp_txp,
+        pad_rxn1_i         => ch1_sfp_rxn,
+        pad_rxp1_i         => ch1_sfp_rxp
         );
 
-    phy8_o.ref_clk      <= clk_125m_pllref_buf;
-    phy8_o.sfp_tx_fault <= sfp_tx_fault_i;
-    phy8_o.sfp_los      <= sfp_los_i;
+    gen_gtp_ch0 : if (g_gtp_enable_ch0 = 1) generate
+      ch0_phy8_out.ref_clk      <= clk_125m_pllref_buf;
+      ch0_phy8_out.sfp_tx_fault <= sfp_tx_fault_i;
+      ch0_phy8_out.sfp_los      <= sfp_los_i;
+      phy8_o                    <= ch0_phy8_out;
+      sfp_txp_o                 <= ch0_sfp_txp;
+      sfp_txn_o                 <= ch0_sfp_txn;
+      ch0_sfp_rxp               <= sfp_rxp_i;
+      ch0_sfp_rxn               <= sfp_rxn_i;
+    end generate gen_gtp_ch0;
+
+    gen_gtp_ch1 : if (g_gtp_enable_ch1 = 1) generate
+      ch1_phy8_out.ref_clk      <= clk_125m_pllref_buf;
+      ch1_phy8_out.sfp_tx_fault <= sfp_tx_fault_i;
+      ch1_phy8_out.sfp_los      <= sfp_los_i;
+      phy8_o                    <= ch1_phy8_out;
+      sfp_txp_o                 <= ch1_sfp_txp;
+      sfp_txn_o                 <= ch1_sfp_txn;
+      ch1_sfp_rxp               <= sfp_rxp_i;
+      ch1_sfp_rxn               <= sfp_rxn_i;
+    end generate gen_gtp_ch1;
 
     sfp_tx_disable_o <= phy8_i.sfp_tx_disable;
 
