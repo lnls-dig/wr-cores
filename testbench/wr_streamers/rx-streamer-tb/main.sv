@@ -189,7 +189,6 @@ module main;
      tx_streamer
      #( 
         .g_data_width   (g_word_width),
-
         .g_tx_buffer_size(2*g_tx_thr),
         .g_tx_threshold  (g_tx_thr),
         .g_tx_timeout    (g_tx_tm_out),
@@ -422,7 +421,7 @@ task automatic drop_frame ();
         drop_frm = 0;
        
     endtask //drop_frame     
-    // end
+
      
     
     task automatic delay_frame ();
