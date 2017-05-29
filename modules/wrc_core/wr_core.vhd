@@ -5,7 +5,7 @@
 -- Author     : Grzegorz Daniluk
 -- Company    : Elproma
 -- Created    : 2011-02-02
--- Last update: 2017-04-25
+-- Last update: 2017-05-29
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -297,6 +297,7 @@ entity wr_core is
     tm_tai_o             : out std_logic_vector(39 downto 0);
     tm_cycles_o          : out std_logic_vector(27 downto 0);
     -- 1PPS output
+    pps_csync_o          : out std_logic;
     pps_p_o              : out std_logic;
     pps_led_o            : out std_logic;
 
@@ -625,6 +626,7 @@ begin
       tm_time_valid_o => tm_time_valid_o
       );
   ppsg_link_ok <= not phy_rst;
+  pps_csync_o  <= s_pps_csync;
 
   -----------------------------------------------------------------------------
   -- Software PLL

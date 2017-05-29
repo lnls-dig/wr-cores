@@ -7,7 +7,7 @@
 -- Author(s)  : Dimitrios Lampridis  <dimitrios.lampridis@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-22
--- Last update: 2017-03-10
+-- Last update: 2017-05-29
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Wrapper for WR PTP core with common features shared between
@@ -246,10 +246,11 @@ entity xwrc_board_common is
     btn1_i     : in  std_logic := '1';
     btn2_i     : in  std_logic := '1';
     -- 1PPS output
-    pps_p_o    : out std_logic;
-    pps_led_o  : out std_logic;
+    pps_csync_o : out std_logic;
+    pps_p_o     : out std_logic;
+    pps_led_o   : out std_logic;
     -- Link ok indication
-    link_ok_o  : out std_logic
+    link_ok_o : out std_logic
     );
 
 end entity xwrc_board_common;
@@ -285,7 +286,7 @@ architecture struct of xwrc_board_common is
   -- Application diagnostic words are added after streamer's diagnostics in the array that
   -- goes to/from WRPC
 
-  constant c_streamers_diag_id  : integer := 1;   -- id reserved for streamers
+  constant c_streamers_diag_id  : integer := 1;  -- id reserved for streamers
   constant c_streamers_diag_ver : integer := 2;  -- version that will be probably increased
   -- when more diagnostics is added to streamers
 
@@ -423,6 +424,7 @@ begin  -- architecture struct
       tm_time_valid_o      => tm_time_valid,
       tm_tai_o             => tm_tai,
       tm_cycles_o          => tm_cycles,
+      pps_csync_o          => pps_csync_o,
       pps_p_o              => pps_p_o,
       pps_led_o            => pps_led_o,
       rst_aux_n_o          => aux_rst_n,
