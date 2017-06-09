@@ -285,7 +285,7 @@ begin
   assert (c_cw <= 64) 
     report "g_cnt_width value not suppported by f_pack_streamers_statistics" severity error;
   assert (c_aw <= 64) 
-    report "g_cnt_width value not suppported by f_pack_streamers_statistics" severity error;
+    report "g_acc_width value not suppported by f_pack_streamers_statistics" severity error;
 
   -- translate generic input vectors to meaningful signals
   reset_stats_remote                  <= snmp_array_i(0)(0);
