@@ -12,7 +12,8 @@ peripheral {
     field {
       name        = "WR DIAG data valid";
       prefix      = "DATA_VALID";
-      description = "0: valid\1:transcient";
+      description = "0: valid\
+                     1:transcient";
       type        = BIT;
       access_bus  = READ_ONLY;
       access_dev  = WRITE_ONLY;
@@ -33,7 +34,8 @@ peripheral {
     field {
       name        = "WR valid";
       prefix      = "wr_mode";
-      description = "0: not valid\1:valid";
+      description = "0: not valid\
+                     1:valid";
       type        = BIT;
       access_bus  = READ_ONLY;
       access_dev  = WRITE_ONLY;

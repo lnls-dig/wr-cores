@@ -2,14 +2,13 @@
 
 peripheral {
   name = "WR Transmission control, status and debug";
-  description = "\
-  -----------------------------------------------------------------\
+  description = "-----------------------------------------------------------------\
   This WB registers allow to diagnose transmission and reception of\
   data using WR streamers.                                         \
   In particular, these registers provide access to streamer's      \
   statistics that can be also access from SNMP, if supported.      \
   -----------------------------------------------------------------\
-  Copyright (c) 2016 CERN/BE-CO-HT & CERN/TE-MS-MM                 \
+  Copyright (c) 2016 CERN/BE-CO-HT and CERN/TE-MS-MM               \
                                                                    \
   This source file is free software; you can redistribute it       \
   and/or modify it under the terms of the GNU Lesser General       \
