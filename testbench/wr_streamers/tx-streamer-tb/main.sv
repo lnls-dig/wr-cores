@@ -79,19 +79,24 @@ module main;
 
   
 
-   // Clock & reset
+   // Fake White Rabbit reference clock (125 MHz) and cycle counter (we don't use 
+   // TAI counter as the latency never exceeds 1 second...)
+
+   reg                      clk_ref = 0;
+   reg [27:0]               tm_cycle_counter = 0;
+   
+   // System clock & reset
    reg clk = 0;
    reg rst_n = 0;
    reg [27:0]               clk_cycle_counter = 0;           
-   int clk_cycle_counter_before = 0;
-   int clk_cycle_counter_after = 0;
-   int clk_cycle_ctr_rx_rcvd = 0;
-   int clk_cycle_ctr_rx_dvalid = 0;
+   int clk_cycle_tmout_ctr_before = 0;
+   int clk_cycle_tmout_ctr_after = 0;
+   int clk_cycle_frm_rcvd = 0;
+   int clk_cycle_frm_valid = 0;
 
    // TX Streamer signals
    reg                    tx_streamer_dvalid = 0;
    reg [g_word_width-1:0] tx_streamer_data = 0;
-   //wire[15:0] data_from_tx= 0;
    reg                    tx_streamer_last = 0;
    reg                    tx_flush = 0;
    wire                   tx_streamer_dreq;
@@ -113,21 +118,16 @@ module main;
    //Fixed latency
    reg  [27:0] fixed_latency = 28'h0;
 
-   // Fake White Rabbit reference clock (125 MHz) and cycle counter (we don't use 
-   // TAI counter as the latency never exceeds 1 second...)
-
-   reg                      clk_ref = 0;
-   reg [27:0]               tm_cycle_counter = 0;
 
    // Currently transmitted counter value
-   integer                  tx_counter_val = 0;
+   int                     tx_counter_val = 0;
    
    //Seed for random generator
-   int                      seed = 0;
+   int                     seed = 0;
    
    // Wishbone link interface 
-    bit [15 : 0] data_from_tx;
-    logic [15 : 0] data_to_rx ;
+    bit [15 : 0]           fab_data_from_tx;
+    logic [15 : 0]         fab_data_to_rx ;
     logic tx_wb_cyc, rx_wb_cyc;
     logic tx_wb_stb, rx_wb_stb;
     logic tx_wb_ack;
@@ -142,23 +142,31 @@ module main;
     logic        timeout_test = 0;
     logic        max_words_test = 0;
     logic        flatency_test = 0;
-    logic        link_tests = 0;
-   /////////////////////////////////////////////////////////////////////////////
-   // Initialise and set, reset, clocks and clk counter
-   /////////////////////////////////////////////////////////////////////////////
-   initial
-    begin 
-        #100 rst_n = 1;
-    end;
+    int          link_tests = 0;
+    string       current_test = "IDLE";
 
+   // Initialise and set, reset, clocks and clk counter
+    initial
+        begin 
+            #100 rst_n = 1;
+        end;
     
-   always #8   clk     <= ~clk;
+   // --------------------------------------------------------------------------
+   //WARNING: As of now, the fixed latency implementation in xrx_streamer assumes 
+   //that ref_clk period is equal to sys_clk period/2. 
+   //This is a bug and should be fixed in future releases
+                                        
+   always #8ns    clk     <= ~clk;      
    always #4ns  clk_ref <= ~clk_ref; //generate 125 MHz WR Clock
   
+  
+   // --------------------------------------------------------------------------
+   //Set counter values for time measurements
+   
    always@(posedge clk_ref) tm_cycle_counter <= tm_cycle_counter + 1;   
    always@(posedge clk) clk_cycle_counter <= clk_cycle_counter + 1;
-   always@(posedge tx_streamer_last) clk_cycle_counter_before = clk_cycle_counter;
-   always@(posedge tx_wb_cyc) clk_cycle_counter_after = clk_cycle_counter;
+   always@(posedge tx_streamer_last) clk_cycle_tmout_ctr_before = clk_cycle_counter;
+   always@(posedge rx_frame_received) clk_cycle_tmout_ctr_after = clk_cycle_counter;
    
    // Instantiation of the streamers. The TX streamer will assemble packets
    // containing max. 8 records, or flush the buffer after 128 clk cycles if
@@ -179,7 +187,7 @@ module main;
       .clk_sys_i(clk),
       .rst_n_i  (rst_n),
 
-      .src_dat_o  (data_from_tx),// (mac.dat_i),
+      .src_dat_o  (fab_data_from_tx),
       .src_adr_o  (mac.adr),
       .src_sel_o  (mac.sel),
       .src_cyc_o  (tx_wb_cyc),
@@ -217,7 +225,7 @@ module main;
       .clk_sys_i (clk),
       .rst_n_i   (rst_n),
 
-      .snk_dat_i (data_to_rx),
+      .snk_dat_i (fab_data_to_rx),
       .snk_adr_i (mac.adr),
       .snk_sel_i (mac.sel),
       .snk_cyc_i (rx_wb_cyc),
@@ -237,8 +245,6 @@ module main;
       .rx_data_o  (rx_streamer_data),
       .rx_valid_o (rx_streamer_dvalid),
       .rx_dreq_i  (rx_streamer_dreq),
-      
-      //.rx_lost_p1_o (rx_streamer_lost),
       .rx_lost_blocks_p1_o (rx_streamer_lost_blks),
       .rx_lost_frames_p1_o (rx_streamer_lost_frm), 
       .rx_lost_frames_cnt_o (rx_streamer_lost_frm_cnt),
@@ -256,13 +262,9 @@ module main;
       .cfg_fixed_latency_i     (fixed_latency) //(28'd2000)
       );
    
-   
-   
-   
-   
-   /////////////////////////////////////////////////////////////////////////////
+   // --------------------------------------------------------------------------
    // Struct definition
-   /////////////////////////////////////////////////////////////////////////////
+   // --------------------------------------------------------------------------
 
    typedef struct{  bit[g_word_width-1:0] words[$];
                     int wrd_cnt[$];
@@ -276,16 +278,20 @@ module main;
                   } streamer_frame_t; //frame contains a collection of blocks
 
 
-// Transfer queue. Used to pass sent data to the verification process.
-   block_t tx_blk_queue[$];
-   streamer_frame_t tx_frm_queue[$]; /////////////////////////////////////////////////////////////////////////////
+   // Transfer queue. Used to pass sent data to the verification process.
+   block_t tx_blk_queue[$];             //queue of trasmitted blocks
+   streamer_frame_t tx_frm_queue[$];    //queue of trasmitted frames
+   
+   
+   
+   // --------------------------------------------------------------------------   
+   // --------------------------------------------------------------------------
    // Task definitions
-   /////////////////////////////////////////////////////////////////////////////
+   // --------------------------------------------------------------------------
    
    
    // Generate a block of data words of random size, containing subsequent 
    // numbers
-   /////////////////////////////////////////////////////////////////////////////
    
    task automatic generate_block(ref block_t blk, int size);
    
@@ -340,7 +346,7 @@ module main;
               tx_streamer_data <= blk.words[i];
               //$display("Data to be sent is %d*****\n", tx_streamer_data);
               tx_streamer_dvalid <= 1;
-              //clk_cycle_counter_before = clk_cycle_counter;
+              //clk_cycle_tmout_ctr_before = clk_cycle_counter;
               i++;
            end else
              tx_streamer_dvalid <= 0;
@@ -362,7 +368,19 @@ module main;
             send_block(frm.blocks[i]);
             i++;
         end
-    endtask      
+    endtask  
+
+///////////////////////////////////////////////////////////////////
+
+      
+    task automatic gen_send_frm(ref streamer_frame_t frm, int frm_size, int blk_size);
+        frm.blocks = {};
+        generate_frame(frm, frm_size, blk_size);  
+        $display ("Send frame: %p \n", frm);
+        send_frame(frm);  
+        
+
+    endtask     
 
 ///////////////////////////////////////////////////////////////////
 // WISHBONE LINK CONTROL
@@ -374,9 +392,9 @@ module main;
       logic link_ok= 1;
       logic delay_link= 0;
 //Continuous assignements to WR fabric signals
-    assign data_to_rx = data_from_tx ^ corrupt_mask;
-    assign rx_wb_stb = tx_wb_stb & ~drop_frm;
-    assign rx_wb_cyc = tx_wb_cyc & ~drop_frm;
+    assign fab_data_to_rx = fab_data_from_tx ^ corrupt_mask;
+    assign rx_wb_stb = tx_wb_stb & (~drop_frm | ~delay_link);
+    assign rx_wb_cyc = tx_wb_cyc & (~drop_frm | ~delay_link);
     assign tx_wb_stall = rx_wb_stall | delay_link;
     assign tx_wb_ack = rx_wb_ack;   
 
@@ -384,7 +402,7 @@ task automatic drop_frame ();
     int n, i;
     link_ok= 0;
     //n={$random} % 5; //number of frames to be dropped
-    n=5;
+    n=3;
        for (i=0; i<n; i++) 
          begin
                 @(negedge tx_wb_cyc)
@@ -395,19 +413,17 @@ task automatic drop_frame ();
        
     endtask //drop_frame    
     
-        task automatic delay_frame ();
+    task automatic delay_frame ();
         link_ok= 0;
         delay_link = 0;        
         wait (rx_wb_stall == 1)  //to avoid changes at startup
         // @(negedge rx_wb_stall)
-        @(posedge tx_frame_sent)
-            delay_link = 1;
-            
+        @(posedge tx_frame_sent) delay_link = 1;
         #10000;
-        delay_link = 0;
-        link_good ();
+        @(posedge clk) delay_link = 0;
+        //link_good ();
     
-endtask //delay_frame
+    endtask //delay_frame
 
     task automatic link_good ();
         int frm_counter = 0;
@@ -417,19 +433,19 @@ endtask //delay_frame
         drop_frm = 0;
         delay_link= 0;
         frm_counter=0;
-        while (frm_counter < 3 ) begin
-        @(posedge tx_wb_cyc) //at every new frame
-            frm_counter ++;
-        end
+        // while (frm_counter < 3 ) begin
+        // @(posedge tx_wb_cyc) //at every new frame
+            // frm_counter ++;
+        // end
     endtask;    
     
     
   
-///////////////////////////////////////////////////////////////////
-   //RECEPTION LOGIC//
+   ///////////////////////////////////////////////////////////////////
+   // RECEIVER LOGIC//
    // Receives a data block from the RX streamer and puts it in (blk).
    // Returns non-zero done value when blk contains a complete block
-   /////////////////////////////////////////////////////////////////////////////
+   ///////////////////////////////////////////////////////////////////
    
    task automatic receive_block(ref block_t blk, ref int new_block, ref int done);
            
@@ -477,22 +493,25 @@ endtask //delay_frame
    //Check transmission has been initiated auomatically
    
 
-   
-      // TX block stream generation
+   ///////////////////////////////////////////////////////////////////
+   // TESTBENCH//
+   ///////////////////////////////////////////////////////////////////
+
 
     initial forever 
         begin
             int blk_size;
-            int frm_size = 1;
+            int frm_size;
+            
             streamer_frame_t frm;
             block_t blk;
+            
+            frm_size = 1;
+            
             fixed_latency = 28'd0;
-
+            wait(rst_n == 1'b1); //make sure reset is not asserted
             
-            wait(rst_n == 1'b1);
-            
-
-            rx_streamer_dreq  <= 1;//({$random} % 100 < 90) ? 1 : 
+            rx_streamer_dreq  <= 1;     //({$random} % 100 < 90) ? 1 : 
             
             //list of tests
             max_words_test = 0; // Checks test 1
@@ -500,152 +519,199 @@ endtask //delay_frame
             flush_test = 0;     // Checks test 3
             flatency_test = 0;
             flatency_test = 0;
-            link_tests = 0;
-            
             
             
             //Tx TEST 1: Check that maximum number of words/frame triggers transmission
-            //-------------------------------------------------------------------------        
-            frm.blocks = {};
-            //blk.wrd_cnt = {};
-            blk_size = g_max_wrds_pr_frm + 10; 
-            // generate_block(blk, blk_size); 
-            generate_frame(frm, frm_size, blk_size);  
-            $display ("Send frame: %p \n", frm);         
-            // send_block(blk);
-            send_frame(frm);
+            //-------------------------------------------------------------------------                  
+            current_test = "Tx MAX WORDS";
+            blk_size = g_max_wrds_pr_frm + 10;     //Tx 10 more words that the limit 
+            gen_send_frm(frm, frm_size, blk_size); //generate and send a frame
             
-            tx_frm_queue.push_back(frm); 
-            // tx_blk_queue.push_back(blk);   
-            wait (tx_frame_sent) max_words_test = 1;
-            $display ("Frame transmitted after limit of words/frame is reached\n");
+            tx_frm_queue.push_back(frm);           //push txed frame into Tx Q
+            
+            fork : wait_or_timeout_t1
+              begin
+                #10000; 
+                $display ("[%t ns]: TEST 1 - %s >>> FAILED <<< \n", $time, current_test );
+                disable wait_or_timeout_t1;
+              end
+              begin
+                @(posedge rx_frame_received) max_words_test = 1;
+                $display ("[%t ns]: TEST 1 - %s +++ PASSED +++ \n", $time, current_test );
+                disable wait_or_timeout_t1;
+              end
+            join
+            
+            wait (rx_frame_received);
+            wait (tx_frame_sent);
             
             //Tx TEST 2: Check that when timeout is reached, frame is transmitted
             //-------------------------------------------------------------------------
-            // blk.words = {};
-            // blk.wrd_cnt = {};
-            frm.blocks = {};
+            current_test = "Tx TIMEOUT";
             blk_size = 2; //just 2 words
-            // generate_block(blk, blk_size);
-            generate_frame(frm, frm_size, blk_size);  
-            $display ("Send frame: %p \n", frm);          
-            // send_block(blk);
-            
-            send_frame(frm);
-                    
+            gen_send_frm(frm, frm_size, blk_size);
             tx_frm_queue.push_back(frm); 
             
             // tx_blk_queue.push_back(blk);   
-            wait(tx_frame_sent) 
-            $display ("Frame transmitted after timeout: %d\n", clk_cycle_counter_after-clk_cycle_counter_before);
+            wait(rx_frame_received) 
+            $display ("Frame transmitted after timeout: %d\n", clk_cycle_tmout_ctr_after-clk_cycle_tmout_ctr_before);
             
-            if (g_tx_tm_out == clk_cycle_counter_after-clk_cycle_counter_before - 5) 
-            begin
-                $display ("Tx timeout test PASSED \n");
-                timeout_test = 1;
-            end
+            $display("last word @ %d, time %t\n", clk_cycle_tmout_ctr_after, $time);
+            
+            $display("frame sent @ %d, time %t\n", clk_cycle_tmout_ctr_before, $time);
+            
+            if (g_tx_tm_out <= clk_cycle_tmout_ctr_after-clk_cycle_tmout_ctr_before) 
+                begin
+                    $display ("[%t ns]: TEST 2 - %s +++ PASSED +++\n  \n", $time, current_test );
+                    timeout_test = 1;
+                end
             else
-                
-              begin  
-                $error ("Failed timeout test");
-                $stop;
-              end
+                begin  
+                    $error ("[%t ns]: TEST 2 - %s >>> FAILED <<<\n", $time, current_test );
+                    $stop;
+                end
             
+            wait (rx_frame_received);
+            wait (tx_frame_sent);
             //Tx TEST 3: Check that when tx_flush_i is asserted, current frame is txed
             //-------------------------------------------------------------------------
-            // blk.words = {};
-            // blk.wrd_cnt = {};
-            frm.blocks = {};
+            current_test = "Tx FLUSH";
             blk_size = 4; //just 4 words
-            // generate_block(blk, blk_size);
-            generate_frame(frm, frm_size, blk_size); 
-            
-             
-            $display ("Send frame: %p \n", frm);          
-            // send_block(blk);
-            send_frame(frm);
+            gen_send_frm(frm, frm_size, blk_size);
             @(posedge clk) tx_flush = 1;
             @(posedge clk) tx_flush = 0;
-            
-            // tx_blk_queue.push_back(blk);
             tx_frm_queue.push_back(frm);  
-            wait(tx_frame_sent) flush_test = 1;
-            $display ("Frame transmitted after flush asserted");
+            fork : wait_or_timeout_t3
+              begin
+                #10000; 
+                $display ("[%t ns]: TEST 3 - %s >>> FAILED <<<\n  \n", $time, current_test );
+                disable wait_or_timeout_t3;
+              end
+              begin
+                @(posedge rx_frame_received) flush_test = 1;
+                $display ("[%t ns]: TEST 3 - %s +++ PASSED +++\n  \n", $time, current_test );
+                disable wait_or_timeout_t3;
+              end
+            join
+                        
+            
+            wait (rx_frame_received); //make sure frame is sent
+            wait (tx_frame_sent);
 
             
             // Rx Test 4: Check the fixed latency is correct
             //-----------------------------------------------
-            // blk.words = {};
-            // blk.wrd_cnt = {};
-            frm.blocks = {};
+            current_test = "Rx FIXED-LATENCY";
+            
             blk_size = 4;
-            fixed_latency = 28'd1200;
-            // generate_block(blk, blk_size);  
-            generate_frame(frm, frm_size, blk_size); 
-            $display ("Send frame: %p \n", frm);           
-            // send_block(blk);
-            send_frame(frm);
-            // tx_blk_queue.push_back(blk);  
+            fixed_latency = 28'd5000;
+            gen_send_frm(frm, frm_size, blk_size);
             @(posedge clk) tx_flush = 1;
-            //clk_cycle_ctr_rx_rcvd =  tm_cycle_counter;
             @(posedge clk) tx_flush = 0; 
             tx_frm_queue.push_back(frm);  
-            wait (rx_frame_received) clk_cycle_ctr_rx_rcvd = tm_cycle_counter;
-            wait (rx_streamer_dvalid) clk_cycle_ctr_rx_dvalid = tm_cycle_counter;
-            if ((fixed_latency <= clk_cycle_ctr_rx_dvalid - clk_cycle_ctr_rx_rcvd+18) &&
-               (fixed_latency >= clk_cycle_ctr_rx_dvalid - clk_cycle_ctr_rx_rcvd-18) )
+            
+            wait (rx_frame_received) clk_cycle_frm_rcvd = tm_cycle_counter;
+            $display("frame received @ %d, time %t\n", clk_cycle_frm_rcvd, $time);
+            wait (rx_streamer_dvalid) clk_cycle_frm_valid = tm_cycle_counter;
+            $display("frame out valid @ %d, time %t\n", clk_cycle_frm_valid, $time);
+            if ((fixed_latency <= clk_cycle_frm_valid - clk_cycle_frm_rcvd+50) &&
+               (fixed_latency >= clk_cycle_frm_valid - clk_cycle_frm_rcvd-50) )
                begin
-                $display ("Fixed latency test PASSED \n");
+                $display ("[%t ns]: TEST 4 - %s +++ PASSED +++\n  \n", $time, current_test );
                 $display ("Fixed latency set to %.3f us, Rx output valid @ %.3f us",
-                real'(fixed_latency) * 0.016, real'(clk_cycle_ctr_rx_dvalid-
-                clk_cycle_ctr_rx_rcvd) * 0.016);
+                real'(fixed_latency) * 0.008, real'(clk_cycle_frm_valid-
+                clk_cycle_frm_rcvd) * 0.008);
                 flatency_test = 1;
                end
             else
                begin
-                $error ("Failed Fixed latency test");
+                $error ("[%t ns]: TEST 4 - %s >>> FAILED <<<\n", $time, current_test );
                 $display ("Fixed latency set to %.3f us, Rx output valid @ %.3f us",
-                real'(fixed_latency) * 0.016, real'(clk_cycle_ctr_rx_dvalid-
-                clk_cycle_ctr_rx_rcvd) * 0.016);
-                    $stop;
+                real'(fixed_latency) * 0.008, real'(clk_cycle_frm_valid-
+                clk_cycle_frm_rcvd) * 0.008);
+                $stop;
                end
+
+            // Rx Test 5: Check frames dropped are signalled correctly
+            // ----------------------------------------------- 
+            // current_test = "Rx DROP_FRAMES";
+            
+            // blk_size = 4;
+            
+            // fixed_latency = 28'd0;
+            // gen_send_frm(frm, frm_size, blk_size);tx_frm_queue.push_back(frm); 
+            // @(posedge clk) tx_flush = 1;
+            // @(posedge clk) tx_flush = 0;  
+            // gen_send_frm(frm, frm_size, blk_size);tx_frm_queue.push_back(frm); 
+            // @(posedge clk) tx_flush = 1;
+            // @(posedge clk) tx_flush = 0;  
+            // gen_send_frm(frm, frm_size, blk_size);tx_frm_queue.push_back(frm); 
+            // @(posedge clk) tx_flush = 1;
+            // @(posedge clk) tx_flush = 0;  
+            // gen_send_frm(frm, frm_size, blk_size);tx_frm_queue.push_back(frm); 
+            // @(posedge clk) tx_flush = 1;
+            // @(posedge clk) tx_flush = 0;  
+            // gen_send_frm(frm, frm_size, blk_size);tx_frm_queue.push_back(frm); 
+            // @(posedge clk) tx_flush = 1;
+            // @(posedge clk) tx_flush = 0; 
+            // drop_frame();
+            
+/*             // Rx Test 5: Check frames dropped are signalled correctly
+            // -----------------------------------------------   
+             current_test = "Tx delay frames";
+            blk_size = 4;
+            gen_send_frm(frm, frm_size, blk_size);  
+            @(posedge clk) tx_flush = 1;
+            @(posedge clk) tx_flush = 0; 
+            tx_frm_queue.push_back(frm);  
+            delay_link = 0;        
+            wait (tx_wb_cyc == 1)  //to avoid changes at startup
+            // @(negedge rx_wb_stall)
+            @(posedge tx_frame_sent) delay_link = 1;
+            #10000;
+            @(posedge clk) delay_link = 0;
+            $display ("========Frames have been dropped \n");   */
 
             
      assert (flush_test == 1 && timeout_test == 1 && max_words_test == 1 &&
              flatency_test == 1) 
      else begin
 	      $error(1, "Transmitter implementation contains errors", $time);
-	 end
-     
-     
-     
+	 end   
+
+/*      link_tests = 1;
+     $display("Start link tests\n");
+     end   */
+
      
 end
 
 
-// initial forever 
-  // begin 
-        // wait(rst_n == 1'b1);
-        // wait (link_tests ==1);
-            
+/* initial forever 
+  begin 
+        wait(rst_n == 1'b1);
+                link_good ();
+        if (link_tests ==1) begin
+            $display ("Start link delay. \n");
                 // link_good ();
                 // drop_frame ();
                 // 10 : corrupt_data ();
-                // link_good ();
-                // delay_frame ();
-            
+                delay_frame ();
+            // #1000;
+            link_tests = 0;
+        end
+  end 
+      */  
 
-  // end 
-       
-
-   
+   //---------------------------------------------------------------------------
    // TESTBENCH VERIFICATION
    // Client-side reception logic. Compares the received records with their copies
    // stored in the transfer queue.  
    int new_block = 1;
    int no_curr_req = 0;
    
-           
+   //DATA COMPARATOR 
+   
    always@(posedge clk)
  
      if(rst_n)
@@ -659,13 +725,13 @@ end
                   begin 
                     int i,  n_lost_frames;
                     n_lost_frames = rx_streamer_lost_frm_cnt;
-                    for (i = 0; i < n_lost_frames; i++) begin
-                        l_tfrm = tx_frm_queue.pop_front();
-                    //$display ("%d have been lost, frame %p is POPPED\n=====", n_lost_frames, l_tfrm );
-                    end
-                    //$display ("%d have been lost, the new Tx queue is %p\n=====", n_lost_frames, tx_frm_queue );
+                    for (i = 0; i < n_lost_frames; i++) 
+                        begin
+                            l_tfrm = tx_frm_queue.pop_front();
+                        end
                   end           
-          receive_block(rblk, new_block, done);  
+          receive_block(rblk, new_block, done); 
+          
           if(done)
             begin
                automatic block_t tblk;                 
@@ -673,23 +739,23 @@ end
                     tfrm = tx_frm_queue.pop_front();
                tblk = tfrm.blocks.pop_front();                 
                new_block = 1;                
-              // ===============================================================
-              // TEST 1: Check Txed and Rxed blocks match
                if(tblk.words != rblk.words)
                  begin
-                    $error("TEST 1 ---> FAILED\n####Sent block does not match received block\n");
+                    $error("[%t ns]: TEST - DATA COMPARATOR >> FAILED <<<\n  \n", $time );
                     $display("Txed is %p, Rxed equals %p", tblk, rblk);
                     $stop;
-                 end else begin 
-                 $display("****\nTEST 1 ---> PASSED\n****Correct words received\n");
-                 end
+                 end 
+                 else 
+                    begin 
+                        $display ("[%t ns]: TEST - DATA COMPARATOR +++ PASSED +++\n  \n", $time );
+                    end
                
             end
        end // else: !if(!rst_n)
 
-  always@(posedge clk)
-    if(rst_n && rx_latency_valid)
-         $display("*************This frame's latency: %.3f microseconds*************************************************\n", real'(rx_latency) * 0.008);
+  //always@(posedge clk)
+   // if(rst_n && rx_latency_valid)
+         //$display("*************This frame's latency: %.3f microseconds*************************************************\n", real'(rx_latency) * 0.008);
    
 endmodule // main
 
