@@ -270,10 +270,6 @@ module main;
    // --------------------------------------------------------------------------
 
    typedef struct{  bit[g_word_width-1:0] words[$];
-                    int wrd_cnt[$];
-                    bit[g_word_width-1:0] first_wrd;
-                    bit[g_word_width-1:0] last_wrd;
-                    bit dropped;
                   } block_t;   //block is a number of words with info about first 
                                // and last
                 
@@ -303,18 +299,9 @@ module main;
 
       
       for(i = 0; i<size; i++) 
-        begin
-            if (i == 0) 
-                blk.first_wrd = tx_counter_val; // Copy first word
-            if (i == size-1) 
-                blk.last_wrd = tx_counter_val; // Copy last word
-            
+        begin            
             blk.words.push_back(tx_counter_val++); //
-            
-            if (i == 0 || i==size-1) 
-                blk.wrd_cnt.push_back(i+1);// first or last words
-            else 
-                blk.wrd_cnt.push_back(0); // All other words
+
         end //for loop      
         
    endtask // generate_block
@@ -327,7 +314,6 @@ module main;
       for(i = 0; i<frm_size; i++) 
         begin
             blk.words = {};
-            blk.wrd_cnt = {};
             generate_block(blk, blk_size);
             frm.blocks.push_back(blk);            
         end   
@@ -438,8 +424,6 @@ module main;
     bit[g_word_width-1:0] wordn;
     
     wrd= blk.words;
-    word1=blk.first_wrd;
-    wordn=blk.last_wrd;
    
     if(rx_streamer_dvalid)
         begin
@@ -447,21 +431,13 @@ module main;
                 begin
                      new_block = 0;
                      wrd = {};
-                     blk.wrd_cnt = {};
-                     blk.wrd_cnt.push_back(1);
                      word1 = rx_streamer_data;
                 end 
-            else if (!rx_streamer_last && !rx_streamer_first) 
-                begin
-                 blk.wrd_cnt.push_back(0);
-                end
             
             wrd.push_back(rx_streamer_data);
             if (rx_streamer_last && new_block == 0)
                 begin
-                    wordn = rx_streamer_data;
-                    if (wrd.size() > 1) 
-                        blk.wrd_cnt.push_back(wrd.size());  //Last word in block           
+                    wordn = rx_streamer_data;          
                     done = 1;
                 end 
             else
@@ -469,8 +445,7 @@ module main;
                     done = 0;
                 end
             blk.words=wrd; 
-            blk.first_wrd = word1;
-            blk.last_wrd = wordn;
+
         end
    endtask // receive_block
    
@@ -513,7 +488,7 @@ module main;
             blk_size = rand_blk; 
             //frm_size = 3;
             gen_send_frm(frm, frm_size, blk_size);
-            //$display("frame generated is %p \n", frm);
+            $display("frame generated is %p \n", frm);
             @(posedge clk) tx_flush = 1;
             @(posedge clk) tx_flush = 0;
             tx_frm_queue.push_back(frm);  
