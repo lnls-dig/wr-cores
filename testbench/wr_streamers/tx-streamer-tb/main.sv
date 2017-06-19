@@ -4,7 +4,7 @@
 // URL        : http://www.ohwr.org/projects/wr-cores/wiki/WR_Streamers
 //-----------------------------------------------------------------------------
 // File       : main.sv
-// Author(s)  : Tomasz Wlostosky,
+// Author(s)  : Tomasz Wlostosky ,
 //              Extended by Denia Bouhired <denia.bouhired@cern.ch>
 // Company    : CERN (BE-CO-HT)
 // Created    : 2017-04-28
@@ -52,18 +52,21 @@ module main;
    // In this case, a 64-bit word.
    parameter g_word_width = 64;     
    parameter g_tx_thr = 16;     
-   parameter g_tx_tm_out = 16;   
-   parameter g_max_wrds_pr_frm = 16;
-   parameter g_fixed_latency = 28'd256;
+   parameter g_tx_tm_out = 128;   
+   parameter g_max_wrds_pr_frm = 24;
+   parameter g_fixed_latency = 28'd1024;
    
    // Min and max block size
-   parameter g_block_size_min = 1; 
-   parameter g_block_size_max = 5;
+   parameter block_size_min = 1; 
+   parameter block_size_max = 5;
    
    // Min and max frame size
-   parameter g_frame_size_min = 1; 
-   parameter g_frame_size_max = 3;
+   parameter frame_size_min = 1; 
+   parameter frame_size_max = 3;
 
+   // Maximum number of frames
+   parameter max_num_frames = 5; 
+   
    // MAC address of the TX side
    parameter bit [47:0] g_mac_tx = 48'h112233445566;
 
@@ -142,8 +145,10 @@ module main;
     logic        flush_test = 0;
     logic        timeout_test = 0;
     logic        max_words_test = 0;
+    logic        min_words_test = 0;
     logic        flatency_test = 0;
     logic        frm_drop_test = 0;
+    logic        comparator_test = 1;
     
     int          link_tests = 0;
     string       current_test = "IDLE";
@@ -293,37 +298,32 @@ module main;
    // numbers
    
    task automatic generate_block(ref block_t blk, int size);
-   
-
-      int i;
-
-      
-      for(i = 0; i<size; i++) 
-        begin            
-            blk.words.push_back(tx_counter_val++); //
-
-        end //for loop      
-        
+        int i;
+        for(i = 0; i<size; i++) 
+            begin            
+                blk.words.push_back(tx_counter_val++); //
+            end //for loop      
    endtask // generate_block
    
    // --------------------------------------------------------------------------
-    task automatic generate_frame(ref streamer_frame_t frm, int frm_size, int blk_size);
+   // generate a number of blocks each with a number of words
+   //store blks sent in frame queue
    
-      int i;
-      block_t blk;
-      for(i = 0; i<frm_size; i++) 
-        begin
-            blk.words = {};
-            generate_block(blk, blk_size);
-            frm.blocks.push_back(blk);            
-        end   
-
+    task automatic generate_frame(ref streamer_frame_t frm, int frm_size, int blk_size);
+        int i;
+        block_t blk;
+        for(i = 0; i<frm_size; i++) 
+            begin
+                blk.words = {};
+                generate_block(blk, blk_size);
+                frm.blocks.push_back(blk);            
+            end //for loop     
     endtask // generate_frame
     
                
+   // -------------------------------------------------------------------------
    // Sends out a data block (blk) by driving TX_(DVALID, DATA, LAST) lines 
    // of the TX streamer
-    // -------------------------------------------------------------------------
 
    
    task automatic send_block(ref block_t blk);
@@ -347,6 +347,7 @@ module main;
    endtask // send_block
    
     // -------------------------------------------------------------------------
+  // send frame of multiple blocks
   
     task automatic send_frame(ref streamer_frame_t frm);
         int i = 0;
@@ -357,8 +358,8 @@ module main;
         end
     endtask  // send_block
 
-    // -------------------------------------------------------------------------/
-
+    // -------------------------------------------------------------------------
+    //routine to generate and send a frame
       
     task automatic gen_send_frm(ref streamer_frame_t frm, int frm_size, int blk_size);
         frm.blocks = {};
@@ -420,32 +421,21 @@ module main;
    task automatic receive_block(ref block_t blk, ref int new_block, ref int done);
            
     bit[g_word_width-1:0] wrd[$];
-    bit[g_word_width-1:0] word1;
-    bit[g_word_width-1:0] wordn;
-    
     wrd= blk.words;
-   
     if(rx_streamer_dvalid)
         begin
             if(rx_streamer_first && new_block == 1) 
                 begin
                      new_block = 0;
                      wrd = {};
-                     word1 = rx_streamer_data;
                 end 
-            
             wrd.push_back(rx_streamer_data);
             if (rx_streamer_last && new_block == 0)
-                begin
-                    wordn = rx_streamer_data;          
-                    done = 1;
-                end 
+                done = 1;
             else
-                begin
-                    done = 0;
-                end
+                done = 0;
+                
             blk.words=wrd; 
-
         end
    endtask // receive_block
    
@@ -453,31 +443,37 @@ module main;
    
 
    // -------------------------------------------------------------------------
-   // TESTBENCH//
+   // SIMULATION TESTBENCH: Currently setup for 6 tests/use-cases   
    // -------------------------------------------------------------------------
 
 
+    int rand_blk_size, blk_size, rand_frm_size, frm_size;
+    int num_frm_dropped;
+    int test_num;
+    int test_tm_out;
+            
+            
     initial forever 
         begin
-            int rand_blk, blk_size, frm_size;
-            int num_frm, num_frm_dropped;
-            
             streamer_frame_t frm;
             block_t blk;
             
-            frm_size = 1;//$urandom_range(5,1);
-            rand_blk = 5;//$urandom_range(5,1); 
-            num_frm = 5;
+            rand_frm_size = $urandom_range(block_size_max,block_size_min);
+            rand_blk_size = $urandom_range(frame_size_max,frame_size_min); 
+            
             
             fixed_latency = 28'd0;
             wait(rst_n == 1'b1); //make sure reset is not asserted
             
             rx_streamer_dreq  <= 1;     //({$random} % 100 < 90) ? 1 : 
             
-            //list of tests
-            max_words_test = 0; // Checks test 1
-            timeout_test = 0;   // Checks test 2     
-            flush_test = 0;     // Checks test 3
+            //list of tests 
+            test_tm_out = 10000; //10us
+            test_num   = 1;
+            flush_test = 0;     
+            timeout_test = 0;   
+            max_words_test = 0; 
+            min_words_test = 0; 
             flatency_test = 0;
             frm_drop_test = 0;
             
@@ -485,90 +481,120 @@ module main;
             //Tx TEST 1: Check that when tx_flush_i is asserted, current frame is txed
             //-------------------------------------------------------------------------
             current_test = "Tx FLUSH";
-            blk_size = rand_blk; 
-            //frm_size = 3;
+            blk_size = rand_blk_size; 
+            frm_size = rand_frm_size;
+            
             gen_send_frm(frm, frm_size, blk_size);
-            $display("frame generated is %p \n", frm);
             @(posedge clk) tx_flush = 1;
             @(posedge clk) tx_flush = 0;
             tx_frm_queue.push_back(frm);  
-            //$display("transfer queue is is %p \n", tx_frm_queue);
 
-            fork : wait_or_timeout_t3
+            fork : wait_or_timeout_t1
               begin
-                #10000; 
-                $display ("[%t ns]: TEST 1 - %s >>> FAILED <<<\n  \n", $time, current_test );
-                disable wait_or_timeout_t3;
+                #test_tm_out; 
+                $display ("[%t ns]: >>> FAILED - TEST %d - %s   \n", $time, test_num, current_test );
+                disable wait_or_timeout_t1;
               end
               begin
                 @(posedge rx_frame_received) flush_test = 1;
-                $display ("[%t ns]: TEST 1 - %s +++ PASSED +++\n  \n", $time, current_test );
-                disable wait_or_timeout_t3;
+                    $display ("[%t ns]: PASSED - TEST %d - %s   \n", $time, test_num, current_test );
+                disable wait_or_timeout_t1;
               end
             join
-                        
-            
+                
             wait (rx_frame_received); //make sure frame is sent
             wait (tx_frame_sent);
+            test_num ++;
             
             //Tx TEST 2: Check that when timeout is reached, frame is transmitted
             //-------------------------------------------------------------------------
             current_test = "Tx TIMEOUT";
-            //blk_size = rand_blk; 
+            blk_size = $urandom_range(g_tx_thr - 2, 1); //send less words than minimum threshold
+            frm_size = 1 ;           //For timeout test no need for multiple blocks
             gen_send_frm(frm, frm_size, blk_size);
             tx_frm_queue.push_back(frm); 
-            
-            // tx_blk_queue.push_back(blk);   
-            wait(rx_frame_received) 
-            //$display ("Frame transmitted after timeout: %d\n", clk_cycle_tmout_ctr_after-clk_cycle_tmout_ctr_before);
-            
-            //$display("last word @ %d, time %t\n", clk_cycle_tmout_ctr_after, $time);
-            
-            //$display("frame sent @ %d, time %t\n", clk_cycle_tmout_ctr_before, $time);
-            
-            if (g_tx_tm_out <= clk_cycle_tmout_ctr_after-clk_cycle_tmout_ctr_before) 
-                begin
-                    $display ("[%t ns]: TEST 2 - %s +++ PASSED +++\n  \n", $time, current_test );
-                    timeout_test = 1;
-                end
-            else
-                begin  
-                    $error ("[%t ns]: TEST 2 - %s >>> FAILED <<<\n", $time, current_test );
-                    $stop;
-                end
-            
-            wait (rx_frame_received);
-            wait (tx_frame_sent);
-            
-            //Tx TEST 32: Check that maximum number of words/frame triggers transmission
-            //-------------------------------------------------------------------------                  
-            current_test = "Tx MAX WORDS";
-            blk_size = g_max_wrds_pr_frm + 1;     //Tx 1 more words that the limit 
-            gen_send_frm(frm, frm_size, blk_size); //generate and send a frame
-            
-            tx_frm_queue.push_back(frm);           //push txed frame into Tx Q
-            
-            fork : wait_or_timeout_t1
+            fork : wait_or_timeout_t2
               begin
-                #10000; 
-                $display ("[%t ns]: TEST 3 - %s >>> FAILED <<< \n", $time, current_test );
-                disable wait_or_timeout_t1;
+                #((g_tx_tm_out* 2) * 16); //time before test fails. wait long enough
+                $display ("[%t ns]: >>> FAILED - TEST %d - %s   \n", $time, test_num, current_test );
+                disable wait_or_timeout_t2;
               end
               begin
-                @(posedge rx_frame_received) max_words_test = 1;
-                $display ("[%t ns]: TEST 3 - %s +++ PASSED +++ \n", $time, current_test );
-                disable wait_or_timeout_t1;
+                @(posedge rx_frame_received) timeout_test = 1;
+                    $display ("[%t ns]: PASSED - TEST %d - %s   \n", $time, test_num, current_test );
+                disable wait_or_timeout_t2;
+              end
+            join
+            wait (rx_frame_received);
+            wait (tx_frame_sent);
+            test_num ++;
+            
+            //Tx TEST 3: Check that minimum number of words/frame triggers transmission
+            //-------------------------------------------------------------------------                  
+            current_test = "Tx MIN WORDS";
+            blk_size = g_tx_thr + 2;     //Tx 1 more words that the limit
+            frm_size = 1;
+            
+            gen_send_frm(frm, frm_size, blk_size); //generate and send a frame
+            tx_frm_queue.push_back(frm);           //push txed frame into Tx Q
+            
+            fork : wait_or_timeout_t3
+              begin
+                #test_tm_out; 
+                $display ("[%t ns]: >>> FAILED - TEST %d - %s   \n", $time, test_num, current_test );
+                disable wait_or_timeout_t3;
+              end
+              begin
+                @(posedge rx_frame_received) min_words_test = 1;
+                    $display ("[%t ns]: PASSED - TEST %d - %s   \n", $time, test_num, current_test );
+                disable wait_or_timeout_t3;
               end
             join
             
             wait (rx_frame_received);
             wait (tx_frame_sent);
+            test_num ++;
 
+            //Tx TEST 4: Check that minimum number of words/frame triggers transmission
+            //-------------------------------------------------------------------------                  
+            current_test = "Tx MAX WORDS";
+            blk_size = g_max_wrds_pr_frm;     //blk_size *frm_size must be int multiple
+            frm_size = 2;                     // of g_max_wrds_pr_frm
+            fork
+                begin
+                    gen_send_frm(frm, frm_size, blk_size); //generate and send a frame
+                    tx_frm_queue.push_back(frm);           //push txed frame into Tx Q
+                end
+                
+                fork : wait_or_timeout_t4
+                  begin
+                    #test_tm_out;
+                $display ("[%t ns]: >>> FAILED - TEST %d - %s   \n", $time, test_num, current_test );
+                    disable wait_or_timeout_t4;
+                  end
+                  begin
+                    @(posedge rx_frame_received) max_words_test = 1;
+                    $display ("[%t ns]: PASSED - TEST %d - %s   \n", $time, test_num, current_test );
+                     wait (rx_frame_received);
+                     wait (tx_frame_sent);
+                    disable wait_or_timeout_t4;
+                  end
+                join
+                begin
+                    for (int i=0; i< (frm_size*blk_size)/g_max_wrds_pr_frm; i++) begin 
+                        wait (rx_frame_received);
+                        wait (tx_frame_sent);
+                    end
+                end
+            join
             
-            // Rx Test 4: Check the fixed latency is correct
+            test_num ++;
+            
+            // Rx Test 5: Check the fixed latency is correct
             //-----------------------------------------------
             current_test = "Rx FIXED-LATENCY";
-            blk_size = rand_blk;
+            blk_size = rand_blk_size;
+            frm_size = rand_frm_size;
             fixed_latency = g_fixed_latency;
             gen_send_frm(frm, frm_size, blk_size);
             @(posedge clk) tx_flush = 1;
@@ -587,7 +613,7 @@ module main;
             if ((fixed_latency <= clk_cycle_frm_valid - clk_cycle_frm_rcvd+24) &&
                (fixed_latency >= clk_cycle_frm_valid - clk_cycle_frm_rcvd-24) )
                begin
-                $display ("[%t ns]: TEST 4 - %s +++ PASSED +++\n  \n", $time, current_test );
+                    $display ("[%t ns]: PASSED - TEST %d - %s   \n", $time, test_num, current_test );
                 //$display ("Fixed latency set to %.3f us, Rx output valid @ %.3f us",
                 //real'(fixed_latency) * 0.008, real'(clk_cycle_frm_valid-
                //clk_cycle_frm_rcvd) * 0.008);
@@ -595,22 +621,23 @@ module main;
                end
             else
                begin
-                $error ("[%t ns]: TEST 4 - %s >>> FAILED <<<\n", $time, current_test );
+                $display ("[%t ns]: >>> FAILED - TEST %d - %s   \n", $time, test_num, current_test );
                 $display ("Fixed latency set to %.3f us, Rx output latency valid @ %.3f us",
                 real'(fixed_latency) * 0.008, real'(clk_cycle_frm_valid-
                 clk_cycle_frm_rcvd) * 0.008);
                // $stop;
                end
 
+            test_num ++;
             fixed_latency = 28'd0;
-            // Rx Test 5: Check frames dropped are signalled correctly
+            // Rx Test 6: Check frames dropped are signalled correctly
             // ----------------------------------------------- 
             current_test = "Rx DROP_FRAMES";
             
-            num_frm_dropped = $urandom_range(num_frm - 1,1);
+            num_frm_dropped = $urandom_range(max_num_frames - 1,1);
             fork
             begin
-                for (int i=0;  i < num_frm; i++) begin
+                for (int i=0;  i < max_num_frames; i++) begin
                     gen_send_frm(frm, frm_size, blk_size);
                     tx_frm_queue.push_back(frm); 
                     @(posedge clk) tx_flush = 1;
@@ -623,13 +650,15 @@ module main;
             begin
             if (num_frm_dropped == rx_streamer_lost_frm_cnt)
                 begin
-                    $display ("[%t ns]: TEST 5 - %s +++ PASSED +++ \n", $time, current_test );
+                    $display ("[%t ns]: PASSED - TEST %d - %s   \n", $time, test_num, current_test );
                     frm_drop_test = 1;
                 end
             else
-                $display ("[%t ns]: TEST 5 - %s >>> FAILED <<< \n", $time, current_test ); 
+                $display ("[%t ns]: >>> FAILED - TEST %d - %s   \n", $time, test_num, current_test );
             end
             join;
+            test_num ++;
+            
             
             //###################
             //NOT working
@@ -651,11 +680,14 @@ module main;
             // delay_frame();
             // join
             // wait (tx_frame_sent);
+            // test_num ++;
             
-     assert (flush_test == 1 && timeout_test == 1 && max_words_test == 1 &&
-             flatency_test == 1 && frm_drop_test == 1) 
+     assert (flush_test == 1 && timeout_test == 1 && max_words_test == 1 && 
+             max_words_test == 1 && flatency_test == 1 && frm_drop_test == 1 && 
+             comparator_test == 1) 
      else begin
-	      $error(1, "Streamers implementation contains errors", $time);
+	      $error("Streamers implementation contains errors", $time);
+          $fatal;
 	 end   
 
 
@@ -664,13 +696,10 @@ module main;
 end
 
    //---------------------------------------------------------------------------
-   // TESTBENCH VERIFICATION
+   // DATA MONITOR
    // Client-side reception logic. Compares the received records with their copies
    // stored in the transfer queue.  
    int new_block = 1;
-   int no_curr_req = 0;
-   
-   //DATA COMPARATOR 
    
    always@(posedge clk)
  
@@ -692,28 +721,22 @@ end
           receive_block(rblk, new_block, done); 
           if(done)
             begin
-               automatic block_t tblk;                 
-               if (tfrm.blocks.size() == 0) 
-                    tfrm = tx_frm_queue.pop_front();
-               tblk = tfrm.blocks.pop_front();                 
-               new_block = 1;                
-               if(tblk.words != rblk.words)
+               automatic block_t tblk;                       
+              if (tfrm.blocks.size() == 0) 
+                   tfrm = tx_frm_queue.pop_front();
+              tblk = tfrm.blocks.pop_front();                   
+              new_block = 1;                
+              if(tblk.words != rblk.words)
                 begin
-                    $error("[%t ns]: TEST - DATA MONITOR >> FAILED <<<\n  \n", $time );
+                    $error("[%t ns]: >> FAILED - TEST - DATA MONITOR \n", $time );
                     //$display("Txed is %p, Rxed equals %p", tblk, rblk);
-                    $stop;
+                    comparator_test = 0;
                 end 
-               else 
-                begin 
-                    $display ("[%t ns]: TEST - DATA MONITOR +++ PASSED +++\n  \n", $time );
-                end
-               
-            end
+              else  $display ("[%t ns]: PASSED - TEST - DATA MONITOR \n", $time );
+                    
+              // end //while (tfrm.blocks.size() > 0)
+            end // if (done)
        end // else: !if(!rst_n)
 
-  //always@(posedge clk)
-   // if(rst_n && rx_latency_valid)
-         //$display("*************This frame's latency: %.3f microseconds*************************************************\n", real'(rx_latency) * 0.008);
-   
 endmodule // main
 
