@@ -182,7 +182,7 @@ architecture rtl of xrx_streamer is
   signal is_vlan            : std_logic;
 
   constant c_fixed_latency_zero : unsigned(27 downto 0) := (others => '0');
-  constant c_timestamper_delay  : unsigned(27 downto 0) := to_unsigned(3, 28); -- cycles
+  constant c_timestamper_delay  : unsigned(27 downto 0) := to_unsigned(16, 28); -- cycles
   
 begin  -- rtl
 
