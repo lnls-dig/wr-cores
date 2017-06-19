@@ -7,5 +7,5 @@ set StdArithNoWarnings 1
 do wave.do
 run 10us
 wave zoomfull
-radix -hex
+radix -dec
 
