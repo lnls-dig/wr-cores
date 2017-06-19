@@ -1,27 +1,30 @@
 onerror {resume}
 quietly WaveActivateNextPane {} 0
 add wave -position end  sim:/main/current_test
+add wave -noupdate /main/U_TX_Streamer/tx_valid_i
 add wave -noupdate /main/U_TX_Streamer/tx_data_i
 add wave -noupdate /main/U_TX_Streamer/tx_last_p1_i
-add wave -noupdate /main/U_TX_Streamer/tx_valid_i
 add wave -noupdate /main/U_TX_Streamer/tx_flush_p1_i
-#add wave -noupdate /main/U_TX_Streamer/tx_reset_seq_i
-add wave -noupdate /main/U_TX_Streamer/tx_dreq_o
+add wave -position end  sim:/main/U_TX_Streamer/U_Wrapped_Streamer/fab_src.sof
+add wave -position end  sim:/main/U_TX_Streamer/U_Wrapped_Streamer/fab_src.eof
 add wave -noupdate /main/U_TX_Streamer/tx_frame_p1_o
-add wave -noupdate /main/U_RX_Streamer/rx_data_o
+add wave -noupdate /main/U_TX_Streamer/tx_dreq_o
+#add wave -noupdate /main/U_TX_Streamer/tx_reset_seq_i
 add wave -noupdate /main/U_RX_Streamer/rx_frame_p1_o
+add wave -noupdate /main/U_RX_Streamer/rx_dreq_i
 add wave -noupdate /main/U_RX_Streamer/rx_valid_o
+add wave -noupdate /main/U_RX_Streamer/rx_data_o
 add wave -noupdate /main/U_RX_Streamer/rx_first_p1_o
 add wave -noupdate /main/U_RX_Streamer/rx_last_p1_o
-add wave -noupdate /main/U_RX_Streamer/rx_dreq_i
 add wave -noupdate /main/U_RX_Streamer/rx_lost_p1_o
+add wave -position end  sim:/main/drop_frm
+add wave -position end  sim:/main/rx_streamer_lost_frm
+add wave -position end  sim:/main/rx_streamer_lost_frm_cnt
 add wave -noupdate /main/U_RX_Streamer/rx_latency_o
 add wave -noupdate /main/U_RX_Streamer/rx_latency_valid_o
-add wave -position 8  sim:/main/rx_streamer_lost_blks
-add wave -position 9  sim:/main/rx_streamer_lost_frm
-add wave -position 10  sim:/main/rx_streamer_lost_frm_cnt
-add wave -position 7  sim:/main/fab_data_from_tx
-add wave -position 8  sim:/main/fab_data_to_rx
+add wave -position end  sim:/main/rx_streamer_lost_blks
+add wave -position end  sim:/main/fab_data_from_tx
+add wave -position end  sim:/main/fab_data_to_rx
 add wave -noupdate /main/mac/adr
 #add wave -noupdate /main/mac/dat_o
 #add wave -noupdate /main/mac/dat_i
