@@ -95,7 +95,7 @@ module main;
    reg [27:0]               clk_cycle_counter = 0;           
    int clk_cycle_tmout_ctr_before = 0;
    int clk_cycle_tmout_ctr_after = 0;
-   int clk_cycle_frm_rcvd = 0;
+   int clk_cycle_frm_txed = 0;
    int clk_cycle_frm_valid = 0;
 
    // TX Streamer signals
@@ -592,6 +592,8 @@ module main;
             
             // Rx Test 5: Check the fixed latency is correct
             //-----------------------------------------------
+            #1us // make sure that the previous frame has been received, otherwise 
+                 // the testbench might wrongly measure the latency
             current_test = "Rx FIXED-LATENCY";
             blk_size = rand_blk_size;
             frm_size = rand_frm_size;
@@ -601,22 +603,22 @@ module main;
             @(posedge clk) tx_flush = 0; 
             tx_frm_queue.push_back(frm);  
             
-            @(posedge rx_frame_received) clk_cycle_frm_rcvd = tm_cycle_counter;
-            //$display("frame received @ %d, time %t\n", clk_cycle_frm_rcvd, $time);
-            @(posedge rx_streamer_dvalid) clk_cycle_frm_valid = tm_cycle_counter;
+            @(posedge U_TX_Streamer.U_Wrapped_Streamer.U_Fab_Source.sof_i) clk_cycle_frm_txed = tm_cycle_counter;
+            //$display("frame received @ %d, time %t\n", clk_cycle_frm_txed, $time);
+            @(posedge rx_streamer_first) clk_cycle_frm_valid = tm_cycle_counter;
             //$display("frame out valid @ %d, time %t\n", clk_cycle_frm_valid, $time);
             
             //fixed latency value is checked against range since i/o interface 
             //of streamers does not allow for exact latency measurement without 
             //probing an internal signal
             
-            if ((fixed_latency <= clk_cycle_frm_valid - clk_cycle_frm_rcvd+24) &&
-               (fixed_latency >= clk_cycle_frm_valid - clk_cycle_frm_rcvd-24) )
+            if ((fixed_latency <= clk_cycle_frm_valid - clk_cycle_frm_txed+24) &&
+               (fixed_latency >= clk_cycle_frm_valid - clk_cycle_frm_txed-24) )
                begin
                     $display ("[%t ns]: PASSED - TEST %d - %s   \n", $time, test_num, current_test );
                 //$display ("Fixed latency set to %.3f us, Rx output valid @ %.3f us",
                 //real'(fixed_latency) * 0.008, real'(clk_cycle_frm_valid-
-               //clk_cycle_frm_rcvd) * 0.008);
+               //clk_cycle_frm_txed) * 0.008);
                 flatency_test = 1;
                end
             else
@@ -624,12 +626,11 @@ module main;
                 $display ("[%t ns]: >>> FAILED - TEST %d - %s   \n", $time, test_num, current_test );
                 $display ("Fixed latency set to %.3f us, Rx output latency valid @ %.3f us",
                 real'(fixed_latency) * 0.008, real'(clk_cycle_frm_valid-
-                clk_cycle_frm_rcvd) * 0.008);
+                clk_cycle_frm_txed) * 0.008);
                // $stop;
                end
 
             test_num ++;
-            fixed_latency = 28'd0;
             // Rx Test 6: Check frames dropped are signalled correctly
             // ----------------------------------------------- 
             current_test = "Rx DROP_FRAMES";
