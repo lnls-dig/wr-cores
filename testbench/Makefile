@@ -3,6 +3,8 @@
 
 TB_DIRS=wr_minic
 TB_DIRS+=wrc_core
+TB_DIRS+=wr_streamers/streamers_multi_test
+
 
 test_results_xml=test_results.xml
 .PHONY: $(TB_DIRS)

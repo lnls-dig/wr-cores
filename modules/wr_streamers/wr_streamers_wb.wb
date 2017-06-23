@@ -28,6 +28,7 @@ peripheral {
   -----------------------------------------------------------------";
   prefix = "wr_streamers";
   hdl_entity = "wr_streamers_wb";
+  version= 1;
 
   reg {
     name = "Statistics status and ctrl register";

@@ -5,6 +5,7 @@ peripheral {
    description = "Diagnostics information accessible via WR";
    prefix = "wrc_diags";
    hdl_entity = "wrc_diags_wb";
+   version = 1;
 
   reg {
     name = "Ctrl";

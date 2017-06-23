@@ -109,7 +109,10 @@ module main;
      #( 
         .g_data_width   (g_record_size),
         .g_tx_threshold  (8),
-        .g_tx_timeout    (512)
+        .g_tx_buffer_size(16),
+        .g_tx_max_words_per_frame(16),
+        .g_tx_timeout    (512),
+        .g_simulation(1)
      ) 
    U_TX_Streamer
      (
@@ -141,7 +144,8 @@ module main;
 
    rx_streamer
      #(
-       .g_data_width        (g_record_size)
+       .g_data_width        (g_record_size),
+       .g_simulation(1)
        ) 
    U_RX_Streamer 
      (
