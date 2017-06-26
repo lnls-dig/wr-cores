@@ -509,7 +509,7 @@ module main;
             //Tx TEST 2: Check that when timeout is reached, frame is transmitted
             //-------------------------------------------------------------------------
             current_test = "Tx TIMEOUT";
-            blk_size = $urandom_range(g_tx_thr - 2, 1); //send less words than minimum threshold
+            blk_size = $urandom_range(g_tx_thr - 1, 1); //send less words than minimum threshold
             frm_size = 1 ;           //For timeout test no need for multiple blocks
             gen_send_frm(frm, frm_size, blk_size);
             tx_frm_queue.push_back(frm); 
@@ -532,7 +532,7 @@ module main;
             //Tx TEST 3: Check that minimum number of words/frame triggers transmission
             //-------------------------------------------------------------------------                  
             current_test = "Tx MIN WORDS";
-            blk_size = g_tx_thr + 2;     //Tx 1 more words that the limit
+            blk_size = g_tx_thr ;     //Tx 1 more words that the limit
             frm_size = 1;
             
             gen_send_frm(frm, frm_size, blk_size); //generate and send a frame
