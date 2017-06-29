@@ -262,7 +262,6 @@ architecture top of spec_wr_ref_top is
   signal gn_wbadr : std_logic_vector(31 downto 0);
 
   -- clock and reset
-  signal areset_n       : std_logic;
   signal clk_sys_62m5   : std_logic;
   signal rst_sys_62m5_n : std_logic;
   signal rst_ref_125m_n : std_logic;
@@ -297,13 +296,6 @@ architecture top of spec_wr_ref_top is
   signal dio_out : std_logic_vector(4 downto 0);
 
 begin  -- architecture top
-
-  ------------------------------------------------------------------------------
-  -- System reset
-  ------------------------------------------------------------------------------
-
-  -- logic AND of all async reset sources (active low)
-  areset_n <= button1_i and gn_rst_n;
 
   -----------------------------------------------------------------------------
   -- Primary wishbone Crossbar
@@ -426,7 +418,8 @@ begin  -- architecture top
       g_dpram_initf               => g_dpram_initf,
       g_fabric_iface              => ETHERBONE)
     port map (
-      areset_n_i          => areset_n,
+      areset_n_i          => button1_i,
+      areset_edge_n_i     => gn_rst_n,
       clk_20m_vcxo_i      => clk_20m_vcxo_i,
       clk_125m_pllref_p_i => clk_125m_pllref_p_i,
       clk_125m_pllref_n_i => clk_125m_pllref_n_i,

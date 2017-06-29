@@ -85,6 +85,9 @@ entity xwrc_board_svec is
     ---------------------------------------------------------------------------
     -- Reset input (active low, can be async)
     areset_n_i          : in  std_logic;
+    -- Optional reset input active low with rising edge detection. Does not
+    -- reset PLLs.
+    areset_edge_n_i     : in  std_logic := '1';
     -- Clock inputs from the board
     clk_20m_vcxo_i      : in  std_logic;
     clk_125m_pllref_p_i : in  std_logic;
@@ -265,10 +268,11 @@ architecture struct of xwrc_board_svec is
   signal clk_10m_ext  : std_logic;
 
   -- Reset logic
-  signal rst_62m5_n       : std_logic;
-  signal rstlogic_arst_n  : std_logic;
-  signal rstlogic_clk_in  : std_logic_vector(1 downto 0);
-  signal rstlogic_rst_out : std_logic_vector(1 downto 0);
+  signal areset_edge_ppulse : std_logic;
+  signal rst_62m5_n         : std_logic;
+  signal rstlogic_arst_n    : std_logic;
+  signal rstlogic_clk_in    : std_logic_vector(1 downto 0);
+  signal rstlogic_rst_out   : std_logic_vector(1 downto 0);
 
   -- PLL DAC ARB
   signal dac_sync_n       : std_logic_vector(1 downto 0);
@@ -347,9 +351,21 @@ begin  -- architecture struct
   -----------------------------------------------------------------------------
   -- Reset logic
   -----------------------------------------------------------------------------
+  -- Detect when areset_edge_n_i goes high (end of reset) and use this edge to
+  -- generate rstlogic_arst_n. This is needed to connect optional reset like PCIe
+  -- reset. When baord runs standalone, we need to ignore PCIe reset being
+  -- constantly low.
+  cmp_arst_edge: gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => clk_pll_62m5,
+      rst_n_i  => '1',
+      data_i   => areset_edge_n_i,
+      ppulse_o => areset_edge_ppulse);
 
   -- logic AND of all async reset sources (active low)
-  rstlogic_arst_n <= pll_locked and areset_n_i;
+  rstlogic_arst_n <= pll_locked and areset_n_i and (not areset_edge_ppulse);
 
   -- concatenation of all clocks required to have synced resets
   rstlogic_clk_in(0) <= clk_pll_62m5;

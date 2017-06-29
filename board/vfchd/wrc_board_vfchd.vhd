@@ -95,6 +95,9 @@ entity wrc_board_vfchd is
     pps_ext_i        : in  std_logic                               := '0';
     -- Reset input (active low, can be async)
     areset_n_i       : in  std_logic;
+    -- Optional reset input active low with rising edge detection. Does not
+    -- reset PLLs.
+    areset_edge_n_i     : in  std_logic := '1';
     -- 62.5MHz sys clock output
     clk_sys_62m5_o   : out std_logic;
     -- 125MHz ref clock output
@@ -404,6 +407,7 @@ begin  -- architecture struct
       clk_aux_i            => clk_aux_i,
       clk_10m_ext_i        => clk_10m_ext_i,
       areset_n_i           => areset_n_i,
+      areset_edge_n_i      => areset_edge_n_i,
       clk_sys_62m5_o       => clk_sys_62m5_o,
       clk_ref_125m_o       => clk_ref_125m_o,
       rst_sys_62m5_n_o     => rst_sys_62m5_n_o,

@@ -32,6 +32,7 @@ package wr_vfchd_pkg is
       clk_10m_ext_i        : in  std_logic                                        := '0';
       pps_ext_i            : in  std_logic                                        := '0';
       areset_n_i           : in  std_logic;
+      areset_edge_n_i      : in  std_logic := '1';
       clk_sys_62m5_o       : out std_logic;
       clk_ref_125m_o       : out std_logic;
       rst_sys_62m5_n_o     : out std_logic;
@@ -119,6 +120,7 @@ package wr_vfchd_pkg is
       clk_10m_ext_i        : in  std_logic                                               := '0';
       pps_ext_i            : in  std_logic                                               := '0';
       areset_n_i           : in  std_logic;
+      areset_edge_n_i      : in  std_logic := '1';
       clk_sys_62m5_o       : out std_logic;
       clk_ref_125m_o       : out std_logic;
       rst_sys_62m5_n_o     : out std_logic;

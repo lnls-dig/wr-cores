@@ -84,6 +84,9 @@ entity wrc_board_svec is
     ---------------------------------------------------------------------------
     -- Reset from system fpga
     areset_n_i          : in  std_logic;
+    -- Optional reset input active low with rising edge detection. Does not
+    -- reset PLLs.
+    areset_edge_n_i     : in  std_logic := '1';
     -- Clock inputs from the board
     clk_20m_vcxo_i      : in  std_logic;
     clk_125m_pllref_p_i : in  std_logic;
@@ -415,6 +418,7 @@ begin  -- architecture struct
       g_diag_rw_size              => c_diag_rw_size)
     port map (
       areset_n_i           => areset_n_i,
+      areset_edge_n_i      => areset_edge_n_i,
       clk_20m_vcxo_i       => clk_20m_vcxo_i,
       clk_125m_pllref_p_i  => clk_125m_pllref_p_i,
       clk_125m_pllref_n_i  => clk_125m_pllref_n_i,

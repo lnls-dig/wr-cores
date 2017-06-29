@@ -27,6 +27,7 @@ package wr_spec_pkg is
       g_diag_rw_size              : integer              := 0);
     port (
       areset_n_i           : in  std_logic;
+      areset_edge_n_i      : in  std_logic := '1';
       clk_20m_vcxo_i       : in  std_logic;
       clk_125m_pllref_p_i  : in  std_logic;
       clk_125m_pllref_n_i  : in  std_logic;
@@ -118,7 +119,7 @@ package wr_spec_pkg is
       g_simulation                : integer := 0;
       g_with_external_clock_input : integer := 1;
       g_aux_clks                  : integer := 0;
-      g_fabric_iface              : string  := "plainfbrc";
+      g_fabric_iface              : string  := "PLAINFBRC";
       g_streamers_op_mode         : t_streamers_op_mode  := TX_AND_RX;
       g_tx_streamer_params        : t_tx_streamer_params := c_tx_streamer_params_defaut;
       g_rx_streamer_params        : t_rx_streamer_params := c_rx_streamer_params_defaut;
@@ -129,6 +130,7 @@ package wr_spec_pkg is
       g_diag_rw_vector_width      : integer := 0);
     port (
       areset_n_i           : in  std_logic;
+      areset_edge_n_i      : in  std_logic := '1';
       clk_20m_vcxo_i       : in  std_logic;
       clk_125m_pllref_p_i  : in  std_logic;
       clk_125m_pllref_n_i  : in  std_logic;

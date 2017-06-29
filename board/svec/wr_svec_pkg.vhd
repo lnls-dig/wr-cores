@@ -27,6 +27,7 @@ package wr_svec_pkg is
       g_diag_rw_size              : integer              := 0);
     port (
       areset_n_i           : in  std_logic;
+      areset_edge_n_i      : in  std_logic := '1';
       clk_20m_vcxo_i       : in  std_logic;
       clk_125m_pllref_p_i  : in  std_logic;
       clk_125m_pllref_n_i  : in  std_logic;
@@ -130,6 +131,7 @@ package wr_svec_pkg is
       g_diag_rw_vector_width      : integer := 0);
     port (
       areset_n_i           : in  std_logic;
+      areset_edge_n_i      : in  std_logic := '1';
       clk_20m_vcxo_i       : in  std_logic;
       clk_125m_pllref_p_i  : in  std_logic;
       clk_125m_pllref_n_i  : in  std_logic;

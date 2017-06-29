@@ -233,7 +233,6 @@ architecture top of svec_wr_ref_top is
   signal cnx_slave_in  : t_wishbone_slave_in_array(c_NUM_WB_SLAVES-1 downto 0);
 
   -- clock and reset
-  signal areset_n       : std_logic;
   signal clk_sys_62m5   : std_logic;
   signal rst_sys_62m5_n : std_logic;
   signal clk_ref_125m   : std_logic;
@@ -273,13 +272,6 @@ architecture top of svec_wr_ref_top is
   signal wr_led_act  : std_logic;
 
 begin  -- architecture top
-
-  ------------------------------------------------------------------------------
-  -- System reset
-  ------------------------------------------------------------------------------
-
-  -- logic AND of all async reset sources (active low)
-  areset_n <= vme_sysreset_n_i and rst_n_i;
 
   -----------------------------------------------------------------------------
   -- Primary wishbone Crossbar
@@ -365,7 +357,8 @@ begin  -- architecture top
       clk_125m_gtp_n_i    => clk_125m_gtp_n_i,
       clk_125m_gtp_p_i    => clk_125m_gtp_p_i,
       clk_10m_ext_i       => clk_ext_ref,
-      areset_n_i          => areset_n,
+      areset_n_i          => rst_n_i,
+      areset_edge_n_i     => vme_sysreset_n_i,
       clk_sys_62m5_o      => clk_sys_62m5,
       clk_ref_125m_o      => clk_ref_125m,
       rst_sys_62m5_n_o    => rst_sys_62m5_n,
