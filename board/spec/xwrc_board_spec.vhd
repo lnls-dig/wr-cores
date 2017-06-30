@@ -216,6 +216,12 @@ entity xwrc_board_spec is
     timestamps_o     : out t_txtsu_timestamp;
     timestamps_ack_i : in  std_logic := '1';
 
+    -----------------------------------------
+    -- Timestamp helper signals, used for Absolute Calibration
+    -----------------------------------------
+    abscal_txts_o       : out std_logic;
+    abscal_rxts_o       : out std_logic;
+
     ---------------------------------------------------------------------------
     -- Pause Frame Control
     ---------------------------------------------------------------------------
@@ -496,6 +502,8 @@ begin  -- architecture struct
       tm_clk_aux_locked_o  => tm_clk_aux_locked_o,
       timestamps_o         => timestamps_o,
       timestamps_ack_i     => timestamps_ack_i,
+      abscal_txts_o        => abscal_txts_o,
+      abscal_rxts_o        => abscal_rxts_o,
       fc_tx_pause_req_i    => fc_tx_pause_req_i,
       fc_tx_pause_delay_i  => fc_tx_pause_delay_i,
       fc_tx_pause_ready_o  => fc_tx_pause_ready_o,

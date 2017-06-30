@@ -267,6 +267,12 @@ entity wr_core is
     txtsu_ack_i          : in  std_logic := '1';
 
     -----------------------------------------
+    -- Timestamp helper signals, used for Absolute Calibration
+    -----------------------------------------
+    abscal_txts_o        : out std_logic;
+    abscal_rxts_o        : out std_logic;
+
+    -----------------------------------------
     -- Pause Frame Control
     -----------------------------------------
     fc_tx_pause_req_i   : in  std_logic                     := '0';
@@ -776,6 +782,8 @@ begin
       wb_i                 => ep_wb_in,
       wb_o                 => ep_wb_out,
       rmon_events_o        => open,
+      txts_o               => abscal_txts_o,
+      rxts_o               => abscal_rxts_o,
       fc_tx_pause_req_i    => fc_tx_pause_req_i,
       fc_tx_pause_delay_i  => fc_tx_pause_delay_i,
       fc_tx_pause_ready_o  => fc_tx_pause_ready_o,

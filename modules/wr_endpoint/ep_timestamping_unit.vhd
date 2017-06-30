@@ -101,6 +101,8 @@ entity ep_timestamping_unit is
     -- TX timestamp valid (to TXTSU/Framer)
     txts_timestamp_valid_o : out std_logic;
 
+    txts_o                 : out std_logic; 		-- 2013-Nov-28 peterj added for debugging/calibration
+    rxts_o                 : out std_logic; 		-- 2013-Nov-28 peterj added for debugging/calibration
 
 -------------------------------------------------------------------------------
 -- Wishbone regs
@@ -362,6 +364,9 @@ begin  -- syn
       synced_o => open,
       npulse_o => rx_ts_done,
       ppulse_o => open);
+
+  txts_o <= tx_ts_done; 		-- 2013-Nov-28 peterj added for debugging/calibration
+  rxts_o <= rx_ts_done; 		-- 2013-Nov-28 peterj added for debugging/calibration
 
   p_output_rx_ts : process (clk_rx_i)
   begin

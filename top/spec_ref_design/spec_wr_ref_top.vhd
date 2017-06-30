@@ -286,6 +286,8 @@ architecture top of spec_wr_ref_top is
   signal onewire_oe   : std_logic;
 
   -- LEDs and GPIO
+  signal wrc_abscal_txts_out : std_logic;
+  signal wrc_abscal_rxts_out : std_logic;
   signal wrc_pps_out : std_logic;
   signal wrc_pps_led : std_logic;
   signal wrc_pps_in  : std_logic;
@@ -471,6 +473,9 @@ begin  -- architecture top
 
       wb_eth_master_o     => cnx_master_out(c_WB_MASTER_ETHBONE),
       wb_eth_master_i     => cnx_master_in(c_WB_MASTER_ETHBONE),
+      
+      abscal_txts_o       => wrc_abscal_txts_out,
+      abscal_rxts_o       => wrc_abscal_rxts_out,
 
       pps_ext_i           => wrc_pps_in,
       pps_p_o             => wrc_pps_out,
@@ -538,7 +543,8 @@ begin  -- architecture top
 
   wrc_pps_in    <= dio_in(3);
   dio_out(0)    <= wrc_pps_out;
-  dio_out(1)    <= clk_ref_div2;
+  dio_out(1)    <= wrc_abscal_rxts_out;
+  dio_out(2)    <= wrc_abscal_txts_out;
 
   -- LEDs
   U_Extend_PPS : gc_extend_pulse

@@ -445,6 +445,9 @@ package wrcore_pkg is
       timestamps_o     : out t_txtsu_timestamp;
       timestamps_ack_i : in  std_logic := '1';
 
+      abscal_txts_o       : out std_logic;
+      abscal_rxts_o       : out std_logic;
+
       fc_tx_pause_req_i   : in  std_logic                     := '0';
       fc_tx_pause_delay_i : in  std_logic_vector(15 downto 0) := x"0000";
       fc_tx_pause_ready_o : out std_logic;
@@ -660,6 +663,12 @@ package wrcore_pkg is
       txtsu_ts_incorrect_o : out std_logic;
       txtsu_stb_o          : out std_logic;
       txtsu_ack_i          : in  std_logic := '1';
+
+      -----------------------------------------
+      -- Timestamp helper signals, used for Absolute Calibration
+      -----------------------------------------
+      abscal_txts_o        : out std_logic;
+      abscal_rxts_o        : out std_logic;
 
       -----------------------------------------
       -- Pause Frame Control
