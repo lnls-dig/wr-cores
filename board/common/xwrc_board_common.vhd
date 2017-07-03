@@ -53,6 +53,7 @@ entity xwrc_board_common is
   generic(
     g_simulation                : integer                        := 0;
     g_with_external_clock_input : boolean                        := TRUE;
+    g_board_name                : string                         := "NA  ";
     g_phys_uart                 : boolean                        := TRUE;
     g_virtual_uart              : boolean                        := TRUE;
     g_aux_clks                  : integer                        := 0;
@@ -320,6 +321,7 @@ begin  -- architecture struct
     generic map (
       g_simulation                => g_simulation,
       g_with_external_clock_input => g_with_external_clock_input,
+      g_board_name                => g_board_name,
       g_phys_uart                 => g_phys_uart,
       g_virtual_uart              => g_virtual_uart,
       g_aux_clks                  => g_aux_clks,

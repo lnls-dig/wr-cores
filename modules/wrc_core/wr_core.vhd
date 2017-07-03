@@ -85,6 +85,7 @@ entity wr_core is
     g_simulation                : integer                        := 0;
     g_with_external_clock_input : boolean                        := true;
     --
+    g_board_name                : string                         := "NA  ";
     g_phys_uart                 : boolean                        := true;
     g_virtual_uart              : boolean                        := true;
     g_aux_clks                  : integer                        := 0;
@@ -880,6 +881,7 @@ begin
   -----------------------------------------------------------------------------
   PERIPH : wrc_periph
     generic map(
+      g_board_name      => g_board_name,
       g_phys_uart       => g_phys_uart,
       g_virtual_uart    => g_virtual_uart,
       g_mem_words       => g_dpram_size,

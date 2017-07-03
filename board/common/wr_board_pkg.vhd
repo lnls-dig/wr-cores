@@ -63,6 +63,7 @@ package wr_board_pkg is
     generic (
       g_simulation                : integer                        := 0;
       g_with_external_clock_input : boolean                        := TRUE;
+      g_board_name                : string                         := "NA  ";
       g_phys_uart                 : boolean                        := TRUE;
       g_virtual_uart              : boolean                        := TRUE;
       g_aux_clks                  : integer                        := 0;

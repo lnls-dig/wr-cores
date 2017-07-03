@@ -225,6 +225,7 @@ package wrcore_pkg is
 
   component wrc_periph is
     generic(
+      g_board_name      : string  := "NA  ";
       g_phys_uart       : boolean := true;
       g_virtual_uart    : boolean := false;
       g_cntr_period     : integer := 62500;
@@ -340,6 +341,7 @@ package wrcore_pkg is
   component xwr_core is
     generic(
       g_simulation                : integer                        := 0;
+      g_board_name                : string                         := "NA  ";
       g_phys_uart                 : boolean                        := true;
       g_virtual_uart              : boolean                        := true;
       g_with_external_clock_input : boolean                        := true;
@@ -479,6 +481,7 @@ package wrcore_pkg is
       g_simulation                : integer                        := 0;
       g_with_external_clock_input : boolean                        := true;
       --
+      g_board_name                : string                         := "NA  ";
       g_phys_uart                 : boolean                        := true;
       g_virtual_uart              : boolean                        := true;
       g_aux_clks                  : integer                        := 0;

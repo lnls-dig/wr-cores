@@ -34,6 +34,7 @@ use work.wrc_diags_wbgen2_pkg.all;
 
 entity wrc_periph is
   generic(
+    g_board_name      : string  := "NA  ";
     g_phys_uart       : boolean := true;
     g_virtual_uart    : boolean := false;
     g_cntr_period     : integer := 62500;
@@ -96,6 +97,18 @@ architecture struct of wrc_periph is
     -- /1024  - to get size in kB
     -- /16 -1 - to get size in format of MEMSIZE@sysc_hwfr register
   end f_cnt_memsize;
+
+  function f_board_name_conv(name : string) return std_logic_vector is
+    variable ret : std_logic_vector(31 downto 0);
+  begin
+    assert (name'length= 4)
+    report "Board name has to be exactly 4 letters string" severity failure;
+    ret(31 downto 24) := std_logic_vector(to_unsigned(character'pos(name(1)), 8));
+    ret(23 downto 16) := std_logic_vector(to_unsigned(character'pos(name(2)), 8));
+    ret(15 downto  8) := std_logic_vector(to_unsigned(character'pos(name(3)), 8));
+    ret( 7 downto  0) := std_logic_vector(to_unsigned(character'pos(name(4)), 8));
+    return ret;
+  end f_board_name_conv;
 
   signal sysc_regs_i : t_sysc_in_registers;
   signal sysc_regs_o : t_sysc_out_registers;
@@ -162,6 +175,11 @@ begin
   -- MEMSIZE
   -------------------------------------
   sysc_regs_i.hwfr_memsize_i(3 downto 0) <= f_cnt_memsize(g_mem_words);
+
+  -------------------------------------
+  -- BOARD NAME
+  -------------------------------------
+  sysc_regs_i.hwir_name_i <= f_board_name_conv(g_board_name);
 
   -------------------------------------
   -- TIMER

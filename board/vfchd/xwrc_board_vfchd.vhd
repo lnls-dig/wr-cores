@@ -407,6 +407,7 @@ begin  -- architecture struct
     generic map (
       g_simulation                => g_simulation,
       g_with_external_clock_input => g_with_external_clock_input,
+      g_board_name                => "VFC ",
       -- temporary, without it vuart receives but is not able to transmit
       g_phys_uart                 => TRUE,
       g_virtual_uart              => TRUE,

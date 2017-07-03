@@ -270,6 +270,20 @@ peripheral {
    };
 
    reg {
+      name = "Hardware Info Register";
+      prefix = "HWIR";
+      field {
+        name = "Board name";
+        prefix = "NAME";
+        size = 32;
+        description = "4-letter name of the board";
+        type = SLV;
+        access_bus = READ_ONLY;
+        access_dev = WRITE_ONLY;
+      };
+   };
+
+   reg {
       name = "Timer Control Register";
       prefix = "TCR";
 
