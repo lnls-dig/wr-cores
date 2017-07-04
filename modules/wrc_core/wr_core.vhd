@@ -1,9 +1,10 @@
+-------------------------------------------------------------------------------
 -- Title      : WhiteRabbit PTP Core
 -- Project    : WhiteRabbit
 -------------------------------------------------------------------------------
 -- File       : wr_core.vhd
--- Author     : Grzegorz Daniluk
--- Company    : Elproma
+-- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
+-- Company    : CERN (BE-CO-HT), Elproma
 -- Created    : 2011-02-02
 -- Last update: 2017-05-29
 -- Platform   : FPGA-generics
@@ -42,17 +43,7 @@
 -- from http://www.gnu.org/licenses/lgpl-2.1.html
 --
 -------------------------------------------------------------------------------
--- Revisions  :
--- Date        Version  Author          Description
--- 2011-02-02  1.0      greg.d          Created
--- 2011-10-25  2.0      greg.d          Redesigned and wishbonized
--- 2012-03-05  3.0      wterpstra       Added SDB descriptors
--------------------------------------------------------------------------------
-
-
 -- Memory map:
-
--- Master interconnect:
 --  0x00000000: I/D Memory
 --  0x00020000: Peripheral interconnect
 --      +0x000: Minic
@@ -63,6 +54,7 @@
 --      +0x500: UART
 --      +0x600: OneWire
 --      +0x700: Auxillary space (Etherbone config, etc)
+--      +0x800: WRPC diagnostics registers
 
 library ieee;
 use ieee.std_logic_1164.all;

@@ -3,8 +3,8 @@
 -- Project    : WhiteRabbit
 -------------------------------------------------------------------------------
 -- File       : xwr_syscon_wb.vhd
--- Author     : Grzegorz Daniluk
--- Company    : Elproma
+-- Author     : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
+-- Company    : CERN(BE-CO-HT), Elproma
 -- Created    : 2011-11-07
 -- Last update: 2017-04-20
 -- Platform   : FPGA-generics
@@ -15,11 +15,26 @@
 -- can use pipelined or classic wishbone.
 --
 -------------------------------------------------------------------------------
--- Copyright (c) 2011 Grzegorz Daniluk
--------------------------------------------------------------------------------
--- Revisions  :
--- Date        Version  Author          Description
--- 2011-11-07  1.0      greg.d          Created
+--
+-- Copyright (c) 2011-2012 Elproma Elektronika
+-- Copyright (c) 2012-2017 CERN
+--
+-- This source file is free software; you can redistribute it   
+-- and/or modify it under the terms of the GNU Lesser General   
+-- Public License as published by the Free Software Foundation; 
+-- either version 2.1 of the License, or (at your option) any   
+-- later version.                                               
+--
+-- This source is distributed in the hope that it will be       
+-- useful, but WITHOUT ANY WARRANTY; without even the implied   
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      
+-- PURPOSE.  See the GNU Lesser General Public License for more 
+-- details.                                                     
+--
+-- You should have received a copy of the GNU Lesser General    
+-- Public License along with this source; if not, download it   
+-- from http://www.gnu.org/licenses/lgpl-2.1.html
+--
 -------------------------------------------------------------------------------
 
 library ieee;
