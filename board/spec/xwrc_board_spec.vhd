@@ -7,7 +7,7 @@
 -- Author(s)  : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-17
--- Last update: 2017-03-10
+-- Last update: 2017-07-04
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -166,6 +166,9 @@ entity xwrc_board_spec is
     ---------------------------------------------------------------------------
     wb_slave_o : out t_wishbone_slave_out;
     wb_slave_i : in  t_wishbone_slave_in := cc_dummy_slave_in;
+
+    aux_master_o : out t_wishbone_master_out;
+    aux_master_i : in  t_wishbone_master_in := cc_dummy_master_in;
 
     ---------------------------------------------------------------------------
     -- WR fabric interface (when g_fabric_iface = "plainfbrc")
@@ -477,6 +480,8 @@ begin  -- architecture struct
       owr_i                => onewire_in,
       wb_slave_i           => wb_slave_i,
       wb_slave_o           => wb_slave_o,
+      aux_master_o         => aux_master_o,
+      aux_master_i         => aux_master_i,
       wrf_src_o            => wrf_src_o,
       wrf_src_i            => wrf_src_i,
       wrf_snk_o            => wrf_snk_o,

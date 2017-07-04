@@ -56,6 +56,8 @@ package wr_vfchd_pkg is
       onewire_oen_o        : out std_logic;
       wb_slave_o           : out t_wishbone_slave_out;
       wb_slave_i           : in  t_wishbone_slave_in                              := cc_dummy_slave_in;
+      aux_master_o         : out t_wishbone_master_out;
+      aux_master_i         : in  t_wishbone_master_in                             := cc_dummy_master_in;
       wrf_src_o            : out t_wrf_source_out;
       wrf_src_i            : in  t_wrf_source_in                                  := c_dummy_src_in;
       wrf_snk_o            : out t_wrf_sink_out;
@@ -154,6 +156,18 @@ package wr_vfchd_pkg is
       wb_err_o             : out std_logic;
       wb_rty_o             : out std_logic;
       wb_stall_o           : out std_logic;
+      aux_master_adr_o     : out std_logic_vector(c_wishbone_address_width-1 downto 0);
+      aux_master_dat_o     : out std_logic_vector(c_wishbone_data_width-1 downto 0);
+      aux_master_dat_i     : in  std_logic_vector(c_wishbone_data_width-1 downto 0)      := (others => '0');
+      aux_master_sel_o     : out std_logic_vector(c_wishbone_address_width/8-1 downto 0);
+      aux_master_we_o      : out std_logic;
+      aux_master_cyc_o     : out std_logic;
+      aux_master_stb_o     : out std_logic;
+      aux_master_ack_i     : in  std_logic                                               := '0';
+      aux_master_int_i     : in  std_logic                                               := '0';
+      aux_master_err_i     : in  std_logic                                               := '0';
+      aux_master_rty_i     : in  std_logic                                               := '0';
+      aux_master_stall_i   : in  std_logic                                               := '0';
       wrf_src_adr_o        : out std_logic_vector(1 downto 0);
       wrf_src_dat_o        : out std_logic_vector(15 downto 0);
       wrf_src_cyc_o        : out std_logic;

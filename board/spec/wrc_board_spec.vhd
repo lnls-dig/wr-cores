@@ -7,7 +7,7 @@
 -- Author(s)  : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-02-17
--- Last update: 2017-03-10
+-- Last update: 2017-07-04
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -174,6 +174,19 @@ entity wrc_board_spec is
     wb_rty_o   : out std_logic;
     wb_stall_o : out std_logic;
 
+    aux_master_adr_o   : out std_logic_vector(c_wishbone_address_width-1 downto 0);
+    aux_master_dat_o   : out std_logic_vector(c_wishbone_data_width-1 downto 0);
+    aux_master_dat_i   : in  std_logic_vector(c_wishbone_data_width-1 downto 0) := (others => '0');
+    aux_master_sel_o   : out std_logic_vector(c_wishbone_address_width/8-1 downto 0);
+    aux_master_we_o    : out std_logic;
+    aux_master_cyc_o   : out std_logic;
+    aux_master_stb_o   : out std_logic;
+    aux_master_ack_i   : in  std_logic                                          := '0';
+    aux_master_int_i   : in  std_logic                                          := '0';
+    aux_master_err_i   : in  std_logic                                          := '0';
+    aux_master_rty_i   : in  std_logic                                          := '0';
+    aux_master_stall_i : in  std_logic                                          := '0';
+
     ---------------------------------------------------------------------------
     -- WR fabric interface (when g_fabric_iface = "plain")
     ---------------------------------------------------------------------------
@@ -314,6 +327,9 @@ architecture std_wrapper of wrc_board_spec is
   signal wb_slave_out : t_wishbone_slave_out;
   signal wb_slave_in  : t_wishbone_slave_in;
 
+  signal aux_master_out : t_wishbone_master_out;
+  signal aux_master_in  : t_wishbone_master_in;
+
   -- Etherbone interface
   signal wb_eth_master_out : t_wishbone_master_out;
   signal wb_eth_master_in  : t_wishbone_master_in;
@@ -348,6 +364,20 @@ begin  -- architecture struct
   wb_stall_o <= wb_slave_out.stall;
   wb_int_o   <= wb_slave_out.int;
   wb_dat_o   <= wb_slave_out.dat;
+
+  aux_master_adr_o <= aux_master_out.adr;
+  aux_master_dat_o <= aux_master_out.dat;
+  aux_master_cyc_o <= aux_master_out.cyc;
+  aux_master_stb_o <= aux_master_out.stb;
+  aux_master_sel_o <= aux_master_out.sel;
+  aux_master_we_o  <= aux_master_out.we;
+
+  aux_master_in.dat   <= aux_master_dat_i;
+  aux_master_in.ack   <= aux_master_ack_i;
+  aux_master_in.int   <= aux_master_int_i;
+  aux_master_in.err   <= aux_master_err_i;
+  aux_master_in.rty   <= aux_master_rty_i;
+  aux_master_in.stall <= aux_master_stall_i;
 
   wrf_src_adr_o    <= wrf_src_out.adr;
   wrf_src_dat_o    <= wrf_src_out.dat;
@@ -465,6 +495,8 @@ begin  -- architecture struct
       flash_miso_i         => flash_miso_i,
       wb_slave_o           => wb_slave_out,
       wb_slave_i           => wb_slave_in,
+      aux_master_o         => aux_master_out,
+      aux_master_i         => aux_master_in,
       wrf_src_o            => wrf_src_out,
       wrf_src_i            => wrf_src_in,
       wrf_snk_o            => wrf_snk_out,
