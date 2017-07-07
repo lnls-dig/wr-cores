@@ -13,7 +13,7 @@ synthesis:
 		echo "load_package flow" > run.tcl
 		echo "project_open $(PROJECT)" >> run.tcl
 		echo "execute_flow -compile" >> run.tcl
-		/opt/altera/16.0/quartus/bin/quartus_sh -t run.tcl
+		/home/greg/opt/altera/16.0/quartus/bin/quartus_sh -t run.tcl
 
 check_tool:
 		
