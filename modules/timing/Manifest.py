@@ -1,4 +1,5 @@
 files = ["dmtd_phase_meas.vhd",
+         "dmtd_phase_meas_full.vhd",
          "dmtd_with_deglitcher.vhd",
 	 "dmtd_sampler.vhd",
          "multi_dmtd_with_deglitcher.vhd",
