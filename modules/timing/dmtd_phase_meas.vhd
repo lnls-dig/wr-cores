@@ -81,6 +81,7 @@ architecture syn of dmtd_phase_meas is
 
   component dmtd_phase_meas_full
     generic (
+      g_navg_bits                : integer := 12;
       g_deglitcher_threshold     : integer;
       g_counter_bits             : integer := 14);
     port (
@@ -95,7 +96,7 @@ architecture syn of dmtd_phase_meas is
       tag_a_p_o                  : out std_logic;
       tag_b_o                    : out std_logic_vector(g_counter_bits-1 downto 0);
       tag_b_p_o                  : out std_logic;
-      navg_i                     : in  std_logic_vector(11 downto 0);
+      navg_i                     : in  std_logic_vector(g_navg_bits-1 downto 0);
       phase_raw_o                : out std_logic_vector(g_counter_bits-1 downto 0);
       phase_raw_p_o              : out std_logic;
       phase_meas_o               : out std_logic_vector(31 downto 0);
