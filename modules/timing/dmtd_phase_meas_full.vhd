@@ -52,8 +52,6 @@ entity dmtd_phase_meas_full is
   generic (
 -- Number of bits for averages
     g_navg_bits           : integer := 12;
--- DDMTD deglitcher threshold (in clk_dmtd_i) clock cycles
-    g_deglitcher_threshold: integer;
 -- Phase tag counter size (see dmtd_with_deglitcher.vhd for explanation)
     g_counter_bits        : integer := 14);
 
@@ -71,6 +69,10 @@ entity dmtd_phase_meas_full is
 
 
     en_i : in std_logic;
+
+-- DMTD signals
+    dmtd_a_deglitch_threshold_i : in std_logic_vector(15 downto 0);
+    dmtd_b_deglitch_threshold_i : in std_logic_vector(15 downto 0);
 
 -- tag signals
     tag_a_o        : out std_logic_vector(g_counter_bits-1 downto 0);
@@ -149,10 +151,10 @@ begin  -- syn
       clk_sys_i             => clk_sys_i,
       clk_in_i              => clk_a_i,
       tag_o                 => tag_a,
-      tag_stb_p1_o           => tag_a_p,
+      tag_stb_p1_o          => tag_a_p,
       shift_en_i            => '0',
       shift_dir_i           => '0',
-      deglitch_threshold_i => std_logic_vector(to_unsigned(g_deglitcher_threshold, 16)),
+      deglitch_threshold_i  => dmtd_a_deglitch_threshold_i,
       dbg_dmtdout_o         => open);
 
   tag_a_o   <= tag_a;
@@ -168,10 +170,10 @@ begin  -- syn
       clk_sys_i             => clk_sys_i,
       clk_in_i              => clk_b_i,
       tag_o                 => tag_b,
-      tag_stb_p1_o           => tag_b_p,
+      tag_stb_p1_o          => tag_b_p,
       shift_en_i            => '0',
       shift_dir_i           => '0',
-      deglitch_threshold_i => std_logic_vector(to_unsigned(g_deglitcher_threshold, 16)),
+      deglitch_threshold_i  => dmtd_b_deglitch_threshold_i,
       dbg_dmtdout_o         => open);
 
   tag_b_o   <= tag_b;
