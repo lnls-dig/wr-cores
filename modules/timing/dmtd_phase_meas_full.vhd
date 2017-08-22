@@ -50,6 +50,8 @@ use work.gencores_pkg.all;
 
 entity dmtd_phase_meas_full is
   generic (
+-- Number of bits for averages
+    g_navg_bits           : integer := 12;
 -- DDMTD deglitcher threshold (in clk_dmtd_i) clock cycles
     g_deglitcher_threshold: integer;
 -- Phase tag counter size (see dmtd_with_deglitcher.vhd for explanation)
@@ -76,7 +78,7 @@ entity dmtd_phase_meas_full is
     tag_b_o        : out std_logic_vector(g_counter_bits-1 downto 0);
     tag_b_p_o      : out std_logic;
 
-    navg_i         : in  std_logic_vector(11 downto 0);
+    navg_i         : in  std_logic_vector(g_navg_bits-1 downto 0);
     phase_raw_o    : out std_logic_vector(g_counter_bits-1 downto 0);
     phase_raw_p_o  : out std_logic;
     phase_meas_o   : out std_logic_vector(31 downto 0);
@@ -122,7 +124,7 @@ architecture syn of dmtd_phase_meas_full is
   signal tag_b_p : std_logic;
 
   signal acc     : unsigned(31 downto 0);
-  signal avg_cnt : unsigned(11 downto 0);
+  signal avg_cnt : unsigned(g_navg_bits-1 downto 0);
 
   signal phase_raw_p : std_logic;
   signal phase_raw   : unsigned(g_counter_bits-1 downto 0);
