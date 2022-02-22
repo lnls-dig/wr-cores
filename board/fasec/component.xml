@@ -1538,705 +1538,705 @@
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagesynthesis_view_fileset</spirit:name>
       <spirit:file>
-        <spirit:name>board/fasec/wrc_board_fasec_ip.xdc</spirit:name>
+        <spirit:name>wrc_board_fasec_ip.xdc</spirit:name>
         <spirit:userFileType>xdc</spirit:userFileType>
         <spirit:userFileType>USED_IN_implementation</spirit:userFileType>
         <spirit:userFileType>USED_IN_synthesis</spirit:userFileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/genram_pkg.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/genram_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wishbone_pkg.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wishbone_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/memory_loader_pkg.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/memory_loader_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/xilinx/generic_dpram_sameclock.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/xilinx/generic_dpram_sameclock.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/xilinx/generic_dpram_split.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/xilinx/generic_dpram_split.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/xilinx/generic_dpram_dualclock.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/xilinx/generic_dpram_dualclock.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/fabric/wr_fabric_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/fabric/wr_fabric_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/endpoint_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/endpoint_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_registers_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_registers_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/common/gc_sync_register.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/common/gc_sync_register.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/common/gc_sync_ffs.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/common/gc_sync_ffs.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/common/gencores_pkg.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/common/gencores_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/xilinx/generic_dpram.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/xilinx/generic_dpram.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/endpoint_private_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/endpoint_private_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/common/inferred_sync_fifo.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/common/inferred_sync_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/common/inferred_async_fifo.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/common/inferred_async_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/common/gc_pulse_synchronizer.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/common/gc_pulse_synchronizer.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/generic/generic_sync_fifo.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/generic/generic_sync_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/generic/generic_async_fifo.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/generic/generic_async_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wbgen2/wbgen2_pkg.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wbgen2/wbgen2_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/xilinx/gc_shiftreg.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/xilinx/gc_shiftreg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/common/gc_crc_gen.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/common/gc_crc_gen.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_sync_detect.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_sync_detect.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_uart/simple_uart_pkg.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_uart/simple_uart_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_crc32_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_crc32_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_sync_detect_16bit.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_sync_detect_16bit.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/common/gc_extend_pulse.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/common/gc_extend_pulse.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_rtu_header_extract.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_rtu_header_extract.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/xilinx/generic_simple_dpram.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/xilinx/generic_simple_dpram.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_uart/uart_async_tx.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_uart/uart_async_tx.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/timing/dmtd_with_deglitcher.vhd</spirit:name>
+        <spirit:name>../../modules/timing/dmtd_with_deglitcher.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_rx_status_reg_insert.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_rx_status_reg_insert.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_autonegotiation.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_autonegotiation.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_tx_crc_inserter.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_tx_crc_inserter.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_ts_counter.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_ts_counter.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_packet_filter.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_packet_filter.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_tx_pcs_16bit.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_tx_pcs_16bit.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/common/gc_pulse_synchronizer2.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/common/gc_pulse_synchronizer2.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_rx_crc_size_check.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_rx_crc_size_check.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_addsub.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_addsub.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_rx_wb_master.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_rx_wb_master.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_tx_pcs_8bit.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_tx_pcs_8bit.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_tx_vlan_unit.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_tx_vlan_unit.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_softpll_ng/spll_wbgen2_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wr_softpll_ng/spll_wbgen2_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_clock_alignment_fifo.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_clock_alignment_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wbgen2/wbgen2_fifo_sync.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wbgen2/wbgen2_fifo_sync.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/common/generic_shiftreg_fifo.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/common/generic_shiftreg_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wbgen2/wbgen2_eic.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wbgen2/wbgen2_eic.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_tx_inject_ctrl.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_tx_inject_ctrl.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_rx_oob_insert.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_rx_oob_insert.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_tx_header_processor.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_tx_header_processor.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_rx_pcs_8bit.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_rx_pcs_8bit.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_rx_early_address_match.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_rx_early_address_match.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wrc_core/wrc_diags_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wrc_core/wrc_diags_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_uart/uart_baud_gen.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_uart/uart_baud_gen.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_rx_vlan_unit.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_rx_vlan_unit.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_hdr_pkg.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_hdr_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wrc_core/wrc_syscon_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wrc_core/wrc_syscon_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/platform/generic/jtag_tap.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/platform/generic/jtag_tap.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_pcs_tbi_mdio_wb.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_pcs_tbi_mdio_wb.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_uart/uart_async_rx.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_uart/uart_async_rx.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_onewire_master/sockit_owm.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_onewire_master/sockit_owm.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_rx_pcs_16bit.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_rx_pcs_16bit.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_tx_packet_injection.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_tx_packet_injection.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_uart/simple_uart_wb.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_uart/simple_uart_wb.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_mini_nic/minic_wbgen2_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wr_mini_nic/minic_wbgen2_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_rx_buffer.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_rx_buffer.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_softpll_ng/softpll_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wr_softpll_ng/softpll_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_slave_adapter/wb_slave_adapter.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_slave_adapter/wb_slave_adapter.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_wishbone_controller.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_wishbone_controller.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_ram.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_ram.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_softpll_ng/spll_aligner.vhd</spirit:name>
+        <spirit:name>../../modules/wr_softpll_ng/spll_aligner.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/timing/dmtd_phase_meas.vhd</spirit:name>
+        <spirit:name>../../modules/timing/dmtd_phase_meas.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wrc_core/wrcore_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wrc_core/wrcore_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_softpll_ng/spll_wb_slave.vhd</spirit:name>
+        <spirit:name>../../modules/wr_softpll_ng/spll_wb_slave.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/src/jtag_cores.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/src/jtag_cores.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_dp_ram.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_dp_ram.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_leds_controller.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_leds_controller.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_tx_path.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_tx_path.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_mini_nic/minic_wb_slave.vhd</spirit:name>
+        <spirit:name>../../modules/wr_mini_nic/minic_wb_slave.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_rx_path.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_rx_path.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wrc_core/wrc_syscon_wb.vhd</spirit:name>
+        <spirit:name>../../modules/wrc_core/wrc_syscon_wb.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wrc_core/wrc_diags_wb.vhd</spirit:name>
+        <spirit:name>../../modules/wrc_core/wrc_diags_wb.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_shifter.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_shifter.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_internals_pkg.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_internals_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_1000basex_pcs.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_1000basex_pcs.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/common/gc_frequency_meter.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/common/gc_frequency_meter.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_timestamping_unit.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_timestamping_unit.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/platform/generic/lm32_multiplier.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/platform/generic/lm32_multiplier.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_uart/wb_simple_uart.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_uart/wb_simple_uart.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_onewire_master/wb_onewire_master.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_onewire_master/wb_onewire_master.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_pps_gen/pps_gen_wb.vhd</spirit:name>
+        <spirit:name>../../modules/wr_pps_gen/pps_gen_wb.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_adder.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_adder.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_logic_op.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_logic_op.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_pps_gen/wr_pps_gen.vhd</spirit:name>
+        <spirit:name>../../modules/wr_pps_gen/wr_pps_gen.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/wr_endpoint.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/wr_endpoint.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_crossbar/sdb_rom.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_crossbar/sdb_rom.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_crossbar/xwb_crossbar.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_crossbar/xwb_crossbar.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_uart/xwb_simple_uart.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_uart/xwb_simple_uart.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_fifo.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/wr_streamers_wbgen2_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/wr_streamers_wbgen2_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/streamers_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/streamers_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wrc_core/xwrc_diags_wb.vhd</spirit:name>
+        <spirit:name>../../modules/wrc_core/xwrc_diags_wb.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_softpll_ng/wr_softpll_ng.vhd</spirit:name>
+        <spirit:name>../../modules/wr_softpll_ng/wr_softpll_ng.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_mini_nic/wr_mini_nic.vhd</spirit:name>
+        <spirit:name>../../modules/wr_mini_nic/wr_mini_nic.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_onewire_master/xwb_onewire_master.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_onewire_master/xwb_onewire_master.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/wr_gtp_phy/family7-gtp/whiterabbit_gtpe2_channel_wrapper_gtrxreset_seq.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/wr_gtp_phy/family7-gtp/whiterabbit_gtpe2_channel_wrapper_gtrxreset_seq.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/generated/lm32_allprofiles.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/generated/lm32_allprofiles.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/xtx_streamers_stats.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/xtx_streamers_stats.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_cfg_fifo.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_cfg_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/escape_detector.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/escape_detector.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_pass_fifo.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_pass_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_slave_fsm.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_slave_fsm.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wrc_core/wrc_periph.vhd</spirit:name>
+        <spirit:name>../../modules/wrc_core/wrc_periph.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/xrx_streamers_stats.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/xrx_streamers_stats.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_softpll_ng/xwr_softpll_ng.vhd</spirit:name>
+        <spirit:name>../../modules/wr_softpll_ng/xwr_softpll_ng.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/fabric/xwb_fabric_sink.vhd</spirit:name>
+        <spirit:name>../../modules/fabric/xwb_fabric_sink.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_pps_gen/xwr_pps_gen.vhd</spirit:name>
+        <spirit:name>../../modules/wr_pps_gen/xwr_pps_gen.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_wbm_fifo.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_wbm_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/escape_inserter.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/escape_inserter.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_tag_fifo.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_tag_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/fabric/xwb_fabric_source.vhd</spirit:name>
+        <spirit:name>../../modules/fabric/xwb_fabric_source.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/dropping_buffer.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/dropping_buffer.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_commit_fifo.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_commit_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_dpram/xwb_dpram.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_dpram/xwb_dpram.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_mini_nic/xwr_mini_nic.vhd</spirit:name>
+        <spirit:name>../../modules/wr_mini_nic/xwr_mini_nic.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/generated/xwb_lm32.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/generated/xwb_lm32.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_checksum.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_checksum.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/timing/pulse_stamper.vhd</spirit:name>
+        <spirit:name>../../modules/timing/pulse_stamper.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/fabric/xwrf_mux.vhd</spirit:name>
+        <spirit:name>../../modules/fabric/xwrf_mux.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/xwr_endpoint.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/xwr_endpoint.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/streamers_priv_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/streamers_priv_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_tx_mux.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_tx_mux.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/wr_gtp_phy/family7-gtp/whiterabbit_gtpe2_channel_wrapper_gt.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/wr_gtp_phy/family7-gtp/whiterabbit_gtpe2_channel_wrapper_gt.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/wr_gtp_phy/spartan6/whiterabbitgtp_wrapper_tile_spartan6.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/wr_gtp_phy/spartan6/whiterabbitgtp_wrapper_tile_spartan6.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_crossbar/xwb_sdb_crossbar.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_crossbar/xwb_sdb_crossbar.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_stream_widen.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_stream_widen.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_eth_rx.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_eth_rx.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wrc_core/wr_core.vhd</spirit:name>
+        <spirit:name>../../modules/wrc_core/wr_core.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_slave_top.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_slave_top.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_stream_narrow.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_stream_narrow.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/xrtx_streamers_stats.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/xrtx_streamers_stats.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_tbi_phy/disparity_gen_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wr_tbi_phy/disparity_gen_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/xtx_streamer.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/xtx_streamer.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/wr_streamers_wb.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/wr_streamers_wb.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/etherbone_pkg.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/etherbone_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/wr_gtp_phy/spartan6/gtp_phase_align.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/wr_gtp_phy/spartan6/gtp_phase_align.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/wr_gtp_phy/family7-gtx/whiterabbit_gtxe2_channel_wrapper_gt.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/wr_gtp_phy/family7-gtx/whiterabbit_gtxe2_channel_wrapper_gt.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/wr_gtp_phy/family7-gtp/whiterabbit_gtpe2_channel_wrapper.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/wr_gtp_phy/family7-gtp/whiterabbit_gtpe2_channel_wrapper.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_eth_tx.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_eth_tx.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/wr_gtp_phy/gtp_bitslide.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/wr_gtp_phy/gtp_bitslide.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/xrx_streamer.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/xrx_streamer.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_axi4lite_bridge/axi4_pkg.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/axi/axi4_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/wr_xilinx_pkg.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/wr_xilinx_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/wr_gtp_phy/family7-gtp/wr_gtp_phy_family7.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/wr_gtp_phy/family7-gtp/wr_gtp_phy_family7.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/wr_gtp_phy/family7-gtx/wr_gtx_phy_family7.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/wr_gtp_phy/family7-gtx/wr_gtx_phy_family7.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/wr_gtp_phy/spartan6/wr_gtp_phy_spartan6.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/wr_gtp_phy/spartan6/wr_gtp_phy_spartan6.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wrc_core/xwr_core.vhd</spirit:name>
+        <spirit:name>../../modules/wrc_core/xwr_core.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_dacs/spec_serial_dac.vhd</spirit:name>
+        <spirit:name>../../modules/wr_dacs/spec_serial_dac.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>board/common/wr_board_pkg.vhd</spirit:name>
+        <spirit:name>../../board/common/wr_board_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_ethernet_slave.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_ethernet_slave.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/xwr_streamers.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/xwr_streamers.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_axi4lite_bridge/xwb_axi4lite_bridge.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_axi4lite_bridge/xwb_axi4lite_bridge.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_dacs/spec_serial_dac_arb.vhd</spirit:name>
+        <spirit:name>../../modules/wr_dacs/spec_serial_dac_arb.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>board/common/xwrc_board_common.vhd</spirit:name>
+        <spirit:name>../../board/common/xwrc_board_common.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>board/fasec/wr_fasec_pkg.vhd</spirit:name>
+        <spirit:name>../../board/fasec/wr_fasec_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/xwrc_platform_xilinx.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/xwrc_platform_xilinx.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/common/gc_reset.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/common/gc_reset.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_axi4lite_bridge/wb_axi4lite_bridge.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_axi4lite_bridge/wb_axi4lite_bridge.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>board/fasec/xwrc_board_fasec.vhd</spirit:name>
+        <spirit:name>../../board/fasec/xwrc_board_fasec.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_include.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_include.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_spi/timescale.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_spi/timescale.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_spi/spi_defines.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_spi/spi_defines.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>board/fasec/wrc_board_fasec.vhd</spirit:name>
+        <spirit:name>wrc_board_fasec.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
         <spirit:userFileType>CHECKSUM_56627f08</spirit:userFileType>
       </spirit:file>
@@ -2244,706 +2244,706 @@
     <spirit:fileSet>
       <spirit:name>xilinx_anylanguagebehavioralsimulation_view_fileset</spirit:name>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/genram_pkg.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/genram_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wishbone_pkg.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wishbone_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/memory_loader_pkg.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/memory_loader_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/xilinx/generic_dpram_sameclock.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/xilinx/generic_dpram_sameclock.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/xilinx/generic_dpram_split.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/xilinx/generic_dpram_split.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/xilinx/generic_dpram_dualclock.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/xilinx/generic_dpram_dualclock.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/fabric/wr_fabric_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/fabric/wr_fabric_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/endpoint_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/endpoint_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_registers_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_registers_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/common/gc_sync_register.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/common/gc_sync_register.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/common/gc_sync_ffs.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/common/gc_sync_ffs.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/common/gencores_pkg.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/common/gencores_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/xilinx/generic_dpram.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/xilinx/generic_dpram.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/endpoint_private_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/endpoint_private_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/common/inferred_sync_fifo.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/common/inferred_sync_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/common/inferred_async_fifo.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/common/inferred_async_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/common/gc_pulse_synchronizer.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/common/gc_pulse_synchronizer.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/generic/generic_sync_fifo.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/generic/generic_sync_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/generic/generic_async_fifo.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/generic/generic_async_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wbgen2/wbgen2_pkg.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wbgen2/wbgen2_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/xilinx/gc_shiftreg.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/xilinx/gc_shiftreg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/common/gc_crc_gen.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/common/gc_crc_gen.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_sync_detect.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_sync_detect.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_uart/simple_uart_pkg.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_uart/simple_uart_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_crc32_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_crc32_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_sync_detect_16bit.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_sync_detect_16bit.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/common/gc_extend_pulse.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/common/gc_extend_pulse.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_rtu_header_extract.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_rtu_header_extract.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/xilinx/generic_simple_dpram.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/xilinx/generic_simple_dpram.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_uart/uart_async_tx.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_uart/uart_async_tx.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/timing/dmtd_with_deglitcher.vhd</spirit:name>
+        <spirit:name>../../modules/timing/dmtd_with_deglitcher.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_rx_status_reg_insert.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_rx_status_reg_insert.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_autonegotiation.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_autonegotiation.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_tx_crc_inserter.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_tx_crc_inserter.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_ts_counter.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_ts_counter.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_packet_filter.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_packet_filter.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_tx_pcs_16bit.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_tx_pcs_16bit.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/common/gc_pulse_synchronizer2.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/common/gc_pulse_synchronizer2.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_rx_crc_size_check.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_rx_crc_size_check.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_addsub.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_addsub.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_rx_wb_master.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_rx_wb_master.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_tx_pcs_8bit.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_tx_pcs_8bit.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_tx_vlan_unit.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_tx_vlan_unit.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_softpll_ng/spll_wbgen2_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wr_softpll_ng/spll_wbgen2_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_clock_alignment_fifo.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_clock_alignment_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wbgen2/wbgen2_fifo_sync.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wbgen2/wbgen2_fifo_sync.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/genrams/common/generic_shiftreg_fifo.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/common/generic_shiftreg_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wbgen2/wbgen2_eic.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wbgen2/wbgen2_eic.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_tx_inject_ctrl.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_tx_inject_ctrl.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_rx_oob_insert.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_rx_oob_insert.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_tx_header_processor.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_tx_header_processor.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_rx_pcs_8bit.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_rx_pcs_8bit.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_rx_early_address_match.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_rx_early_address_match.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wrc_core/wrc_diags_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wrc_core/wrc_diags_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_uart/uart_baud_gen.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_uart/uart_baud_gen.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_rx_vlan_unit.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_rx_vlan_unit.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_hdr_pkg.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_hdr_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wrc_core/wrc_syscon_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wrc_core/wrc_syscon_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/platform/generic/jtag_tap.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/platform/generic/jtag_tap.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_pcs_tbi_mdio_wb.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_pcs_tbi_mdio_wb.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_uart/uart_async_rx.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_uart/uart_async_rx.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_onewire_master/sockit_owm.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_onewire_master/sockit_owm.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_rx_pcs_16bit.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_rx_pcs_16bit.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_tx_packet_injection.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_tx_packet_injection.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_uart/simple_uart_wb.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_uart/simple_uart_wb.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_mini_nic/minic_wbgen2_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wr_mini_nic/minic_wbgen2_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_rx_buffer.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_rx_buffer.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_softpll_ng/softpll_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wr_softpll_ng/softpll_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_slave_adapter/wb_slave_adapter.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_slave_adapter/wb_slave_adapter.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_wishbone_controller.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_wishbone_controller.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_ram.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_ram.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_softpll_ng/spll_aligner.vhd</spirit:name>
+        <spirit:name>../../modules/wr_softpll_ng/spll_aligner.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/timing/dmtd_phase_meas.vhd</spirit:name>
+        <spirit:name>../../modules/timing/dmtd_phase_meas.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wrc_core/wrcore_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wrc_core/wrcore_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_softpll_ng/spll_wb_slave.vhd</spirit:name>
+        <spirit:name>../../modules/wr_softpll_ng/spll_wb_slave.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/src/jtag_cores.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/src/jtag_cores.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_dp_ram.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_dp_ram.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_leds_controller.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_leds_controller.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_tx_path.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_tx_path.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_mini_nic/minic_wb_slave.vhd</spirit:name>
+        <spirit:name>../../modules/wr_mini_nic/minic_wb_slave.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_rx_path.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_rx_path.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wrc_core/wrc_syscon_wb.vhd</spirit:name>
+        <spirit:name>../../modules/wrc_core/wrc_syscon_wb.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wrc_core/wrc_diags_wb.vhd</spirit:name>
+        <spirit:name>../../modules/wrc_core/wrc_diags_wb.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_shifter.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_shifter.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_internals_pkg.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_internals_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_1000basex_pcs.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_1000basex_pcs.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/common/gc_frequency_meter.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/common/gc_frequency_meter.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/ep_timestamping_unit.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/ep_timestamping_unit.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/platform/generic/lm32_multiplier.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/platform/generic/lm32_multiplier.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_uart/wb_simple_uart.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_uart/wb_simple_uart.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_onewire_master/wb_onewire_master.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_onewire_master/wb_onewire_master.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_pps_gen/pps_gen_wb.vhd</spirit:name>
+        <spirit:name>../../modules/wr_pps_gen/pps_gen_wb.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_adder.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_adder.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_logic_op.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_logic_op.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_pps_gen/wr_pps_gen.vhd</spirit:name>
+        <spirit:name>../../modules/wr_pps_gen/wr_pps_gen.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/wr_endpoint.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/wr_endpoint.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_crossbar/sdb_rom.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_crossbar/sdb_rom.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_crossbar/xwb_crossbar.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_crossbar/xwb_crossbar.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_uart/xwb_simple_uart.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_uart/xwb_simple_uart.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_fifo.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/wr_streamers_wbgen2_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/wr_streamers_wbgen2_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/streamers_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/streamers_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wrc_core/xwrc_diags_wb.vhd</spirit:name>
+        <spirit:name>../../modules/wrc_core/xwrc_diags_wb.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_softpll_ng/wr_softpll_ng.vhd</spirit:name>
+        <spirit:name>../../modules/wr_softpll_ng/wr_softpll_ng.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_mini_nic/wr_mini_nic.vhd</spirit:name>
+        <spirit:name>../../modules/wr_mini_nic/wr_mini_nic.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_onewire_master/xwb_onewire_master.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_onewire_master/xwb_onewire_master.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/wr_gtp_phy/family7-gtp/whiterabbit_gtpe2_channel_wrapper_gtrxreset_seq.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/wr_gtp_phy/family7-gtp/whiterabbit_gtpe2_channel_wrapper_gtrxreset_seq.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/generated/lm32_allprofiles.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/generated/lm32_allprofiles.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/xtx_streamers_stats.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/xtx_streamers_stats.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_cfg_fifo.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_cfg_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/escape_detector.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/escape_detector.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_pass_fifo.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_pass_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_slave_fsm.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_slave_fsm.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wrc_core/wrc_periph.vhd</spirit:name>
+        <spirit:name>../../modules/wrc_core/wrc_periph.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/xrx_streamers_stats.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/xrx_streamers_stats.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_softpll_ng/xwr_softpll_ng.vhd</spirit:name>
+        <spirit:name>../../modules/wr_softpll_ng/xwr_softpll_ng.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/fabric/xwb_fabric_sink.vhd</spirit:name>
+        <spirit:name>../../modules/fabric/xwb_fabric_sink.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_pps_gen/xwr_pps_gen.vhd</spirit:name>
+        <spirit:name>../../modules/wr_pps_gen/xwr_pps_gen.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_wbm_fifo.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_wbm_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/escape_inserter.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/escape_inserter.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_tag_fifo.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_tag_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/fabric/xwb_fabric_source.vhd</spirit:name>
+        <spirit:name>../../modules/fabric/xwb_fabric_source.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/dropping_buffer.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/dropping_buffer.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_commit_fifo.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_commit_fifo.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_dpram/xwb_dpram.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_dpram/xwb_dpram.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_mini_nic/xwr_mini_nic.vhd</spirit:name>
+        <spirit:name>../../modules/wr_mini_nic/xwr_mini_nic.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/generated/xwb_lm32.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/generated/xwb_lm32.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_checksum.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_checksum.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/timing/pulse_stamper.vhd</spirit:name>
+        <spirit:name>../../modules/timing/pulse_stamper.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/fabric/xwrf_mux.vhd</spirit:name>
+        <spirit:name>../../modules/fabric/xwrf_mux.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_endpoint/xwr_endpoint.vhd</spirit:name>
+        <spirit:name>../../modules/wr_endpoint/xwr_endpoint.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/streamers_priv_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/streamers_priv_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_tx_mux.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_tx_mux.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/wr_gtp_phy/family7-gtp/whiterabbit_gtpe2_channel_wrapper_gt.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/wr_gtp_phy/family7-gtp/whiterabbit_gtpe2_channel_wrapper_gt.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/wr_gtp_phy/spartan6/whiterabbitgtp_wrapper_tile_spartan6.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/wr_gtp_phy/spartan6/whiterabbitgtp_wrapper_tile_spartan6.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_crossbar/xwb_sdb_crossbar.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_crossbar/xwb_sdb_crossbar.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_stream_widen.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_stream_widen.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_eth_rx.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_eth_rx.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wrc_core/wr_core.vhd</spirit:name>
+        <spirit:name>../../modules/wrc_core/wr_core.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_slave_top.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_slave_top.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_stream_narrow.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_stream_narrow.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/xrtx_streamers_stats.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/xrtx_streamers_stats.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_tbi_phy/disparity_gen_pkg.vhd</spirit:name>
+        <spirit:name>../../modules/wr_tbi_phy/disparity_gen_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/xtx_streamer.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/xtx_streamer.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/wr_streamers_wb.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/wr_streamers_wb.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/etherbone_pkg.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/etherbone_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/wr_gtp_phy/spartan6/gtp_phase_align.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/wr_gtp_phy/spartan6/gtp_phase_align.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/wr_gtp_phy/family7-gtx/whiterabbit_gtxe2_channel_wrapper_gt.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/wr_gtp_phy/family7-gtx/whiterabbit_gtxe2_channel_wrapper_gt.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/wr_gtp_phy/family7-gtp/whiterabbit_gtpe2_channel_wrapper.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/wr_gtp_phy/family7-gtp/whiterabbit_gtpe2_channel_wrapper.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_eth_tx.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_eth_tx.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/wr_gtp_phy/gtp_bitslide.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/wr_gtp_phy/gtp_bitslide.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/xrx_streamer.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/xrx_streamer.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_axi4lite_bridge/axi4_pkg.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/axi/axi4_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/wr_xilinx_pkg.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/wr_xilinx_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/wr_gtp_phy/family7-gtp/wr_gtp_phy_family7.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/wr_gtp_phy/family7-gtp/wr_gtp_phy_family7.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/wr_gtp_phy/family7-gtx/wr_gtx_phy_family7.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/wr_gtp_phy/family7-gtx/wr_gtx_phy_family7.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/wr_gtp_phy/spartan6/wr_gtp_phy_spartan6.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/wr_gtp_phy/spartan6/wr_gtp_phy_spartan6.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wrc_core/xwr_core.vhd</spirit:name>
+        <spirit:name>../../modules/wrc_core/xwr_core.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_dacs/spec_serial_dac.vhd</spirit:name>
+        <spirit:name>../../modules/wr_dacs/spec_serial_dac.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>board/common/wr_board_pkg.vhd</spirit:name>
+        <spirit:name>../../board/common/wr_board_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/etherbone-core/hdl/eb_slave_core/eb_ethernet_slave.vhd</spirit:name>
+        <spirit:name>../../ip_cores/etherbone-core/hdl/eb_slave_core/eb_ethernet_slave.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_streamers/xwr_streamers.vhd</spirit:name>
+        <spirit:name>../../modules/wr_streamers/xwr_streamers.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_axi4lite_bridge/xwb_axi4lite_bridge.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_axi4lite_bridge/xwb_axi4lite_bridge.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>modules/wr_dacs/spec_serial_dac_arb.vhd</spirit:name>
+        <spirit:name>../../modules/wr_dacs/spec_serial_dac_arb.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>board/common/xwrc_board_common.vhd</spirit:name>
+        <spirit:name>../../board/common/xwrc_board_common.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>board/fasec/wr_fasec_pkg.vhd</spirit:name>
+        <spirit:name>../../board/fasec/wr_fasec_pkg.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>platform/xilinx/xwrc_platform_xilinx.vhd</spirit:name>
+        <spirit:name>../../platform/xilinx/xwrc_platform_xilinx.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/common/gc_reset.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/common/gc_reset.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_axi4lite_bridge/wb_axi4lite_bridge.vhd</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_axi4lite_bridge/wb_axi4lite_bridge.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>board/fasec/xwrc_board_fasec.vhd</spirit:name>
+        <spirit:name>../../board/fasec/xwrc_board_fasec.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_include.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_lm32/src/lm32_include.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_spi/timescale.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_spi/timescale.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>ip_cores/general-cores/modules/wishbone/wb_spi/spi_defines.v</spirit:name>
+        <spirit:name>../../ip_cores/general-cores/modules/wishbone/wb_spi/spi_defines.v</spirit:name>
         <spirit:fileType>verilogSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
-        <spirit:name>board/fasec/wrc_board_fasec.vhd</spirit:name>
+        <spirit:name>wrc_board_fasec.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
       <spirit:name>xilinx_xpgui_view_fileset</spirit:name>
       <spirit:file>
-        <spirit:name>xgui/wrc_board_fasec_v4_1.tcl</spirit:name>
+        <spirit:name>xgui/wrc_board_fasec_v4_2.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
         <spirit:userFileType>CHECKSUM_3bc04777</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
