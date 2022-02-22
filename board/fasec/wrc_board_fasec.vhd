@@ -7,7 +7,7 @@
 -- Author(s)  : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-08-02
--- Last update: 2017-09-07
+-- Last update: 2018-01-15
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -442,9 +442,9 @@ begin  -- architecture struct
   --wrs_rx_cfg_in.filter_remote     <= wrs_rx_cfg_flt_r_i;
   --wrs_rx_cfg_in.fixed_latency     <= wrs_rx_cfg_fix_l_i;
 
-  -- axi supports word-addressing only, i.e. per 4 bytes; shift for wb-bridge
-  s_axi_araddr  <= "00" & s00_axi_araddr(31 downto 2);
-  s_axi_awaddr  <= "00" & s00_axi_awaddr(31 downto 2);
+  -- axi supports word-addressing only, i.e. per 4 bytes; not shift needed though
+  s_axi_araddr <= s00_axi_araddr(31 downto 0);
+  s_axi_awaddr <= s00_axi_awaddr(31 downto 0);
   -- Instantiate the records-based module
   cmp_xwrc_board_fasec : xwrc_board_fasec
     generic map (
