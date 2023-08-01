@@ -375,12 +375,15 @@ begin  -- architecture rtl
 
       begin
       -- DMTD Div2 (124.9920 MHz -> 62,496 MHz)
-        process(clk_125m_dmtd_i)
-        begin
-          if rising_edge(clk_125m_dmtd_i) then
-            clk_dmtd <= not clk_dmtd;
-          end if;
-        end process;
+        cmp_clk_dmtd_buf_o: BUFR
+          generic map (
+            BUFR_DIVIDE => "2",
+            SIM_DEVICE => "7SERIES")
+          port map (
+            O   => clk_dmtd,
+            CE  => '1',
+            CLR => '0',
+            I   => clk_125m_dmtd_i);
 
         pll_dmtd_locked <= '1';
       end generate gen_kintex7_artix7_direct_dmtd;
