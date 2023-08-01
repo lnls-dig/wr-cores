@@ -146,7 +146,7 @@ architecture struct of wrc_periph is
 begin
 
   -- async assert, sync de-assert reset.
-  process(clk_sys_i)
+  process(clk_sys_i, rst_n_i)
   begin
     if rst_n_i = '0' then
       rst_net_n_chain <= (others => '0');
