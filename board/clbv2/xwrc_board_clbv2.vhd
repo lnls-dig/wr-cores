@@ -7,13 +7,13 @@
 -- Author(s)  : Peter Jansweijer <peterj@nikhef.nl>
 -- Company    : Nikhef
 -- Created    : 2017-11-08
--- Last update: 2022-05-18
+-- Last update: 2024-01-09
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
 -- needed to operate the core on the clbv2 board.
 -------------------------------------------------------------------------------
--- Copyright (c) 2017 Nikhef
+-- Copyright (c) 2024 Nikhef
 -------------------------------------------------------------------------------
 -- GNU LESSER GENERAL PUBLIC LICENSE
 --
@@ -290,6 +290,15 @@ architecture struct of xwrc_board_clbv2 is
   signal ext_ref_mul_stopped : std_logic;
   signal ext_ref_rst         : std_logic;
 
+  signal phy_mdio_master_in   : t_wishbone_master_in := 
+    (ack => '1',
+     err => '0',
+     rty => '0',
+     stall => '0',
+     dat => (others => '1')
+     );
+  signal phy_mdio_master_out  : t_wishbone_master_out;
+
 begin  -- architecture struct
 
   -----------------------------------------------------------------------------
@@ -398,6 +407,8 @@ begin  -- architecture struct
       clk_gtx_i      => clk_125m_gtx_buf,
       clk_dmtd_i     => clk_dmtd,
       clk_ref_i      => clk_ref_62m5,
+      clk_sys_i      => clk_sys_62m5,
+      rst_sys_n_i    => rst_62m5_n,
       tx_data_i      => phy16_from_wrc.tx_data,
       tx_k_i         => phy16_from_wrc.tx_k,
       tx_disparity_o => phy16_to_wrc.tx_disparity,
@@ -409,11 +420,11 @@ begin  -- architecture struct
       rx_enc_err_o   => phy16_to_wrc.rx_enc_err,
       rx_bitslide_o  => phy16_to_wrc.rx_bitslide,
       rst_i          => phy16_from_wrc.rst,
-      lpc_ctrl_i     => phy16_from_wrc.lpc_ctrl,
-      lpc_stat_o     => phy16_to_wrc.lpc_stat,
       loopen_i       => phy16_from_wrc.loopen,
       tx_prbs_sel_i  => phy16_from_wrc.tx_prbs_sel,
       rdy_o          => phy16_to_wrc.rdy,
+      mdio_slave_i   => phy_mdio_master_out,
+      mdio_slave_o   => phy_mdio_master_in,
 
       pad_txn_o => sfp_txn_o,
       pad_txp_o => sfp_txp_o,
@@ -625,6 +636,8 @@ begin  -- architecture struct
       dac_dpll_data_o      => dac_refclk_data,
       phy16_o              => phy16_from_wrc,
       phy16_i              => phy16_to_wrc,
+      phy_mdio_master_i    => phy_mdio_master_in,
+      phy_mdio_master_o    => phy_mdio_master_out,
       scl_o                => eeprom_scl_o,
       scl_i                => eeprom_scl_i,
       sda_o                => eeprom_sda_o,
