@@ -142,8 +142,6 @@ entity dmtd_with_deglitcher is
 end dmtd_with_deglitcher;
 
 architecture rtl of dmtd_with_deglitcher is
-
-
   type t_state is (WAIT_STABLE_0, WAIT_EDGE, GOT_EDGE);
 
   signal state : t_state;
@@ -151,8 +149,7 @@ architecture rtl of dmtd_with_deglitcher is
   signal stab_cntr : unsigned(15 downto 0);
   signal free_cntr : unsigned(g_counter_bits-1 downto 0);
 
-
-  signal clk_sampled, clk_sampled_d : std_logic;
+  signal clk_sampled : std_logic;
 
   signal new_edge_p_dmtdclk    : std_logic;
   signal new_edge_p_sysclk    : std_logic;

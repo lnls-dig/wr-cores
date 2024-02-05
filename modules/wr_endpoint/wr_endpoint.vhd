@@ -323,27 +323,6 @@ end wr_endpoint;
 
 architecture syn of wr_endpoint is
 
-  constant c_zeros : std_logic_vector(63 downto 0) := (others => '0');
-  constant c_ones  : std_logic_vector(63 downto 0) := (others => '0');
-
--------------------------------------------------------------------------------
-  component dmtd_phase_meas
-    generic (
-      g_deglitcher_threshold : integer;
-      g_counter_bits         : integer);
-    port (
-      rst_sys_n_i    : in  std_logic;
-      rst_dmtd_n_i   : in  std_logic;
-      clk_sys_i      : in  std_logic;
-      clk_a_i        : in  std_logic;
-      clk_b_i        : in  std_logic;
-      clk_dmtd_i     : in  std_logic;
-      en_i           : in  std_logic;
-      navg_i         : in  std_logic_vector(11 downto 0);
-      phase_meas_o   : out std_logic_vector(31 downto 0);
-      phase_meas_p_o : out std_logic);
-  end component;
-
 -------------------------------------------------------------------------------
 -- TX FRAMER -> TX PCS signals
 -------------------------------------------------------------------------------
@@ -357,12 +336,8 @@ architecture syn of wr_endpoint is
 -- Timestamping/OOB signals
 -------------------------------------------------------------------------------
 
-  signal txoob_fid_value : std_logic_vector(15 downto 0);
-  signal txoob_fid_stb   : std_logic;
-
   signal txpcs_timestamp_trigger_p_a : std_logic;
 
-  signal txts_timestamp_stb   : std_logic;
   signal txts_timestamp_valid : std_logic;
   signal txts_timestamp_value : std_logic_vector(31 downto 0);
 
@@ -399,8 +374,6 @@ architecture syn of wr_endpoint is
 -------------------------------------------------------------------------------
 
   signal txfra_flow_enable : std_logic;
-  signal rxfra_pause_p     : std_logic;
-  signal rxfra_pause_delay : std_logic_vector(15 downto 0);
 
   signal txfra_pause_req   : std_logic;
   signal txfra_pause_ready : std_logic;
@@ -408,7 +381,6 @@ architecture syn of wr_endpoint is
 
   signal link_ok : std_logic;
 
-  signal txfra_enable : std_logic;
   signal mdio_addr    : std_logic_vector(15 downto 0);
 
   signal sink_in  : t_wrf_sink_in;
@@ -441,7 +413,6 @@ architecture syn of wr_endpoint is
   signal pfilter_pclass : std_logic_vector(7 downto 0);
   signal pfilter_drop   : std_logic;
   signal pfilter_done   : std_logic;
-  signal tx_pclass      : std_logic_vector(7 downto 0);
 
 -------------------------------------------------------------------------------
 -- RMON signals
@@ -869,7 +840,7 @@ begin
 ------------------------------------------------------------------------------  
 
   gen_with_dmtd : if(g_with_dmtd) generate
-    U_DMTD : dmtd_phase_meas
+    U_DMTD : entity work.dmtd_phase_meas
       generic map (
         g_counter_bits         => 14,
         g_deglitcher_threshold => 1000)

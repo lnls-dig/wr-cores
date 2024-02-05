@@ -78,23 +78,6 @@ end dmtd_phase_meas;
 
 architecture syn of dmtd_phase_meas is
 
-  component dmtd_with_deglitcher
-    generic (
-      g_counter_bits : natural);
-    port (
-      rst_n_dmtdclk_i      : in  std_logic;
-      rst_n_sysclk_i       : in  std_logic;
-      clk_in_i             : in  std_logic;
-      clk_dmtd_i           : in  std_logic;
-      clk_sys_i            : in  std_logic;
-      shift_en_i           : in  std_logic;
-      shift_dir_i          : in  std_logic;
-      deglitch_threshold_i : in  std_logic_vector(15 downto 0);
-      dbg_dmtdout_o        : out std_logic;
-      tag_o                : out std_logic_vector(g_counter_bits-1 downto 0);
-      tag_stb_p1_o         : out std_logic);
-  end component;
-
   type t_pd_state is (PD_WAIT_TAG, PD_WAIT_A, PD_WAIT_B);
 
   signal tag_a : std_logic_vector(g_counter_bits-1 downto 0);
@@ -119,7 +102,7 @@ architecture syn of dmtd_phase_meas is
   
 begin  -- syn
 
-  DMTD_A : dmtd_with_deglitcher
+  DMTD_A : entity work.dmtd_with_deglitcher
     generic map (
       g_counter_bits => g_counter_bits)
     port map (
@@ -128,14 +111,14 @@ begin  -- syn
       clk_dmtd_i            => clk_dmtd_i,
       clk_sys_i             => clk_sys_i,
       clk_in_i              => clk_a_i,
+      clk_dmtd_over_i       => open,
+      clk_sampled_a_i       => open,
       tag_o                 => tag_a,
       tag_stb_p1_o           => tag_a_p,
-      shift_en_i            => '0',
-      shift_dir_i           => '0',
-      deglitch_threshold_i => std_logic_vector(to_unsigned(g_deglitcher_threshold, 16)),
+      r_deglitch_threshold_i => std_logic_vector(to_unsigned(g_deglitcher_threshold, 16)),
       dbg_dmtdout_o         => open);
 
-  DMTD_B : dmtd_with_deglitcher
+  DMTD_B : entity work.dmtd_with_deglitcher
     generic map (
       g_counter_bits => g_counter_bits)
     port map (
@@ -146,9 +129,7 @@ begin  -- syn
       clk_in_i              => clk_b_i,
       tag_o                 => tag_b,
       tag_stb_p1_o           => tag_b_p,
-      shift_en_i            => '0',
-      shift_dir_i           => '0',
-      deglitch_threshold_i => std_logic_vector(to_unsigned(g_deglitcher_threshold, 16)),
+      r_deglitch_threshold_i => std_logic_vector(to_unsigned(g_deglitcher_threshold, 16)),
       dbg_dmtdout_o         => open);
 
 
