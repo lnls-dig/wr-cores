@@ -128,31 +128,11 @@ entity ep_timestamping_unit is
     regs_i : in  t_ep_out_registers;
     regs_o : out t_ep_in_registers
     );
-
 end ep_timestamping_unit;
 
 
 
 architecture syn of ep_timestamping_unit is
-
-
-  component ep_ts_counter
-    generic (
-      g_num_bits_r : natural;
-      g_num_bits_f : natural;
-      g_init_value : natural;
-      g_max_value  : natural);
-    port (
-      clk_i          : in  std_logic;
-      rst_n_i        : in  std_logic;
-      overflow_o     : out std_logic := '0';
-      value_r_o      : out std_logic_vector(g_num_bits_r-1 downto 0);
-      value_f_o      : out std_logic_vector(g_num_bits_f-1 downto 0);
-      pps_p_i        : in  std_logic;
-      sync_start_p_i : in  std_logic;
-      sync_done_o    : out std_logic);
-  end component;
-
   signal cntr_rx_r : std_logic_vector(g_timestamp_bits_r-1 downto 0);
   signal cntr_rx_f : std_logic_vector(g_timestamp_bits_f-1 downto 0);
   signal cntr_tx_r : std_logic_vector(g_timestamp_bits_r-1 downto 0);
@@ -170,19 +150,9 @@ architecture syn of ep_timestamping_unit is
   signal tx_ts_done : std_logic;
   signal txts       : std_logic;
 
-  signal got_tx_oob : std_logic;
-  signal tx_oob_reg : std_logic_vector(15 downto 0);
-
-
-  signal rx_oob_reg : std_logic_vector(47 downto 0);
-  signal fid_valid  : std_logic;
-
-  signal txts_valid : std_logic;
-
   signal valid_rx, valid_tx : std_logic;
 
-
-  signal cal_count                                   : unsigned(5 downto 0);
+  signal cal_count : unsigned(5 downto 0);
   signal rx_trigger_mask, rx_trigger_a, rx_cal_pulse_a : std_logic;
 
   signal regs_o_tscr_cs_done       : std_logic;
@@ -192,8 +162,8 @@ architecture syn of ep_timestamping_unit is
 
 begin  -- syn
 
-  -- Instatniation of the timestamping counter
-  U_counter : ep_ts_counter
+  -- Instantiation of the timestamping counter
+  U_counter : entity work.ep_ts_counter
     generic map (
       g_num_bits_r => g_timestamp_bits_r,
       g_num_bits_f => g_timestamp_bits_f,
@@ -250,7 +220,7 @@ begin  -- syn
         rx_trigger_mask <= '1';
       end if;
 
-      if(cal_count (5 downto 4) = x"01") then
+      if(cal_count (5 downto 4) = b"01") then
         rx_cal_pulse_a <= '1';
       else
         rx_cal_pulse_a <= '0';

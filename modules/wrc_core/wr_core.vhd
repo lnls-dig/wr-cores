@@ -698,6 +698,7 @@ begin
 
       int_o => softpll_irq,
 
+      dbg_fifo_irq_o => open,
       debug_o => open);
 
   clk_fb(0)                       <= clk_ref_i;

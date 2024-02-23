@@ -100,47 +100,6 @@ architecture behavioral of wr_pps_gen is
 
   constant c_PERIOD : integer := g_ref_clock_rate;
 
-  component pps_gen_wb is
-    port (
-      rst_n_i                : in  std_logic;
-      clk_sys_i              : in  std_logic;
-      wb_adr_i               : in  std_logic_vector(2 downto 0);
-      wb_dat_i               : in  std_logic_vector(31 downto 0);
-      wb_dat_o               : out std_logic_vector(31 downto 0);
-      wb_cyc_i               : in  std_logic;
-      wb_sel_i               : in  std_logic_vector(3 downto 0);
-      wb_stb_i               : in  std_logic;
-      wb_we_i                : in  std_logic;
-      wb_ack_o               : out std_logic;
-      wb_stall_o             : out std_logic;
-      refclk_i               : in  std_logic;
-      ppsg_cr_cnt_rst_o      : out std_logic;
-      ppsg_cr_cnt_en_o       : out std_logic;
-      ppsg_cr_cnt_adj_o      : out std_logic;
-      ppsg_cr_cnt_adj_i      : in  std_logic;
-      ppsg_cr_cnt_adj_load_o : out std_logic;
-      ppsg_cr_cnt_set_o      : out std_logic;
-      ppsg_cr_pwidth_o       : out std_logic_vector(27 downto 0);
-      ppsg_cntr_nsec_i       : in  std_logic_vector(27 downto 0);
-      ppsg_cntr_utclo_i      : in  std_logic_vector(31 downto 0);
-      ppsg_cntr_utchi_i      : in  std_logic_vector(7 downto 0);
-      ppsg_adj_nsec_o        : out std_logic_vector(27 downto 0);
-      ppsg_adj_nsec_wr_o     : out std_logic;
-      ppsg_adj_utclo_o       : out std_logic_vector(31 downto 0);
-      ppsg_adj_utclo_wr_o    : out std_logic;
-      ppsg_adj_utchi_o       : out std_logic_vector(7 downto 0);
-      ppsg_adj_utchi_wr_o    : out std_logic;
-      ppsg_escr_sync_o       : out std_logic;
-      ppsg_escr_sync_i       : in  std_logic;
-      ppsg_escr_sync_load_o  : out std_logic;
-      ppsg_escr_pps_valid_o  : out std_logic;
-      ppsg_escr_tm_valid_o   : out std_logic;
-      ppsg_escr_sec_set_o    : out std_logic;
-      ppsg_escr_nsec_set_o   : out std_logic;
-      ppsg_escr_pps_unmask_o : out std_logic;
-      ppsg_escr_pps_in_term_o: out std_logic);
-  end component pps_gen_wb;
-
 -- Wisbone slave signals
   signal ppsg_cr_cnt_rst : std_logic;
   signal ppsg_cr_cnt_en  : std_logic;
@@ -174,7 +133,6 @@ architecture behavioral of wr_pps_gen is
 
   signal cntr_nsec    : unsigned (27 downto 0);
   signal cntr_utc     : unsigned (39 downto 0);
-  signal cntr_pps_ext : unsigned (24 downto 0);
 
   signal ns_overflow     : std_logic;
   signal ns_overflow_adv : std_logic;
@@ -197,9 +155,7 @@ architecture behavioral of wr_pps_gen is
   signal wb_in        : t_wishbone_slave_in;
 
   signal ns_overflow_2nd       : std_logic;
-  signal pps_in_d0, pps_ext_d0 : std_logic;
 
-  signal retime_counter : unsigned(4 downto 0);
   signal pps_valid_int  : std_logic;
 
   signal pps_out_int   : std_logic;
@@ -260,7 +216,7 @@ begin  -- behavioral
 
 
   -- loads adjustment values into internal regsiters
-  p_wishbone_loads : process(clk_sys_i, rst_n_i)
+  p_wishbone_loads : process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
       if rst_n_i = '0' then
@@ -467,7 +423,7 @@ begin  -- behavioral
     end if;
   end process;
 
-  Uwb_slave : pps_gen_wb
+  Uwb_slave : entity work.pps_gen_wb
     port map (
       rst_n_i                => rst_n_i,
       clk_sys_i              => clk_sys_i,
@@ -479,6 +435,7 @@ begin  -- behavioral
       wb_stb_i               => wb_in.stb,
       wb_we_i                => wb_in.we,
       wb_ack_o               => wb_out.ack,
+      wb_stall_o             => open,
       refclk_i               => clk_ref_i,
       ppsg_cr_cnt_rst_o      => ppsg_cr_cnt_rst,
       ppsg_cr_cnt_en_o       => ppsg_cr_cnt_en,

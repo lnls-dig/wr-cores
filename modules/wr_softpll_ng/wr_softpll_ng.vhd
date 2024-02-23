@@ -163,63 +163,14 @@ entity wr_softpll_ng is
 -- Debug FIFO readout interrupt
     dbg_fifo_irq_o : out std_logic
     );
-
 end wr_softpll_ng;
 
 architecture rtl of wr_softpll_ng is
 
   alias rst_n_i : std_logic is rst_sys_n_i;
 
-  constant c_log2_replication : integer := 2;
-  constant c_use_multi_dmtd   : boolean := false;
-
-  constant c_DBG_FIFO_THRESHOLD : integer := 8180;
   constant c_DBG_FIFO_COALESCE  : integer := 100;
-  constant c_BB_ERROR_BITS      : integer := 16;
 
-
-
-  component spll_wb_slave
-    generic (
-      g_with_debug_fifo : integer);
-    port (
-      rst_n_i    : in  std_logic;
-      clk_sys_i  : in  std_logic;
-      wb_adr_i   : in  std_logic_vector(5 downto 0);
-      wb_dat_i   : in  std_logic_vector(31 downto 0);
-      wb_dat_o   : out std_logic_vector(31 downto 0);
-      wb_cyc_i   : in  std_logic;
-      wb_sel_i   : in  std_logic_vector(3 downto 0);
-      wb_stb_i   : in  std_logic;
-      wb_we_i    : in  std_logic;
-      wb_ack_o   : out std_logic;
-      wb_stall_o : out std_logic;
-      wb_int_o   : out std_logic;
-      irq_tag_i  : in  std_logic;
-      regs_i     : in  t_spll_in_registers;
-      regs_o     : out t_spll_out_registers);
-  end component;
-
-  component spll_aligner
-    generic (
-      g_counter_width  : integer;
-      g_ref_clock_rate : integer;
-      g_in_clock_rate  : integer;
-      g_sample_rate    : integer);
-    port (
-      clk_sys_i      : in  std_logic;
-      clk_in_i       : in  std_logic;
-      clk_ref_i      : in  std_logic;
-      rst_n_sys_i    : in  std_logic;
-      rst_n_ref_i    : in  std_logic;
-      rst_n_ext_i    : in  std_logic;
-      pps_ext_a_i    : in  std_logic;
-      pps_csync_p1_i : in  std_logic;
-      sample_cref_o  : out std_logic_vector(g_counter_width-1 downto 0);
-      sample_cin_o   : out std_logic_vector(g_counter_width-1 downto 0);
-      sample_valid_o : out std_logic;
-      sample_ack_i   : in  std_logic);
-  end component;
   function f_num_total_channels
     return integer is
   begin
@@ -263,8 +214,6 @@ architecture rtl of wr_softpll_ng is
 
   type t_tag_array is array (0 to f_num_total_channels-1) of std_logic_vector(g_tag_bits-1 downto 0);
 
-  type t_phase_error_array is array(0 to g_num_outputs-1) of std_logic_vector(c_BB_ERROR_BITS-1 downto 0);
-
   signal tags, tags_masked                          : t_tag_array;
   signal tags_grant_p, tags_p, tags_req, tags_grant : std_logic_vector(f_num_total_channels-1 downto 0);
   signal tag_muxed                                  : std_logic_vector(g_tag_bits-1 downto 0);
@@ -290,17 +239,7 @@ architecture rtl of wr_softpll_ng is
   signal dbg_fifo_irq          : std_logic := '0';
 
   -- Temporary vectors for DDMTD clock selection (straight/reversed)
-  signal dmtd_ref_clk_in, dmtd_ref_clk_dmtd : std_logic_vector(g_num_ref_inputs-1 downto 0);
-  signal rst_n_dmtd_ref_clk                 : std_logic_vector(g_num_ref_inputs-1 downto 0);
-
-  signal dmtd_fb_clk_in, dmtd_fb_clk_dmtd : std_logic_vector(g_num_outputs-1 downto 0);
-  signal rst_n_dmtd_fb_clk                : std_logic_vector(g_num_outputs-1 downto 0);
-
-  signal ext_ref_present : std_logic;
   signal fb_resync_out   : std_logic_vector(g_num_outputs-1 downto 0);
-
-  signal ref_resync_start_p : std_logic_vector(31 downto 0);
-  signal fb_resync_start_p  : std_logic_vector(15 downto 0);
 
   type t_aligner_sample_array is array(0 to g_num_outputs) of std_logic_vector(27 downto 0);
 
@@ -330,9 +269,6 @@ architecture rtl of wr_softpll_ng is
   attribute mark_debug of tag_muxed : signal is "true";
   attribute mark_debug of trr_wr_full : signal is "true";
   attribute mark_debug of tag_valid : signal is "true";
-  
-  
-    
 begin  -- rtl
 
   U_Adapter : wb_slave_adapter
@@ -391,8 +327,6 @@ begin  -- rtl
         r_stat_reset_i => regs_in.dmtd_stat_cr_rst_o,
         r_stat_ready_o => r_stat_valid_ref(i)
         );
-
-
   end generate gen_ref_dmtds;
 
   gen_feedback_dmtds : for i in 0 to g_num_outputs-1 generate
@@ -433,11 +367,7 @@ begin  -- rtl
         r_minmax_sel_i => regs_in.dmtd_stat_cr_minmax_sel_o,
         r_stat_reset_i => regs_in.dmtd_stat_cr_rst_o,
         r_stat_ready_o => r_stat_valid_fb(i)
-
-
         ); --debug_o(4));
-
-
   end generate gen_feedback_dmtds;
 
   -- drive unused debug output
@@ -474,7 +404,7 @@ begin  -- rtl
 --    debug_o(1) <= tags_p(g_num_ref_inputs + g_num_outputs);
 --    debug_o(2) <= tags_p(g_num_ref_inputs);
     
-    U_Aligner_EXT : spll_aligner
+    U_Aligner_EXT : entity work.spll_aligner
       generic map (
         g_counter_width  => 28,
         g_ref_clock_rate => g_ref_clock_rate,
@@ -577,7 +507,7 @@ begin  -- rtl
     end process;
 
   
-  U_WB_SLAVE : spll_wb_slave
+  U_WB_SLAVE : entity work.spll_wb_slave
     generic map (
       g_with_debug_fifo => f_pick(g_with_debug_fifo, 1, 0))
     port map (
@@ -672,7 +602,6 @@ begin  -- rtl
 
   p_mux_tags : process(clk_sys_i)
     variable muxed  : std_logic_vector(g_tag_bits-1 downto 0);
-    variable src_id : std_logic_vector(5 downto 0);
   begin
     if rising_edge(clk_sys_i) then
       if rst_n_i = '0' then
