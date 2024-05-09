@@ -2230,6 +2230,10 @@
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
+        <spirit:name>../../bin/wrpc/wrc_phy16.bram</spirit:name>
+        <spirit:userFileType>data</spirit:userFileType>
+      </spirit:file>
+      <spirit:file>
         <spirit:name>wrc_board_fasec.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
         <spirit:userFileType>CHECKSUM_56627f08</spirit:userFileType>
