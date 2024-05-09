@@ -1503,7 +1503,7 @@
       <spirit:modelParameter spirit:dataType="string">
         <spirit:name>g_dpram_initf</spirit:name>
         <spirit:displayName>G Dpram Initf</spirit:displayName>
-        <spirit:value spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.g_dpram_initf">../../../../bin/wrpc/wrc_phy16.bram</spirit:value>
+        <spirit:value spirit:resolve="generated" spirit:id="MODELPARAM_VALUE.g_dpram_initf">wrc_phy16.bram</spirit:value>
       </spirit:modelParameter>
       <spirit:modelParameter spirit:dataType="integer">
         <spirit:name>g_diag_id</spirit:name>
@@ -2939,7 +2939,7 @@
       <spirit:file>
         <spirit:name>xgui/wrc_board_fasec_v4_2.tcl</spirit:name>
         <spirit:fileType>tclSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_3bc04777</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_6bc9988d</spirit:userFileType>
         <spirit:userFileType>XGUI_VERSION_2</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
@@ -2969,7 +2969,7 @@
     <spirit:parameter>
       <spirit:name>g_dpram_initf</spirit:name>
       <spirit:displayName>G Dpram Initf</spirit:displayName>
-      <spirit:value spirit:resolve="user" spirit:id="PARAM_VALUE.g_dpram_initf">../../../../bin/wrpc/wrc_phy16.bram</spirit:value>
+      <spirit:value spirit:resolve="user" spirit:id="PARAM_VALUE.g_dpram_initf">wrc_phy16.bram</spirit:value>
     </spirit:parameter>
     <spirit:parameter>
       <spirit:name>g_diag_id</spirit:name>

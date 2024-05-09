@@ -7,7 +7,7 @@
 -- Author(s)  : Grzegorz Daniluk <grzegorz.daniluk@cern.ch>
 -- Company    : CERN (BE-CO-HT)
 -- Created    : 2017-08-02
--- Last update: 2022-07-20
+-- Last update: 2024-05-09
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
 -- Description: Top-level wrapper for WR PTP core including all the modules
@@ -72,7 +72,7 @@ entity xwrc_board_fasec is
     g_tx_streamer_params       : t_tx_streamer_params := c_tx_streamer_params_defaut;
     g_rx_streamer_params       : t_rx_streamer_params := c_rx_streamer_params_defaut;
     -- memory initialisation file for embedded CPU
-    g_dpram_initf               : string               := "/home/greg/wr/wr-cores/bin/wrpc/wrc_phy16.bram";
+    g_dpram_initf               : string               := "wrc_phy16.bram";
     -- identification (id and ver) of the layout of words in the generic diag interface
     g_diag_id                   : integer              := 0;
     g_diag_ver                  : integer              := 0;
