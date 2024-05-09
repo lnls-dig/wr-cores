@@ -485,7 +485,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>92565a83</spirit:value>
+            <spirit:value>f1b4e866</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -501,7 +501,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>37ae36e7</spirit:value>
+            <spirit:value>1f90c0ec</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -515,7 +515,7 @@
         <spirit:parameters>
           <spirit:parameter>
             <spirit:name>viewChecksum</spirit:name>
-            <spirit:value>939d4b1a</spirit:value>
+            <spirit:value>6bc9988d</spirit:value>
           </spirit:parameter>
         </spirit:parameters>
       </spirit:view>
@@ -2248,7 +2248,7 @@
       <spirit:file>
         <spirit:name>wrc_board_fasec.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
-        <spirit:userFileType>CHECKSUM_56627f08</spirit:userFileType>
+        <spirit:userFileType>CHECKSUM_1f4c8ca5</spirit:userFileType>
       </spirit:file>
     </spirit:fileSet>
     <spirit:fileSet>
@@ -3035,8 +3035,8 @@
       <xilinx:definitionSource>package_project</xilinx:definitionSource>
       <xilinx:vendorDisplayName>CERN BE-CO-HT</xilinx:vendorDisplayName>
       <xilinx:vendorURL>https://www.ohwr.org/projects/wr-cores/wiki/wrpc_core</xilinx:vendorURL>
-      <xilinx:coreRevision>8</xilinx:coreRevision>
-      <xilinx:coreCreationDateTime>2022-02-22T10:07:10Z</xilinx:coreCreationDateTime>
+      <xilinx:coreRevision>12</xilinx:coreRevision>
+      <xilinx:coreCreationDateTime>2024-05-08T20:14:43Z</xilinx:coreCreationDateTime>
       <xilinx:tags>
         <xilinx:tag xilinx:name="user.org:user:wrc_board_fasec:1.0_ARCHIVE_LOCATION">/home/greg/wr/wr-cores</xilinx:tag>
         <xilinx:tag xilinx:name="CERN:user:wrc_board_fasec:1.0_ARCHIVE_LOCATION">/home/greg/wr/wr-cores</xilinx:tag>
@@ -3082,10 +3082,10 @@
       <xilinx:xilinxVersion>2021.1</xilinx:xilinxVersion>
       <xilinx:checksum xilinx:scope="busInterfaces" xilinx:value="10dde05e"/>
       <xilinx:checksum xilinx:scope="memoryMaps" xilinx:value="07ed33de"/>
-      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="db4b1454"/>
+      <xilinx:checksum xilinx:scope="fileGroups" xilinx:value="fef9caf2"/>
       <xilinx:checksum xilinx:scope="ports" xilinx:value="4a5cdab2"/>
-      <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="e04b3981"/>
-      <xilinx:checksum xilinx:scope="parameters" xilinx:value="21eb367a"/>
+      <xilinx:checksum xilinx:scope="hdlParameters" xilinx:value="ac8f6a4e"/>
+      <xilinx:checksum xilinx:scope="parameters" xilinx:value="6c8a86c4"/>
     </xilinx:packagingInfo>
   </spirit:vendorExtensions>
 </spirit:component>
