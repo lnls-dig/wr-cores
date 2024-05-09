@@ -1602,6 +1602,10 @@
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
+        <spirit:name>../../modules/timing/dmtd_sampler.vhd</spirit:name>
+        <spirit:fileType>vhdlSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
         <spirit:name>../../modules/timing/dmtd_with_deglitcher.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
@@ -1875,6 +1879,14 @@
       </spirit:file>
       <spirit:file>
         <spirit:name>../../ip_cores/general-cores/modules/genrams/generic/generic_async_fifo.vhd</spirit:name>
+        <spirit:fileType>vhdlSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/common/inferred_async_fifo_dual_rst.vhd</spirit:name>
+        <spirit:fileType>vhdlSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/generic/generic_async_fifo_dual_rst.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
@@ -2302,6 +2314,10 @@
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
+        <spirit:name>../../modules/timing/dmtd_sampler.vhd</spirit:name>
+        <spirit:fileType>vhdlSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
         <spirit:name>../../modules/timing/dmtd_with_deglitcher.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
@@ -2575,6 +2591,14 @@
       </spirit:file>
       <spirit:file>
         <spirit:name>../../ip_cores/general-cores/modules/genrams/generic/generic_async_fifo.vhd</spirit:name>
+        <spirit:fileType>vhdlSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/common/inferred_async_fifo_dual_rst.vhd</spirit:name>
+        <spirit:fileType>vhdlSource</spirit:fileType>
+      </spirit:file>
+      <spirit:file>
+        <spirit:name>../../ip_cores/general-cores/modules/genrams/generic/generic_async_fifo_dual_rst.vhd</spirit:name>
         <spirit:fileType>vhdlSource</spirit:fileType>
       </spirit:file>
       <spirit:file>
