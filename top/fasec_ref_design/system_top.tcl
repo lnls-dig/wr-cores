@@ -111,6 +111,10 @@ set ip_cores_dir "../../../board/fasec/"
 set_property "ip_repo_paths" "[file normalize "$ip_cores_dir"]" [current_project]
 update_ip_catalog -rebuild
 
+# Add constraints
+add_files -fileset constrs_1 -norecurse "[file normalize ../fasec_ref_design.xdc]"
+set_property used_in_synthesis false [get_files "*fasec_ref_design.xdc"]
+
 ##################################################################
 # DESIGN PROCs
 ##################################################################
