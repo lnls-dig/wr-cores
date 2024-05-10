@@ -1183,43 +1183,43 @@ CONFIG.PCW_WDT_WDT_IO.VALUE_SRC {DEFAULT} \
  ] $processing_system7_0
 
   # Create instance: ps7_0_axi_periph, and set properties
-  set ps7_0_axi_periph [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 ps7_0_axi_periph ]
+  set ps7_0_axi_periph [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:* ps7_0_axi_periph ]
   set_property -dict [ list \
 CONFIG.NUM_MI {1} \
  ] $ps7_0_axi_periph
 
   # Create instance: ps7_0_axi_periph_1, and set properties
-  set ps7_0_axi_periph_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:2.1 ps7_0_axi_periph_1 ]
+  set ps7_0_axi_periph_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_interconnect:* ps7_0_axi_periph_1 ]
   set_property -dict [ list \
 CONFIG.NUM_MI {1} \
  ] $ps7_0_axi_periph_1
 
   # Create instance: rst_ps7_0_100M, and set properties
-  set rst_ps7_0_100M [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_ps7_0_100M ]
+  set rst_ps7_0_100M [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:* rst_ps7_0_100M ]
 
   # Create instance: rst_wrc_board_fasec_0_62M, and set properties
-  set rst_wrc_board_fasec_0_62M [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_wrc_board_fasec_0_62M ]
+  set rst_wrc_board_fasec_0_62M [ create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:* rst_wrc_board_fasec_0_62M ]
 
   # Create instance: util_ds_buf_0, and set properties
-  set util_ds_buf_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_ds_buf:2.1 util_ds_buf_0 ]
+  set util_ds_buf_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_ds_buf:* util_ds_buf_0 ]
   set_property -dict [ list \
 CONFIG.C_BUF_TYPE {OBUFDS} \
  ] $util_ds_buf_0
 
   # Create instance: util_ds_buf_1, and set properties
-  set util_ds_buf_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_ds_buf:2.1 util_ds_buf_1 ]
+  set util_ds_buf_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_ds_buf:* util_ds_buf_1 ]
   set_property -dict [ list \
 CONFIG.C_BUF_TYPE {OBUFDS} \
  ] $util_ds_buf_1
 
   # Create instance: util_ds_buf_2, and set properties
-  set util_ds_buf_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_ds_buf:2.1 util_ds_buf_2 ]
+  set util_ds_buf_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:util_ds_buf:* util_ds_buf_2 ]
   set_property -dict [ list \
 CONFIG.C_BUF_TYPE {OBUFDS} \
  ] $util_ds_buf_2
 
   # Create instance: wrc_board_fasec_0, and set properties
-  set wrc_board_fasec_0 [ create_bd_cell -type ip -vlnv CERN:white_rabbit:wrc_board_fasec:4.2 wrc_board_fasec_0 ]
+  set wrc_board_fasec_0 [ create_bd_cell -type ip -vlnv CERN:white_rabbit:wrc_board_fasec:5.0 wrc_board_fasec_0 ]
 
   set_property -dict [ list \
 CONFIG.NUM_READ_OUTSTANDING {1} \
@@ -1227,28 +1227,28 @@ CONFIG.NUM_WRITE_OUTSTANDING {1} \
  ] [get_bd_intf_pins /wrc_board_fasec_0/s00_axi]
 
   # Create instance: xlconcat_0, and set properties
-  set xlconcat_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:2.1 xlconcat_0 ]
+  set xlconcat_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconcat:* xlconcat_0 ]
   set_property -dict [ list \
 CONFIG.IN0_WIDTH {4} \
 CONFIG.NUM_PORTS {2} \
  ] $xlconcat_0
 
   # Create instance: xlconstant_0, and set properties
-  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_0 ]
+  set xlconstant_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:* xlconstant_0 ]
   set_property -dict [ list \
 CONFIG.CONST_VAL {000} \
 CONFIG.CONST_WIDTH {3} \
  ] $xlconstant_0
 
   # Create instance: xlconstant_1, and set properties
-  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_1 ]
+  set xlconstant_1 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:* xlconstant_1 ]
   set_property -dict [ list \
 CONFIG.CONST_VAL {000} \
 CONFIG.CONST_WIDTH {3} \
  ] $xlconstant_1
 
   # Create instance: xlconstant_2, and set properties
-  set xlconstant_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:1.1 xlconstant_2 ]
+  set xlconstant_2 [ create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant:* xlconstant_2 ]
   set_property -dict [ list \
 CONFIG.CONST_VAL {0000} \
 CONFIG.CONST_WIDTH {4} \
