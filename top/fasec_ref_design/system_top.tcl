@@ -35,7 +35,7 @@ if { $list_projs eq "" } {
 
 
 # CHANGE DESIGN NAME HERE
-set design_name design_1
+set design_name fasec_ref_design
 
 # If you do not already have an existing IP Integrator design open,
 # you can create a design using the following command:
@@ -101,6 +101,15 @@ if { $nRet != 0 } {
    catch {common::send_msg_id "BD_TCL-114" "ERROR" $errMsg}
    return $nRet
 }
+
+# Set the directory path for the new project
+set proj_dir [get_property directory [current_project]]
+cd $proj_dir
+
+# Set IP repository paths
+set ip_cores_dir "../../../board/fasec/"
+set_property "ip_repo_paths" "[file normalize "$ip_cores_dir"]" [current_project]
+update_ip_catalog -rebuild
 
 ##################################################################
 # DESIGN PROCs
