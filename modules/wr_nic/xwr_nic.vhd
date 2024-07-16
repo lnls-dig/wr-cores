@@ -108,153 +108,6 @@ entity xwr_nic is
 end xwr_nic;
 
 architecture rtl of xwr_nic is
-
-  component nic_descriptor_manager
-    generic (
-      g_desc_mode            : string;
-      g_num_descriptors      : integer;
-      g_num_descriptors_log2 : integer;
-      g_port_mask_bits       : integer := 32);
-    port (
-      clk_sys_i             : in  std_logic;
-      rst_n_i               : in  std_logic;
-      enable_i              : in  std_logic;
-      bna_o                 : out std_logic;
-      bna_clear_i           : in  std_logic;
-      cur_desc_idx_o        : out std_logic_vector(g_num_descriptors_log2-1 downto 0);
-      dtbl_addr_o           : out std_logic_vector(g_num_descriptors_log2+1 downto 0);
-      dtbl_data_i           : in  std_logic_vector(31 downto 0);
-      dtbl_rd_o             : out std_logic;
-      dtbl_data_o           : out std_logic_vector(31 downto 0);
-      dtbl_wr_o             : out std_logic;
-      desc_reload_current_i : in  std_logic;
-      desc_request_next_i   : in  std_logic;
-      desc_grant_o          : out std_logic;
-      rxdesc_current_o      : out t_rx_descriptor;
-      rxdesc_new_i          : in  t_rx_descriptor;
-      txdesc_current_o      : out t_tx_descriptor;
-      txdesc_new_i          : in  t_tx_descriptor;
-      desc_write_i          : in  std_logic;
-      desc_write_done_o     : out std_logic);
-  end component;
-
-  component nic_rx_fsm
-    port (
-      clk_sys_i             : in  std_logic;
-      rst_n_i               : in  std_logic;
-      pps_p_i               : in std_logic;
-      pps_valid_i           : in std_logic;
-      snk_i                 : in  t_wrf_sink_in;
-      snk_o                 : out t_wrf_sink_out;
-      regs_i                : in  t_nic_out_registers;
-      regs_o                : out t_nic_in_registers;
-      bna_i                 : in  std_logic;
-      irq_rcomp_o           : out std_logic;
-      irq_rcomp_ack_i       : in  std_logic;
-      rxdesc_request_next_o : out std_logic;
-      rxdesc_grant_i        : in  std_logic;
-      rxdesc_current_i      : in  t_rx_descriptor;
-      rxdesc_new_o          : out t_rx_descriptor;
-      rxdesc_write_o        : out std_logic;
-      rxdesc_write_done_i   : in  std_logic;
-      buf_grant_i           : in  std_logic;
-      buf_addr_o            : out std_logic_vector(c_nic_buf_size_log2-3 downto 0);
-      buf_wr_o              : out std_logic;
-      buf_data_o            : out std_logic_vector(31 downto 0));
-  end component;
-
-  component nic_buffer
-    generic (
-      g_memsize_log2 : integer);
-    port (
-      clk_sys_i : in  std_logic;
-      rst_n_i   : in  std_logic;
-      addr_i    : in  std_logic_vector(g_memsize_log2-1 downto 0);
-      data_i    : in  std_logic_vector(31 downto 0);
-      wr_i      : in  std_logic;
-      data_o    : out std_logic_vector(31 downto 0);
-      wb_data_i : in  std_logic_vector(31 downto 0);
-      wb_data_o : out std_logic_vector(31 downto 0);
-      wb_addr_i : in  std_logic_vector(g_memsize_log2-1 downto 0);
-      wb_cyc_i  : in  std_logic;
-      wb_stb_i  : in  std_logic;
-      wb_we_i   : in  std_logic;
-      wb_ack_o  : out std_logic);
-  end component;
-
-  component nic_wishbone_slave
-    port (
-      rst_n_i          : in  std_logic;
-      clk_sys_i        : in  std_logic;
-      wb_adr_i         : in  std_logic_vector(6 downto 0);
-      wb_dat_i         : in  std_logic_vector(31 downto 0);
-      wb_dat_o         : out std_logic_vector(31 downto 0);
-      wb_cyc_i         : in  std_logic;
-      wb_sel_i         : in  std_logic_vector(3 downto 0);
-      wb_stb_i         : in  std_logic;
-      wb_we_i          : in  std_logic;
-      wb_ack_o         : out std_logic;
-      wb_stall_o       : out std_logic;
-      wb_int_o         : out std_logic;
-      irq_rcomp_i      : in  std_logic;
-      irq_rcomp_ack_o  : out std_logic;
-      irq_tcomp_i      : in  std_logic;
-      irq_tcomp_ack_o  : out std_logic;
-      irq_tcomp_mask_o : out std_logic;
-      irq_txerr_i      : in  std_logic;
-      irq_txerr_ack_o  : out std_logic;
-      irq_txerr_mask_o : out std_logic;
-      nic_dtx_addr_i   : in  std_logic_vector(4 downto 0);
-      nic_dtx_data_o   : out std_logic_vector(31 downto 0);
-      nic_dtx_rd_i     : in  std_logic;
-      nic_dtx_data_i   : in  std_logic_vector(31 downto 0);
-      nic_dtx_wr_i     : in  std_logic;
-      nic_drx_addr_i   : in  std_logic_vector(4 downto 0);
-      nic_drx_data_o   : out std_logic_vector(31 downto 0);
-      nic_drx_rd_i     : in  std_logic;
-      nic_drx_data_i   : in  std_logic_vector(31 downto 0);
-      nic_drx_wr_i     : in  std_logic;
-      regs_i           : in  t_nic_in_registers;
-      regs_o           : out t_nic_out_registers);
-  end component;
-
-  component nic_tx_fsm
-    generic(
-      g_port_mask_bits  : integer := 32;
-      g_cyc_on_stall    : boolean := false;
-      g_rmon_events_pp  : integer := 1);
-    port (
-      clk_sys_i               : in  std_logic;
-      rst_n_i                 : in  std_logic;
-      src_o                   : out t_wrf_source_out;
-      src_i                   : in  t_wrf_source_in;
-      rtu_dst_port_mask_o     : out std_logic_vector(g_port_mask_bits-1 downto 0);
-      rtu_prio_o              : out std_logic_vector(2 downto 0);
-      rtu_drop_o              : out std_logic;
-      rtu_rsp_valid_o         : out std_logic;
-      rtu_rsp_ack_i           : in  std_logic;
-      regs_i                  : in  t_nic_out_registers;
-      regs_o                  : out t_nic_in_registers;
-      irq_tcomp_o             : out std_logic;
-      irq_tcomp_ack_i         : in  std_logic;
-      irq_tcomp_mask_i        : in  std_logic;
-      irq_txerr_o             : out std_logic;
-      irq_txerr_ack_i         : in  std_logic;
-      irq_txerr_mask_i        : in  std_logic;
-      txdesc_reload_current_o : out std_logic;
-      txdesc_request_next_o   : out std_logic;
-      txdesc_grant_i          : in  std_logic;
-      txdesc_current_i        : in  t_tx_descriptor;
-      txdesc_new_o            : out t_tx_descriptor;
-      txdesc_write_o          : out std_logic;
-      txdesc_write_done_i     : in  std_logic;
-      bna_i                   : in  std_logic;
-      buf_grant_i             : in  std_logic;
-      buf_addr_o              : out std_logic_vector(c_nic_buf_size_log2-3 downto 0);
-      buf_data_i              : in  std_logic_vector(31 downto 0);
-      rmon_events_o : out std_logic_vector(g_port_mask_bits*g_rmon_events_pp-1 downto 0));
-  end component;
-
   signal rxdesc_request_next : std_logic;
   signal rxdesc_grant        : std_logic;
   signal rxdesc_current      : t_rx_descriptor;
@@ -351,7 +204,7 @@ begin  -- rtl
 
   regs_towb <= regs_towb_tx or regs_towb_rx or regs_towb_main;
 
-  U_WB_SLAVE : nic_wishbone_slave
+  U_WB_SLAVE : entity work.nic_wishbone_slave
     port map (
       rst_n_i   => rst_n_i,
       clk_sys_i => clk_sys_i,
@@ -393,7 +246,7 @@ begin  -- rtl
       nic_drx_wr_i   => nic_drx_wr);
 
 
-  U_BUFFER : nic_buffer
+  U_BUFFER : entity work.nic_buffer
     generic map (
       g_memsize_log2 => c_nic_buf_size_log2 - 2)
     port map (
@@ -419,7 +272,7 @@ begin  -- rtl
   wb_out.dat <= wb_rdata_slave when (wb_in.adr(13) = '0')
                 else wb_rdata_buf;
   
-  p_buffer_arb : process(clk_sys_i, nic_reset_n)
+  p_buffer_arb : process(clk_sys_i)
   begin
     if rising_edge(clk_sys_i) then
       if(nic_reset_n = '0') then
@@ -455,7 +308,7 @@ begin  -- rtl
 -- RX Path
 -------------------------------------------------------------------------------  
 
-  U_RX_DESC_MANAGER : nic_descriptor_manager
+  U_RX_DESC_MANAGER : entity work.nic_descriptor_manager
     generic map (
       g_desc_mode            => "rx",
       g_num_descriptors      => c_nic_num_rx_descriptors,
@@ -489,7 +342,7 @@ begin  -- rtl
       );
 
 
-  U_RX_FSM : nic_rx_fsm
+  U_RX_FSM : entity work.nic_rx_fsm
     port map (
       clk_sys_i => clk_sys_i,
       rst_n_i   => nic_reset_n,
@@ -524,7 +377,7 @@ begin  -- rtl
 -- TX Path
 -------------------------------------------------------------------------------  
 
-  U_TX_DESC_MANAGER : nic_descriptor_manager
+  U_TX_DESC_MANAGER : entity work.nic_descriptor_manager
     generic map (
       g_desc_mode            => "tx",
       g_num_descriptors      => c_nic_num_tx_descriptors,
@@ -556,7 +409,7 @@ begin  -- rtl
       desc_write_done_o => txdesc_write_done);
 
 
-  U_TX_FSM : nic_tx_fsm
+  U_TX_FSM : entity work.nic_tx_fsm
     generic map(
       g_cyc_on_stall    => g_src_cyc_on_stall,
       g_port_mask_bits  => g_port_mask_bits,
@@ -596,6 +449,4 @@ begin  -- rtl
       buf_addr_o              => mem_addr_tx,
       buf_data_i              => nic_mem_rd_data,
       rmon_events_o           => rmon_events_o);
-
-
 end rtl;
