@@ -442,6 +442,7 @@ begin
       slave_i => slave_i(1),
       slave_o => slave_o(1),
       desc_o  => open,
+      int_o   => open,
 
       uart_rxd_i => uart_rxd_i,
       uart_txd_o => uart_txd_o
@@ -466,6 +467,7 @@ begin
       slave_i => slave_i(2),
       slave_o => slave_o(2),
       desc_o  => open,
+      int_o   => open,
 
       owr_pwren_o => owr_pwren_o,
       owr_en_o => owr_en_o,
