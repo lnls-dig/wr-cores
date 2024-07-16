@@ -222,7 +222,10 @@ entity xwr_core is
     owr_i       : in  std_logic_vector(1 downto 0) := (others => '1');
 
     -----------------------------------------
-    --External WB interface
+    -- External WB interface
+    -- The slave port allows an external master to access WR-core registers
+    -- The aux_master port allows adding peripherals to the WR-core. You will
+    --  need to also modify the software to handle them.
     -----------------------------------------
     slave_i : in  t_wishbone_slave_in := cc_dummy_slave_in;
     slave_o : out t_wishbone_slave_out;
