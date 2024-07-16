@@ -64,15 +64,15 @@ architecture rtl of xwb_fabric_source is
 
   constant c_fifo_width : integer := 16 + 2 + 4;
 
-  signal q_valid, full, we, rd, rd_d0 : std_logic;
-  signal fin, fout                    : std_logic_vector(c_fifo_width-1 downto 0);
+  signal q_valid, full, we, rd : std_logic;
+  signal fin, fout             : std_logic_vector(c_fifo_width-1 downto 0);
 
   signal pre_dvalid : std_logic;
   signal pre_eof    : std_logic;
   signal pre_data   : std_logic_vector(15 downto 0);
   signal pre_addr   : std_logic_vector(1 downto 0);
 
-  signal post_dvalid, post_eof, post_bytesel, post_sof : std_logic;
+  signal post_dvalid, post_eof, post_sof : std_logic;
 
   signal err_status : t_wrf_status_reg;
   signal cyc_int    : std_logic;
@@ -105,6 +105,7 @@ begin  -- rtl
       q_o           => fout,
       rd_i          => rd,
       almost_full_o => full,
+      full_o        => open,
       q_valid_o     => q_valid);
 
   post_sof    <= fout(21);
@@ -145,7 +146,6 @@ use ieee.std_logic_1164.all;
 use work.wr_fabric_pkg.all;
 
 entity wb_fabric_source is
-  
   port (
     clk_i   : in std_logic;
     rst_n_i : in std_logic;
@@ -172,33 +172,13 @@ entity wb_fabric_source is
     bytesel_i : in  std_logic;
     dreq_o    : out std_logic
     );
-
 end wb_fabric_source;
 
 architecture wrapper of wb_fabric_source is
-  component xwb_fabric_source
-    port (
-      clk_i     : in  std_logic;
-      rst_n_i   : in  std_logic;
-      src_i     : in  t_wrf_source_in;
-      src_o     : out t_wrf_source_out;
-      addr_i    : in  std_logic_vector(1 downto 0);
-      data_i    : in  std_logic_vector(15 downto 0);
-      dvalid_i  : in  std_logic;
-      sof_i     : in  std_logic;
-      eof_i     : in  std_logic;
-      error_i   : in  std_logic;
-      bytesel_i : in  std_logic;
-      dreq_o    : out std_logic);
-  end component;
-
   signal src_in  : t_wrf_source_in;
   signal src_out : t_wrf_source_out;
-  
 begin  -- wrapper
-
-  
-  U_Wrapped_Source : xwb_fabric_source
+  U_Wrapped_Source : entity work.xwb_fabric_source
     port map (
       clk_i     => clk_i,
       rst_n_i   => rst_n_i,
@@ -224,6 +204,4 @@ begin  -- wrapper
   src_in.err   <= src_err_i;
   src_in.ack   <= src_ack_i;
   src_in.stall <= src_stall_i;
-
-  
 end wrapper;
