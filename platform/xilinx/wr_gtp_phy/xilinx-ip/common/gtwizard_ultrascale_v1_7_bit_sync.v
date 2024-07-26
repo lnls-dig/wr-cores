@@ -52,7 +52,7 @@
 
 `timescale 1ps/1ps
 
-module gtwizard_ultrascale_v1_7_7_bit_synchronizer # (
+module gtwizard_ultrascale_v1_7_14_bit_synchronizer # (
 
   parameter INITIALIZE = 5'b00000,
   parameter FREQUENCY  = 512

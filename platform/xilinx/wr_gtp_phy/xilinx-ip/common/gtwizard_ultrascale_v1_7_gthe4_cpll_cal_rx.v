@@ -52,7 +52,7 @@
 
 `timescale 1ps/1ps
 
-module gtwizard_ultrascale_v1_7_7_gthe4_cpll_cal_rx # (
+module gtwizard_ultrascale_v1_7_14_gthe4_cpll_cal_rx # (
   parameter C_SIM_CPLL_CAL_BYPASS = 1'b1,
   parameter SIM_RESET_SPEEDUP     = "TRUE",
   parameter CPLL_CAL_ONLY_TX      = 1,
@@ -60,7 +60,6 @@ module gtwizard_ultrascale_v1_7_7_gthe4_cpll_cal_rx # (
 )(
   // control signals
   input   wire  [17:0]  RXOUTCLK_PERIOD_IN,
-  input   wire  [15:0]  WAIT_DEASSERT_CPLLPD_IN,
   input   wire  [17:0]  CNT_TOL_IN,
   input   wire  [15:0]  FREQ_COUNT_WINDOW_IN,
   // User Interface
@@ -259,21 +258,21 @@ begin: gen_cal_rx_en
   );
 
   wire gthe4_cplllock_sync;
-  gtwizard_ultrascale_v1_7_7_bit_synchronizer bit_synchronizer_cplllock_inst (
+  gtwizard_ultrascale_v1_7_14_bit_synchronizer bit_synchronizer_cplllock_inst (
     .clk_in (CLK_IN),
     .i_in   (GTHE4_CPLLLOCK_IN),
     .o_out  (gthe4_cplllock_sync)
   );
 
   wire gthe4_rxpmaresetdone_sync; 
-  gtwizard_ultrascale_v1_7_7_bit_synchronizer bit_synchronizer_rxpmaresetdone_inst (
+  gtwizard_ultrascale_v1_7_14_bit_synchronizer bit_synchronizer_rxpmaresetdone_inst (
     .clk_in (CLK_IN),
     .i_in   (GTHE4_RXPMARESETDONE_IN),
     .o_out  (gthe4_rxpmaresetdone_sync)
   );
   
   wire gthe4_rxprgdivresetdone_sync; 
-  gtwizard_ultrascale_v1_7_7_bit_synchronizer bit_synchronizer_rxprgdivresetdone_inst (
+  gtwizard_ultrascale_v1_7_14_bit_synchronizer bit_synchronizer_rxprgdivresetdone_inst (
     .clk_in (CLK_IN),
     .i_in   (GTHE4_RXPRGDIVRESETDONE_IN),
     .o_out  (gthe4_rxprgdivresetdone_sync)
@@ -301,7 +300,7 @@ begin: gen_cal_rx_en
   wire [17:0] rxoutclk_freq_cnt;
   reg freq_counter_rst = 1'b1;
   wire freq_cnt_done;
-  gtwizard_ultrascale_v1_7_7_gthe4_cpll_cal_freq_counter U_RXOUTCLK_FREQ_COUNTER
+  gtwizard_ultrascale_v1_7_14_gthe4_cpll_cal_freq_counter U_RXOUTCLK_FREQ_COUNTER
   (
     .freq_cnt_o(rxoutclk_freq_cnt),
     .done_o(freq_cnt_done),

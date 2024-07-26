@@ -52,7 +52,7 @@
 
 `timescale 1ps/1ps
 
-module gtwizard_ultrascale_v1_7_7_gtwiz_userclk_tx #(
+module gtwizard_ultrascale_v1_7_14_gtwiz_userclk_tx #(
 
   parameter integer P_CONTENTS                     = 0,
   parameter integer P_FREQ_RATIO_SOURCE_TO_USRCLK  = 1,

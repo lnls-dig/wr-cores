@@ -1,4 +1,4 @@
-// (c) Copyright 1995-2020 Xilinx, Inc. All rights reserved.
+// (c) Copyright 1995-2024 Xilinx, Inc. All rights reserved.
 // 
 // This file contains confidential and proprietary information
 // of Xilinx, Inc. and is protected under U.S. and
@@ -48,16 +48,16 @@
 
 
 // IP VLNV: xilinx.com:ip:gtwizard_ultrascale:1.7
-// IP Revision: 7
+// IP Revision: 14
 
-(* X_CORE_INFO = "gtwizard_ultrascale_2_gtwizard_top,Vivado 2019.2" *)
+(* X_CORE_INFO = "gtwizard_ultrascale_2_gtwizard_top,Vivado 2022.2" *)
 (* CHECK_LICENSE_TYPE = "gtwizard_ultrascale_2,gtwizard_ultrascale_2_gtwizard_top,{}" *)
-(* CORE_GENERATION_INFO = "gtwizard_ultrascale_2,gtwizard_ultrascale_2_gtwizard_top,{x_ipProduct=Vivado 2019.2,x_ipVendor=xilinx.com,x_ipLibrary=ip,x_ipName=gtwizard_ultrascale,x_ipVersion=1.7,x_ipCoreRevision=7,x_ipLanguage=VHDL,x_ipSimLanguage=MIXED,C_CHANNEL_ENABLE=000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001,C_PCIE_ENABLE=0,C_PCIE_CORECLK_FREQ=250,C_COMMON_SCALING_FACTOR=1\
-,C_CPLL_VCO_FREQUENCY=2500.0,C_FORCE_COMMONS=0,C_FREERUN_FREQUENCY=62.5,C_GT_TYPE=2,C_GT_REV=57,C_INCLUDE_CPLL_CAL=2,C_ENABLE_COMMON_USRCLK=0,C_USER_GTPOWERGOOD_DELAY_EN=1,C_SIM_CPLL_CAL_BYPASS=1,C_LOCATE_COMMON=0,C_LOCATE_RESET_CONTROLLER=0,C_LOCATE_USER_DATA_WIDTH_SIZING=0,C_LOCATE_RX_BUFFER_BYPASS_CONTROLLER=0,C_LOCATE_IN_SYSTEM_IBERT_CORE=1,C_LOCATE_RX_USER_CLOCKING=0,C_LOCATE_TX_BUFFER_BYPASS_CONTROLLER=0,C_LOCATE_TX_USER_CLOCKING=0,C_RESET_CONTROLLER_INSTANCE_CTRL=0,C_RX_BUFFBYPASS_MODE=0,\
-C_RX_BUFFER_BYPASS_INSTANCE_CTRL=0,C_RX_BUFFER_MODE=0,C_RX_CB_DISP=00000000,C_RX_CB_K=00000000,C_RX_CB_MAX_LEVEL=1,C_RX_CB_LEN_SEQ=1,C_RX_CB_NUM_SEQ=0,C_RX_CB_VAL=00000000000000000000000000000000000000000000000000000000000000000000000000000000,C_RX_CC_DISP=00000000,C_RX_CC_ENABLE=0,C_RESET_SEQUENCE_INTERVAL=0,C_RX_CC_K=00000000,C_RX_CC_LEN_SEQ=1,C_RX_CC_NUM_SEQ=0,C_RX_CC_PERIODICITY=5000,C_RX_CC_VAL=00000000000000000000000000000000000000000000000000000000000000000000000000000000,C_RX_COMMA_M_ENA\
-BLE=1,C_RX_COMMA_M_VAL=1010000011,C_RX_COMMA_P_ENABLE=1,C_RX_COMMA_P_VAL=0101111100,C_RX_DATA_DECODING=1,C_RX_ENABLE=1,C_RX_INT_DATA_WIDTH=20,C_RX_LINE_RATE=1.25,C_RX_MASTER_CHANNEL_IDX=0,C_RX_OUTCLK_BUFG_GT_DIV=1,C_RX_OUTCLK_FREQUENCY=62.5000000,C_RX_OUTCLK_SOURCE=1,C_RX_PLL_TYPE=2,C_RX_RECCLK_OUTPUT=0x000000000000000000000000000000000000000000000000,C_RX_REFCLK_FREQUENCY=125,C_RX_SLIDE_MODE=1,C_RX_USER_CLOCKING_CONTENTS=0,C_RX_USER_CLOCKING_INSTANCE_CTRL=0,C_RX_USER_CLOCKING_RATIO_FSRC_FUSRCLK\
-=1,C_RX_USER_CLOCKING_RATIO_FUSRCLK_FUSRCLK2=1,C_RX_USER_CLOCKING_SOURCE=0,C_RX_USER_DATA_WIDTH=16,C_RX_USRCLK_FREQUENCY=62.5000000,C_RX_USRCLK2_FREQUENCY=62.5000000,C_SECONDARY_QPLL_ENABLE=0,C_SECONDARY_QPLL_REFCLK_FREQUENCY=257.8125,C_TOTAL_NUM_CHANNELS=1,C_TOTAL_NUM_COMMONS=0,C_TOTAL_NUM_COMMONS_EXAMPLE=0,C_TXPROGDIV_FREQ_ENABLE=0,C_TXPROGDIV_FREQ_SOURCE=2,C_TXPROGDIV_FREQ_VAL=62.5,C_TX_BUFFBYPASS_MODE=0,C_TX_BUFFER_BYPASS_INSTANCE_CTRL=0,C_TX_BUFFER_MODE=0,C_TX_DATA_ENCODING=1,C_TX_ENABLE=1,\
-C_TX_INT_DATA_WIDTH=20,C_TX_LINE_RATE=1.25,C_TX_MASTER_CHANNEL_IDX=0,C_TX_OUTCLK_BUFG_GT_DIV=2,C_TX_OUTCLK_FREQUENCY=125.0000000,C_TX_OUTCLK_SOURCE=2,C_TX_PLL_TYPE=2,C_TX_REFCLK_FREQUENCY=125,C_TX_USER_CLOCKING_CONTENTS=0,C_TX_USER_CLOCKING_INSTANCE_CTRL=0,C_TX_USER_CLOCKING_RATIO_FSRC_FUSRCLK=2,C_TX_USER_CLOCKING_RATIO_FUSRCLK_FUSRCLK2=1,C_TX_USER_CLOCKING_SOURCE=0,C_TX_USER_DATA_WIDTH=16,C_TX_USRCLK_FREQUENCY=62.5000000,C_TX_USRCLK2_FREQUENCY=62.5000000}" *)
+(* CORE_GENERATION_INFO = "gtwizard_ultrascale_2,gtwizard_ultrascale_2_gtwizard_top,{x_ipProduct=Vivado 2022.2,x_ipVendor=xilinx.com,x_ipLibrary=ip,x_ipName=gtwizard_ultrascale,x_ipVersion=1.7,x_ipCoreRevision=14,x_ipLanguage=VHDL,x_ipSimLanguage=MIXED,C_CHANNEL_ENABLE=000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001,C_PCIE_ENABLE=0,C_PCIE_CORECLK_FREQ=250,C_COMMON_SCALING_FACTOR=\
+1,C_CPLL_VCO_FREQUENCY=2500.0,C_FORCE_COMMONS=0,C_FREERUN_FREQUENCY=62.5,C_GT_TYPE=2,C_GT_REV=57,C_INCLUDE_CPLL_CAL=2,C_ENABLE_COMMON_USRCLK=0,C_USER_GTPOWERGOOD_DELAY_EN=1,C_SIM_CPLL_CAL_BYPASS=1,C_LOCATE_COMMON=0,C_LOCATE_RESET_CONTROLLER=0,C_LOCATE_USER_DATA_WIDTH_SIZING=0,C_LOCATE_RX_BUFFER_BYPASS_CONTROLLER=0,C_LOCATE_IN_SYSTEM_IBERT_CORE=1,C_LOCATE_RX_USER_CLOCKING=0,C_LOCATE_TX_BUFFER_BYPASS_CONTROLLER=0,C_LOCATE_TX_USER_CLOCKING=0,C_RESET_CONTROLLER_INSTANCE_CTRL=0,C_RX_BUFFBYPASS_MODE=0\
+,C_RX_BUFFER_BYPASS_INSTANCE_CTRL=0,C_RX_BUFFER_MODE=0,C_RX_CB_DISP=00000000,C_RX_CB_K=00000000,C_RX_CB_MAX_LEVEL=1,C_RX_CB_LEN_SEQ=1,C_RX_CB_NUM_SEQ=0,C_RX_CB_VAL=00000000000000000000000000000000000000000000000000000000000000000000000000000000,C_RX_CC_DISP=00000000,C_RX_CC_ENABLE=0,C_RESET_SEQUENCE_INTERVAL=0,C_RX_CC_K=00000000,C_RX_CC_LEN_SEQ=1,C_RX_CC_NUM_SEQ=0,C_RX_CC_PERIODICITY=5000,C_RX_CC_VAL=00000000000000000000000000000000000000000000000000000000000000000000000000000000,C_RX_COMMA_M_EN\
+ABLE=1,C_RX_COMMA_M_VAL=1010000011,C_RX_COMMA_P_ENABLE=1,C_RX_COMMA_P_VAL=0101111100,C_RX_DATA_DECODING=1,C_RX_ENABLE=1,C_RX_INT_DATA_WIDTH=20,C_RX_LINE_RATE=1.25,C_RX_MASTER_CHANNEL_IDX=0,C_RX_OUTCLK_BUFG_GT_DIV=1,C_RX_OUTCLK_FREQUENCY=62.5000000,C_RX_OUTCLK_SOURCE=1,C_RX_PLL_TYPE=2,C_RX_RECCLK_OUTPUT=0x000000000000000000000000000000000000000000000000,C_RX_REFCLK_FREQUENCY=125,C_RX_SLIDE_MODE=1,C_RX_USER_CLOCKING_CONTENTS=0,C_RX_USER_CLOCKING_INSTANCE_CTRL=0,C_RX_USER_CLOCKING_RATIO_FSRC_FUSRCL\
+K=1,C_RX_USER_CLOCKING_RATIO_FUSRCLK_FUSRCLK2=1,C_RX_USER_CLOCKING_SOURCE=0,C_RX_USER_DATA_WIDTH=16,C_RX_USRCLK_FREQUENCY=62.5000000,C_RX_USRCLK2_FREQUENCY=62.5000000,C_SECONDARY_QPLL_ENABLE=0,C_SECONDARY_QPLL_REFCLK_FREQUENCY=257.8125,C_TOTAL_NUM_CHANNELS=1,C_TOTAL_NUM_COMMONS=0,C_TOTAL_NUM_COMMONS_EXAMPLE=0,C_TXPROGDIV_FREQ_ENABLE=0,C_TXPROGDIV_FREQ_SOURCE=2,C_TXPROGDIV_FREQ_VAL=62.5,C_TX_BUFFBYPASS_MODE=0,C_TX_BUFFER_BYPASS_INSTANCE_CTRL=0,C_TX_BUFFER_MODE=0,C_TX_DATA_ENCODING=1,C_TX_ENABLE=1\
+,C_TX_INT_DATA_WIDTH=20,C_TX_LINE_RATE=1.25,C_TX_MASTER_CHANNEL_IDX=0,C_TX_OUTCLK_BUFG_GT_DIV=2,C_TX_OUTCLK_FREQUENCY=125.0000000,C_TX_OUTCLK_SOURCE=2,C_TX_PLL_TYPE=2,C_TX_REFCLK_FREQUENCY=125,C_TX_USER_CLOCKING_CONTENTS=0,C_TX_USER_CLOCKING_INSTANCE_CTRL=0,C_TX_USER_CLOCKING_RATIO_FSRC_FUSRCLK=2,C_TX_USER_CLOCKING_RATIO_FUSRCLK_FUSRCLK2=1,C_TX_USER_CLOCKING_SOURCE=0,C_TX_USER_DATA_WIDTH=16,C_TX_USRCLK_FREQUENCY=62.5000000,C_TX_USRCLK2_FREQUENCY=62.5000000}" *)
 (* DowngradeIPIdentifiedWarnings = "yes" *)
 module gtwizard_ultrascale_2 (
   gtwiz_userclk_tx_reset_in,
@@ -128,35 +128,35 @@ module gtwizard_ultrascale_2 (
   txpmaresetdone_out
 );
 
-(* mark_debug = "true" *) input wire [0 : 0] gtwiz_userclk_tx_reset_in;
+input wire [0 : 0] gtwiz_userclk_tx_reset_in;
 output wire [0 : 0] gtwiz_userclk_tx_srcclk_out;
 output wire [0 : 0] gtwiz_userclk_tx_usrclk_out;
 output wire [0 : 0] gtwiz_userclk_tx_usrclk2_out;
-(* mark_debug = "true" *)output wire [0 : 0] gtwiz_userclk_tx_active_out;
-(* mark_debug = "true" *)input wire [0 : 0] gtwiz_userclk_rx_reset_in;
+output wire [0 : 0] gtwiz_userclk_tx_active_out;
+input wire [0 : 0] gtwiz_userclk_rx_reset_in;
 output wire [0 : 0] gtwiz_userclk_rx_srcclk_out;
 output wire [0 : 0] gtwiz_userclk_rx_usrclk_out;
 output wire [0 : 0] gtwiz_userclk_rx_usrclk2_out;
-(* mark_debug = "true" *)output wire [0 : 0] gtwiz_userclk_rx_active_out;
-(* mark_debug = "true" *)input wire [0 : 0] gtwiz_buffbypass_tx_reset_in;
+output wire [0 : 0] gtwiz_userclk_rx_active_out;
+input wire [0 : 0] gtwiz_buffbypass_tx_reset_in;
 input wire [0 : 0] gtwiz_buffbypass_tx_start_user_in;
 output wire [0 : 0] gtwiz_buffbypass_tx_done_out;
 output wire [0 : 0] gtwiz_buffbypass_tx_error_out;
-(* mark_debug = "true" *)input wire [0 : 0] gtwiz_buffbypass_rx_reset_in;
+input wire [0 : 0] gtwiz_buffbypass_rx_reset_in;
 input wire [0 : 0] gtwiz_buffbypass_rx_start_user_in;
-(* mark_debug = "true" *)output wire [0 : 0] gtwiz_buffbypass_rx_done_out;
+output wire [0 : 0] gtwiz_buffbypass_rx_done_out;
 output wire [0 : 0] gtwiz_buffbypass_rx_error_out;
 input wire [0 : 0] gtwiz_reset_clk_freerun_in;
-(* mark_debug = "true" *)input wire [0 : 0] gtwiz_reset_all_in;
+input wire [0 : 0] gtwiz_reset_all_in;
 input wire [0 : 0] gtwiz_reset_tx_pll_and_datapath_in;
 input wire [0 : 0] gtwiz_reset_tx_datapath_in;
 input wire [0 : 0] gtwiz_reset_rx_pll_and_datapath_in;
 input wire [0 : 0] gtwiz_reset_rx_datapath_in;
 output wire [0 : 0] gtwiz_reset_rx_cdr_stable_out;
-(* mark_debug = "true" *)output wire [0 : 0] gtwiz_reset_tx_done_out;
-(* mark_debug = "true" *)output wire [0 : 0] gtwiz_reset_rx_done_out;
-(* mark_debug = "true" *)input wire [15 : 0] gtwiz_userdata_tx_in;
-(* mark_debug = "true" *)output wire [15 : 0] gtwiz_userdata_rx_out;
+output wire [0 : 0] gtwiz_reset_tx_done_out;
+output wire [0 : 0] gtwiz_reset_rx_done_out;
+input wire [15 : 0] gtwiz_userdata_tx_in;
+output wire [15 : 0] gtwiz_userdata_rx_out;
 input wire [9 : 0] drpaddr_in;
 input wire [0 : 0] drpclk_in;
 input wire [15 : 0] drpdi_in;
@@ -167,7 +167,7 @@ input wire [0 : 0] gthrxn_in;
 input wire [0 : 0] gthrxp_in;
 input wire [0 : 0] gtrefclk0_in;
 input wire [0 : 0] rx8b10ben_in;
-(* mark_debug = "true" *)input wire [0 : 0] rxcommadeten_in;
+input wire [0 : 0] rxcommadeten_in;
 input wire [0 : 0] rxlpmen_in;
 input wire [0 : 0] rxmcommaalignen_in;
 input wire [0 : 0] rxpcommaalignen_in;
@@ -184,7 +184,7 @@ output wire [15 : 0] drpdo_out;
 output wire [0 : 0] drprdy_out;
 output wire [0 : 0] gthtxn_out;
 output wire [0 : 0] gthtxp_out;
-(* mark_debug = "true" *)output wire [0 : 0] gtpowergood_out;
+output wire [0 : 0] gtpowergood_out;
 output wire [0 : 0] rxbyteisaligned_out;
 output wire [0 : 0] rxbyterealign_out;
 output wire [0 : 0] rxcommadet_out;
@@ -192,8 +192,8 @@ output wire [15 : 0] rxctrl0_out;
 output wire [15 : 0] rxctrl1_out;
 output wire [7 : 0] rxctrl2_out;
 output wire [7 : 0] rxctrl3_out;
-(* mark_debug = "true" *)output wire [0 : 0] rxpmaresetdone_out;
-(* mark_debug = "true" *)output wire [0 : 0] txpmaresetdone_out;
+output wire [0 : 0] rxpmaresetdone_out;
+output wire [0 : 0] txpmaresetdone_out;
 
   gtwizard_ultrascale_2_gtwizard_top #(
     .C_CHANNEL_ENABLE(192'B000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001),

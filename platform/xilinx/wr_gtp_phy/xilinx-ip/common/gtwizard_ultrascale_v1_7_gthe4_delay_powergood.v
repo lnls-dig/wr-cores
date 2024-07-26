@@ -52,7 +52,7 @@
 
 `timescale 1ps/1ps
 
-module gtwizard_ultrascale_v1_7_7_gthe4_delay_powergood # (
+module gtwizard_ultrascale_v1_7_14_gthe4_delay_powergood # (
   parameter C_USER_GTPOWERGOOD_DELAY_EN = 0,
   parameter C_PCIE_ENABLE = "FALSE"
 )(
@@ -84,10 +84,10 @@ begin : gen_powergood_nodelay
 end
 else
 begin: gen_powergood_delay
-  (* ASYNC_REG = "TRUE", SHIFT_EXTRACT = "NO" *) reg [4:0] intclk_rrst_n_r = 5'd0;
-  (* ASYNC_REG = "TRUE", SHIFT_EXTRACT = "NO" *) reg [8:0] wait_cnt;
-  (* ASYNC_REG = "TRUE", SHIFT_EXTRACT = "NO" *) (* KEEP = "TRUE" *) reg int_pwr_on_fsm = 1'b0;
-  (* ASYNC_REG = "TRUE", SHIFT_EXTRACT = "NO" *) (* KEEP = "TRUE" *) reg pwr_on_fsm = 1'b0;
+  (*  ASYNC_REG = "TRUE", SHREG_EXTRACT = "NO" *) reg [4:0] intclk_rrst_n_r = 5'd0;
+  (*  ASYNC_REG = "TRUE", SHREG_EXTRACT = "NO" *) reg [8:0] wait_cnt;
+  (*  ASYNC_REG = "TRUE", SHREG_EXTRACT = "NO" *) (* KEEP = "TRUE" *) reg int_pwr_on_fsm = 1'b0;
+  (*  ASYNC_REG = "TRUE", SHREG_EXTRACT = "NO" *) (* KEEP = "TRUE" *) reg pwr_on_fsm = 1'b0;
   wire intclk_rrst_n;
   
   //--------------------------------------------------------------------------

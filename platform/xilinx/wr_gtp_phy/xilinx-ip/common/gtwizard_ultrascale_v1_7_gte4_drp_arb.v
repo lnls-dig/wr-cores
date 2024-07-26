@@ -52,7 +52,7 @@
 
 `timescale 1ps/1ps
 
-module gtwizard_ultrascale_v1_7_7_gte4_drp_arb 
+module gtwizard_ultrascale_v1_7_14_gte4_drp_arb 
 
 #(
   parameter [9:0]  ADDR_TX_PROGCLK_SEL = 10'h00C,

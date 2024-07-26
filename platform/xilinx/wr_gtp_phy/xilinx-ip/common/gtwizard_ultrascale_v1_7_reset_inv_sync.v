@@ -52,7 +52,7 @@
 
 `timescale 1ps/1ps
 
-module gtwizard_ultrascale_v1_7_7_reset_inv_synchronizer # (
+module gtwizard_ultrascale_v1_7_14_reset_inv_synchronizer # (
 
   parameter FREQUENCY = 512
 

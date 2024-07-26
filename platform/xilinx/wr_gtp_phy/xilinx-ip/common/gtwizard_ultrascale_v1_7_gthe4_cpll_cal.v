@@ -52,7 +52,7 @@
 
 `timescale 1ps/1ps
 
-module gtwizard_ultrascale_v1_7_7_gthe4_cpll_cal # (
+module gtwizard_ultrascale_v1_7_14_gthe4_cpll_cal # (
   parameter integer C_RX_PLL_TYPE = 0,
   parameter integer C_TX_PLL_TYPE = 0,
   parameter C_SIM_CPLL_CAL_BYPASS = 1'b1,
@@ -64,7 +64,6 @@ module gtwizard_ultrascale_v1_7_7_gthe4_cpll_cal # (
 )(
   // control signals
   input   wire  [17:0]  TXOUTCLK_PERIOD_IN,
-  input   wire  [15:0]  WAIT_DEASSERT_CPLLPD_IN,
   input   wire  [17:0]  CNT_TOL_IN,
   input   wire  [15:0]  FREQ_COUNT_WINDOW_IN,
   // User Interface
@@ -173,7 +172,7 @@ module gtwizard_ultrascale_v1_7_7_gthe4_cpll_cal # (
   assign cal_on_tx_reset_in = RESET_IN | cpll_cal_on_tx_or_rx;
   
   wire cal_on_tx_reset_in_sync;
-  gtwizard_ultrascale_v1_7_7_reset_synchronizer reset_synchronizer_resetin_tx_inst (
+  gtwizard_ultrascale_v1_7_14_reset_synchronizer reset_synchronizer_resetin_tx_inst (
     .clk_in   (CLK_IN),
     .rst_in   (cal_on_tx_reset_in),
     .rst_out  (cal_on_tx_reset_in_sync)
@@ -184,31 +183,30 @@ module gtwizard_ultrascale_v1_7_7_gthe4_cpll_cal # (
   assign cal_on_rx_reset_in = RESET_IN | !cpll_cal_on_tx_or_rx;  
   
   wire cal_on_rx_reset_in_sync;
-  gtwizard_ultrascale_v1_7_7_reset_synchronizer reset_synchronizer_resetin_rx_inst (
+  gtwizard_ultrascale_v1_7_14_reset_synchronizer reset_synchronizer_resetin_rx_inst (
     .clk_in   (CLK_IN),
     .rst_in   (cal_on_rx_reset_in),
     .rst_out  (cal_on_rx_reset_in_sync)
   );
 
   wire drprst_in_sync;
-  gtwizard_ultrascale_v1_7_7_bit_synchronizer bit_synchronizer_drprst_inst (
+  gtwizard_ultrascale_v1_7_14_bit_synchronizer bit_synchronizer_drprst_inst (
     .clk_in (CLK_IN),
     .i_in   (DRPRST_IN),
     .o_out  (drprst_in_sync)
   );
 
-  gtwizard_ultrascale_v1_7_7_gthe4_cpll_cal_tx #
+  gtwizard_ultrascale_v1_7_14_gthe4_cpll_cal_tx #
   (
     .C_SIM_CPLL_CAL_BYPASS(C_SIM_CPLL_CAL_BYPASS),
     .SIM_RESET_SPEEDUP(SIM_RESET_SPEEDUP),
     .C_FREERUN_FREQUENCY(C_FREERUN_FREQUENCY),
     .C_PCIE_ENABLE(C_PCIE_ENABLE),
     .C_PCIE_CORECLK_FREQ(C_PCIE_CORECLK_FREQ)
-  ) gtwizard_ultrascale_v1_7_7_gthe4_cpll_cal_tx_i
+  ) gtwizard_ultrascale_v1_7_14_gthe4_cpll_cal_tx_i
   (
     // control signals
     .TXOUTCLK_PERIOD_IN(TXOUTCLK_PERIOD_IN),
-    .WAIT_DEASSERT_CPLLPD_IN(WAIT_DEASSERT_CPLLPD_IN),
     .CNT_TOL_IN(CNT_TOL_IN),
     .FREQ_COUNT_WINDOW_IN(FREQ_COUNT_WINDOW_IN),
     // User Interface
@@ -244,17 +242,16 @@ module gtwizard_ultrascale_v1_7_7_gthe4_cpll_cal # (
     .DONE(tx_done)
   );  
   
-  gtwizard_ultrascale_v1_7_7_gthe4_cpll_cal_rx #
+  gtwizard_ultrascale_v1_7_14_gthe4_cpll_cal_rx #
   (
     .C_SIM_CPLL_CAL_BYPASS(C_SIM_CPLL_CAL_BYPASS),
     .SIM_RESET_SPEEDUP(SIM_RESET_SPEEDUP),
     .CPLL_CAL_ONLY_TX(CPLL_CAL_ONLY_TX),
     .C_FREERUN_FREQUENCY(C_FREERUN_FREQUENCY)
-  ) gtwizard_ultrascale_v1_7_7_gthe4_cpll_cal_rx_i
+  ) gtwizard_ultrascale_v1_7_14_gthe4_cpll_cal_rx_i
   (
     // control signals
     .RXOUTCLK_PERIOD_IN(TXOUTCLK_PERIOD_IN),
-    .WAIT_DEASSERT_CPLLPD_IN(WAIT_DEASSERT_CPLLPD_IN),
     .CNT_TOL_IN(CNT_TOL_IN),
     .FREQ_COUNT_WINDOW_IN(FREQ_COUNT_WINDOW_IN),
     // User Interface
@@ -312,7 +309,7 @@ module gtwizard_ultrascale_v1_7_7_gthe4_cpll_cal # (
   // DRP ARBITER
   //----------------------------------------------------------------------------------------------
   
-  gtwizard_ultrascale_v1_7_7_gte4_drp_arb #
+  gtwizard_ultrascale_v1_7_14_gte4_drp_arb #
   (
     .ADDR_TX_PROGCLK_SEL(ADDR_TX_PROGCLK_SEL),
     .ADDR_TX_PROGDIV_CFG(ADDR_TX_PROGDIV_CFG),
@@ -323,7 +320,7 @@ module gtwizard_ultrascale_v1_7_7_gthe4_cpll_cal # (
     .C_NUM_CLIENTS(3),
     .C_ADDR_WIDTH(10),
     .C_DATA_WIDTH(16)
-  ) gtwizard_ultrascale_v1_7_7_gte4_drp_arb_i
+  ) gtwizard_ultrascale_v1_7_14_gte4_drp_arb_i
   (
     .DCLK_I         (CLK_IN),
     .RESET_I        (drprst_in_sync),

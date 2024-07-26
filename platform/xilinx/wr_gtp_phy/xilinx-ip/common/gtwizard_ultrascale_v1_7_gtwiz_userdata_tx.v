@@ -52,7 +52,7 @@
 
 `timescale 1ps/1ps
 
-module gtwizard_ultrascale_v1_7_7_gtwiz_userdata_tx #(
+module gtwizard_ultrascale_v1_7_14_gtwiz_userdata_tx #(
 
   parameter integer P_TX_USER_DATA_WIDTH       = 32,
   parameter integer P_TX_DATA_ENCODING         = 0,

@@ -52,7 +52,7 @@
 
 `timescale 1ps/1ps
 
-module gtwizard_ultrascale_v1_7_7_gthe4_cpll_cal_tx # (
+module gtwizard_ultrascale_v1_7_14_gthe4_cpll_cal_tx # (
   parameter C_SIM_CPLL_CAL_BYPASS = 1'b1,
   parameter SIM_RESET_SPEEDUP     = "TRUE",
   parameter C_FREERUN_FREQUENCY   = 100, 
@@ -62,7 +62,6 @@ module gtwizard_ultrascale_v1_7_7_gthe4_cpll_cal_tx # (
 )(
   // control signals
   input   wire  [17:0]  TXOUTCLK_PERIOD_IN,
-  input   wire  [15:0]  WAIT_DEASSERT_CPLLPD_IN,
   input   wire  [17:0]  CNT_TOL_IN,
   input   wire  [15:0]  FREQ_COUNT_WINDOW_IN,
   // User Interface
@@ -223,38 +222,38 @@ module gtwizard_ultrascale_v1_7_7_gthe4_cpll_cal_tx # (
   );
 
   wire gthe4_cplllock_sync;
-  gtwizard_ultrascale_v1_7_7_bit_synchronizer bit_synchronizer_cplllock_inst (
+  gtwizard_ultrascale_v1_7_14_bit_synchronizer bit_synchronizer_cplllock_inst (
     .clk_in (CLK_IN),
     .i_in   (GTHE4_CPLLLOCK_IN),
     .o_out  (gthe4_cplllock_sync)
   );
 
   wire user_txprogdivreset_sync;
-  gtwizard_ultrascale_v1_7_7_bit_synchronizer bit_synchronizer_txprogdivreset_inst (
+  gtwizard_ultrascale_v1_7_14_bit_synchronizer bit_synchronizer_txprogdivreset_inst (
     .clk_in (CLK_IN),
     .i_in   (USER_TXPROGDIVRESET_IN),
     .o_out  (user_txprogdivreset_sync)
   );
 
   wire gthe4_txprgdivresetdone_sync;
-  gtwizard_ultrascale_v1_7_7_bit_synchronizer bit_synchronizer_txprgdivresetdone_inst (
+  gtwizard_ultrascale_v1_7_14_bit_synchronizer bit_synchronizer_txprgdivresetdone_inst (
     .clk_in (CLK_IN),
     .i_in   (GTHE4_TXPRGDIVRESETDONE_IN),
     .o_out  (gthe4_txprgdivresetdone_sync)
   );
   
   wire [2:0] user_txoutclksel_sync;
-  gtwizard_ultrascale_v1_7_7_bit_synchronizer bit_synchronizer_txoutclksel_inst0 (
+  gtwizard_ultrascale_v1_7_14_bit_synchronizer bit_synchronizer_txoutclksel_inst0 (
     .clk_in (CLK_IN),
     .i_in   (USER_TXOUTCLKSEL_IN[0]),
     .o_out  (user_txoutclksel_sync[0])
   );
-  gtwizard_ultrascale_v1_7_7_bit_synchronizer bit_synchronizer_txoutclksel_inst1 (
+  gtwizard_ultrascale_v1_7_14_bit_synchronizer bit_synchronizer_txoutclksel_inst1 (
     .clk_in (CLK_IN),
     .i_in   (USER_TXOUTCLKSEL_IN[1]),
     .o_out  (user_txoutclksel_sync[1])
   );
-  gtwizard_ultrascale_v1_7_7_bit_synchronizer bit_synchronizer_txoutclksel_inst2 (
+  gtwizard_ultrascale_v1_7_14_bit_synchronizer bit_synchronizer_txoutclksel_inst2 (
     .clk_in (CLK_IN),
     .i_in   (USER_TXOUTCLKSEL_IN[2]),
     .o_out  (user_txoutclksel_sync[2])
@@ -306,7 +305,7 @@ module gtwizard_ultrascale_v1_7_7_gthe4_cpll_cal_tx # (
   wire [17:0] txoutclk_freq_cnt;
   reg freq_counter_rst = 1'b1;
   wire freq_cnt_done;
-  gtwizard_ultrascale_v1_7_7_gthe4_cpll_cal_freq_counter U_TXOUTCLK_FREQ_COUNTER
+  gtwizard_ultrascale_v1_7_14_gthe4_cpll_cal_freq_counter U_TXOUTCLK_FREQ_COUNTER
   (
     .freq_cnt_o(txoutclk_freq_cnt),
     .done_o(freq_cnt_done),

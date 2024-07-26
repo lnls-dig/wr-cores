@@ -52,7 +52,7 @@
 
 `timescale 1ps/1ps
 
-module gtwizard_ultrascale_v1_7_7_gtwiz_buffbypass_rx #(
+module gtwizard_ultrascale_v1_7_14_gtwiz_buffbypass_rx #(
 
   parameter integer P_BUFFER_BYPASS_MODE       = 0,
   parameter integer P_TOTAL_NUMBER_OF_CHANNELS = 1,
@@ -144,7 +144,7 @@ module gtwizard_ultrascale_v1_7_7_gtwiz_buffbypass_rx #(
       // start signal to the OR of this reset done indicator, and the synchronous buffer bypass procedure user request.
       wire gtwiz_buffbypass_rx_resetdone_sync_int;
 
-      gtwizard_ultrascale_v1_7_7_reset_inv_synchronizer reset_synchronizer_resetdone_inst (
+      gtwizard_ultrascale_v1_7_14_reset_inv_synchronizer reset_synchronizer_resetdone_inst (
         .clk_in  (gtwiz_buffbypass_rx_clk_in),
         .rst_in  (gtwiz_buffbypass_rx_resetdone_in),
         .rst_out (gtwiz_buffbypass_rx_resetdone_sync_int)
@@ -169,7 +169,7 @@ module gtwizard_ultrascale_v1_7_7_gtwiz_buffbypass_rx #(
       wire gtwiz_buffbypass_rx_master_syncdone_sync_int;
       wire gtwiz_buffbypass_rx_master_syncdone_sync_re;
 
-      gtwizard_ultrascale_v1_7_7_bit_synchronizer bit_synchronizer_mastersyncdone_inst (
+      gtwizard_ultrascale_v1_7_14_bit_synchronizer bit_synchronizer_mastersyncdone_inst (
         .clk_in (gtwiz_buffbypass_rx_clk_in),
         .i_in   (rxsyncdone_in[P_MASTER_CHANNEL_POINTER]),
         .o_out  (gtwiz_buffbypass_rx_master_syncdone_sync_int)
@@ -184,7 +184,7 @@ module gtwizard_ultrascale_v1_7_7_gtwiz_buffbypass_rx #(
       // Synchronize the master channel's phase alignment completion output (RXPHALIGNDONE) into the local clock domain
       wire gtwiz_buffbypass_rx_master_phaligndone_sync_int;
 
-      gtwizard_ultrascale_v1_7_7_bit_synchronizer bit_synchronizer_masterphaligndone_inst (
+      gtwizard_ultrascale_v1_7_14_bit_synchronizer bit_synchronizer_masterphaligndone_inst (
         .clk_in (gtwiz_buffbypass_rx_clk_in),
         .i_in   (rxphaligndone_in[P_MASTER_CHANNEL_POINTER]),
         .o_out  (gtwiz_buffbypass_rx_master_phaligndone_sync_int)
