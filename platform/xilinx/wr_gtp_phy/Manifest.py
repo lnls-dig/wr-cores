@@ -29,6 +29,7 @@ xilinx_ip_gthe4 = [
     "xilinx-ip/gthe4/gtwizard_ultrascale_v1_7_gthe4_channel.v"
 ];
 
+# Common files between gthe3 and gthe4
 xilinx_ip_common = [
     "xilinx-ip/common/gtwizard_ultrascale_v1_7_bit_sync.v",
     "xilinx-ip/common/gtwizard_ultrascale_v1_7_gthe4_cpll_cal_tx.v",
@@ -162,13 +163,8 @@ elif (syn_device[0:4].upper()=="XCKU"): # Kintex Ultrascale GTH
     files.extend( xilinx_ip_gthe3 );
     files.extend( xilinx_ip_common );
 elif (syn_device[0:4].upper()=="XCZU"): # Zynq Ultrascale GTH
-    files.extend(["family7-gthe4/wr_gthe4_phy_family7.vhd",
+    files.extend([
         "family7-gthe4/wr_gthe4_phy_family7_xilinx_ip.vhd",
-        "family7-gthe4/wr_gthe4_reset.vhd",
-        "family7-gthe4/wr_gthe4_rx_buffer_bypass.vhd",
-        "family7-gthe4/wr_gthe4_tx_buffer_bypass.vhd",
-        "family7-gthe4/wr_gthe4_wrapper.vhd",
-        "family7-gthe4/gc_reset_synchronizer.vhd",
         ]);
     files.extend( xilinx_ip_gthe4 );
     files.extend( xilinx_ip_common );
