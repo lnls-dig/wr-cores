@@ -111,7 +111,7 @@ begin  -- rtl
   fin(17 downto 16) <= snk_i.adr;
   fin(21 downto 18) <= pre_sof & pre_eof & pre_bytesel & pre_dvalid;
 
-
+  --  Why is there an initial stall ?
   snk_out.stall <= full or (snk_i.cyc and not cyc_d0);
   snk_out.err   <= '0';
   snk_out.rty   <= '0';
@@ -144,6 +144,7 @@ begin  -- rtl
       q_o           => fout,
       rd_i          => rd,
       almost_full_o => full,
+      full_o        => open,
       q_valid_o     => q_valid);
 
   p_fout_reg : process(clk_i)
@@ -181,9 +182,7 @@ use ieee.std_logic_1164.all;
 use work.genram_pkg.all;
 use work.wr_fabric_pkg.all;
 
-
 entity wb_fabric_sink is
-
   port (
     clk_i   : in std_logic;
     rst_n_i : in std_logic;
@@ -209,33 +208,13 @@ entity wb_fabric_sink is
     bytesel_o : out std_logic;
     dreq_i    : in  std_logic
     );
-
 end wb_fabric_sink;
 
 architecture wrapper of wb_fabric_sink is
-
-  component xwb_fabric_sink
-    port (
-      clk_i     : in  std_logic;
-      rst_n_i   : in  std_logic;
-      snk_i     : in  t_wrf_sink_in;
-      snk_o     : out t_wrf_sink_out;
-      addr_o    : out std_logic_vector(1 downto 0);
-      data_o    : out std_logic_vector(15 downto 0);
-      dvalid_o  : out std_logic;
-      sof_o     : out std_logic;
-      eof_o     : out std_logic;
-      error_o   : out std_logic;
-      bytesel_o : out std_logic;
-      dreq_i    : in  std_logic);
-  end component;
-
   signal snk_in  : t_wrf_sink_in;
   signal snk_out : t_wrf_sink_out;
-  
 begin  -- wrapper
-
-  U_Wrapped_Sink : xwb_fabric_sink
+  U_Wrapped_Sink : entity work.xwb_fabric_sink
     port map (
       clk_i     => clk_i,
       rst_n_i   => rst_n_i,
@@ -261,5 +240,4 @@ begin  -- wrapper
   snk_ack_o   <= snk_out.ack;
   snk_err_o   <= snk_out.err;
   snk_rty_o   <= snk_out.rty;
-  
 end wrapper;

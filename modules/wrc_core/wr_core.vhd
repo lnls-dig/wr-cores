@@ -144,7 +144,8 @@ entity wr_core is
     rst_n_i : in std_logic;
 
     -----------------------------------------
-    --Timing system
+    -- Timing system
+    -- Set helper pll and main pll DAC values
     -----------------------------------------
     dac_hpll_load_p1_o : out std_logic;
     dac_hpll_data_o    : out std_logic_vector(g_dac_bits-1 downto 0);

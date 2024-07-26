@@ -68,9 +68,7 @@ end pulse_stamper;
 architecture rtl of pulse_stamper is
 
  -- Signals for input anti-metastability ffs
- signal pulse_ref : std_logic_vector(2 downto 0);
  signal pulse_ref_p1 : std_logic;
- signal pulse_ref_p1_d1 : std_logic;
 
  -- Time tagger signals
  signal tag_utc_ref : std_logic_vector(39 downto 0);
@@ -85,14 +83,13 @@ architecture rtl of pulse_stamper is
  -- always in the same "clock domain". This is important, e.g. for streamers,
  -- in applicatinos where one WR Node works with 62.5MHz WR clock and
  -- another in 125MHz.
- function f_8ns_cycle_cnt (in_cyc: std_logic_vector; ref_clk: integer)
-    return std_logic_vector is
+ function f_8ns_cycle_cnt (in_cyc: std_logic_vector) return std_logic_vector is
     variable out_cyc : std_logic_vector(27 downto 0);
   begin
 
-    if (ref_clk = 125000000) then
+    if g_ref_clk_rate = 125000000 then
       out_cyc := in_cyc;
-    elsif(ref_clk = 62500000) then
+    elsif g_ref_clk_rate = 62500000 then
       out_cyc := in_cyc(26 downto 0) & '0';
     else
       assert FALSE report
@@ -150,7 +147,7 @@ begin  -- architecture rtl
      tag_valid_o <= '0';
     elsif pulse_sys_p1='1' then
      tag_tai_o <= tag_utc_ref;
-     tag_cycles_o <= f_8ns_cycle_cnt(tag_cycles_ref,g_ref_clk_rate);
+     tag_cycles_o <= f_8ns_cycle_cnt(tag_cycles_ref);
      tag_valid_o <= '1';
     else
      tag_valid_o <='0';
