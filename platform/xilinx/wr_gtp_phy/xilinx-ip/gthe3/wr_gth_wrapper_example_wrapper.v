@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-//  (c) Copyright 2013-2015 Xilinx, Inc. All rights reserved.
+//  (c) Copyright 2013-2018 Xilinx, Inc. All rights reserved.
 //
 //  This file contains confidential and proprietary information
 //  of Xilinx, Inc. and is protected under U.S. and
@@ -99,6 +99,7 @@ module wr_gth_wrapper_example_wrapper (
  ,input  wire [15:0] txctrl0_in
  ,input  wire [15:0] txctrl1_in
  ,input  wire [7:0] txctrl2_in
+ ,output wire [0:0] gtpowergood_out
  ,output wire [0:0] rxbyteisaligned_out
  ,output wire [0:0] rxbyterealign_out
  ,output wire [0:0] rxcommadet_out
@@ -117,8 +118,6 @@ module wr_gth_wrapper_example_wrapper (
 
   // Declare and initialize local parameters and functions used for HDL generation
   localparam [191:0] P_CHANNEL_ENABLE = 192'b000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000;
-
-`define INCLUDE_WRAPPER_FUNCTIONS 1
   `include "wr_gth_wrapper_example_wrapper_functions.v"
   localparam integer P_TX_MASTER_CH_PACKED_IDX = f_calc_pk_mc_idx(8);
   localparam integer P_RX_MASTER_CH_PACKED_IDX = f_calc_pk_mc_idx(8);
@@ -184,6 +183,10 @@ module wr_gth_wrapper_example_wrapper (
   // Drive RXUSRCLK and RXUSRCLK2 for all channels with the respective helper block outputs
   assign rxusrclk_int  = {1{gtwiz_userclk_rx_usrclk_out}};
   assign rxusrclk2_int = {1{gtwiz_userclk_rx_usrclk2_out}};
+  wire [0:0] gtpowergood_int;
+
+  // Required assignment to expose the GTPOWERGOOD port per user request
+  assign gtpowergood_out = gtpowergood_int;
 
   // ----------------------------------------------------------------------------------------------------------------
   // Assignments to expose data ports, or data control ports, per configuration requirement or user request
@@ -253,6 +256,7 @@ module wr_gth_wrapper_example_wrapper (
    ,.txctrl2_in                              (txctrl2_in)
    ,.txusrclk_in                             (txusrclk_int)
    ,.txusrclk2_in                            (txusrclk2_int)
+   ,.gtpowergood_out                         (gtpowergood_int)
    ,.rxbyteisaligned_out                     (rxbyteisaligned_out)
    ,.rxbyterealign_out                       (rxbyterealign_out)
    ,.rxcommadet_out                          (rxcommadet_out)

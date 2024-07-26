@@ -57,9 +57,13 @@
 `define wr_gth_wrapper_gtwizard_gthe3_N_CM C_TOTAL_NUM_COMMONS
 `define wr_gth_wrapper_gtwizard_gthe3_N_CH C_TOTAL_NUM_CHANNELS
 `define wr_gth_wrapper_gtwizard_gthe3_SF_CM C_COMMON_SCALING_FACTOR
+`define wr_gth_wrapper_gtwizard_gthe3_DEFAULT_CLOCKING 0
+`define wr_gth_wrapper_gtwizard_gthe3_TX_USES_RX_CLOCKING 1
+`define wr_gth_wrapper_gtwizard_gthe3_RX_USES_TX_CLOCKING 2
 `define wr_gth_wrapper_gtwizard_gthe3_INCLUDE_CPLL_CAL__EXCLUDE 0
 `define wr_gth_wrapper_gtwizard_gthe3_INCLUDE_CPLL_CAL__INCLUDE 1
 `define wr_gth_wrapper_gtwizard_gthe3_INCLUDE_CPLL_CAL__DEPENDENT 2
+`define wr_gth_wrapper_gtwizard_gthe3_INCLUDE_CPLL_CAL__PCIEQMODE 3
 `define wr_gth_wrapper_gtwizard_gthe3_LOCATE_RESET_CONTROLLER__CORE 0
 `define wr_gth_wrapper_gtwizard_gthe3_LOCATE_RESET_CONTROLLER__EXAMPLE_DESIGN 1
 `define wr_gth_wrapper_gtwizard_gthe3_LOCATE_USER_DATA_WIDTH_SIZING__CORE 0
@@ -134,6 +138,7 @@
 `define wr_gth_wrapper_gtwizard_gthe3_TX_USER_CLOCKING_INSTANCE_CTRL__PER_CHANNEL 1
 `define wr_gth_wrapper_gtwizard_gthe3_TX_USER_CLOCKING_SOURCE__TXOUTCLK 0
 `define wr_gth_wrapper_gtwizard_gthe3_TX_USER_CLOCKING_SOURCE__IBUFDS 1
+`define wr_gth_wrapper_gtwizard_gthe3_TX_USER_CLOCKING_SOURCE__RXOUTCLK 2
 
 module wr_gth_wrapper_gtwizard_gthe3 #(
 
@@ -145,6 +150,7 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
   parameter real    C_FREERUN_FREQUENCY                       = 200,
   parameter integer C_GT_REV                                  = 17,
   parameter integer C_INCLUDE_CPLL_CAL                        = `wr_gth_wrapper_gtwizard_gthe3_INCLUDE_CPLL_CAL__DEPENDENT,
+  parameter integer C_ENABLE_COMMON_USRCLK                    = `wr_gth_wrapper_gtwizard_gthe3_DEFAULT_CLOCKING,
   parameter integer C_LOCATE_RESET_CONTROLLER                 = `wr_gth_wrapper_gtwizard_gthe3_LOCATE_RESET_CONTROLLER__CORE,
   parameter integer C_LOCATE_USER_DATA_WIDTH_SIZING           = `wr_gth_wrapper_gtwizard_gthe3_LOCATE_USER_DATA_WIDTH_SIZING__CORE,
   parameter integer C_LOCATE_RX_BUFFER_BYPASS_CONTROLLER      = `wr_gth_wrapper_gtwizard_gthe3_LOCATE_RX_BUFFER_BYPASS_CONTROLLER__CORE,
@@ -2182,6 +2188,7 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
 
     // If the transceiver channel CPLL calibration block is required, instantiate it for each transceiver channel
     if ((C_INCLUDE_CPLL_CAL         == `wr_gth_wrapper_gtwizard_gthe3_INCLUDE_CPLL_CAL__INCLUDE) ||
+        (C_INCLUDE_CPLL_CAL         == `wr_gth_wrapper_gtwizard_gthe3_INCLUDE_CPLL_CAL__PCIEQMODE) ||
         (((C_INCLUDE_CPLL_CAL       == `wr_gth_wrapper_gtwizard_gthe3_INCLUDE_CPLL_CAL__DEPENDENT) &&
          ((C_GT_REV                 == 11) ||
           (C_GT_REV                 == 12) ||
@@ -2218,12 +2225,14 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
       wire [ `wr_gth_wrapper_gtwizard_gthe3_N_CH     -1:0] drpen_cpll_cal_int;
       wire [ `wr_gth_wrapper_gtwizard_gthe3_N_CH     -1:0] drpwe_cpll_cal_int;
 
-      // The TXOUTCLK_PERIOD_IN and CNT_TOL_IN ports are normally driven by an internally-calculated value. When INCLUDE_CPLL_CAL is 1,
+      // The TXOUTCLK_PERIOD_IN and CNT_TOL_IN ports are normally driven by an internally-calculated value. When INCLUDE_CPLL_CAL is 1/3,
       // they are driven as inputs for PLL-switching and rate change special cases, and the BUFG_GT CE input is provided by the user.
       wire [(`wr_gth_wrapper_gtwizard_gthe3_N_CH* 18)-1:0] cpll_cal_txoutclk_period_int;
       wire [(`wr_gth_wrapper_gtwizard_gthe3_N_CH* 18)-1:0] cpll_cal_cnt_tol_int;
       wire [(`wr_gth_wrapper_gtwizard_gthe3_N_CH*  1)-1:0] cpll_cal_bufg_ce_int;
-      if (C_INCLUDE_CPLL_CAL == `wr_gth_wrapper_gtwizard_gthe3_INCLUDE_CPLL_CAL__INCLUDE) begin : gen_txoutclk_pd_input
+      if ((C_INCLUDE_CPLL_CAL == `wr_gth_wrapper_gtwizard_gthe3_INCLUDE_CPLL_CAL__INCLUDE) ||
+          (C_INCLUDE_CPLL_CAL == `wr_gth_wrapper_gtwizard_gthe3_INCLUDE_CPLL_CAL__PCIEQMODE)
+         ) begin : gen_txoutclk_pd_input
         assign cpll_cal_txoutclk_period_int = {`wr_gth_wrapper_gtwizard_gthe3_N_CH{gtwiz_gthe3_cpll_cal_txoutclk_period_in}};
         assign cpll_cal_cnt_tol_int         = {`wr_gth_wrapper_gtwizard_gthe3_N_CH{gtwiz_gthe3_cpll_cal_cnt_tol_in}};
         assign cpll_cal_bufg_ce_int         = {`wr_gth_wrapper_gtwizard_gthe3_N_CH{gtwiz_gthe3_cpll_cal_bufg_ce_in}};
@@ -2241,7 +2250,7 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
       // Instantiate one CPLL calibration block for each transceiver channel
       genvar cal;
       for (cal = 0; cal < `wr_gth_wrapper_gtwizard_gthe3_N_CH; cal = cal + 1) begin : gen_cpll_cal_inst
-        gtwizard_ultrascale_v1_7_7_gthe3_cpll_cal gtwizard_ultrascale_v1_7_7_gthe3_cpll_cal_inst (
+        gtwizard_ultrascale_v1_7_14_gthe3_cpll_cal gtwizard_ultrascale_v1_7_14_gthe3_cpll_cal_inst (
           .TXOUTCLK_PERIOD_IN         (cpll_cal_txoutclk_period_int[(18*cal)+17:18*cal]),
           .WAIT_DEASSERT_CPLLPD_IN    (p_cpll_cal_wait_deassert_cpllpd_int),
           .CNT_TOL_IN                 (cpll_cal_cnt_tol_int[(18*cal)+17:18*cal]),
@@ -2313,9 +2322,8 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
     // within this inactive generate block for proper HDL fileset hierarchy elaboration
     if (0) begin : gen_cpll_cal_gthe4
 
-      gtwizard_ultrascale_v1_7_7_gthe4_cpll_cal gtwizard_ultrascale_v1_7_7_gthe4_cpll_cal_inst (
+      gtwizard_ultrascale_v1_7_14_gthe4_cpll_cal gtwizard_ultrascale_v1_7_14_gthe4_cpll_cal_inst (
         .TXOUTCLK_PERIOD_IN         (18'b0),
-        .WAIT_DEASSERT_CPLLPD_IN    (16'b0),
         .CNT_TOL_IN                 (18'b0),
         .FREQ_COUNT_WINDOW_IN       (16'b0),
         .RESET_IN                   (1'b0),
@@ -2355,9 +2363,8 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
     end
     if (0) begin : gen_cpll_cal_gtye4
 
-      gtwizard_ultrascale_v1_7_7_gtye4_cpll_cal gtwizard_ultrascale_v1_7_7_gtye4_cpll_cal_inst (
+      gtwizard_ultrascale_v1_7_14_gtye4_cpll_cal gtwizard_ultrascale_v1_7_14_gtye4_cpll_cal_inst (
         .TXOUTCLK_PERIOD_IN         (18'b0),
-        .WAIT_DEASSERT_CPLLPD_IN    (16'b0),
         .CNT_TOL_IN                 (18'b0),
         .FREQ_COUNT_WINDOW_IN       (16'b0),
         .RESET_IN                   (1'b0),
@@ -2424,6 +2431,8 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
     // ================================================================================================================
     // HELPER BLOCKS
     // ================================================================================================================
+  wire [(C_TX_USER_CLOCKING_INSTANCE_CTRL*(`wr_gth_wrapper_gtwizard_gthe3_N_CH-1)):0] gtwiz_userclk_tx_reset_int;
+  wire [(C_RX_USER_CLOCKING_INSTANCE_CTRL*(`wr_gth_wrapper_gtwizard_gthe3_N_CH-1)):0] gtwiz_userclk_rx_reset_int;
 
     // ----------------------------------------------------------------------------------------------------------------
     // Transmitter user clocking network helper block
@@ -2441,6 +2450,7 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
         // The source clock is TXOUTCLK from the master transmitter channel
         if (C_TX_USER_CLOCKING_SOURCE == `wr_gth_wrapper_gtwizard_gthe3_TX_USER_CLOCKING_SOURCE__TXOUTCLK) begin : gen_txoutclk_source
           assign gtwiz_userclk_tx_srcclk_out = txoutclk_int[P_TX_MASTER_CH_PACKED_IDX];
+          assign gtwiz_userclk_tx_reset_int = gtwiz_userclk_tx_reset_in;
         end
 
         // The source clock is the fabric-accessible output of the IBUFDS_GTE3 associated with the master transmitter
@@ -2455,16 +2465,21 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
           else begin: gen_ibufds_source_cpll
             assign gtwiz_userclk_tx_srcclk_out = gtrefclk0_int[P_TX_MASTER_CH_PACKED_IDX];
           end
+          assign gtwiz_userclk_tx_reset_int = gtwiz_userclk_tx_reset_in;
+        end
+        else if (C_TX_USER_CLOCKING_SOURCE == `wr_gth_wrapper_gtwizard_gthe3_TX_USER_CLOCKING_SOURCE__RXOUTCLK) begin : gen_rxoutclk_source
+          assign gtwiz_userclk_tx_srcclk_out = rxoutclk_int[P_RX_MASTER_CH_PACKED_IDX];
+          assign gtwiz_userclk_tx_reset_int = gtwiz_userclk_rx_reset_in;
         end
 
         // Instantiate a single instance of the transmitter user clocking network helper block
-        gtwizard_ultrascale_v1_7_7_gtwiz_userclk_tx #(
+        gtwizard_ultrascale_v1_7_14_gtwiz_userclk_tx #(
           .P_CONTENTS                     (C_TX_USER_CLOCKING_CONTENTS),
           .P_FREQ_RATIO_SOURCE_TO_USRCLK  (C_TX_OUTCLK_BUFG_GT_DIV),
           .P_FREQ_RATIO_USRCLK_TO_USRCLK2 (C_TX_USER_CLOCKING_RATIO_FUSRCLK_FUSRCLK2)
         ) gtwiz_userclk_tx_inst (
           .gtwiz_userclk_tx_srcclk_in   (gtwiz_userclk_tx_srcclk_out),
-          .gtwiz_userclk_tx_reset_in    (gtwiz_userclk_tx_reset_in),
+          .gtwiz_userclk_tx_reset_in    (gtwiz_userclk_tx_reset_int),
           .gtwiz_userclk_tx_usrclk_out  (gtwiz_userclk_tx_usrclk_out),
           .gtwiz_userclk_tx_usrclk2_out (gtwiz_userclk_tx_usrclk2_out),
           .gtwiz_userclk_tx_active_out  (gtwiz_userclk_tx_active_out)
@@ -2488,6 +2503,7 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
           // The source clock for a given instance is TXOUTCLK from the associated channel
           if (C_TX_USER_CLOCKING_SOURCE == `wr_gth_wrapper_gtwizard_gthe3_TX_USER_CLOCKING_SOURCE__TXOUTCLK) begin : gen_txoutclk_source
             assign gtwiz_userclk_tx_srcclk_out[gi_hb_txclk] = txoutclk_int[gi_hb_txclk];
+            assign gtwiz_userclk_tx_reset_int[gi_hb_txclk] = gtwiz_userclk_tx_reset_in[gi_hb_txclk];
           end
 
           // The source clock for a given instance is the fabric-accessible output of the IBUFDS_GTE3 associated with that
@@ -2502,15 +2518,20 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
             else begin: gen_ibufds_source_cpll
               assign gtwiz_userclk_tx_srcclk_out[gi_hb_txclk] = gtrefclk0_int[gi_hb_txclk];
             end
+            assign gtwiz_userclk_tx_reset_int[gi_hb_txclk] = gtwiz_userclk_tx_reset_in[gi_hb_txclk];
+          end
+          else if (C_TX_USER_CLOCKING_SOURCE == `wr_gth_wrapper_gtwizard_gthe3_TX_USER_CLOCKING_SOURCE__RXOUTCLK) begin : gen_rxoutclk_source
+            assign gtwiz_userclk_tx_srcclk_out[gi_hb_txclk] = rxoutclk_int[gi_hb_txclk];
+            assign gtwiz_userclk_tx_reset_int[gi_hb_txclk] = gtwiz_userclk_rx_reset_in[gi_hb_txclk];
           end
 
-          gtwizard_ultrascale_v1_7_7_gtwiz_userclk_tx #(
+          gtwizard_ultrascale_v1_7_14_gtwiz_userclk_tx #(
             .P_CONTENTS                     (C_TX_USER_CLOCKING_CONTENTS),
             .P_FREQ_RATIO_SOURCE_TO_USRCLK  (C_TX_OUTCLK_BUFG_GT_DIV),
             .P_FREQ_RATIO_USRCLK_TO_USRCLK2 (C_TX_USER_CLOCKING_RATIO_FUSRCLK_FUSRCLK2)
           ) gtwiz_userclk_tx_inst (
             .gtwiz_userclk_tx_srcclk_in   (gtwiz_userclk_tx_srcclk_out  [gi_hb_txclk]),
-            .gtwiz_userclk_tx_reset_in    (gtwiz_userclk_tx_reset_in    [gi_hb_txclk]),
+            .gtwiz_userclk_tx_reset_in    (gtwiz_userclk_tx_reset_int   [gi_hb_txclk]),
             .gtwiz_userclk_tx_usrclk_out  (gtwiz_userclk_tx_usrclk_out  [gi_hb_txclk]),
             .gtwiz_userclk_tx_usrclk2_out (gtwiz_userclk_tx_usrclk2_out [gi_hb_txclk]),
             .gtwiz_userclk_tx_active_out  (gtwiz_userclk_tx_active_out  [gi_hb_txclk])
@@ -2528,6 +2549,7 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
     // Do not include the helper block within the core
     else begin : gen_tx_user_clocking_external
 
+        assign gtwiz_userclk_tx_reset_int = gtwiz_userclk_tx_reset_in;
       if (C_TX_USER_CLOCKING_INSTANCE_CTRL == `wr_gth_wrapper_gtwizard_gthe3_TX_USER_CLOCKING_INSTANCE_CTRL__SINGLE_INSTANCE)
       begin : gen_single_instance
         assign gtwiz_userclk_tx_srcclk_out  = 1'b0;
@@ -2562,6 +2584,7 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
         // The source clock is RXOUTCLK from the master receiver channel
         if (C_RX_USER_CLOCKING_SOURCE == `wr_gth_wrapper_gtwizard_gthe3_RX_USER_CLOCKING_SOURCE__RXOUTCLK) begin : gen_rxoutclk_source
           assign gtwiz_userclk_rx_srcclk_out = rxoutclk_int[P_RX_MASTER_CH_PACKED_IDX];
+          assign gtwiz_userclk_rx_reset_int = gtwiz_userclk_rx_reset_in;
         end
 
         // The source clock is the fabric-accessible output of the IBUFDS_GTE3 associated with the master receiver
@@ -2576,21 +2599,23 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
           else begin: gen_ibufds_source_cpll
             assign gtwiz_userclk_rx_srcclk_out = gtrefclk0_int[P_RX_MASTER_CH_PACKED_IDX];
           end
+          assign gtwiz_userclk_rx_reset_int = gtwiz_userclk_rx_reset_in;
         end
 
         // The source clock is TXOUTCLK from the master transmitter channel
         else if (C_RX_USER_CLOCKING_SOURCE == `wr_gth_wrapper_gtwizard_gthe3_RX_USER_CLOCKING_SOURCE__TXOUTCLK) begin : gen_txoutclk_source
           assign gtwiz_userclk_rx_srcclk_out = txoutclk_int[P_TX_MASTER_CH_PACKED_IDX];
+          assign gtwiz_userclk_rx_reset_int = gtwiz_userclk_tx_reset_in;
         end
 
         // Instantiate a single instance of the receiver user clocking network helper block
-        gtwizard_ultrascale_v1_7_7_gtwiz_userclk_rx #(
+        gtwizard_ultrascale_v1_7_14_gtwiz_userclk_rx #(
           .P_CONTENTS                     (C_RX_USER_CLOCKING_CONTENTS),
           .P_FREQ_RATIO_SOURCE_TO_USRCLK  (C_RX_OUTCLK_BUFG_GT_DIV),
           .P_FREQ_RATIO_USRCLK_TO_USRCLK2 (C_RX_USER_CLOCKING_RATIO_FUSRCLK_FUSRCLK2)
         ) gtwiz_userclk_rx_inst (
           .gtwiz_userclk_rx_srcclk_in   (gtwiz_userclk_rx_srcclk_out),
-          .gtwiz_userclk_rx_reset_in    (gtwiz_userclk_rx_reset_in),
+          .gtwiz_userclk_rx_reset_in    (gtwiz_userclk_rx_reset_int),
           .gtwiz_userclk_rx_usrclk_out  (gtwiz_userclk_rx_usrclk_out),
           .gtwiz_userclk_rx_usrclk2_out (gtwiz_userclk_rx_usrclk2_out),
           .gtwiz_userclk_rx_active_out  (gtwiz_userclk_rx_active_out)
@@ -2614,6 +2639,7 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
           // The source clock for a given instance is RXOUTCLK from the associated channel
           if (C_RX_USER_CLOCKING_SOURCE == `wr_gth_wrapper_gtwizard_gthe3_RX_USER_CLOCKING_SOURCE__RXOUTCLK) begin : gen_rxoutclk_source
             assign gtwiz_userclk_rx_srcclk_out[gi_hb_rxclk] = rxoutclk_int[gi_hb_rxclk];
+            assign gtwiz_userclk_rx_reset_int[gi_hb_rxclk] = gtwiz_userclk_rx_reset_in[gi_hb_rxclk];
           end
 
           // The source clock for a given instance is the fabric-accessible output of the IBUFDS_GTE3 associated with that
@@ -2628,20 +2654,22 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
             else begin: gen_ibufds_source_cpll
               assign gtwiz_userclk_rx_srcclk_out[gi_hb_rxclk] = gtrefclk0_int[gi_hb_rxclk];
             end
+            assign gtwiz_userclk_rx_reset_int[gi_hb_rxclk] = gtwiz_userclk_rx_reset_in[gi_hb_rxclk];
           end
 
           // The source clock for a given instance is TXOUTCLK from the associated channel
           else if (C_RX_USER_CLOCKING_SOURCE == `wr_gth_wrapper_gtwizard_gthe3_RX_USER_CLOCKING_SOURCE__TXOUTCLK) begin : gen_txoutclk_source
             assign gtwiz_userclk_rx_srcclk_out[gi_hb_rxclk] = txoutclk_int[gi_hb_rxclk];
+            assign gtwiz_userclk_rx_reset_int[gi_hb_rxclk] = gtwiz_userclk_tx_reset_in;
           end
 
-          gtwizard_ultrascale_v1_7_7_gtwiz_userclk_rx #(
+          gtwizard_ultrascale_v1_7_14_gtwiz_userclk_rx #(
             .P_CONTENTS                     (C_RX_USER_CLOCKING_CONTENTS),
             .P_FREQ_RATIO_SOURCE_TO_USRCLK  (C_RX_OUTCLK_BUFG_GT_DIV),
             .P_FREQ_RATIO_USRCLK_TO_USRCLK2 (C_RX_USER_CLOCKING_RATIO_FUSRCLK_FUSRCLK2)
           ) gtwiz_userclk_rx_inst (
             .gtwiz_userclk_rx_srcclk_in   (gtwiz_userclk_rx_srcclk_out  [gi_hb_rxclk]),
-            .gtwiz_userclk_rx_reset_in    (gtwiz_userclk_rx_reset_in    [gi_hb_rxclk]),
+            .gtwiz_userclk_rx_reset_in    (gtwiz_userclk_rx_reset_int   [gi_hb_rxclk]),
             .gtwiz_userclk_rx_usrclk_out  (gtwiz_userclk_rx_usrclk_out  [gi_hb_rxclk]),
             .gtwiz_userclk_rx_usrclk2_out (gtwiz_userclk_rx_usrclk2_out [gi_hb_rxclk]),
             .gtwiz_userclk_rx_active_out  (gtwiz_userclk_rx_active_out  [gi_hb_rxclk])
@@ -2659,6 +2687,7 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
     // Do not include the helper block within the core
     else begin : gen_rx_user_clocking_external
 
+        assign gtwiz_userclk_rx_reset_int = gtwiz_userclk_rx_reset_in;
       if (C_RX_USER_CLOCKING_INSTANCE_CTRL == `wr_gth_wrapper_gtwizard_gthe3_RX_USER_CLOCKING_INSTANCE_CTRL__SINGLE_INSTANCE)
       begin : gen_single_instance
         assign gtwiz_userclk_rx_srcclk_out  = 1'b0;
@@ -2704,7 +2733,7 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
           assign gtwiz_buffbypass_tx_resetdone_int = &gtwiz_reset_tx_done_out;
         end
 
-        gtwizard_ultrascale_v1_7_7_gtwiz_buffbypass_tx #(
+        gtwizard_ultrascale_v1_7_14_gtwiz_buffbypass_tx #(
           .P_BUFFER_BYPASS_MODE       (C_TX_BUFFBYPASS_MODE),
           .P_TOTAL_NUMBER_OF_CHANNELS (C_TOTAL_NUM_CHANNELS),
           .P_MASTER_CHANNEL_POINTER   (P_TX_MASTER_CH_PACKED_IDX)
@@ -2759,7 +2788,7 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
 
         genvar gi_hb_txbb;
         for (gi_hb_txbb = 0; gi_hb_txbb < `wr_gth_wrapper_gtwizard_gthe3_N_CH; gi_hb_txbb = gi_hb_txbb + 1) begin : gen_gtwiz_buffbypass_tx
-          gtwizard_ultrascale_v1_7_7_gtwiz_buffbypass_tx #(
+          gtwizard_ultrascale_v1_7_14_gtwiz_buffbypass_tx #(
             .P_BUFFER_BYPASS_MODE       (C_TX_BUFFBYPASS_MODE),
             .P_TOTAL_NUMBER_OF_CHANNELS (1),
             .P_MASTER_CHANNEL_POINTER   (0)
@@ -2858,7 +2887,7 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
           assign gtwiz_buffbypass_rx_resetdone_int = &gtwiz_reset_rx_done_out;
         end
 
-        gtwizard_ultrascale_v1_7_7_gtwiz_buffbypass_rx #(
+        gtwizard_ultrascale_v1_7_14_gtwiz_buffbypass_rx #(
           .P_BUFFER_BYPASS_MODE       (C_RX_BUFFBYPASS_MODE),
           .P_TOTAL_NUMBER_OF_CHANNELS (C_TOTAL_NUM_CHANNELS),
           .P_MASTER_CHANNEL_POINTER   (P_RX_MASTER_CH_PACKED_IDX)
@@ -2908,7 +2937,7 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
 
         genvar gi_hb_rxbb;
         for (gi_hb_rxbb = 0; gi_hb_rxbb < `wr_gth_wrapper_gtwizard_gthe3_N_CH; gi_hb_rxbb = gi_hb_rxbb + 1) begin : gen_gtwiz_buffbypass_rx
-          gtwizard_ultrascale_v1_7_7_gtwiz_buffbypass_rx #(
+          gtwizard_ultrascale_v1_7_14_gtwiz_buffbypass_rx #(
             .P_BUFFER_BYPASS_MODE       (C_RX_BUFFBYPASS_MODE),
             .P_TOTAL_NUMBER_OF_CHANNELS (1),
             .P_MASTER_CHANNEL_POINTER   (0)
@@ -3007,7 +3036,7 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
 
           genvar gi_ch_rxclk;
           for (gi_ch_rxclk = 0; gi_ch_rxclk < `wr_gth_wrapper_gtwizard_gthe3_N_CH; gi_ch_rxclk = gi_ch_rxclk + 1) begin : gen_ch_rxclk
-            gtwizard_ultrascale_v1_7_7_bit_synchronizer bit_synchronizer_gtwiz_reset_userclk_rx_active_inst (
+            gtwizard_ultrascale_v1_7_14_bit_synchronizer bit_synchronizer_gtwiz_reset_userclk_rx_active_inst (
               .clk_in (gtwiz_reset_clk_freerun_in),
               .i_in   (gtwiz_userclk_rx_active_out[gi_ch_rxclk]),
               .o_out  (gtwiz_userclk_rx_active_sync[gi_ch_rxclk])
@@ -3052,12 +3081,12 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
         wire [`wr_gth_wrapper_gtwizard_gthe3_N_CH-1:0] rxresetdone_sync;
         genvar gi_ch_xrd;
         for (gi_ch_xrd = 0; gi_ch_xrd < `wr_gth_wrapper_gtwizard_gthe3_N_CH; gi_ch_xrd = gi_ch_xrd + 1) begin : gen_ch_xrd
-          gtwizard_ultrascale_v1_7_7_bit_synchronizer bit_synchronizer_txresetdone_inst (
+          gtwizard_ultrascale_v1_7_14_bit_synchronizer bit_synchronizer_txresetdone_inst (
             .clk_in (gtwiz_reset_clk_freerun_in),
             .i_in   (txresetdone_int[gi_ch_xrd]),
             .o_out  (txresetdone_sync[gi_ch_xrd])
           );
-          gtwizard_ultrascale_v1_7_7_bit_synchronizer bit_synchronizer_rxresetdone_inst (
+          gtwizard_ultrascale_v1_7_14_bit_synchronizer bit_synchronizer_rxresetdone_inst (
             .clk_in (gtwiz_reset_clk_freerun_in),
             .i_in   (rxresetdone_int[gi_ch_xrd]),
             .o_out  (rxresetdone_sync[gi_ch_xrd])
@@ -3096,7 +3125,7 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
         end
 
         // Instantiate the single reset controller
-        gtwizard_ultrascale_v1_7_7_gtwiz_reset #(
+        gtwizard_ultrascale_v1_7_14_gtwiz_reset #(
           .P_FREERUN_FREQUENCY       (C_FREERUN_FREQUENCY),
           .P_USE_CPLL_CAL            (P_USE_CPLL_CAL),
           .P_TX_PLL_TYPE             (C_TX_PLL_TYPE),
@@ -3348,7 +3377,7 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
           endcase
 
           // Instantiate a reset controller per channel
-          gtwizard_ultrascale_v1_7_7_gtwiz_reset #(
+          gtwizard_ultrascale_v1_7_14_gtwiz_reset #(
             .P_FREERUN_FREQUENCY       (C_FREERUN_FREQUENCY),
             .P_USE_CPLL_CAL            (P_USE_CPLL_CAL),
             .P_TX_PLL_TYPE             (C_TX_PLL_TYPE),
@@ -3549,7 +3578,7 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
       wire [(C_TOTAL_NUM_CHANNELS* 16)-1:0] gtwiz_userdata_tx_txctrl0_int;
       wire [(C_TOTAL_NUM_CHANNELS* 16)-1:0] gtwiz_userdata_tx_txctrl1_int;
 
-      gtwizard_ultrascale_v1_7_7_gtwiz_userdata_tx #(
+      gtwizard_ultrascale_v1_7_14_gtwiz_userdata_tx #(
         .P_TX_USER_DATA_WIDTH       (C_TX_USER_DATA_WIDTH),
         .P_TX_DATA_ENCODING         (C_TX_DATA_ENCODING),
         .P_TOTAL_NUMBER_OF_CHANNELS (C_TOTAL_NUM_CHANNELS)
@@ -3595,7 +3624,7 @@ module wr_gth_wrapper_gtwizard_gthe3 #(
         (C_LOCATE_USER_DATA_WIDTH_SIZING == `wr_gth_wrapper_gtwizard_gthe3_LOCATE_USER_DATA_WIDTH_SIZING__CORE))
         begin : gen_rx_userdata_internal
 
-      gtwizard_ultrascale_v1_7_7_gtwiz_userdata_rx #(
+      gtwizard_ultrascale_v1_7_14_gtwiz_userdata_rx #(
         .P_RX_USER_DATA_WIDTH       (C_RX_USER_DATA_WIDTH),
         .P_RX_DATA_DECODING         (C_RX_DATA_DECODING),
         .P_TOTAL_NUMBER_OF_CHANNELS (C_TOTAL_NUM_CHANNELS)

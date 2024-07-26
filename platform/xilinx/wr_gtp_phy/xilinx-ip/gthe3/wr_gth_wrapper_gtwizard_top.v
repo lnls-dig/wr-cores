@@ -63,9 +63,13 @@
 `define wr_gth_wrapper_GT_TYPE__GTYE3 1
 `define wr_gth_wrapper_GT_TYPE__GTHE4 2
 `define wr_gth_wrapper_GT_TYPE__GTYE4 3
+`define wr_gth_wrapper_DEFAULT_CLOCKING 0
+`define wr_gth_wrapper_TX_USES_RX_CLOCKING 1
+`define wr_gth_wrapper_RX_USES_TX_CLOCKING 2
 `define wr_gth_wrapper_INCLUDE_CPLL_CAL__EXCLUDE 0
 `define wr_gth_wrapper_INCLUDE_CPLL_CAL__INCLUDE 1
 `define wr_gth_wrapper_INCLUDE_CPLL_CAL__DEPENDENT 2
+`define wr_gth_wrapper_INCLUDE_CPLL_CAL__PCIEQMODE 3
 `define wr_gth_wrapper_LOCATE_COMMON__CORE 0
 `define wr_gth_wrapper_LOCATE_COMMON__EXAMPLE_DESIGN 1
 `define wr_gth_wrapper_LOCATE_RESET_CONTROLLER__CORE 0
@@ -166,6 +170,7 @@
 `define wr_gth_wrapper_TX_USER_CLOCKING_INSTANCE_CTRL__PER_CHANNEL 1
 `define wr_gth_wrapper_TX_USER_CLOCKING_SOURCE__TXOUTCLK 0
 `define wr_gth_wrapper_TX_USER_CLOCKING_SOURCE__IBUFDS 1
+`define wr_gth_wrapper_TX_USER_CLOCKING_SOURCE__RXOUTCLK 2
 
 module wr_gth_wrapper_gtwizard_top #(
 
@@ -179,7 +184,9 @@ module wr_gth_wrapper_gtwizard_top #(
   parameter integer C_GT_TYPE                                 = `wr_gth_wrapper_GT_TYPE__GTHE3,
   parameter integer C_GT_REV                                  = 17,
   parameter integer C_INCLUDE_CPLL_CAL                        = `wr_gth_wrapper_INCLUDE_CPLL_CAL__DEPENDENT,
-  parameter         C_SIM_CPLL_CAL_BYPASS                     = 1'b0,
+  parameter integer C_ENABLE_COMMON_USRCLK                    = `wr_gth_wrapper_DEFAULT_CLOCKING,
+  parameter         C_USER_GTPOWERGOOD_DELAY_EN               = 0,
+  parameter         C_SIM_CPLL_CAL_BYPASS                     = 1,
   parameter integer C_LOCATE_COMMON                           = `wr_gth_wrapper_LOCATE_COMMON__CORE,
   parameter integer C_LOCATE_RESET_CONTROLLER                 = `wr_gth_wrapper_LOCATE_RESET_CONTROLLER__CORE,
   parameter integer C_LOCATE_USER_DATA_WIDTH_SIZING           = `wr_gth_wrapper_LOCATE_USER_DATA_WIDTH_SIZING__CORE,
@@ -1277,6 +1284,7 @@ module wr_gth_wrapper_gtwizard_top #(
       .C_FREERUN_FREQUENCY                       (C_FREERUN_FREQUENCY                      ),
       .C_GT_REV                                  (C_GT_REV                                 ),
       .C_INCLUDE_CPLL_CAL                        (C_INCLUDE_CPLL_CAL                       ),
+      .C_ENABLE_COMMON_USRCLK                    (C_ENABLE_COMMON_USRCLK                   ),
       .C_LOCATE_RESET_CONTROLLER                 (C_LOCATE_RESET_CONTROLLER                ),
       .C_LOCATE_USER_DATA_WIDTH_SIZING           (C_LOCATE_USER_DATA_WIDTH_SIZING          ),
       .C_LOCATE_RX_BUFFER_BYPASS_CONTROLLER      (C_LOCATE_RX_BUFFER_BYPASS_CONTROLLER     ),
@@ -1791,6 +1799,7 @@ module wr_gth_wrapper_gtwizard_top #(
       .C_COMMON_SCALING_FACTOR                   (C_COMMON_SCALING_FACTOR                  ),
       .C_FREERUN_FREQUENCY                       (C_FREERUN_FREQUENCY                      ),
       .C_GT_REV                                  (C_GT_REV                                 ),
+      .C_ENABLE_COMMON_USRCLK                    (C_ENABLE_COMMON_USRCLK                   ),
       .C_LOCATE_RESET_CONTROLLER                 (C_LOCATE_RESET_CONTROLLER                ),
       .C_LOCATE_USER_DATA_WIDTH_SIZING           (C_LOCATE_USER_DATA_WIDTH_SIZING          ),
       .C_LOCATE_RX_BUFFER_BYPASS_CONTROLLER      (C_LOCATE_RX_BUFFER_BYPASS_CONTROLLER     ),
@@ -2306,8 +2315,12 @@ module wr_gth_wrapper_gtwizard_top #(
       .C_PCIE_ENABLE                             (C_PCIE_ENABLE                            ),
       .C_PCIE_CORECLK_FREQ                       (C_PCIE_CORECLK_FREQ                      ),
       .C_COMMON_SCALING_FACTOR                   (C_COMMON_SCALING_FACTOR                  ),
+      .C_CPLL_VCO_FREQUENCY                      (C_CPLL_VCO_FREQUENCY                     ),
       .C_FREERUN_FREQUENCY                       (C_FREERUN_FREQUENCY                      ),
+      .C_GT_REV                                  (C_GT_REV                                 ),
       .C_INCLUDE_CPLL_CAL                        (C_INCLUDE_CPLL_CAL                       ),
+      .C_ENABLE_COMMON_USRCLK                    (C_ENABLE_COMMON_USRCLK                   ),
+      .C_USER_GTPOWERGOOD_DELAY_EN               (C_USER_GTPOWERGOOD_DELAY_EN              ),
       .C_SIM_CPLL_CAL_BYPASS                     (C_SIM_CPLL_CAL_BYPASS                    ),
       .C_LOCATE_RESET_CONTROLLER                 (C_LOCATE_RESET_CONTROLLER                ),
       .C_LOCATE_USER_DATA_WIDTH_SIZING           (C_LOCATE_USER_DATA_WIDTH_SIZING          ),
@@ -2333,6 +2346,8 @@ module wr_gth_wrapper_gtwizard_top #(
       .C_RX_USER_DATA_WIDTH                      (C_RX_USER_DATA_WIDTH                     ),
       .C_TOTAL_NUM_CHANNELS                      (C_TOTAL_NUM_CHANNELS                     ),
       .C_TOTAL_NUM_COMMONS                       (C_TOTAL_NUM_COMMONS                      ),
+      .C_TXPROGDIV_FREQ_ENABLE                   (C_TXPROGDIV_FREQ_ENABLE                  ),
+      .C_TXPROGDIV_FREQ_SOURCE                   (C_TXPROGDIV_FREQ_SOURCE                  ),
       .C_TX_BUFFBYPASS_MODE                      (C_TX_BUFFBYPASS_MODE                     ),
       .C_TX_BUFFER_BYPASS_INSTANCE_CTRL          (C_TX_BUFFER_BYPASS_INSTANCE_CTRL         ),
       .C_TX_BUFFER_MODE                          (C_TX_BUFFER_MODE                         ),
@@ -2840,8 +2855,12 @@ module wr_gth_wrapper_gtwizard_top #(
       .C_PCIE_ENABLE                             (C_PCIE_ENABLE                            ),
       .C_PCIE_CORECLK_FREQ                       (C_PCIE_CORECLK_FREQ                      ),
       .C_COMMON_SCALING_FACTOR                   (C_COMMON_SCALING_FACTOR                  ),
+      .C_CPLL_VCO_FREQUENCY                      (C_CPLL_VCO_FREQUENCY                     ),
       .C_FREERUN_FREQUENCY                       (C_FREERUN_FREQUENCY                      ),
+      .C_GT_REV                                  (C_GT_REV                                 ),
       .C_INCLUDE_CPLL_CAL                        (C_INCLUDE_CPLL_CAL                       ),
+      .C_ENABLE_COMMON_USRCLK                    (C_ENABLE_COMMON_USRCLK                   ),
+      .C_USER_GTPOWERGOOD_DELAY_EN               (C_USER_GTPOWERGOOD_DELAY_EN              ),
       .C_SIM_CPLL_CAL_BYPASS                     (C_SIM_CPLL_CAL_BYPASS                    ),
       .C_LOCATE_RESET_CONTROLLER                 (C_LOCATE_RESET_CONTROLLER                ),
       .C_LOCATE_USER_DATA_WIDTH_SIZING           (C_LOCATE_USER_DATA_WIDTH_SIZING          ),
@@ -2867,6 +2886,8 @@ module wr_gth_wrapper_gtwizard_top #(
       .C_RX_USER_DATA_WIDTH                      (C_RX_USER_DATA_WIDTH                     ),
       .C_TOTAL_NUM_CHANNELS                      (C_TOTAL_NUM_CHANNELS                     ),
       .C_TOTAL_NUM_COMMONS                       (C_TOTAL_NUM_COMMONS                      ),
+      .C_TXPROGDIV_FREQ_ENABLE                   (C_TXPROGDIV_FREQ_ENABLE                  ),
+      .C_TXPROGDIV_FREQ_SOURCE                   (C_TXPROGDIV_FREQ_SOURCE                  ),
       .C_TX_BUFFBYPASS_MODE                      (C_TX_BUFFBYPASS_MODE                     ),
       .C_TX_BUFFER_BYPASS_INSTANCE_CTRL          (C_TX_BUFFER_BYPASS_INSTANCE_CTRL         ),
       .C_TX_BUFFER_MODE                          (C_TX_BUFFER_MODE                         ),

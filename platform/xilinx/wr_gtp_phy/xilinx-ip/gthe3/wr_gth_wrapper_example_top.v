@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-//  (c) Copyright 2013-2015 Xilinx, Inc. All rights reserved.
+//  (c) Copyright 2013-2018 Xilinx, Inc. All rights reserved.
 //
 //  This file contains confidential and proprietary information
 //  of Xilinx, Inc. and is protected under U.S. and
@@ -77,12 +77,12 @@ module wr_gth_wrapper_example_top (
   input 	rx_slide_i,
   output 	rx_byte_is_aligned_o,
   output 	rx_comma_det_o,
-				   
+		
   output 	rx_clk_o,
   input [1:0] 	tx_k_i,
   output [1:0] 	rx_k_o,
-
-				   output ready_o
+		
+  output 	ready_o
 );
 
 
@@ -213,12 +213,12 @@ module wr_gth_wrapper_example_top (
   assign gtwiz_reset_all_int[0:0] = hb0_gtwiz_reset_all_int;
 
   //--------------------------------------------------------------------------------------------------------------------
-  wire [0:0] gtwiz_reset_tx_pll_and_datapath_int = 1'b0;
+  wire [0:0] gtwiz_reset_tx_pll_and_datapath_int;
   wire [0:0] hb0_gtwiz_reset_tx_pll_and_datapath_int;
   assign gtwiz_reset_tx_pll_and_datapath_int[0:0] = hb0_gtwiz_reset_tx_pll_and_datapath_int;
 
   //--------------------------------------------------------------------------------------------------------------------
-  wire [0:0] gtwiz_reset_tx_datapath_int = 1'b0;
+  wire [0:0] gtwiz_reset_tx_datapath_int;
   wire [0:0] hb0_gtwiz_reset_tx_datapath_int;
   assign gtwiz_reset_tx_datapath_int[0:0] = hb0_gtwiz_reset_tx_datapath_int;
 
@@ -279,12 +279,12 @@ module wr_gth_wrapper_example_top (
 
   //--------------------------------------------------------------------------------------------------------------------
   wire [0:0] rxmcommaalignen_int;
-  wire [0:0] ch0_rxmcommaalignen_int = 1'b0;
+  wire [0:0] ch0_rxmcommaalignen_int = 1'b1;
   assign rxmcommaalignen_int[0:0] = ch0_rxmcommaalignen_int;
 
   //--------------------------------------------------------------------------------------------------------------------
   wire [0:0] rxpcommaalignen_int;
-  wire [0:0] ch0_rxpcommaalignen_int = 1'b0;
+  wire [0:0] ch0_rxpcommaalignen_int = 1'b1;
   assign rxpcommaalignen_int[0:0] = ch0_rxpcommaalignen_int;
 
 
@@ -293,6 +293,12 @@ module wr_gth_wrapper_example_top (
   wire [0:0] tx8b10ben_int;
   wire [0:0] ch0_tx8b10ben_int = 1'b1;
   assign tx8b10ben_int[0:0] = ch0_tx8b10ben_int;
+
+
+  //--------------------------------------------------------------------------------------------------------------------
+  wire [0:0] gtpowergood_int;
+  wire [0:0] ch0_gtpowergood_int;
+  assign ch0_gtpowergood_int = gtpowergood_int[0:0];
 
   //--------------------------------------------------------------------------------------------------------------------
   wire [0:0] rxbyteisaligned_int;
@@ -351,11 +357,11 @@ module wr_gth_wrapper_example_top (
   wire hb_gtwiz_reset_all_init_int;
   wire hb_gtwiz_reset_all_int;
 
-   assign   hb_gtwiz_reset_all_buf_int = hb_gtwiz_reset_all_in;
-   
+  assign hb_gtwiz_reset_all_buf_int = hb_gtwiz_reset_all_in;
 
-   assign hb_gtwiz_reset_all_int = hb_gtwiz_reset_all_buf_int || hb_gtwiz_reset_all_init_int;
-   
+
+  assign hb_gtwiz_reset_all_int = hb_gtwiz_reset_all_buf_int || hb_gtwiz_reset_all_init_int;
+
 
   // Globally buffer the free-running input clock
   wire hb_gtwiz_reset_clk_freerun_buf_int;
@@ -429,10 +435,10 @@ module wr_gth_wrapper_example_top (
 
    assign tx_clk_o = hb0_gtwiz_userclk_tx_usrclk2_int;
    assign rx_clk_o = hb0_gtwiz_userclk_rx_usrclk2_int;
-
+ 
    assign hb0_gtwiz_userdata_tx_int = tx_data_i;
    assign rx_data_o = hb0_gtwiz_userdata_rx_int;
-  
+
    assign ready_o = ~(hb_gtwiz_reset_all_int || ~hb0_gtwiz_reset_rx_done_int || ~hb0_gtwiz_buffbypass_rx_done_int || ~hb0_gtwiz_buffbypass_tx_done_int);
 
 
@@ -446,7 +452,7 @@ module wr_gth_wrapper_example_top (
    assign txctrl2_int = {6'b0, tx_k_i};
    assign rx_k_o = rxctrl0_int[1:0];
    
-   
+
   // ===================================================================================================================
   // INITIALIZATION
   // ===================================================================================================================
@@ -464,7 +470,8 @@ module wr_gth_wrapper_example_top (
   // controller helper block reset input
   wire hb_gtwiz_reset_rx_datapath_init_int;
 
-   assign hb_gtwiz_reset_rx_datapath_int = hb_gtwiz_reset_rx_datapath_init_int ;
+   assign hb_gtwiz_reset_rx_datapath_int = hb_gtwiz_reset_rx_datapath_init_int;
+
 
   // The example initialization module interacts with the reset controller helper block and other example design logic
   // to retry failed reset attempts in order to mitigate bring-up issues such as initially-unavilable reference clocks
@@ -535,6 +542,7 @@ module wr_gth_wrapper_example_top (
    ,.txctrl0_in                              (txctrl0_int)
    ,.txctrl1_in                              (txctrl1_int)
    ,.txctrl2_in                              (txctrl2_int)
+   ,.gtpowergood_out                         (gtpowergood_int)
    ,.rxbyteisaligned_out                     (rx_byte_is_aligned_o)
    ,.rxbyterealign_out                       (rxbyterealign_int)
    ,.rxcommadet_out                          (rx_comma_det_o)

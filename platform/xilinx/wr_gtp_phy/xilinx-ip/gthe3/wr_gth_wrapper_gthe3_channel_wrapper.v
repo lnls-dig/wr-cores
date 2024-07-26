@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-//  (c) Copyright 2013-2015 Xilinx, Inc. All rights reserved.
+//  (c) Copyright 2013-2018 Xilinx, Inc. All rights reserved.
 //
 //  This file contains confidential and proprietary information
 //  of Xilinx, Inc. and is protected under U.S. and
@@ -391,7 +391,7 @@ module wr_gth_wrapper_gthe3_channel_wrapper #(
 
 
 
-gtwizard_ultrascale_v1_6_5_gthe3_channel #(
+gtwizard_ultrascale_v1_7_14_gthe3_channel #(
   .GTHE3_CHANNEL_ACJTAG_DEBUG_MODE              (1'b0),
   .GTHE3_CHANNEL_ACJTAG_MODE                    (1'b0),
   .GTHE3_CHANNEL_ACJTAG_RESET                   (1'b0),
@@ -1145,7 +1145,7 @@ gtwizard_ultrascale_v1_6_5_gthe3_channel #(
   .GTHE3_CHANNEL_TXPI_CFG4                      (1'b1),
   .GTHE3_CHANNEL_TXPI_CFG5                      (3'b011),
   .GTHE3_CHANNEL_TXPI_GRAY_SEL                  (1'b0),
-  .GTHE3_CHANNEL_TXPI_INVSTROBE_SEL             (1'b0),
+  .GTHE3_CHANNEL_TXPI_INVSTROBE_SEL             (1'b1),
   .GTHE3_CHANNEL_TXPI_LPM                       (1'b0),
   .GTHE3_CHANNEL_TXPI_PPMCLK_SEL                ("TXUSRCLK2"),
   .GTHE3_CHANNEL_TXPI_PPM_CFG                   (8'b00000000),

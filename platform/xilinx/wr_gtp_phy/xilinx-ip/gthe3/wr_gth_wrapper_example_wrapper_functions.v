@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-//  (c) Copyright 2013-2015 Xilinx, Inc. All rights reserved.
+//  (c) Copyright 2013-2018 Xilinx, Inc. All rights reserved.
 //
 //  This file contains confidential and proprietary information
 //  of Xilinx, Inc. and is protected under U.S. and
@@ -46,7 +46,7 @@
 //  PART OF THIS FILE AT ALL TIMES.
 //------------------------------------------------------------------------------
 
-`ifdef INCLUDE_WRAPPER_FUNCTIONS
+
 // =====================================================================================================================
 // This file contains functions available for example design HDL generation as required
 // =====================================================================================================================
@@ -239,5 +239,3 @@ begin : main_f_idx_ch_lb
   f_idx_ch_lb = result - 1;
 end
 endfunction
-
-`endif

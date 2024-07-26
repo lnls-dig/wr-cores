@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-//  (c) Copyright 2013-2015 Xilinx, Inc. All rights reserved.
+//  (c) Copyright 2013-2018 Xilinx, Inc. All rights reserved.
 //
 //  This file contains confidential and proprietary information
 //  of Xilinx, Inc. and is protected under U.S. and
@@ -59,8 +59,8 @@
 module wr_gth_wrapper_example_init # (
 
   parameter real   P_FREERUN_FREQUENCY    = 62.5,
-  parameter real   P_TX_TIMER_DURATION_US = 300,
-  parameter real   P_RX_TIMER_DURATION_US = 300
+  parameter real   P_TX_TIMER_DURATION_US = 30000,
+  parameter real   P_RX_TIMER_DURATION_US = 130000
 
 )(
 
