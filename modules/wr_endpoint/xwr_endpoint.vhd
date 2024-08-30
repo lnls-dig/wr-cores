@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-04-26
--- Last update: 2023-03-13
+-- Last update: 2018-03-08
 -- Platform   : FPGA-generic
 -- Standard   : VHDL '93
 -------------------------------------------------------------------------------
@@ -106,11 +106,13 @@ entity xwr_endpoint is
     phy_loopen_o         : out std_logic;
     phy_loopen_vec_o     : out std_logic_vector(2 downto 0);
     phy_tx_prbs_sel_o    : out std_logic_vector(2 downto 0);
-    phy_sfp_tx_fault_i   : in std_logic := '0';
-    phy_sfp_los_i        : in std_logic := '0';
+    phy_sfp_tx_fault_i   : in std_logic;
+    phy_sfp_los_i        : in std_logic;
     phy_sfp_tx_disable_o : out std_logic;
-    phy_rdy_i            : in  std_logic := '0';
-
+    phy_rdy_i            : in  std_logic;
+    phy_lpc_stat_i       : in  std_logic_vector(15 downto 0) := (others=>'0');
+    phy_lpc_ctrl_o       : out std_logic_vector(15 downto 0);
+    
     phy_ref_clk_i      : in  std_logic := '0';
     phy_tx_data_o      : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
     phy_tx_k_o         : out std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
@@ -123,9 +125,6 @@ entity xwr_endpoint is
     phy_rx_enc_err_i  : in std_logic                     := '0';
     phy_rx_bitslide_i : in std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
 
-    phy_mdio_master_o : out t_wishbone_master_out;
-    phy_mdio_master_i : in t_wishbone_master_in := cc_dummy_slave_out; 
-    
     -- 2nd option is to use record-based I/Os
     phy8_o            : out t_phy_8bits_from_wrc;
     phy8_i            : in  t_phy_8bits_to_wrc;
@@ -302,6 +301,8 @@ architecture syn of xwr_endpoint is
   signal sfp_tx_fault     : std_logic;
   signal sfp_los          : std_logic;
 
+  signal phy_lpc_stat_in  :  std_logic_vector(15 downto 0);
+  signal phy_lpc_ctrl_out :  std_logic_vector(15 downto 0);
 begin
 
   U_Wrapped_Endpoint : wr_endpoint
@@ -344,16 +345,8 @@ begin
       phy_loopen_vec_o     => phy_loopen_vec,
       phy_tx_prbs_sel_o    => phy_tx_prbs_sel,
       phy_rdy_i            => phy_rdy,
-
-      phy_mdio_master_cyc_o       => phy_mdio_master_o.cyc,
-      phy_mdio_master_stb_o       => phy_mdio_master_o.stb,
-      phy_mdio_master_we_o       => phy_mdio_master_o.we,
-      phy_mdio_master_sel_o       => phy_mdio_master_o.sel,
-      phy_mdio_master_adr_o       => phy_mdio_master_o.adr,
-      phy_mdio_master_dat_o       => phy_mdio_master_o.dat,
-      phy_mdio_master_dat_i       => phy_mdio_master_i.dat,
-      phy_mdio_master_stall_i       => phy_mdio_master_i.stall,
-      phy_mdio_master_ack_i       => phy_mdio_master_i.ack,
+      phy_lpc_stat_i       => phy_lpc_stat_in,
+      phy_lpc_ctrl_o       => phy_lpc_ctrl_out,
 
       phy_sfp_tx_fault_i   => sfp_tx_fault,
       phy_sfp_los_i        => sfp_los,
@@ -461,6 +454,7 @@ begin
     phy16_o.tx_k           <= phy_tx_k;
     phy16_o.tx_prbs_sel    <= phy_tx_prbs_sel;
     phy16_o.sfp_tx_disable <= sfp_tx_disable;
+    phy16_o.lpc_ctrl       <= phy_lpc_ctrl_out;
 
     phy_tx_clk       <= phy16_i.ref_clk;
     phy_tx_disparity <= phy16_i.tx_disparity;
@@ -471,6 +465,7 @@ begin
     phy_rx_enc_err   <= phy16_i.rx_enc_err;
     phy_rx_bts       <= phy16_i.rx_bitslide;
     phy_rdy          <= phy16_i.rdy;
+    phy_lpc_stat_in  <= phy16_i.lpc_stat;
     sfp_tx_fault     <= phy16_i.sfp_tx_fault;
     sfp_los          <= phy16_i.sfp_los;
 
@@ -526,6 +521,7 @@ begin
     phy_tx_k_o           <= phy_tx_k;
     phy_tx_prbs_sel_o    <= phy_tx_prbs_sel;
     phy_sfp_tx_disable_o <= sfp_tx_disable;
+    phy_lpc_ctrl_o       <= phy_lpc_ctrl_out;
 
     phy_tx_clk       <= phy_ref_clk_i;
     phy_tx_disparity <= phy_tx_disparity_i;
@@ -536,6 +532,7 @@ begin
     phy_rx_enc_err   <= phy_rx_enc_err_i;
     phy_rx_bts       <= phy_rx_bitslide_i;
     phy_rdy          <= phy_rdy_i;
+    phy_lpc_stat_in  <= phy_lpc_stat_i;
     sfp_tx_fault     <= phy_sfp_tx_fault_i;
     sfp_los          <= phy_sfp_los_i;
 

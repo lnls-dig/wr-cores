@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2023-03-13
+-- Last update: 2017-02-20
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -112,6 +112,675 @@ package endpoint_private_pkg is
     rx_frame               : std_logic;
     rx_drop_at_rtu_full    : std_logic;
   end record;
+
+  component ep_1000basex_pcs
+    generic (
+      g_simulation : boolean;
+      g_16bit      : boolean;
+      g_ep_idx     : integer);
+    port (
+      rst_sys_n_i                   : in  std_logic;
+      rst_txclk_n_i                 : in  std_logic;
+      rst_rxclk_n_i                 : in  std_logic;
+      clk_sys_i                     : in  std_logic;
+      rxpcs_fab_o                   : out t_ep_internal_fabric;
+      rxpcs_fifo_almostfull_i       : in  std_logic;
+      rxpcs_busy_o                  : out std_logic;
+      rxpcs_timestamp_trigger_p_a_o : out std_logic;
+      rxpcs_timestamp_i             : in  std_logic_vector(31 downto 0);
+      rxpcs_timestamp_stb_i         : in  std_logic;
+      rxpcs_timestamp_valid_i       : in  std_logic;
+      txpcs_fab_i                   : in  t_ep_internal_fabric;
+      txpcs_error_o                 : out std_logic;
+      txpcs_busy_o                  : out std_logic;
+      txpcs_dreq_o                  : out std_logic;
+      txpcs_timestamp_trigger_p_a_o : out std_logic;
+      link_ok_o                     : out std_logic;
+      link_ctr_i                    : in  std_logic := '1';
+      serdes_stat_i                 : in std_logic_vector(15 downto 0);
+      serdes_ctrl_o                 : out std_logic_vector(15 downto 0);
+      serdes_rst_o                  : out std_logic;
+      serdes_loopen_o               : out std_logic;
+      serdes_loopen_vec_o           : out std_logic_vector(2 downto 0);
+      serdes_tx_prbs_sel_o          : out std_logic_vector(2 downto 0);
+      serdes_sfp_tx_fault_i         : in  std_logic;
+      serdes_sfp_los_i              : in  std_logic;
+      serdes_sfp_tx_disable_o       : out std_logic;
+      serdes_rdy_i                  : in  std_logic;
+      serdes_tx_clk_i               : in  std_logic;
+      serdes_tx_data_o              : out std_logic_vector(f_pcs_data_width(g_16bit)-1 downto 0);
+      serdes_tx_k_o                 : out std_logic_vector(f_pcs_k_width(g_16bit)-1 downto 0);
+      serdes_tx_disparity_i         : in  std_logic;
+      serdes_tx_enc_err_i           : in  std_logic;
+      serdes_rx_clk_i               : in  std_logic;
+      serdes_rx_data_i              : in  std_logic_vector(f_pcs_data_width(g_16bit)-1 downto 0);
+      serdes_rx_k_i                 : in  std_logic_vector(f_pcs_k_width(g_16bit)-1 downto 0);
+      serdes_rx_enc_err_i           : in  std_logic;
+      serdes_rx_bitslide_i          : in  std_logic_vector(f_pcs_bts_width(g_16bit)-1 downto 0);
+      rmon_o                        : out t_rmon_triggers;
+      mdio_addr_i                   : in  std_logic_vector(15 downto 0);
+      mdio_data_i                   : in  std_logic_vector(15 downto 0);
+      mdio_data_o                   : out std_logic_vector(15 downto 0);
+      mdio_stb_i                    : in  std_logic;
+      mdio_rw_i                     : in  std_logic;
+      mdio_ready_o                  : out std_logic;
+      dbg_tx_pcs_wr_count_o         : out std_logic_vector(5+4 downto 0);
+      dbg_tx_pcs_rd_count_o         : out std_logic_vector(5+4 downto 0);
+      nice_dbg_o                    : out t_dbg_ep_pcs;
+      preamble_shrinkage            : in std_logic);
+  end component;
+
+  component ep_tx_pcs_8bit
+    port (
+      rst_n_i                 : in  std_logic;
+      rst_txclk_n_i           : in  std_logic;
+      clk_sys_i               : in  std_logic;
+      pcs_fab_i               : in  t_ep_internal_fabric;
+      pcs_error_o             : out std_logic;
+      pcs_busy_o              : out std_logic;
+      pcs_dreq_o              : out std_logic;
+      mdio_mcr_reset_i        : in  std_logic;
+      mdio_mcr_pdown_i        : in  std_logic;
+      mdio_wr_spec_tx_cal_i   : in  std_logic;
+      an_tx_en_i              : in  std_logic;
+      an_tx_val_i             : in  std_logic_vector(15 downto 0);
+      timestamp_trigger_p_a_o : out std_logic;
+      rmon_tx_underrun        : out std_logic;
+      phy_tx_clk_i            : in  std_logic;
+      phy_tx_data_o           : out std_logic_vector(7 downto 0);
+      phy_tx_k_o              : out std_logic;
+      phy_tx_disparity_i      : in  std_logic;
+      phy_tx_enc_err_i        : in  std_logic;
+      preamble_shrinkage      : in  std_logic := '0');
+  end component;
+
+  component ep_tx_pcs_16bit
+    port (
+      rst_n_i                 : in  std_logic;
+      rst_txclk_n_i           : in  std_logic;
+      clk_sys_i               : in  std_logic;
+      pcs_fab_i               : in  t_ep_internal_fabric;
+      pcs_error_o             : out std_logic;
+      pcs_busy_o              : out std_logic;
+      pcs_dreq_o              : out std_logic;
+      mdio_mcr_reset_i        : in  std_logic;
+      mdio_mcr_pdown_i        : in  std_logic;
+      mdio_wr_spec_tx_cal_i   : in  std_logic;
+      an_tx_en_i              : in  std_logic;
+      an_tx_val_i             : in  std_logic_vector(15 downto 0);
+      timestamp_trigger_p_a_o : out std_logic;
+      rmon_tx_underrun        : out std_logic;
+      phy_tx_clk_i            : in  std_logic;
+      phy_tx_data_o           : out std_logic_vector(15 downto 0);
+      phy_tx_k_o              : out std_logic_vector(1 downto 0);
+      phy_tx_disparity_i      : in  std_logic;
+      phy_tx_enc_err_i        : in  std_logic;
+      dbg_wr_count_o     : out std_logic_vector(5+4 downto 0);
+      dbg_rd_count_o     : out std_logic_vector(5+4 downto 0));
+  end component;
+
+  component ep_rx_pcs_8bit
+    generic (
+      g_simulation : boolean);
+    port (
+      clk_sys_i                  : in  std_logic;
+      rst_n_i                    : in  std_logic;
+      rst_rxclk_n_i              : in  std_logic;
+      pcs_fifo_almostfull_i      : in  std_logic;
+      pcs_busy_o                 : out std_logic;
+      pcs_fab_o                  : out t_ep_internal_fabric;
+      timestamp_trigger_p_a_o    : out std_logic;  -- strobe for RX timestamping
+      timestamp_i                : in  std_logic_vector(31 downto 0);
+      timestamp_stb_i            : in  std_logic;
+      timestamp_valid_i          : in  std_logic;
+      phy_rdy_i                  : in  std_logic;
+      phy_rx_clk_i               : in  std_logic;
+      phy_rx_data_i              : in  std_logic_vector(7 downto 0);
+      phy_rx_k_i                 : in  std_logic;
+      phy_rx_enc_err_i           : in  std_logic;
+      mdio_mcr_reset_i           : in  std_logic;
+      mdio_mcr_pdown_i           : in  std_logic;
+      mdio_wr_spec_cal_crst_i    : in  std_logic;
+      mdio_wr_spec_rx_cal_stat_o : out std_logic;
+      synced_o                   : out std_logic;
+      sync_lost_o                : out std_logic;
+      an_rx_en_i                 : in  std_logic;
+      an_rx_val_o                : out std_logic_vector(15 downto 0);
+      an_rx_valid_o              : out std_logic;
+      an_idle_match_o            : out std_logic;
+      rmon_rx_overrun            : out std_logic;
+      rmon_rx_inv_code           : out std_logic;
+      rmon_rx_sync_lost          : out std_logic);
+  end component;
+
+  component ep_rx_pcs_16bit
+    generic (
+      g_simulation : boolean;
+      g_ep_idx     : integer);
+    port (
+      clk_sys_i                  : in  std_logic;
+      rst_n_i                    : in  std_logic;
+      rst_rxclk_n_i              : in  std_logic;
+      pcs_fifo_almostfull_i      : in  std_logic;
+      pcs_busy_o                 : out std_logic;
+      pcs_fab_o                  : out t_ep_internal_fabric;
+      timestamp_trigger_p_a_o    : out std_logic;  -- strobe for RX timestamping
+      timestamp_i                : in  std_logic_vector(31 downto 0);
+      timestamp_stb_i            : in  std_logic;
+      timestamp_valid_i          : in  std_logic;
+      phy_rdy_i                  : in  std_logic;
+      phy_rx_clk_i               : in  std_logic;
+      phy_rx_data_i              : in  std_logic_vector(15 downto 0);
+      phy_rx_k_i                 : in  std_logic_vector(1 downto 0);
+      phy_rx_enc_err_i           : in  std_logic;
+      mdio_mcr_reset_i           : in  std_logic;
+      mdio_mcr_pdown_i           : in  std_logic;
+      mdio_wr_spec_cal_crst_i    : in  std_logic;
+      mdio_wr_spec_rx_cal_stat_o : out std_logic;
+      synced_o                   : out std_logic;
+      sync_lost_o                : out std_logic;
+      an_rx_en_i                 : in  std_logic;
+      an_rx_val_o                : out std_logic_vector(15 downto 0);
+      an_rx_valid_o              : out std_logic;
+      an_idle_match_o            : out std_logic;
+      rmon_rx_overrun            : out std_logic;
+      rmon_rx_inv_code           : out std_logic;
+      rmon_rx_sync_lost          : out std_logic;
+      nice_dbg_o                 : out t_dbg_ep_rxpcs);
+  end component;
+
+  component ep_autonegotiation
+    generic (
+      g_simulation : boolean);
+    port (
+      clk_sys_i               : in  std_logic;
+      rst_n_i                 : in  std_logic;
+      pcs_synced_i            : in  std_logic;
+      pcs_los_i               : in  std_logic;
+      pcs_link_ok_o           : out std_logic;
+      an_idle_match_i         : in  std_logic;
+      an_rx_en_o              : out std_logic;
+      an_rx_val_i             : in  std_logic_vector(15 downto 0);
+      an_rx_valid_i           : in  std_logic;
+      an_tx_en_o              : out std_logic;
+      an_tx_val_o             : out std_logic_vector(15 downto 0);
+      mdio_mcr_anrestart_i    : in  std_logic;
+      mdio_mcr_anenable_i     : in  std_logic;
+      mdio_msr_anegcomplete_o : out std_logic;
+      mdio_advertise_pause_i  : in  std_logic_vector(1 downto 0);
+      mdio_advertise_rfault_i : in  std_logic_vector(1 downto 0);
+      mdio_lpa_full_o         : out std_logic;
+      mdio_lpa_half_o         : out std_logic;
+      mdio_lpa_pause_o        : out std_logic_vector(1 downto 0);
+      mdio_lpa_rfault_o       : out std_logic_vector(1 downto 0);
+      mdio_lpa_lpack_o        : out std_logic;
+      mdio_lpa_npage_o        : out std_logic);
+  end component;
+
+  component ep_pcs_tbi_mdio_wb
+    port (
+      rst_n_i                    : in  std_logic;
+      clk_sys_i                  : in  std_logic;
+      wb_adr_i                   : in  std_logic_vector(4 downto 0);
+      wb_dat_i                   : in  std_logic_vector(31 downto 0);
+      wb_dat_o                   : out std_logic_vector(31 downto 0);
+      wb_cyc_i                   : in  std_logic;
+      wb_sel_i                   : in  std_logic_vector(3 downto 0);
+      wb_stb_i                   : in  std_logic;
+      wb_we_i                    : in  std_logic;
+      wb_ack_o                   : out std_logic;
+      wb_stall_o                 : out std_logic;
+      tx_clk_i                   : in  std_logic;
+      rx_clk_i                   : in  std_logic;
+      mdio_mcr_uni_en_o          : out std_logic;
+      mdio_mcr_anrestart_o       : out std_logic;
+      mdio_mcr_pdown_o           : out std_logic;
+      mdio_mcr_anenable_o        : out std_logic;
+      mdio_mcr_reset_o           : out std_logic;
+      mdio_mcr_loopback_o        : out std_logic;
+      mdio_msr_lstatus_i         : in  std_logic;
+      lstat_read_notify_o        : out std_logic;
+      mdio_msr_rfault_i          : in  std_logic;
+      mdio_msr_anegcomplete_i    : in  std_logic;
+      mdio_advertise_pause_o     : out std_logic_vector(1 downto 0);
+      mdio_advertise_rfault_o    : out std_logic_vector(1 downto 0);
+      mdio_lpa_full_i            : in  std_logic;
+      mdio_lpa_half_i            : in  std_logic;
+      mdio_lpa_pause_i           : in  std_logic_vector(1 downto 0);
+      mdio_lpa_rfault_i          : in  std_logic_vector(1 downto 0);
+      mdio_lpa_lpack_i           : in  std_logic;
+      mdio_lpa_npage_i           : in  std_logic;
+      mdio_wr_spec_tx_cal_o      : out std_logic;
+      mdio_wr_spec_rx_cal_stat_i : in  std_logic;
+      mdio_wr_spec_cal_crst_o    : out std_logic;
+      mdio_wr_spec_bslide_i      : in  std_logic_vector(4 downto 0);
+      mdio_ectrl_lpbck_vec_o       : out std_logic_vector(2 downto 0);
+      mdio_ectrl_sfp_tx_fault_i    : in  std_logic;
+      mdio_ectrl_sfp_loss_i        : in  std_logic;
+      mdio_ectrl_sfp_tx_disable_o  : out std_logic;
+      mdio_ectrl_tx_prbs_sel_o    : out std_logic_vector(2 downto 0);
+      mdio_lpc_phy_stat_i         : in  std_logic_vector(15 downto 0);
+      mdio_lpc_phy_ctrl_o         : out std_logic_vector(15 downto 0));
+  end component ep_pcs_tbi_mdio_wb;
+
+  component ep_tx_header_processor
+    generic (
+      g_with_packet_injection : boolean;
+      g_with_timestamper      : boolean;
+      g_force_gap_length      : integer;
+      g_runt_padding          : boolean);
+    port (
+      clk_sys_i              : in  std_logic;
+      rst_n_i                : in  std_logic;
+      src_fab_o              : out t_ep_internal_fabric;
+      src_dreq_i             : in  std_logic;
+      pcs_busy_i             : in  std_logic;
+      pcs_error_i            : in  std_logic;
+      wb_snk_i               : in  t_wrf_sink_in;
+      wb_snk_o               : out t_wrf_sink_out;
+      fc_pause_req_i         : in  std_logic;
+      fc_pause_delay_i       : in  std_logic_vector(15 downto 0);
+      fc_pause_ready_o       : out std_logic;
+      fc_flow_enable_i       : in  std_logic;
+      txtsu_port_id_o        : out std_logic_vector(4 downto 0);
+      txtsu_fid_o            : out std_logic_vector(16 -1 downto 0);
+      txtsu_ts_value_o       : out std_logic_vector(28 + 4 - 1 downto 0);
+      txtsu_ts_incorrect_o   : out std_logic;
+      txtsu_stb_o            : out std_logic;
+      txtsu_ack_i            : in  std_logic;
+      txts_timestamp_i       : in  std_logic_vector(31 downto 0);
+      txts_timestamp_valid_i : in  std_logic;
+      ep_ctrl_i              : in std_logic;
+      regs_i                 : in  t_ep_out_registers);
+  end component;
+
+  component ep_tx_vlan_unit
+    port (
+      clk_sys_i         : in  std_logic;
+      rst_n_i           : in  std_logic;
+      snk_fab_i         : in  t_ep_internal_fabric;
+      snk_dreq_o        : out std_logic;
+      src_fab_o         : out t_ep_internal_fabric;
+      src_dreq_i        : in  std_logic;
+      inject_mem_addr_i : in  std_logic_vector(9 downto 0);
+      inject_mem_data_o : out std_logic_vector(17 downto 0);
+      uram_offset_wr_i  : in  std_logic;
+      uram_offset_i     : in  std_logic_vector(9 downto 0);
+      uram_data_i       : in  std_logic_vector(17 downto 0));
+  end component;
+  
+  component ep_timestamping_unit
+    generic (
+      g_timestamp_bits_r : natural;
+      g_timestamp_bits_f : natural;
+      g_ref_clock_rate   : integer);
+    port (
+      clk_ref_i                  : in  std_logic;
+      clk_sys_i                  : in  std_logic;
+      clk_rx_i                   : in  std_logic;
+      rst_n_rx_i                 : in  std_logic;
+      rst_n_ref_i                : in  std_logic;
+      rst_n_sys_i                : in  std_logic;
+      pps_csync_p1_i             : in  std_logic;
+      pps_valid_i                : in  std_logic;
+      tx_timestamp_trigger_p_a_i : in  std_logic;
+      rx_timestamp_trigger_p_a_i : in  std_logic;
+      rxts_timestamp_o           : out std_logic_vector(31 downto 0);
+      rxts_timestamp_stb_o       : out std_logic;
+      rxts_timestamp_valid_o     : out std_logic;
+      txts_timestamp_o           : out std_logic_vector(31 downto 0);
+      txts_timestamp_stb_o       : out std_logic;
+      txts_timestamp_valid_o     : out std_logic;
+      txts_o                     : out std_logic; 		-- 2013-Nov-28 peterj added for debugging/calibration
+      rxts_o                     : out std_logic; 		-- 2013-Nov-28 peterj added for debugging/calibration
+      regs_i                     : in  t_ep_out_registers;
+      regs_o                     : out t_ep_in_registers);
+  end component;
+
+  component ep_flow_control
+    port (
+      clk_sys_i          : in  std_logic;
+      rst_n_i            : in  std_logic;
+      rx_pause_p1_i      : in  std_logic;
+      rx_pause_delay_i   : in  std_logic_vector(15 downto 0);
+      tx_pause_o         : out std_logic;
+      tx_pause_delay_o   : out std_logic_vector(15 downto 0);
+      tx_pause_ack_i     : in  std_logic;
+      tx_flow_enable_o   : out std_logic;
+      rx_buffer_used_i   : in  std_logic_vector(7 downto 0);
+      ep_fcr_txpause_i   : in  std_logic;
+      ep_fcr_rxpause_i   : in  std_logic;
+      ep_fcr_tx_thr_i    : in  std_logic_vector(7 downto 0);
+      ep_fcr_tx_quanta_i : in  std_logic_vector(15 downto 0);
+      rmon_rcvd_pause_o  : out std_logic;
+      rmon_sent_pause_o  : out std_logic);
+  end component;
+
+  component ep_wishbone_controller
+    port (
+      rst_n_i            : in  std_logic;
+      clk_sys_i          : in  std_logic;
+      wb_adr_i          : in  std_logic_vector(4 downto 0);
+      wb_dat_i          : in  std_logic_vector(31 downto 0);
+      wb_dat_o          : out std_logic_vector(31 downto 0);
+      wb_cyc_i           : in  std_logic;
+      wb_sel_i           : in  std_logic_vector(3 downto 0);
+      wb_stb_i           : in  std_logic;
+      wb_we_i            : in  std_logic;
+      wb_ack_o           : out std_logic;
+      wb_stall_o         : out std_logic;
+      tx_clk_i           : in  std_logic;
+      rx_clk_i           : in  std_logic;
+      regs_o             : out t_ep_out_registers;
+      regs_i             : in  t_ep_in_registers);
+  end component;
+
+  component ep_leds_controller
+    generic (
+      g_blink_period_log2 : integer);
+    port (
+      clk_sys_i   : in  std_logic;
+      rst_n_i     : in  std_logic;
+      dvalid_tx_i : in  std_logic;
+      dvalid_rx_i : in  std_logic;
+      link_ok_i   : in  std_logic;
+      led_link_o  : out std_logic;
+      led_act_o   : out std_logic);
+  end component;
+
+  component ep_tx_packet_injection
+    port (
+      clk_sys_i           : in  std_logic;
+      rst_n_i             : in  std_logic;
+      snk_fab_i           : in  t_ep_internal_fabric;
+      snk_dreq_o          : out std_logic;
+      src_fab_o           : out t_ep_internal_fabric;
+      src_dreq_i          : in  std_logic;
+      inject_req_i        : in  std_logic;
+      inject_ready_o      : out std_logic;
+      inject_packet_sel_i : in  std_logic_vector(2 downto 0);
+      inject_user_value_i : in  std_logic_vector(15 downto 0);
+      inject_mode_i       : in  std_logic_vector(1 downto 0);
+      mem_addr_o          : out std_logic_vector(9 downto 0);
+      mem_data_i          : in  std_logic_vector(17 downto 0));
+  end component;
+
+  component ep_rtu_header_extract
+    generic (
+      g_with_rtu : boolean);
+    port (
+      clk_sys_i        : in  std_logic;
+      rst_n_i          : in  std_logic;
+      snk_fab_i        : in  t_ep_internal_fabric;
+      snk_dreq_o       : out std_logic;
+      src_fab_o        : out t_ep_internal_fabric;
+      src_dreq_i       : in  std_logic;
+      mbuf_is_pause_i  : in  std_logic;
+      vlan_class_i     : in  std_logic_vector(2 downto 0);
+      vlan_vid_i       : in  std_logic_vector(11 downto 0);
+      vlan_tag_done_i  : in  std_logic;
+      vlan_is_tagged_i : in  std_logic;
+      rmon_drp_at_rtu_full_o: out std_logic;
+      rtu_rq_o         : out t_ep_internal_rtu_request;
+      rtu_full_i       : in  std_logic;
+      rtu_rq_abort_o   : out std_logic;
+      rtu_rq_valid_o   : out std_logic;
+      rxbuf_full_i     : in  std_logic;
+      nice_dbg_o       : out t_dbg_rtu_extract);
+  end component;
+
+  component ep_rx_early_address_match
+    port (
+      clk_sys_i               : in  std_logic;
+      clk_rx_i                : in  std_logic;
+      rst_n_sys_i             : in  std_logic;
+      rst_n_rx_i              : in  std_logic;
+      snk_fab_i               : in  t_ep_internal_fabric;
+      src_fab_o               : out t_ep_internal_fabric;
+      match_done_o            : out std_logic;
+      match_is_hp_o           : out std_logic;
+      match_is_pause_o        : out std_logic;
+      match_pause_quanta_o    : out std_logic_vector(15 downto 0);
+      match_pause_prio_mask_o : out std_logic_vector(7 downto 0);
+      match_pause_p_o         : out std_logic;
+      regs_i                  : in  t_ep_out_registers);
+  end component;
+
+  component ep_clock_alignment_fifo
+    generic (
+      g_size                 : integer;
+      g_almostfull_threshold : integer);
+    port (
+      rst_n_rd_i       : in  std_logic;
+      rst_n_wr_i       : in std_logic;
+      clk_wr_i         : in  std_logic;
+      clk_rd_i         : in  std_logic;
+      dreq_i           : in  std_logic;
+      fab_i            : in  t_ep_internal_fabric;
+      fab_o            : out t_ep_internal_fabric;
+      full_o           : out std_logic;
+      empty_o          : out std_logic;
+      almostfull_o     : out std_logic;
+      pass_threshold_i : in  std_logic_vector(f_log2_size(g_size)-1 downto 0));
+  end component;
+
+  component ep_packet_filter
+    port (
+      clk_rx_i    : in  std_logic;
+      clk_sys_i   : in  std_logic;
+      rst_n_rx_i  : in  std_logic;
+      rst_n_sys_i : in  std_logic;
+      snk_fab_i   : in  t_ep_internal_fabric;
+      src_fab_o   : out t_ep_internal_fabric;
+      done_o      : out std_logic;
+      pclass_o    : out std_logic_vector(7 downto 0);
+      drop_o      : out std_logic;
+      regs_i      : in  t_ep_out_registers);
+  end component;
+
+  component ep_rx_vlan_unit
+    port (
+      clk_sys_i   : in    std_logic;
+      rst_n_i     : in    std_logic;
+      snk_fab_i   : in    t_ep_internal_fabric;
+      snk_dreq_o  : out   std_logic;
+      src_fab_o   : out   t_ep_internal_fabric;
+      src_dreq_i  : in    std_logic;
+      tclass_o    : out   std_logic_vector(2 downto 0);
+      vid_o       : out   std_logic_vector(11 downto 0);
+      tag_done_o  : out   std_logic;
+      is_tagged_o : out   std_logic;
+      regs_i      : in    t_ep_out_registers;
+      regs_o      : out   t_ep_in_registers);
+  end component;
+
+  component ep_rx_oob_insert
+    port (
+      clk_sys_i  : in  std_logic;
+      rst_n_i    : in  std_logic;
+      snk_fab_i  : in  t_ep_internal_fabric;
+      snk_dreq_o : out std_logic;
+      src_fab_o  : out t_ep_internal_fabric;
+      src_dreq_i : in  std_logic;
+      regs_i     : in  t_ep_out_registers);
+  end component;
+
+  component ep_rx_crc_size_check
+  	generic (
+      g_use_new_crc : boolean := false);
+    port (
+      clk_sys_i      : in  std_logic;
+      rst_n_i        : in  std_logic;
+      snk_fab_i      : in  t_ep_internal_fabric;
+      snk_dreq_o     : out std_logic;
+      src_fab_o      : out t_ep_internal_fabric;
+      src_dreq_i     : in  std_logic;
+      regs_i         : in  t_ep_out_registers;
+      rmon_pcs_err_o : out std_logic;
+      rmon_giant_o   : out std_logic;
+      rmon_runt_o    : out std_logic;
+      rmon_crc_err_o : out std_logic);
+  end component;
+
+  component ep_rx_wb_master
+    generic (
+      g_ignore_ack   : boolean;
+      g_cyc_on_stall : boolean := false);
+    port (
+      clk_sys_i  : in  std_logic;
+      rst_n_i    : in  std_logic;
+      stop_traffic_i : in std_logic := '0';
+      snk_fab_i  : in  t_ep_internal_fabric;
+      snk_dreq_o : out std_logic;
+      src_wb_i   : in  t_wrf_source_in;
+      src_wb_o   : out t_wrf_source_out);
+  end component;
+
+  component ep_rx_status_reg_insert
+    port (
+      clk_sys_i           : in  std_logic;
+      rst_n_i             : in  std_logic;
+      snk_fab_i           : in  t_ep_internal_fabric;
+      snk_dreq_o          : out std_logic;
+      src_fab_o           : out t_ep_internal_fabric;
+      src_dreq_i          : in  std_logic;
+      mbuf_valid_i        : in  std_logic;
+      mbuf_ack_o          : out std_logic;
+      mbuf_drop_i         : in  std_logic;
+      mbuf_pclass_i       : in  std_logic_vector(7 downto 0);
+      mbuf_is_hp_i        : in  std_logic;
+      mbuf_is_pause_i     : in  std_logic;
+      rmon_pfilter_drop_o : out std_logic);
+  end component;
+
+  component ep_rx_buffer
+    generic (
+      g_size : integer;
+      g_with_fc : boolean := false);
+    port (
+      clk_sys_i  : in  std_logic;
+      rst_n_i    : in  std_logic;
+      snk_fab_i  : in  t_ep_internal_fabric;
+      snk_dreq_o : out std_logic;
+      src_fab_o  : out t_ep_internal_fabric;
+      src_dreq_i : in  std_logic;
+      level_o    : out std_logic_vector(7 downto 0);
+      full_o     : out std_logic;
+      drop_req_i : in std_logic;
+      dropped_o  : out std_logic;
+      regs_i     : in  t_ep_out_registers);
+  end component;
+
+
+  component ep_rx_path
+    generic (
+      g_with_vlans          : boolean;
+      g_with_dpi_classifier : boolean;
+      g_with_rtu            : boolean;
+      g_with_rx_buffer      : boolean;
+      g_rx_buffer_size      : integer;
+      g_use_new_crc         :	boolean);
+    port (
+      clk_sys_i              : in  std_logic;
+      clk_rx_i               : in  std_logic;
+      rst_n_sys_i            : in  std_logic;
+      rst_n_rx_i             : in  std_logic;
+      stop_traffic_i         : in  std_logic;
+      pcs_fab_i              : in  t_ep_internal_fabric;
+      pcs_fifo_almostfull_o  : out std_logic;
+      pcs_busy_i             : in  std_logic;
+      src_wb_o               : out t_wrf_source_out;
+      src_wb_i               : in  t_wrf_source_in;
+      fc_pause_p_o           : out std_logic;
+      fc_pause_quanta_o      : out std_logic_vector(15 downto 0);
+      fc_pause_prio_mask_o   : out std_logic_vector(7 downto 0);
+      fc_buffer_occupation_o : out std_logic_vector(7 downto 0);
+      rmon_o                 : out t_rmon_triggers;
+      regs_i                 : in  t_ep_out_registers;
+      regs_o                 : out t_ep_in_registers;
+      pfilter_pclass_o       : out std_logic_vector(7 downto 0);
+      pfilter_drop_o         : out std_logic;
+      pfilter_done_o         : out std_logic;
+      rtu_rq_o               : out t_ep_internal_rtu_request;
+      rtu_full_i             : in  std_logic;
+      rtu_rq_valid_o         : out std_logic;
+      rtu_rq_abort_o         : out std_logic;
+      nice_dbg_o             : out t_dbg_ep_rxpath);
+  end component;
+
+  component ep_tx_path
+    generic (
+      g_with_vlans            : boolean;
+      g_with_timestamper      : boolean;
+      g_with_packet_injection : boolean;
+      g_force_gap_length      : integer;
+      g_runt_padding          : boolean;
+      g_use_new_crc           :	boolean := false);
+    port (
+      clk_sys_i              : in  std_logic;
+      rst_n_i                : in  std_logic;
+      pcs_fab_o              : out t_ep_internal_fabric;
+      pcs_error_i            : in  std_logic;
+      pcs_busy_i             : in  std_logic;
+      pcs_dreq_i             : in  std_logic;
+      snk_i                  : in  t_wrf_sink_in;
+      snk_o                  : out t_wrf_sink_out;
+      fc_pause_req_i         : in  std_logic;
+      fc_pause_delay_i       : in  std_logic_vector(15 downto 0);
+      fc_pause_ready_o       : out std_logic;
+      fc_flow_enable_i       : in  std_logic;
+      txtsu_port_id_o        : out std_logic_vector(4 downto 0);
+      txtsu_fid_o            : out std_logic_vector(16 -1 downto 0);
+      txtsu_ts_value_o       : out std_logic_vector(28 + 4 - 1 downto 0);
+      txtsu_ts_incorrect_o   : out std_logic;
+      txtsu_stb_o            : out std_logic;
+      txtsu_ack_i            : in  std_logic;
+      txts_timestamp_i       : in  std_logic_vector(31 downto 0);
+      txts_timestamp_valid_i : in  std_logic;
+      inject_req_i           : in  std_logic                     := '0';
+      inject_ready_o         : out std_logic;
+      inject_packet_sel_i    : in  std_logic_vector(2 downto 0)  := "000";
+      inject_user_value_i    : in  std_logic_vector(15 downto 0) := x"0000";
+      ep_ctrl_i              : in  std_logic                     := '1';
+      regs_i                 : in  t_ep_out_registers;
+      regs_o                 : out t_ep_in_registers;
+      dbg_o                  : out std_logic_vector(33 downto 0));
+  end component;
+
+  component ep_tx_crc_inserter
+    generic(
+      g_use_new_crc	: boolean := false);
+    port (
+      clk_sys_i  : in  std_logic;
+      rst_n_i    : in  std_logic;
+      snk_fab_i  : in  t_ep_internal_fabric;
+      snk_dreq_o : out std_logic;
+      src_fab_o  : out t_ep_internal_fabric;
+      src_dreq_i : in  std_logic;
+      dbg_o      : out std_logic_vector(2 downto 0));
+  end component;
+  
+  component ep_tx_inject_ctrl
+    generic(
+      g_min_if_gap_length     : integer
+      );
+    port (
+      clk_sys_i             : in  std_logic;
+      rst_n_i               : in  std_logic;
+      snk_fab_i             : in  t_ep_internal_fabric;
+      snk_dreq_o            : out std_logic;
+      src_fab_o             : out t_ep_internal_fabric;
+      src_dreq_i            : in  std_logic;
+      inject_req_o          : out std_logic;
+      inject_ready_i        : in  std_logic;
+      inject_packet_sel_o   : out std_logic_vector(2 downto 0);
+      inject_user_value_o   : out std_logic_vector(15 downto 0);
+      inject_ctr_ena_o      : out std_logic;
+      inject_ctr_mode_o     : out std_logic_vector(1 downto 0);
+      regs_i                : in  t_ep_out_registers;
+      regs_o                : out t_ep_in_registers);
+  end component;
+
 
   procedure f_pack_fifo_contents (
     signal fab        : in  t_ep_internal_fabric;

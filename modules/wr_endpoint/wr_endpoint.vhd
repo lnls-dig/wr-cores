@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-04-26
--- Last update: 2023-03-21
+-- Last update: 2018-10-25
 -- Platform   : FPGA-generics
 -- Standard   : VHDL
 -------------------------------------------------------------------------------
@@ -119,18 +119,9 @@ entity wr_endpoint is
     phy_sfp_los_i        : in  std_logic;
     phy_sfp_tx_disable_o : out std_logic;
     phy_rdy_i            : in  std_logic;
+    phy_lpc_stat_i       : in  std_logic_vector(15 downto 0) := (others=>'0');
+    phy_lpc_ctrl_o       : out std_logic_vector(15 downto 0);
 
-    -- clk_sys_i domain!
-    phy_mdio_master_cyc_o : out std_logic;
-    phy_mdio_master_stb_o : out std_logic;
-    phy_mdio_master_we_o : out std_logic;
-    phy_mdio_master_dat_o : out std_logic_vector(31 downto 0);
-    phy_mdio_master_sel_o : out std_logic_vector(3 downto 0) := "0000";
-    phy_mdio_master_adr_o : out std_logic_vector(31 downto 0);
-    phy_mdio_master_ack_i : in std_logic := '0';
-    phy_mdio_master_stall_i : in std_logic := '0';
-    phy_mdio_master_dat_i : in std_logic_vector(31 downto 0) := x"00000000";
-    
     phy_ref_clk_i      : in  std_logic;
     phy_tx_data_o      : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
     phy_tx_k_o         : out std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0);
@@ -427,9 +418,6 @@ architecture syn of wr_endpoint is
   signal phy_rdy_resync_sys  : std_logic;
   signal rst_n_rx_resync_sys : std_logic;
 
-  signal phy_mdio_master_out : t_wishbone_master_out;
-  signal phy_mdio_master_in : t_wishbone_master_in;
-    
 -------------------------------------------------------------------------------
 -- chipscope (for desperates)
 -------------------------------------------------------------------------------
@@ -450,9 +438,6 @@ architecture syn of wr_endpoint is
       TRIG2   : in    std_logic_vector(31 downto 0);
       TRIG3   : in    std_logic_vector(31 downto 0));
   end component;
-
-  attribute mark_debug : string;
-  attribute mark_debug of rmon_events_o : signal is "true";
 
 begin
 
@@ -475,7 +460,7 @@ begin
 
   mdio_addr <= regs_fromwb.mdio_asr_phyad_o & regs_fromwb.mdio_cr_addr_o;
 
-  U_PCS_1000BASEX : entity work.ep_1000basex_pcs
+  U_PCS_1000BASEX : ep_1000basex_pcs
     generic map (
       g_simulation => g_simulation,
       g_16bit      => g_pcs_16bit,
@@ -513,8 +498,8 @@ begin
       serdes_sfp_los_i         => phy_sfp_los_i,
       serdes_sfp_tx_disable_o  => phy_sfp_tx_disable_o,
       serdes_rdy_i             => phy_rdy_i,
-      serdes_mdio_master_o            => phy_mdio_master_out,
-      serdes_mdio_master_i            => phy_mdio_master_in,
+      serdes_stat_i            => phy_lpc_stat_i,
+      serdes_ctrl_o            => phy_lpc_ctrl_o,
 
       serdes_tx_clk_i       => phy_ref_clk_i,
       serdes_tx_data_o      => phy_tx_data_o,
@@ -540,18 +525,6 @@ begin
       nice_dbg_o   => nice_dbg_o.pcs,
       preamble_shrinkage => regs_fromwb.ecr_txshrin_en_o);
 
-  phy_mdio_master_cyc_o <= phy_mdio_master_out.cyc;
-  phy_mdio_master_stb_o <= phy_mdio_master_out.stb;
-  phy_mdio_master_we_o <= phy_mdio_master_out.we;
-  phy_mdio_master_adr_o <= phy_mdio_master_out.adr;
-  phy_mdio_master_sel_o <= phy_mdio_master_out.sel;
-  phy_mdio_master_dat_o <= phy_mdio_master_out.dat;
-  phy_mdio_master_in.dat <= phy_mdio_master_dat_i;
-  phy_mdio_master_in.ack <= phy_mdio_master_ack_i;
-  phy_mdio_master_in.stall <= phy_mdio_master_stall_i;
-  phy_mdio_master_in.rty <= '0';
-  phy_mdio_master_in.err <= '0'; 
-
 
 -------------------------------------------------------------------------------
 -- TX FRAMER
@@ -561,7 +534,7 @@ begin
 
 --   txfra_pause_req <= '0';
 
-  U_Tx_Path : entity work.ep_tx_path
+  U_Tx_Path : ep_tx_path
     generic map (
       g_with_packet_injection => g_with_packet_injection,
       g_with_vlans            => g_with_vlans,
@@ -620,7 +593,7 @@ begin
 -- RX deframer
 -------------------------------------------------------------------------------
 
-  U_Rx_Path : entity work.ep_rx_path
+  U_Rx_Path : ep_rx_path
     generic map (
       g_with_vlans          => g_with_vlans,
       g_with_dpi_classifier => g_with_dpi_classifier,
@@ -713,7 +686,7 @@ begin
 -- Timestamping unit
 -------------------------------------------------------------------------------
 
-  U_EP_TSU : entity work.ep_timestamping_unit
+  U_EP_TSU : ep_timestamping_unit
     generic map (
       g_timestamp_bits_r => 28,
       g_timestamp_bits_f => 4,
@@ -751,7 +724,7 @@ begin
 
   extended_ADDR <= std_logic_vector(resize(unsigned(wb_adr_i), c_wishbone_address_width));
 
-  U_Slave_adapter : entity work.wb_slave_adapter
+  U_Slave_adapter : wb_slave_adapter
     generic map (
       g_master_use_struct  => true,
       g_master_mode        => CLASSIC,
@@ -774,7 +747,7 @@ begin
       master_i   => wb_out,
       master_o   => wb_in);
 
-  U_WB_SLAVE : entity work.ep_wishbone_controller
+  U_WB_SLAVE : ep_wishbone_controller
     port map (
       rst_n_i    => rst_sys_n_i,
       clk_sys_i  => clk_sys_i,
@@ -908,7 +881,7 @@ begin
   dvalid_rx <= src_out.cyc and src_out.stb and link_ok;
 
   gen_leds : if g_with_leds generate
-    U_Led_Ctrl : entity work.ep_leds_controller
+    U_Led_Ctrl : ep_leds_controller
       generic map (
         g_blink_period_log2 => 22)
       port map (

@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-04-26
--- Last update: 2023-03-13
+-- Last update: 2017-02-20
 -- Platform   : FPGA-generic
 -- Standard   : VHDL '93
 -------------------------------------------------------------------------------
@@ -83,7 +83,6 @@ package endpoint_pkg is
     tx_enc_err     : std_logic;
     rx_data        : std_logic_vector(7 downto 0);
     rx_clk         : std_logic;
-    rx_sampled_clk : std_logic;
     rx_k           : std_logic_vector(0 downto 0);
     rx_enc_err     : std_logic;
     rx_bitslide    : std_logic_vector(3 downto 0);
@@ -102,7 +101,7 @@ package endpoint_pkg is
   end record;
 
   constant c_dummy_phy8_to_wrc : t_phy_8bits_to_wrc :=
-    ('0', '0', '0', (others=>'0'), '0', '0', (others=>'0'), '0',
+    ('0', '0', '0', (others=>'0'), '0', (others=>'0'), '0',
     (others=>'0'), '0', '0', '0');
   constant c_dummy_phy8_from_wrc : t_phy_8bits_from_wrc :=
     ('0', '0', (others=>'0'), (others=>'0'), (others=>'0'),
@@ -115,15 +114,15 @@ package endpoint_pkg is
     tx_enc_err     : std_logic;
     rx_data        : std_logic_vector(15 downto 0);
     rx_clk         : std_logic;
-    rx_sampled_clk : std_logic;
     rx_k           : std_logic_vector(1 downto 0);
     rx_enc_err     : std_logic;
     rx_bitslide    : std_logic_vector(4 downto 0);
     rdy            : std_logic;
     sfp_tx_fault   : std_logic;
     sfp_los        : std_logic;
-  end record;
+    lpc_stat       : std_logic_vector(15 downto 0);
 
+  end record;
   type t_phy_16bits_from_wrc is record
     rst            : std_logic;
     loopen         : std_logic;
@@ -132,14 +131,16 @@ package endpoint_pkg is
     loopen_vec     : std_logic_vector(2 downto 0);
     tx_prbs_sel    : std_logic_vector(2 downto 0);
     sfp_tx_disable : std_logic;
+    lpc_ctrl       : std_logic_vector(15 downto 0);
+
   end record;
 
   constant c_dummy_phy16_to_wrc : t_phy_16bits_to_wrc :=
-    ('0', '0', '0', (others=>'0'), '0', '0', (others=>'0'), '0',
-    (others=>'0'), '0', '0', '0');
+    ('0', '0', '0', (others=>'0'), '0', (others=>'0'), '0',
+    (others=>'0'), '0', '0', '0', (others => '0'));
   constant c_dummy_phy16_from_wrc : t_phy_16bits_from_wrc :=
     ('0', '0', (others=>'0'), (others=>'0'), (others=>'0'),
-    (others=>'0'), '0');
+    (others=>'0'), '0', (others => '0'));
 
 
   -- debug CS types
@@ -220,9 +221,8 @@ package endpoint_pkg is
       phy_sfp_los_i        : in  std_logic                     := '0';
       phy_sfp_tx_disable_o : out std_logic;
       phy_rdy_i            : in  std_logic;
-
-      phy_mdio_master_o : out t_wishbone_master_out;
-      phy_mdio_master_i : in t_wishbone_master_in := cc_dummy_slave_out; 
+      phy_lpc_stat_i       : in  std_logic_vector(15 downto 0) := (others=>'0');
+      phy_lpc_ctrl_o       : out std_logic_vector(15 downto 0);
 
       phy_ref_clk_i        : in  std_logic                     := '0';
       phy_tx_data_o        : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
@@ -337,6 +337,8 @@ package endpoint_pkg is
       phy_sfp_los_i        : in  std_logic                     := '0';
       phy_sfp_tx_disable_o : out std_logic;
       phy_rdy_i            : in  std_logic;
+      phy_lpc_stat_i       : in  std_logic_vector(15 downto 0) := (others=>'0');
+      phy_lpc_ctrl_o       : out std_logic_vector(15 downto 0);
       
       phy_ref_clk_i        : in  std_logic;
       phy_tx_data_o        : out std_logic_vector(f_pcs_data_width(g_pcs_16bit)-1 downto 0);
@@ -348,18 +350,6 @@ package endpoint_pkg is
       phy_rx_k_i           : in  std_logic_vector(f_pcs_k_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
       phy_rx_enc_err_i     : in  std_logic;
       phy_rx_bitslide_i    : in  std_logic_vector(f_pcs_bts_width(g_pcs_16bit)-1 downto 0) := (others=>'0');
-
-        -- clk_sys_i domain!
-      phy_mdio_master_cyc_o : out std_logic;
-      phy_mdio_master_stb_o : out std_logic;
-      phy_mdio_master_we_o : out std_logic;
-      phy_mdio_master_dat_o : out std_logic_vector(31 downto 0);
-      phy_mdio_master_sel_o : out std_logic_vector(3 downto 0) := "0000";
-      phy_mdio_master_adr_o : out std_logic_vector(31 downto 0);
-      phy_mdio_master_ack_i : in std_logic := '0';
-      phy_mdio_master_stall_i : in std_logic := '0';
-      phy_mdio_master_dat_i : in std_logic_vector(31 downto 0) := x"00000000";
-
       gmii_tx_clk_i        : in  std_logic	 									 := '0';
       gmii_txd_o           : out std_logic_vector(7 downto 0)  := x"00";
       gmii_tx_en_o         : out std_logic                     := '0';
@@ -447,7 +437,7 @@ package endpoint_pkg is
     wbd_width     => x"7",                 -- 8/16/32-bit port granularity
     sdb_component => (
       addr_first  => x"0000000000000000",
-      addr_last   => x"000000000000007f",
+      addr_last   => x"00000000000000ff",
       product     => (
         vendor_id => x"000000000000CE42",  -- CERN
         device_id => x"650c2d4f",
