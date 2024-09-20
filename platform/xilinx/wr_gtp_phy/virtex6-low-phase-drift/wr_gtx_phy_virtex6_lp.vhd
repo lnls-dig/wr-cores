@@ -50,7 +50,9 @@ use unisim.vcomponents.all;
 library work;
 use work.gencores_pkg.all;
 use work.disparity_gen_pkg.all;
-
+use work.wishbone_pkg.all;
+use work.lpdc_mdio_regs_pkg.all;
+  
 entity wr_gtx_phy_virtex6_lp is
 
   generic (
@@ -68,6 +70,10 @@ entity wr_gtx_phy_virtex6_lp is
     clk_ref_i : in std_logic;
     -- Reference 62.5 MHz clock for the GTX transceiver
     clk_gtx_i : in std_logic;
+
+    -- system clock for MDIO reg interface
+    clk_sys_i     : in std_logic;
+    rst_sys_n_i   : in std_logic;
 
     -- DMTD clock for phase measurements (done in the PHY module as we need to
     -- multiplex between several GTX clock outputs)
@@ -123,8 +129,8 @@ entity wr_gtx_phy_virtex6_lp is
 
     rdy_o : out std_logic;
 
-    lpc_ctrl_i : in  std_logic_vector(15 downto 0) := x"0000";
-    lpc_stat_o : out std_logic_vector(15 downto 0);
+    mdio_slave_i         : in  t_wishbone_slave_in;
+    mdio_slave_o         : out t_wishbone_slave_out;
 
     TX_CLK_o : out std_logic
 
@@ -299,23 +305,36 @@ architecture rtl of wr_gtx_phy_virtex6_lp is
   signal pll_tx_reset_a : std_logic;
   signal pll_rx_reset_a : std_logic;
   signal cd_reset : std_logic;
+
+  signal lpdc_regs_out      : t_lpdc_regs_master_out;
+  signal lpdc_regs_in       : t_lpdc_regs_master_in;
+  signal drp_regs_in        : t_wishbone_slave_out;
+  signal drp_regs_out       : t_wishbone_slave_in;
   
 begin  -- rtl
 
-  tx_sw_reset <= lpc_ctrl_i(0);
-  tx_enable   <= lpc_ctrl_i(1);
-  rx_enable   <= lpc_ctrl_i(2);
-  rx_sw_reset <= lpc_ctrl_i(3) or rx_rst;
-  rx_cdr_reset_a <= lpc_ctrl_i(4);
-  pll_tx_reset_a <= lpc_ctrl_i(5);
-  pll_rx_reset_a <= lpc_ctrl_i(6);
-  dbg_rst <= lpc_ctrl_i(7);
-  dbg_shift_en <= lpc_ctrl_i(8);
-  dbg_trig <= lpc_ctrl_i(10);
-  
+  U_LPDC_regs : entity work.lpdc_mdio_regs
+    port map (
+      rst_n_i     => rst_sys_n_i,
+      clk_i       => clk_sys_i,
+      wb_i        => mdio_slave_i,
+      wb_o        => mdio_slave_o,
+      lpdc_regs_i => lpdc_regs_in,
+      lpdc_regs_o => lpdc_regs_out,
+      drp_regs_i  => drp_regs_in,
+      drp_regs_o  => drp_regs_out);
+
+  tx_sw_reset <= lpdc_regs_out.CTRL_tx_sw_reset;
+  tx_enable   <= lpdc_regs_out.CTRL_tx_enable;
+  rx_enable   <= lpdc_regs_out.CTRL_rx_enable;
+  rx_sw_reset <= lpdc_regs_out.CTRL_rx_sw_reset or rx_rst;
+  rx_cdr_reset_a <= lpdc_regs_out.CTRL_rx_sw_reset;
+  pll_tx_reset_a <= lpdc_regs_out.CTRL_pll_sw_reset;
+  pll_rx_reset_a <= lpdc_regs_out.CTRL_pll_sw_reset;
+
   dbg_data <= dbg_reg(0);
 
-  cd_reset <= rx_rst or lpc_ctrl_i(11);
+  cd_reset <= rx_sw_reset;
 
   U_SyncDBG: gc_sync_ffs
     port map (
@@ -390,8 +409,8 @@ begin  -- rtl
       clk_dmtd_i    => clk_dmtd_i,
       clk_sampled_o => tx_out_clk_sampled);
 
-  clk_sampled_o <= rx_rec_clk_sampled when lpc_ctrl_i(15 downto 14) = "00" else
-                   tx_out_clk_sampled when lpc_ctrl_i(15 downto 14) = "01" else
+  clk_sampled_o <= rx_rec_clk_sampled when lpdc_regs_out.CTRL_dmtd_clk_sel = "00" else
+                   tx_out_clk_sampled when lpdc_regs_out.CTRL_dmtd_clk_sel = "01" else
                    '0';
 
 
@@ -444,11 +463,14 @@ begin  -- rtl
       gtx_tx_reset_done_i => gtx_tx_rst_done,
       done_o              => tx_reset_done);
 
-  lpc_stat_o(0) <= tx_reset_done;
-  lpc_stat_o(4) <= dbg_data;
-  lpc_stat_o(5) <= txpll_lockdet;
-  lpc_stat_o(6) <= rxpll_lockdet;
-
+  lpdc_regs_in.STAT_pll_locked        <= pll_lockdet;
+  lpdc_regs_in.STAT_link_up           <= link_up;
+  lpdc_regs_in.STAT_link_aligned      <= link_aligned;
+  lpdc_regs_in.STAT_tx_rst_done       <= tx_reset_done;
+  lpdc_regs_in.STAT_txusrpll_locked   <= txpll_lockdet;
+  lpdc_regs_in.STAT_rx_rst_done       <= rx_rst_done;
+  lpdc_regs_in.STAT_comma_current_pos <= (others => '0');
+  lpdc_regs_in.STAT_comma_pos_valid   <= '0';
   
   gen_rx_bufg : if(g_rxclk_bufr = false) generate
 
@@ -599,9 +621,6 @@ begin  -- rtl
       out_8b_o    => rx_data_int(7 downto 0));
 
   rx_disp_err <= (others => '0');
-  
-  lpc_stat_o(1) <= link_up;
-  lpc_stat_o(2) <= link_aligned;
 
   p_gen_rx_outputs : process(rx_rec_clk, rx_rst)
   begin

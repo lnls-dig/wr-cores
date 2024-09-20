@@ -107,6 +107,7 @@ elif (syn_device[0:4].upper()=="XC6V"): # Virtex6
         "virtex6/whiterabbitgtx_wrapper_gtx.vhd",
         "virtex6/gtp_phase_align_virtex6.vhd",
         "virtex6/gtx_reset.vhd",
+        "common/lpdc_mdio_regs.vhd",
         "virtex6-low-phase-drift/gtx_comma_detect_lp.vhd",
         "virtex6-low-phase-drift/gtx_tx_reset_lp.vhd",
         "virtex6-low-phase-drift/whiterabbitgtx_wrapper_gtx_lp.vhd",
