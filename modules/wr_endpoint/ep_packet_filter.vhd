@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2018-10-25
+-- Last update: 2022-02-02
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -165,6 +165,10 @@ architecture behavioral of ep_packet_filter is
 
   signal pfcr0_enable_rxclk : std_logic;
 
+  signal pclass_int : std_logic_vector(7 downto 0);
+  signal drop_int, done_int_sys   : std_logic;
+
+  
 begin  -- behavioral
 
   U_sync_pfcr0_enable : gc_sync_ffs
@@ -344,21 +348,38 @@ begin  -- behavioral
     if rising_edge(clk_rx_i) then
       if (rst_n_rx_i = '0' or snk_fab_i.sof = '1') then
         done_int <= '0';
-        drop_o   <= '0';
+        drop_int  <= '0';
       else
         if(pfcr0_enable_rxclk = '0') then
           done_int <= '0';
-          drop_o   <= '0';
-          pclass_o <= (others => '0');
+          drop_int   <= '0';
+          pclass_int <= (others => '0');
         elsif( (stage3 = '1' and insn_d.fin = '1') or
                ((snk_fab_i.error = '1' or snk_fab_i.eof = '1') and done_int = '0') ) then
           done_int <= '1';
-          pclass_o <= regs(31 downto 24);
-          drop_o   <= regs(23);
+          pclass_int <= regs(31 downto 24);
+          drop_int   <= regs(23);
         end if;
       end if;
     end if;
   end process;
+
+  p_out_status : process(clk_sys_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if(done_int_sys = '1') then
+        drop_o <= drop_int;
+        pclass_o <= pclass_int;
+        done_o <= '1';
+      else
+        done_o <= '0';
+      end if;
+      
+    end if;
+  end process;
+  
+  
+  
 
   U_Sync_Done : gc_pulse_synchronizer2
     port map (
@@ -367,6 +388,6 @@ begin  -- behavioral
       clk_out_i   => clk_sys_i,
       rst_out_n_i => rst_n_sys_i,
       d_p_i       => done_int,
-      q_p_o       => done_o);
+      q_p_o       => done_int_sys);
 
 end behavioral;

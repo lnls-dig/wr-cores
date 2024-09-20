@@ -6,7 +6,6 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2009-06-16
--- Last update: 2017-02-20
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -19,20 +18,20 @@
 --
 -- Copyright (c) 2011-2017 CERN
 --
--- This source file is free software; you can redistribute it   
--- and/or modify it under the terms of the GNU Lesser General   
--- Public License as published by the Free Software Foundation; 
--- either version 2.1 of the License, or (at your option) any   
--- later version.                                               
+-- This source file is free software; you can redistribute it
+-- and/or modify it under the terms of the GNU Lesser General
+-- Public License as published by the Free Software Foundation;
+-- either version 2.1 of the License, or (at your option) any
+-- later version.
 --
--- This source is distributed in the hope that it will be       
--- useful, but WITHOUT ANY WARRANTY; without even the implied   
--- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      
--- PURPOSE.  See the GNU Lesser General Public License for more 
--- details.                                                     
+-- This source is distributed in the hope that it will be
+-- useful, but WITHOUT ANY WARRANTY; without even the implied
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+-- PURPOSE.  See the GNU Lesser General Public License for more
+-- details.
 --
--- You should have received a copy of the GNU Lesser General    
--- Public License along with this source; if not, download it   
+-- You should have received a copy of the GNU Lesser General
+-- Public License along with this source; if not, download it
 -- from http://www.gnu.org/licenses/lgpl-2.1.html
 --
 -------------------------------------------------------------------------------
@@ -79,7 +78,7 @@ entity ep_rx_pcs_16bit is
 
 -------------------------------------------------------------------------------
 -- PHY interface
--------------------------------------------------------------------------------    
+-------------------------------------------------------------------------------
 
     phy_rdy_i        : in std_logic;
     phy_rx_clk_i     : in std_logic;
@@ -89,7 +88,7 @@ entity ep_rx_pcs_16bit is
 
 -------------------------------------------------------------------------------
 -- Wishbone registers
--------------------------------------------------------------------------------    
+-------------------------------------------------------------------------------
 
     -- Receive control regsiter
     mdio_mcr_reset_i           : in  std_logic;
@@ -110,7 +109,7 @@ entity ep_rx_pcs_16bit is
     rmon_rx_overrun   : out std_logic;
     rmon_rx_inv_code  : out std_logic;
     rmon_rx_sync_lost : out std_logic;
-     
+
     nice_dbg_o  : out t_dbg_ep_rxpcs
     );
 
@@ -193,10 +192,8 @@ architecture behavioral of ep_rx_pcs_16bit is
   signal rx_sync_status : std_logic;
   signal rx_sync_enable : std_logic;
 
--- Autonegotiation control signals
-  signal an_rx_en_synced : std_logic;
-
   signal lcr_ready         : std_logic;
+  signal lcr_ready_d       : std_logic;
   signal lcr_prev_val      : std_logic_vector(15 downto 0);
   signal lcr_cur_val       : std_logic_vector(15 downto 0);
   signal lcr_final_val     : std_logic_vector(15 downto 0);
@@ -212,13 +209,30 @@ architecture behavioral of ep_rx_pcs_16bit is
 
 -- Misc. signals
   signal cal_pattern_cntr      : unsigned(c_cal_pattern_counter_bits-1 downto 0);
-  signal mdio_mcr_reset_synced : std_logic;
-  signal mdio_mcr_pdown_synced : std_logic;
 
   signal pcs_fab_out       : t_ep_internal_fabric;
   signal pcs_valid_int     : std_logic;
   signal timestamp_pending : std_logic_vector(2 downto 0) := "000";
-  
+
+  attribute mark_debug : string;
+  attribute mark_debug of pcs_fab_out : signal is "true";
+  attribute mark_debug of d_err : signal is "true";
+  attribute mark_debug of d_data : signal is "true";
+  attribute mark_debug of d_is_idle : signal is "true";
+  attribute mark_debug of d_is_k : signal is "true";
+  attribute mark_debug of odd_reception : signal is "true";
+  attribute mark_debug of d_is_k_shrunk : signal is "true";
+  attribute mark_debug of rx_synced : signal is "true";
+  attribute mark_debug of rx_state : signal is "true";
+
+  signal mdio_wr_spec_rx_cal_stat_rx_clk : std_logic;
+  signal mdio_wr_spec_cal_crst_rx_clk : std_logic;
+
+-- Autonegotiation control signals
+  signal an_rx_en_rx_clk : std_logic;
+  signal mdio_mcr_reset_rx_clk : std_logic;
+  signal mdio_mcr_pdown_rx_clk : std_logic;
+
 begin
 -------------------------------------------------------------------------------
 -- synchronizer chains for Wishbone-accessible control signals
@@ -242,7 +256,7 @@ begin
       clk_i    => phy_rx_clk_i,
       rst_n_i  => rst_n_rx,
       data_i   => an_rx_en_i,
-      synced_o => an_rx_en_synced,
+      synced_o => an_rx_en_rx_clk,
       npulse_o => open,
       ppulse_o => open);
 
@@ -253,9 +267,11 @@ begin
       clk_i    => phy_rx_clk_i,
       rst_n_i  => '1',
       data_i   => mdio_mcr_reset_i,
-      synced_o => mdio_mcr_reset_synced,
+      synced_o => mdio_mcr_reset_rx_clk,
       npulse_o => open,
       ppulse_o => open);
+
+
 
   U_sync_power_down : gc_sync_ffs
     generic map (
@@ -264,12 +280,23 @@ begin
       clk_i    => phy_rx_clk_i,
       rst_n_i  => '1',
       data_i   => mdio_mcr_pdown_i,
-      synced_o => mdio_mcr_pdown_synced,
+      synced_o => mdio_mcr_pdown_rx_clk,
       npulse_o => open,
       ppulse_o => open);
 
-  rx_sync_enable <= not mdio_mcr_pdown_synced;
-  rst_n_rx  <= rst_rxclk_n_i and not mdio_mcr_reset_synced and phy_rdy_i;
+  U_sync_rx_cal_crst : gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => phy_rx_clk_i,
+      rst_n_i  => '1',
+      data_i   => mdio_wr_spec_cal_crst_i,
+      synced_o => mdio_wr_spec_cal_crst_rx_clk,
+      npulse_o => open,
+      ppulse_o => open);
+
+  rx_sync_enable <= not mdio_mcr_pdown_rx_clk;
+  rst_n_rx  <= rst_rxclk_n_i and not mdio_mcr_reset_rx_clk and phy_rdy_i;
 
 -------------------------------------------------------------------------------
 -- 802.3z Link Synchronization State Machine
@@ -298,8 +325,25 @@ begin
       npulse_o => rx_sync_lost_p,
       ppulse_o => open);
 
+  U_sync_rx_cal_stat : gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => clk_sys_i,
+      rst_n_i  => '1',
+      data_i   => mdio_wr_spec_rx_cal_stat_rx_clk,
+      synced_o => mdio_wr_spec_rx_cal_stat_o );
+
   synced_o    <= rx_sync_status;        -- drive the PCS outputs
   sync_lost_o <= rx_sync_lost_p;
+
+  p_delay_lcr_ready  : process (phy_rx_clk_i)
+  begin
+    if rising_edge(phy_rx_clk_i) then
+      lcr_ready_d <= lcr_ready;
+    end if;
+  end process;
+
 
 -------------------------------------------------------------------------------
 -- Calibration pattern logic
@@ -308,7 +352,7 @@ begin
   -- process checks the presence of valid calibtaion pattern and controls the
   -- state of CAL_STA bit in Receive Control Register.
   --
-  -- reads: phy_rx_data_i, mdio_wr_spec_cal_crst_i
+  -- reads: phy_rx_data_i, mdio_wr_spec_cal_crst_rx_clk
   -- writes: mdio_wr_spec_rx_cal_stat_o
   --
   p_detect_cal : process(phy_rx_clk_i)
@@ -321,19 +365,19 @@ begin
 
         d_is_cal <= f_to_sl(phy_rx_data_i = (c_k28_7 & c_k28_7) and phy_rx_k_i = "11");
 
-        if(d_is_cal = '1' and mdio_wr_spec_cal_crst_i = '0') then
+        if(d_is_cal = '1' and mdio_wr_spec_cal_crst_rx_clk = '0') then
 
 -- we've got c_cal_pattern_threshold valid calibration characters - indicate
 -- that we're receiving a valid calibration pattern
           if(cal_pattern_cntr(cal_pattern_cntr'high) = '1') then
-            mdio_wr_spec_rx_cal_stat_o <= '1';
+            mdio_wr_spec_rx_cal_stat_rx_clk <= '1';
           else
-            mdio_wr_spec_rx_cal_stat_o <= '0';
+            mdio_wr_spec_rx_cal_stat_rx_clk <= '0';
             cal_pattern_cntr           <= cal_pattern_cntr + 1;
           end if;
 -- we've got a non-calibration character or the pattern detection has been reset
         else
-          mdio_wr_spec_rx_cal_stat_o <= '0';
+          mdio_wr_spec_rx_cal_stat_rx_clk <= '0';
           cal_pattern_cntr           <= (others => '0');
         end if;
       end if;
@@ -341,9 +385,10 @@ begin
   end process;
 
 
+
 -------------------------------------------------------------------------------
 -- Clock adjustment FIFO
--------------------------------------------------------------------------------  
+-------------------------------------------------------------------------------
 
   phy_rx_data_shrunk <= d_data(7 downto 0) & phy_rx_data_i(15 downto 8);
   phy_rx_data_muxed <= phy_rx_data_i when odd_reception = '0' else
@@ -356,7 +401,7 @@ begin
   p_8b10b_postprocess : process(phy_rx_clk_i)
   begin
     if rising_edge(phy_rx_clk_i) then
-      
+
       if(rst_n_rx = '0' or rx_synced = '0') then
         d_data            <= (others => '0');
         d_is_idle         <= '0';
@@ -375,14 +420,14 @@ begin
 
         d_data <= phy_rx_data_i;
         d_is_k <= phy_rx_k_i;
-        d_data_shrunk <= d_data(7 downto 0) & phy_rx_data_i(15 downto 8); -- 
+        d_data_shrunk <= d_data(7 downto 0) & phy_rx_data_i(15 downto 8); --
         d_is_k_shrunk <= d_is_k(0) & phy_rx_k_i(1);
 
 
         if(phy_rx_enc_err_i = '0') then
           d_err <= '0';
 
-          
+
           d_is_idle <= f_to_sl(phy_rx_data_i(15 downto 8) = c_K28_5
                                and (phy_rx_data_i(7 downto 0) = c_d16_2
                                     or phy_rx_data_i(7 downto 0) = c_d5_6)
@@ -442,17 +487,18 @@ begin
     end if;
   end process;
 
+
+
 -- process: RBCLK-driven RX state machine. Implements the receive logic od 802.3z compliant
 -- 1000BaseX PCS.
 -- reads: almost everything
 -- writes: almost everything
 
-  
-  rx_fsm : process (phy_rx_clk_i)
+  p_rx_fsm : process (phy_rx_clk_i)
   begin
     if rising_edge(phy_rx_clk_i) then
       -- reset or PCS disabled
-      if(rst_n_rx = '0' or mdio_mcr_pdown_synced = '1') then
+      if(rst_n_rx = '0' or mdio_mcr_pdown_rx_clk = '1') then
         rx_state <= RX_NOFRAME;
         rx_busy  <= '0';
 
@@ -480,7 +526,7 @@ begin
       else                              -- normal PCS operation
 
         -- clear the autogotiation variables if the autonegotiation is disabled
-        if(an_rx_en_synced = '0') then
+        if(an_rx_en_rx_clk = '0') then
           lcr_ready         <= '0';
           lcr_validity_cntr <= (others => '0');
           lcr_prev_val      <= (others => '0');
@@ -490,12 +536,12 @@ begin
 
 -------------------------------------------------------------------------------
 -- Main RX PCS state machine
--------------------------------------------------------------------------------          
+-------------------------------------------------------------------------------
         case rx_state is
 
 -------------------------------------------------------------------------------
 -- State NOFRAME: receiver is receiving IDLE pattern
--------------------------------------------------------------------------------            
+-------------------------------------------------------------------------------
           when RX_NOFRAME =>
 
             preamble_cntr <= "011";
@@ -569,7 +615,7 @@ begin
 
 -------------------------------------------------------------------------------
 -- States CR3/CR4: reception of LCR register value.
--------------------------------------------------------------------------------              
+-------------------------------------------------------------------------------
           when RX_CR =>  -- receives the 1st byte of Config_Reg and
             -- checks if the subsequent Config_Reg
             -- values are identical.
@@ -585,7 +631,7 @@ begin
               lcr_validity_cntr <= (others => '0');
 
 -- check if the autonegotiation unit has enabled the reception of LCR
-            elsif (an_rx_en_synced = '1') then
+            elsif (an_rx_en_rx_clk = '1') then
               lcr_prev_val <= lcr_cur_val;
 
 -- check for 3 subsequent Configuration sequences with identical Config_Reg value
@@ -612,7 +658,7 @@ begin
 -------------------------------------------------------------------------------
 -- State SPD_PREAMBLE: we've received an Start-Of-Packet delimeter. Check for
 -- the valid preamble.
--------------------------------------------------------------------------------                            
+-------------------------------------------------------------------------------
           when RX_SPD_PREAMBLE =>
 
             rx_busy <= '1';
@@ -637,7 +683,7 @@ begin
                   pcs_fab_out.sof <= '1';
                   rx_state      <= RX_PAYLOAD;
                 end if;
-                
+
               elsif (d_is_preamble = '1') then
                 preamble_cntr <= preamble_cntr - 1;
               -- got duplicated SPD code?
@@ -679,7 +725,7 @@ begin
               pcs_fab_out.error <= '1';
               pcs_fab_out.dvalid <= '0';
               pcs_fab_out.bytesel <= 'X';
-              
+
               rmon_invalid_code_p_int <= d_err;
               rmon_rx_overrun_p_int   <= pcs_fifo_almostfull_i;
 
@@ -697,7 +743,7 @@ begin
                 pcs_fab_out.dvalid  <= '0';
                 rx_state          <= RX_EXTEND;
               end if;
-              
+
             else
               pcs_fab_out.bytesel <= '0';
               pcs_fab_out.error  <= '0';
@@ -735,10 +781,17 @@ begin
             end if;
         end case;
       end if;
-    end if;     
+    end if;
   end process;
 
-  an_rx_val_o <= lcr_final_val;
+  U_Sync_an_rx_value: entity work.gc_sync_register
+    generic map (
+      g_width => 16)
+    port map (
+      clk_i     => clk_sys_i,
+      rst_n_a_i => rst_n_i,
+      d_i       => lcr_final_val,
+      q_o       => an_rx_val_o);
 
   U_sync_an_rx_ready : gc_sync_ffs
     generic map (
@@ -746,7 +799,7 @@ begin
     port map (
       clk_i    => clk_sys_i,
       rst_n_i  => rst_n_i,
-      data_i   => lcr_ready,
+      data_i   => lcr_ready_d,
       synced_o => an_rx_valid_o,
       npulse_o => open,
       ppulse_o => open);
@@ -781,7 +834,7 @@ begin
       extended_o => rmon_rx_overrun);
 
 -- drive the "RX PCS Sync Lost" event counter
-  rmon_rx_sync_lost <= rx_sync_lost_p and (not mdio_mcr_pdown_i);
+  rmon_rx_sync_lost <= rx_sync_lost_p and (not mdio_mcr_pdown_rx_clk);
 
   pcs_fab_out.rx_timestamp_valid <= timestamp_valid_i;
 
@@ -795,5 +848,3 @@ begin
   pcs_fab_o <= pcs_fab_out;
 
 end behavioral;
-
-

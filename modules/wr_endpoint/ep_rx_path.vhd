@@ -6,7 +6,7 @@
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2009-06-22
--- Last update: 2018-10-03
+-- Last update: 2023-03-13
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -156,7 +156,7 @@ begin  -- behavioral
 
   fc_pause_p_o    <= fc_pause_p;
   gen_with_early_match : if(g_with_early_match) generate
-    U_early_addr_match : ep_rx_early_address_match
+    U_early_addr_match : entity work.ep_rx_early_address_match
       port map (
         clk_sys_i               => clk_sys_i,
         clk_rx_i                => clk_rx_i,
@@ -184,7 +184,7 @@ begin  -- behavioral
   end generate gen_without_early_match;
 
   gen_with_packet_filter : if(g_with_dpi_classifier) generate
-    U_packet_filter : ep_packet_filter
+    U_packet_filter : entity work.ep_packet_filter
       port map (
         clk_sys_i   => clk_sys_i,
         clk_rx_i    => clk_rx_i,
@@ -269,7 +269,7 @@ begin  -- behavioral
                                    and regs_i.pfcr0_enable_o='0') else
                          mbuf_valid;
 
-  U_Rx_Clock_Align_FIFO : ep_clock_alignment_fifo
+  U_Rx_Clock_Align_FIFO : entity work.ep_clock_alignment_fifo
     generic map (
       g_size                 => 128,
       g_almostfull_threshold => 112)
@@ -288,7 +288,7 @@ begin  -- behavioral
                                                                   -- register
   pcs_fifo_almostfull_o <= pcs_fifo_almostfull;
 
-  U_Insert_OOB : ep_rx_oob_insert
+  U_Insert_OOB : entity work.ep_rx_oob_insert
     port map (
       clk_sys_i  => clk_sys_i,
       rst_n_i    => rst_n_sys_i,
@@ -298,7 +298,7 @@ begin  -- behavioral
       src_fab_o  => fab_pipe(4),
       regs_i     => regs_i);
 
-  U_crc_size_checker : ep_rx_crc_size_check
+  U_crc_size_checker : entity work.ep_rx_crc_size_check
     generic map (
       g_use_new_crc	 => g_use_new_crc)
     port map (
@@ -315,7 +315,7 @@ begin  -- behavioral
       rmon_crc_err_o => rmon_o.rx_crc_err);
 
   gen_with_vlan_unit : if(g_with_vlans) generate
-    U_vlan_unit : ep_rx_vlan_unit
+    U_vlan_unit : entity work.ep_rx_vlan_unit
       port map (
         clk_sys_i   => clk_sys_i,
         rst_n_i     => rst_n_sys_i,
@@ -342,7 +342,7 @@ begin  -- behavioral
     regs_o         <= c_ep_in_registers_init_value;
   end generate gen_without_vlan_unit;
 
-  U_RTU_Header_Extract : ep_rtu_header_extract
+  U_RTU_Header_Extract : entity work.ep_rtu_header_extract
     generic map (
       g_with_rtu => g_with_rtu)
     port map (
@@ -372,7 +372,7 @@ begin  -- behavioral
       nice_dbg_o       => nice_dbg_o.rtu_extract);
 
   gen_with_rx_buffer : if g_with_rx_buffer generate
-    U_Rx_Buffer : ep_rx_buffer
+    U_Rx_Buffer : entity work.ep_rx_buffer
       generic map (
         g_size    => g_rx_buffer_size,
         g_with_fc => false)
@@ -398,7 +398,7 @@ begin  -- behavioral
     rxbuf_full  <= '0';
   end generate gen_without_rx_buffer;
 
-  U_Gen_Status : ep_rx_status_reg_insert
+  U_Gen_Status : entity work.ep_rx_status_reg_insert
     port map (
       clk_sys_i           => clk_sys_i,
       rst_n_i             => rst_n_sys_i,
@@ -414,7 +414,7 @@ begin  -- behavioral
       mbuf_is_pause_i     => mbuf_is_pause,
       rmon_pfilter_drop_o => rmon_o.rx_pfilter_drop);
 
-  U_RX_Wishbone_Master : ep_rx_wb_master
+  U_RX_Wishbone_Master : entity work.ep_rx_wb_master
     generic map (
       g_ignore_ack => true)
     port map (

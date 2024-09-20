@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2010-11-18
--- Last update: 2019-04-18
+-- Last update: 2023-05-09
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -54,6 +54,8 @@ library work;
 use work.endpoint_private_pkg.all;
 use work.endpoint_pkg.all;
 use work.gencores_pkg.all;
+use work.wishbone_pkg.all;
+use work.ep_mdio_regs_pkg.all;
 
 entity ep_1000basex_pcs is
 
@@ -146,10 +148,11 @@ entity ep_1000basex_pcs is
     -- 1: serdes is locked and aligned
     serdes_rdy_i    : in  std_logic;
 
-    -- low phase drift feature signals to the PHY
-    serdes_stat_i : in std_logic_vector(15 downto 0);
-    serdes_ctrl_o : out std_logic_vector(15 downto 0);
-    
+    -- auxillary MDIO registers. PHY-specific. One of applications
+    -- is low phase drift feature signals to the PHY
+    serdes_mdio_master_o : out t_wishbone_master_out;
+    serdes_mdio_master_i : in t_wishbone_master_in;
+   
 
     ---------------------------------------------------------------------------
     -- Serdes TX path (all synchronous to serdes_tx_clk_i)
@@ -180,7 +183,7 @@ entity ep_1000basex_pcs is
     -------------------------------------------------------------------------------
 
     -- RX recovered clock. MUST be synchronous to incoming serial data stream
-    -- for proper PTP/SyncE operation. 62.5 MHz in 16-bit mode, 125 MHz in 8-bit mode.
+    -- for proper PTP/SyncE operation. 62.5 MHz in 16-bit mode, 125 MHz in 8-bit mode
     serdes_rx_clk_i      : in std_logic;
     serdes_rx_data_i     : in std_logic_vector(f_pcs_data_width(g_16bit)-1 downto 0);
     serdes_rx_k_i        : in std_logic_vector(f_pcs_k_width(g_16bit)-1 downto 0);
@@ -210,28 +213,13 @@ architecture rtl of ep_1000basex_pcs is
 
   alias rst_n_i : std_logic is rst_sys_n_i;
 
-  signal mdio_mcr_anrestart       : std_logic;
+  signal mdio_regs_out : t_mdio_regs_master_out;
+  signal mdio_regs_in : t_mdio_regs_master_in;
+
+  signal mdio_wb_out : t_wishbone_master_in;
+  signal mdio_wb_in : t_wishbone_master_out;
+
   signal mdio_mcr_pdown           : std_logic;
-  signal mdio_mcr_pdown_cpu       : std_logic;
-  signal mdio_mcr_anenable        : std_logic;
-  signal mdio_mcr_reset           : std_logic;
-  signal mdio_msr_lstatus         : std_logic;
-  signal mdio_msr_rfault          : std_logic;
-  signal mdio_msr_anegcomplete    : std_logic;
-  signal mdio_advertise_pause     : std_logic_vector(1 downto 0);
-  signal mdio_advertise_rfault    : std_logic_vector(1 downto 0);
-  signal mdio_lpa_full            : std_logic;
-  signal mdio_lpa_half            : std_logic;
-  signal mdio_lpa_pause           : std_logic_vector(1 downto 0);
-  signal mdio_lpa_rfault          : std_logic_vector(1 downto 0);
-  signal mdio_lpa_lpack           : std_logic;
-  signal mdio_lpa_npage           : std_logic;
-  signal mdio_wr_spec_tx_cal      : std_logic;
-  signal mdio_wr_spec_rx_cal_stat : std_logic;
-  signal mdio_wr_spec_cal_crst    : std_logic;
-  signal mdio_wr_spec_bslide      : std_logic_vector(4 downto 0);
-  signal mdio_data_in             : std_logic_vector(31 downto 0);
-  signal mdio_data_out            : std_logic_vector(31 downto 0);
 
   signal lstat_read_notify : std_logic;
 
@@ -264,13 +252,33 @@ architecture rtl of ep_1000basex_pcs is
   signal rmon_rx_overrun  : std_logic;
   signal rmon_rx_inv_code : std_logic;
   signal rmon_rx_sync_lost: std_logic;
+
+  signal serdes_rx_bitslide_rx_clk : std_logic_vector(4 downto 0);
+
+  attribute mark_debug : string;
+  attribute mark_debug of serdes_rx_k_i : signal is "true";
+  attribute mark_debug of serdes_rx_data_i : signal is "true";
+  attribute mark_debug of serdes_rx_enc_err_i : signal is "true";
+  attribute mark_debug of serdes_rx_bitslide_i : signal is "true";
+
+  attribute mark_debug of synced : signal is "true";
+  attribute mark_debug of sync_lost : signal is "true";
+  attribute mark_debug of link_ok : signal is "true";
+  attribute mark_debug of an_rx_en : signal is "true";
+  attribute mark_debug of an_rx_val : signal is "true";
+  attribute mark_debug of an_rx_valid : signal is "true";
+  attribute mark_debug of an_tx_en : signal is "true";
+  attribute mark_debug of an_tx_val : signal is "true";
+  attribute mark_debug of mdio_regs_out : signal is "true";
+
+
   
 begin  -- rtl
 
-  pcs_reset_n <= '0' when (mdio_mcr_reset = '1' or rst_n_i = '0') else '1';
+  pcs_reset_n <= '0' when (mdio_regs_out.mcr_reset = '1' or rst_n_i = '0') else '1';
 
   gen_16bit : if(g_16bit) generate
-    U_TX_PCS : ep_tx_pcs_16bit
+    U_TX_PCS : entity work.ep_tx_pcs_16bit
       port map (
         rst_n_i   => pcs_reset_n,
         clk_sys_i => clk_sys_i,
@@ -282,9 +290,9 @@ begin  -- rtl
         pcs_busy_o  => txpcs_busy_int,
         pcs_dreq_o  => txpcs_dreq_o,
 
-        mdio_mcr_reset_i      => mdio_mcr_reset,
+        mdio_mcr_reset_i      => mdio_regs_out.mcr_reset,
         mdio_mcr_pdown_i      => mdio_mcr_pdown,
-        mdio_wr_spec_tx_cal_i => mdio_wr_spec_tx_cal,
+        mdio_wr_spec_tx_cal_i => mdio_regs_out.wr_spec_tx_cal,
 
         an_tx_en_i              => an_tx_en,
         an_tx_val_i             => an_tx_val,
@@ -300,7 +308,7 @@ begin  -- rtl
         dbg_rd_count_o     => dbg_tx_pcs_rd_count_o     
         );
 
-    U_RX_PCS : ep_rx_pcs_16bit
+    U_RX_PCS : entity work.ep_rx_pcs_16bit
       generic map (
         g_simulation => g_simulation,
         g_ep_idx     => g_ep_idx)
@@ -319,10 +327,10 @@ begin  -- rtl
         timestamp_valid_i       => rxpcs_timestamp_valid_i,
         timestamp_stb_i         => rxpcs_timestamp_stb_i,
 
-        mdio_mcr_reset_i           => mdio_mcr_reset,
+        mdio_mcr_reset_i           => mdio_regs_out.mcr_reset,
         mdio_mcr_pdown_i           => mdio_mcr_pdown,
-        mdio_wr_spec_cal_crst_i    => mdio_wr_spec_cal_crst,
-        mdio_wr_spec_rx_cal_stat_o => mdio_wr_spec_rx_cal_stat,
+        mdio_wr_spec_cal_crst_i    => mdio_regs_out.wr_spec_cal_crst,
+        mdio_wr_spec_rx_cal_stat_o => mdio_regs_in.wr_spec_rx_cal_stat,
 
         synced_o        => synced,
         sync_lost_o     => sync_lost,
@@ -344,12 +352,12 @@ begin  -- rtl
         nice_dbg_o => nice_dbg_o.rx
         );
 
-    mdio_wr_spec_bslide <= serdes_rx_bitslide_i(4 downto 0);
+    serdes_rx_bitslide_rx_clk <= serdes_rx_bitslide_i(4 downto 0);
     
   end generate gen_16bit;
 
   gen_8bit : if(not g_16bit) generate
-    U_TX_PCS : ep_tx_pcs_8bit
+    U_TX_PCS : entity work.ep_tx_pcs_8bit
       port map (
         rst_n_i   => pcs_reset_n,
         clk_sys_i => clk_sys_i,
@@ -361,10 +369,10 @@ begin  -- rtl
         pcs_busy_o  => txpcs_busy_int,
         pcs_dreq_o  => txpcs_dreq_o,
 
-        mdio_mcr_reset_i      => mdio_mcr_reset,
+        mdio_mcr_reset_i      => mdio_regs_out.mcr_reset,
         mdio_mcr_pdown_i      => mdio_mcr_pdown,
-        mdio_wr_spec_tx_cal_i => mdio_wr_spec_tx_cal,
-
+        mdio_wr_spec_tx_cal_i => mdio_regs_out.wr_spec_tx_cal,
+        
         an_tx_en_i              => an_tx_en,
         an_tx_val_i             => an_tx_val,
         timestamp_trigger_p_a_o => txpcs_timestamp_trigger_p_a_o,
@@ -378,7 +386,7 @@ begin  -- rtl
         preamble_shrinkage => preamble_shrinkage
         );
 
-    U_RX_PCS : ep_rx_pcs_8bit
+    U_RX_PCS : entity work.ep_rx_pcs_8bit
       generic map (
         g_simulation => g_simulation)
       port map (
@@ -396,10 +404,10 @@ begin  -- rtl
         timestamp_valid_i       => rxpcs_timestamp_valid_i,
         timestamp_stb_i         => rxpcs_timestamp_stb_i,
 
-        mdio_mcr_reset_i           => mdio_mcr_reset,
+        mdio_mcr_reset_i           => mdio_regs_out.mcr_reset,
         mdio_mcr_pdown_i           => mdio_mcr_pdown,
-        mdio_wr_spec_cal_crst_i    => mdio_wr_spec_cal_crst,
-        mdio_wr_spec_rx_cal_stat_o => mdio_wr_spec_rx_cal_stat,
+        mdio_wr_spec_cal_crst_i    => mdio_regs_out.wr_spec_cal_crst,
+        mdio_wr_spec_rx_cal_stat_o => mdio_regs_in.wr_spec_rx_cal_stat,
 
         synced_o        => synced,
         sync_lost_o     => sync_lost,
@@ -419,7 +427,7 @@ begin  -- rtl
         phy_rx_enc_err_i => serdes_rx_enc_err_i
         );
 
-    mdio_wr_spec_bslide <= '0' & serdes_rx_bitslide_i(3 downto 0);
+    serdes_rx_bitslide_rx_clk  <= '0' & serdes_rx_bitslide_i(3 downto 0);
 
     dbg_tx_pcs_rd_count_o <= (others => '0');
     dbg_tx_pcs_wr_count_o <= (others => '0');
@@ -430,68 +438,92 @@ begin  -- rtl
   txpcs_busy_o <= txpcs_busy_int;
 
   -- to enable killing of link (by ML)
-  mdio_mcr_pdown <= mdio_mcr_pdown_cpu or (not link_ctr_i);
+  mdio_mcr_pdown <= mdio_regs_out.mcr_pdown or (not link_ctr_i);
 
   -- keep PHY reset also when SFP reports LOS (DL)
-  serdes_rst_o <= (not pcs_reset_n) or mdio_mcr_pdown
-                  ;
+  serdes_rst_o <= (not pcs_reset_n) or mdio_mcr_pdown;
 
-  U_MDIO_WB : ep_pcs_tbi_mdio_wb
+
+  -- process: translates the MDIO reads/writes into Wishbone read/writes
+  -- inputs: mdio_stb_i, wb_ack
+  -- ouputs: mdio_ready_o, wb_stb
+  p_translate_mdio_wb : process(clk_sys_i, rst_n_i)
+  begin
+    if rising_edge(clk_sys_i) then
+      if (rst_n_i = '0') then
+        mdio_wb_in <= cc_dummy_master_out;
+        mdio_ready_o <= '1';
+        wb_stb <= '0';
+      else
+        if wb_stb = '0' then
+          if(mdio_stb_i = '1') then
+            mdio_wb_in.cyc       <= '1';
+            mdio_wb_in.stb       <= '1';
+            mdio_wb_in.dat <= X"0000" & mdio_data_i;
+            mdio_wb_in.sel <= (others => '0');
+            mdio_wb_in.adr <= "00" & x"000" & mdio_addr_i & "00";
+            mdio_wb_in.we <= mdio_rw_i;
+            mdio_ready_o <= '0';
+            wb_stb <= '1';
+          end if;
+        else
+          if mdio_wb_out.stall = '0' then
+            mdio_wb_in.stb <= '0';
+          end if;
+
+          if mdio_wb_out.ack = '1' then
+            mdio_ready_o <= '1';
+            mdio_data_o  <= mdio_wb_out.dat(15 downto 0);
+            mdio_wb_in.cyc       <= '0';
+            mdio_wb_in.stb       <= '0';
+            wb_stb <= '0';
+          end if;
+        end if;
+      end if;
+    end if;
+  end process;
+
+  
+  U_MDIO_WB: entity work.ep_mdio_regs
     port map (
-      rst_n_i   => rst_n_i,
-      clk_sys_i => clk_sys_i,
-      wb_adr_i  => mdio_addr_i(4 downto 0),
-      wb_dat_i  => mdio_data_in,
-      wb_dat_o  => mdio_data_out,
+      rst_n_i             => rst_n_i,
+      clk_i               => clk_sys_i,
+      wb_i                => mdio_wb_in,
+      wb_o                => mdio_wb_out,
+      mdio_regs_i         => mdio_regs_in,
+      mdio_regs_o         => mdio_regs_out,
+      phy_specific_regs_i => serdes_mdio_master_i,
+      phy_specific_regs_o => serdes_mdio_master_o);
 
-      wb_cyc_i   => wb_stb,
-      wb_sel_i   => "1111",
-      wb_stb_i   => wb_stb,
-      wb_we_i    => mdio_rw_i,
-      wb_ack_o   => wb_ack,
-      wb_stall_o => open,
-      tx_clk_i   => serdes_tx_clk_i,
-      rx_clk_i   => serdes_rx_clk_i,
+  lstat_read_notify <= mdio_regs_out.MSR_rd;
+  mdio_regs_in.msr_rfault <= '0';
 
-      mdio_mcr_uni_en_o          => open,
-      mdio_mcr_anrestart_o       => mdio_mcr_anrestart,
-      mdio_mcr_pdown_o           => mdio_mcr_pdown_cpu,
-      mdio_mcr_anenable_o        => mdio_mcr_anenable,
-      mdio_mcr_reset_o           => mdio_mcr_reset,
-      mdio_mcr_loopback_o        => serdes_loopen_o,
-      mdio_msr_lstatus_i         => mdio_msr_lstatus,
-      mdio_msr_rfault_i          => mdio_msr_rfault,
-      mdio_msr_anegcomplete_i    => mdio_msr_anegcomplete,
-      mdio_advertise_pause_o     => mdio_advertise_pause,
-      mdio_advertise_rfault_o    => mdio_advertise_rfault,
-      mdio_lpa_full_i            => mdio_lpa_full,
-      mdio_lpa_half_i            => mdio_lpa_half,
-      mdio_lpa_pause_i           => mdio_lpa_pause,
-      mdio_lpa_rfault_i          => mdio_lpa_rfault,
-      mdio_lpa_lpack_i           => mdio_lpa_lpack,
-      mdio_lpa_npage_i           => mdio_lpa_npage,
-      mdio_wr_spec_tx_cal_o      => mdio_wr_spec_tx_cal,
-      mdio_wr_spec_rx_cal_stat_i => mdio_wr_spec_rx_cal_stat,
-      mdio_wr_spec_cal_crst_o    => mdio_wr_spec_cal_crst,
-      mdio_wr_spec_bslide_i      => mdio_wr_spec_bslide,
-      mdio_ectrl_lpbck_vec_o       => serdes_loopen_vec_o,
-      mdio_ectrl_sfp_tx_fault_i    => serdes_sfp_tx_fault_i,
-      mdio_ectrl_sfp_loss_i        => serdes_sfp_los_i,
-      mdio_ectrl_sfp_tx_disable_o  => serdes_sfp_tx_disable_o,
-      mdio_ectrl_tx_prbs_sel_o     => serdes_tx_prbs_sel_o,
-      mdio_lpc_phy_stat_i          => serdes_stat_i,
-      mdio_lpc_phy_ctrl_o          => serdes_ctrl_o,
-      
-      lstat_read_notify_o => lstat_read_notify
-      );
+  serdes_loopen_vec_o <= mdio_regs_out.ECTRL_lpbck_vec;
+  serdes_sfp_tx_disable_o <= mdio_regs_out.ECTRL_sfp_tx_disable;
+  serdes_tx_prbs_sel_o <= mdio_regs_out.ECTRL_tx_prbs_sel;
+  
+  U_sync_SFP_LOS: gc_sync_ffs
+  generic map (
+    g_sync_edge => "positive")
+  port map (
+    clk_i    => clk_sys_i,
+    rst_n_i  => rst_n_i,
+    data_i   => serdes_sfp_los_i,
+    synced_o => mdio_regs_in.ECTRL_sfp_loss);
+
+  U_sync_SFP_TX_FAULT: gc_sync_ffs
+  generic map (
+    g_sync_edge => "positive")
+  port map (
+    clk_i    => clk_sys_i,
+    rst_n_i  => rst_n_i,
+    data_i   => serdes_sfp_tx_fault_i,
+    synced_o => mdio_regs_in.ECTRL_sfp_tx_fault);
+  
 
 
-  mdio_data_in <= X"0000" & mdio_data_i;
-  mdio_data_o  <= mdio_data_out(15 downto 0);
-
-  mdio_msr_rfault <= '0';
-
-  U_AUTONEGOTIATION : ep_autonegotiation
+  
+  U_AUTONEGOTIATION : entity work.ep_autonegotiation
     generic map (
       g_simulation => g_simulation)
 
@@ -509,39 +541,18 @@ begin  -- rtl
       an_rx_valid_i           => an_rx_valid,
       an_tx_en_o              => an_tx_en,
       an_tx_val_o             => an_tx_val,
-      mdio_mcr_anrestart_i    => mdio_mcr_anrestart,
-      mdio_mcr_anenable_i     => mdio_mcr_anenable,
-      mdio_msr_anegcomplete_o => mdio_msr_anegcomplete,
-      mdio_advertise_pause_i  => mdio_advertise_pause,
-      mdio_advertise_rfault_i => mdio_advertise_rfault,
-      mdio_lpa_full_o         => mdio_lpa_full,
-      mdio_lpa_half_o         => mdio_lpa_half,
-      mdio_lpa_pause_o        => mdio_lpa_pause,
-      mdio_lpa_rfault_o       => mdio_lpa_rfault,
-      mdio_lpa_lpack_o        => mdio_lpa_lpack,
-      mdio_lpa_npage_o        => mdio_lpa_npage
+      mdio_mcr_anrestart_i    => mdio_regs_out.mcr_anrestart,
+      mdio_mcr_anenable_i     => mdio_regs_out.mcr_anenable,
+      mdio_msr_anegcomplete_o => mdio_regs_in.msr_anegcomplete,
+      mdio_advertise_pause_i  => mdio_regs_out.advertise_pause,
+      mdio_advertise_rfault_i => mdio_regs_out.advertise_rfault,
+      mdio_lpa_full_o         => mdio_regs_in.lpa_full,
+      mdio_lpa_half_o         => mdio_regs_in.lpa_half,
+      mdio_lpa_pause_o        => mdio_regs_in.lpa_pause,
+      mdio_lpa_rfault_o       => mdio_regs_in.lpa_rfault,
+      mdio_lpa_lpack_o        => mdio_regs_in.lpa_lpack,
+      mdio_lpa_npage_o        => mdio_regs_in.lpa_npage
       );
-
-  -- process: translates the MDIO reads/writes into Wishbone read/writes
-  -- inputs: mdio_stb_i, wb_ack
-  -- ouputs: mdio_ready_o, wb_stb
-  p_translate_mdio_wb : process(clk_sys_i, rst_n_i)
-  begin
-    if rising_edge(clk_sys_i) then
-      if (rst_n_i = '0') then
-        wb_stb       <= '0';
-        mdio_ready_o <= '1';
-      else
-        if(mdio_stb_i = '1' and wb_stb = '0') then
-          wb_stb       <= '1';
-          mdio_ready_o <= '0';
-        elsif(wb_stb = '1' and wb_ack = '1') then
-          mdio_ready_o <= '1';
-          wb_stb       <= '0';
-        end if;
-      end if;
-    end if;
-  end process;
 
   -- process: handles the LSTATUS bit in MSR register
   -- inputs: sync_lost, synced, lstat_read_notify
@@ -550,12 +561,12 @@ begin  -- rtl
   begin
     if rising_edge(clk_sys_i) then
       if(pcs_reset_n = '0') then
-        mdio_msr_lstatus <= '0';
+        mdio_regs_in.msr_lstatus <= '0';
       else
         if(sync_lost = '1') then
-          mdio_msr_lstatus <= '0';
+          mdio_regs_in.msr_lstatus <= '0';
         elsif(lstat_read_notify = '1') then
-          mdio_msr_lstatus <= synced and link_ok;
+          mdio_regs_in.msr_lstatus <= synced and link_ok;
         end if;
       end if;
     end if;
@@ -625,6 +636,15 @@ begin  -- rtl
     synced_o => open,
     npulse_o => open,
     ppulse_o => rmon_o.rx_sync_lost);
+
+  U_sync_bslide: gc_sync_register
+    generic map (
+      g_width => 5)
+    port map (
+      clk_i     => clk_sys_i,
+      rst_n_a_i => rst_n_i,
+      d_i       => serdes_rx_bitslide_rx_clk,
+      q_o       => mdio_regs_in.wr_spec_bslide);
 
   -- drive unused outputs
   rmon_o.rx_crc_err             <= '0';

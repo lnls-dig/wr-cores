@@ -851,7 +851,7 @@ begin
       extended_o => rmon_rx_overrun);
 
 -- drive the "RX PCS Sync Lost" event counter
-  rmon_rx_sync_lost <= rx_sync_lost_p and (not mdio_mcr_pdown_i);
+  rmon_rx_sync_lost <= rx_sync_lost_p and (not mdio_mcr_pdown_synced);
 
 end behavioral;
 

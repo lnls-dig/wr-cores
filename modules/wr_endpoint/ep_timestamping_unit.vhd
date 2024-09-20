@@ -1,13 +1,12 @@
 -------------------------------------------------------------------------------
 -- Title      : Optical 1000base-X endpoint - IEEE1588/WhiteRabbit
 --              timestamping unit
--- Project    : White Rabbit 
+-- Project    : White Rabbit
 -------------------------------------------------------------------------------
 -- File       : ep_timestamping_unit.vhd
 -- Author     : Tomasz Wlostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2009-06-22
--- Last update: 2017-02-03
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'87
 -------------------------------------------------------------------------------
@@ -23,20 +22,20 @@
 --
 -- Copyright (c) 2009 - 2012 CERN
 --
--- This source file is free software; you can redistribute it   
--- and/or modify it under the terms of the GNU Lesser General   
--- Public License as published by the Free Software Foundation; 
--- either version 2.1 of the License, or (at your option) any   
--- later version.                                               
+-- This source file is free software; you can redistribute it
+-- and/or modify it under the terms of the GNU Lesser General
+-- Public License as published by the Free Software Foundation;
+-- either version 2.1 of the License, or (at your option) any
+-- later version.
 --
--- This source is distributed in the hope that it will be       
--- useful, but WITHOUT ANY WARRANTY; without even the implied   
--- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      
--- PURPOSE.  See the GNU Lesser General Public License for more 
--- details.                                                     
+-- This source is distributed in the hope that it will be
+-- useful, but WITHOUT ANY WARRANTY; without even the implied
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+-- PURPOSE.  See the GNU Lesser General Public License for more
+-- details.
 --
--- You should have received a copy of the GNU Lesser General    
--- Public License along with this source; if not, download it   
+-- You should have received a copy of the GNU Lesser General
+-- Public License along with this source; if not, download it
 -- from http://www.gnu.org/licenses/lgpl-2.1.html
 --
 -------------------------------------------------------------------------------
@@ -106,7 +105,7 @@ entity ep_timestamping_unit is
 
 -------------------------------------------------------------------------------
 -- TX Timestamp output (clk_ref_i clock domain)
--------------------------------------------------------------------------------    
+-------------------------------------------------------------------------------
 
     -- TX timestamp output (to TXTSU/Framer)
     txts_timestamp_o : out std_logic_vector(31 downto 0);
@@ -147,8 +146,9 @@ architecture syn of ep_timestamping_unit is
 
   signal tx_sync_delay : std_logic_vector(4 downto 0);
   signal rx_sync_delay : std_logic_vector(4 downto 0);
-  signal rx_ts_done    : std_logic;
-  signal tx_ts_done    : std_logic;
+  signal rx_ts_done : std_logic;
+  signal tx_ts_done : std_logic;
+  signal txts       : std_logic;
 
   signal valid_rx, valid_tx : std_logic;
 
@@ -156,8 +156,10 @@ architecture syn of ep_timestamping_unit is
   signal rx_trigger_mask, rx_trigger_a, rx_cal_pulse_a : std_logic;
 
   signal regs_o_tscr_cs_done       : std_logic;
+  signal regs_o_tscr_rx_cal_result_rx_clk : std_logic;
   signal regs_o_tscr_rx_cal_result : std_logic;
-  
+  signal regs_i_tscr_en_rxts_rx_clk : std_logic;
+
 begin  -- syn
 
   -- Instantiation of the timestamping counter
@@ -198,7 +200,7 @@ begin  -- syn
         cal_count       <= (others => '0');
         rx_cal_pulse_a  <= '0';
         rx_trigger_mask <= '1';
-        
+
       elsif(regs_i.tscr_rx_cal_start_o = '1') then
         cal_count       <= to_unsigned(1, 6);
         rx_trigger_mask <= '0';
@@ -207,14 +209,14 @@ begin  -- syn
 
         if(rx_ts_done = '1') then
           if(cntr_rx_f /= cntr_rx_r(g_timestamp_bits_f-1 downto 0)) then
-            regs_o_tscr_rx_cal_result <= '1';
+            regs_o_tscr_rx_cal_result_rx_clk <= '1';
           else
-            regs_o_tscr_rx_cal_result <= '0';
+            regs_o_tscr_rx_cal_result_rx_clk <= '0';
           end if;
         end if;
 
       else
-        
+
         rx_trigger_mask <= '1';
       end if;
 
@@ -223,7 +225,7 @@ begin  -- syn
       else
         rx_cal_pulse_a <= '0';
       end if;
-      
+
     end if;
   end process;
 
@@ -242,7 +244,7 @@ begin  -- syn
       ppulse_o => take_tx_synced_p);
 
 
-  
+
   sync_ffs_rx_r : gc_sync_ffs
     generic map (
       g_sync_edge => "positive")
@@ -277,7 +279,8 @@ begin  -- syn
       npulse_o => open,
       ppulse_o => take_rx_synced_p_fedge);
 
-  
+
+
 
   take_r : process(clk_ref_i)
   begin
@@ -306,7 +309,7 @@ begin  -- syn
         else
           tx_sync_delay <= '0' & tx_sync_delay(tx_sync_delay'length-1 downto 1);
         end if;
-        
+
       end if;
     end if;
   end process;
@@ -341,6 +344,18 @@ begin  -- syn
       npulse_o => tx_ts_done,
       ppulse_o => open);
 
+  -- timestamping "out" signals sync chains (clk_ref -> clk_ref)
+  tx_out_gen : gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => clk_ref_i,
+      rst_n_i  => rst_n_ref_i,
+      data_i   => tx_sync_delay(0),
+      synced_o => open,
+      npulse_o => txts,
+      ppulse_o => open);
+
   -- timestamping "done" signals sync chains (clk_rx -> clk_sys)
   rx_done_gen : gc_sync_ffs
     generic map (
@@ -353,7 +368,21 @@ begin  -- syn
       npulse_o => rx_ts_done,
       ppulse_o => open);
 
-  txts_o <= tx_ts_done; 		-- 2013-Nov-28 peterj added for debugging/calibration
+  inst_sync_en_rxts : gc_sync
+    port map (
+      clk_i     => clk_rx_i,
+      rst_n_a_i => rst_n_rx_i,
+      d_i       => regs_i.tscr_en_rxts_o,
+      q_o       => regs_i_tscr_en_rxts_rx_clk );
+
+  inst_sync_rx_cal_result : gc_sync
+    port map (
+      clk_i     => clk_sys_i,
+      rst_n_a_i => rst_n_sys_i,
+      d_i       => regs_o_tscr_rx_cal_result_rx_clk,
+      q_o       => regs_o_tscr_rx_cal_result );
+
+  txts_o <= txts; 		-- 2013-Nov-28 peterj added for debugging/calibration
   rxts_o <= rx_ts_done; 		-- 2013-Nov-28 peterj added for debugging/calibration
 
   p_output_rx_ts : process (clk_rx_i)
@@ -364,9 +393,9 @@ begin  -- syn
         rxts_timestamp_o       <= (others => '0');
         rxts_timestamp_valid_o <= '0';
       else
-        if(regs_i. tscr_en_rxts_o = '0') then
+        if(regs_i_tscr_en_rxts_rx_clk = '0') then
           rxts_timestamp_stb_o <= '0';
-        elsif(rx_ts_done = '1' and regs_i.tscr_en_rxts_o = '1') then
+        elsif(rx_ts_done = '1' and regs_i_tscr_en_rxts_rx_clk = '1') then
           rxts_timestamp_stb_o   <= '1';
           rxts_timestamp_valid_o <= valid_rx;
           rxts_timestamp_o       <= cntr_rx_f & cntr_rx_r;

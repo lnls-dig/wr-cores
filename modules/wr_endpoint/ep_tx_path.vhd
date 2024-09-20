@@ -6,7 +6,7 @@
 -- Author     : Tomasz Włostowski
 -- Company    : CERN BE-CO-HT
 -- Created    : 2012-11-01
--- Last update: 2017-02-03
+-- Last update: 2023-03-13
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -170,7 +170,7 @@ architecture rtl of ep_tx_path is
 
 begin  -- rtl
 
-  U_Header_Processor : ep_tx_header_processor
+  U_Header_Processor : entity work.ep_tx_header_processor
     generic map (
       g_with_packet_injection => g_with_packet_injection,
       g_with_timestamper      => g_with_timestamper,
@@ -215,7 +215,7 @@ begin  -- rtl
     --      for generation -> if ep_tx_vlan_unit is used (if dev/null was done after this module)
     --      when ep_tx_packet_injection is used to genrate frame... we have problem cause two
     --      modules read from the same RAM
-    U_Injector_ctr: ep_tx_inject_ctrl
+    U_Injector_ctr: entity work.ep_tx_inject_ctrl
       generic map (
         g_min_if_gap_length   => 5)
       port map (
@@ -251,7 +251,7 @@ begin  -- rtl
   end generate gen_without_inj_ctrl;
 
   gen_with_vlan_unit : if(g_with_vlans) generate
-    U_VLAN_Unit : ep_tx_vlan_unit
+    U_VLAN_Unit : entity work.ep_tx_vlan_unit
       port map (
         clk_sys_i         => clk_sys_i,
         rst_n_i           => rst_n_i,
@@ -276,7 +276,7 @@ begin  -- rtl
     inject_user_value <= inj_ctr_user_value when (inj_ctr_ena ='1') else inject_user_value_i;
     inject_mode       <= inj_ctr_mode       when (inj_ctr_ena ='1') else "00";
 
-    U_Injector : ep_tx_packet_injection
+    U_Injector : entity work.ep_tx_packet_injection
       port map (
         clk_sys_i           => clk_sys_i,
         rst_n_i             => rst_n_i,
@@ -299,7 +299,7 @@ begin  -- rtl
     inject_ready <= '0';
   end generate gen_without_injection;
 
-  U_Insert_CRC : ep_tx_crc_inserter
+  U_Insert_CRC : entity work.ep_tx_crc_inserter
     generic map(
       g_use_new_crc => g_use_new_crc)
     port map (

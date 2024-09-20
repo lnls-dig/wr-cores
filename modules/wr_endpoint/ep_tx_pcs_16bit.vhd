@@ -4,9 +4,8 @@
 -------------------------------------------------------------------------------
 -- File       : ep_tx_pcs_16bit.vhd
 -- Author     : Tomasz Włostowski
--- Company    : CERN BE-CO-HT section
+-- Company    : CERN BE-CO-HT section1
 -- Created    : 2009-06-16
--- Last update: 2017-02-20
 -- Platform   : FPGA-generic
 -- Standard   : VHDL'93
 -------------------------------------------------------------------------------
@@ -23,20 +22,20 @@
 --
 -- Copyright (c) 2011-2017 CERN / BE-CO-HT
 --
--- This source file is free software; you can redistribute it   
--- and/or modify it under the terms of the GNU Lesser General   
--- Public License as published by the Free Software Foundation; 
--- either version 2.1 of the License, or (at your option) any   
--- later version.                                               
+-- This source file is free software; you can redistribute it
+-- and/or modify it under the terms of the GNU Lesser General
+-- Public License as published by the Free Software Foundation;
+-- either version 2.1 of the License, or (at your option) any
+-- later version.
 --
--- This source is distributed in the hope that it will be       
--- useful, but WITHOUT ANY WARRANTY; without even the implied   
--- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR      
--- PURPOSE.  See the GNU Lesser General Public License for more 
--- details.                                                     
+-- This source is distributed in the hope that it will be
+-- useful, but WITHOUT ANY WARRANTY; without even the implied
+-- warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+-- PURPOSE.  See the GNU Lesser General Public License for more
+-- details.
 --
--- You should have received a copy of the GNU Lesser General    
--- Public License along with this source; if not, download it   
+-- You should have received a copy of the GNU Lesser General
+-- Public License along with this source; if not, download it
 -- from http://www.gnu.org/licenses/lgpl-2.1.html
 --
 -------------------------------------------------------------------------------
@@ -70,7 +69,7 @@ entity ep_tx_pcs_16bit is
 
 -------------------------------------------------------------------------------
 -- TX Framer inteface
--------------------------------------------------------------------------------    
+-------------------------------------------------------------------------------
 
 -- TX Fabric input
     pcs_fab_i : in t_ep_internal_fabric;
@@ -85,7 +84,7 @@ entity ep_tx_pcs_16bit is
     pcs_dreq_o : out std_logic;
 
 -------------------------------------------------------------------------------
--- WB controller control signals
+-- WB controller control signals. clk_sys_i domain.
 -------------------------------------------------------------------------------
 
     mdio_mcr_reset_i      : in std_logic;
@@ -113,7 +112,7 @@ entity ep_tx_pcs_16bit is
     phy_tx_k_o         : out std_logic_vector(1 downto 0);
     phy_tx_disparity_i : in  std_logic;
     phy_tx_enc_err_i   : in  std_logic;
-    
+
     dbg_wr_count_o     : out std_logic_vector(5+4 downto 0);
     dbg_rd_count_o     : out std_logic_vector(5+4 downto 0)
     );
@@ -144,7 +143,7 @@ architecture behavioral of ep_tx_pcs_16bit is
   signal fifo_wr                         : std_logic;
   signal fifo_rd                         : std_logic := '0';
   signal fifo_ready                      : std_logic;
-  signal fifo_clear_n, fifo_clear_n_d0, fifo_clear_n_d1, fifo_clear_n_d2, fifo_clear_n_d3, fifo_clear_n_d4 : std_logic;
+  signal fifo_clear_a, fifo_clear_n_clk_sys, fifo_clear_n_tx_clk : std_logic;
   signal fifo_read_int                   : std_logic;
   signal fifo_fab                        : t_ep_internal_fabric;
 
@@ -152,13 +151,9 @@ architecture behavioral of ep_tx_pcs_16bit is
   signal tx_error : std_logic;
   signal rst_n_tx : std_logic;
 
-  signal mdio_mcr_reset_synced : std_logic;
-  signal mdio_mcr_pdown_synced : std_logic;
-
-  signal an_tx_en_synced : std_logic;
   signal wr_count       :  std_logic_vector(6 downto 0);
   signal rd_count       :  std_logic_vector(6 downto 0);
-  
+
   constant tx_interframe_gap: unsigned(3 downto 0) := x"2"; --ML changed from "1000" to 0010
   -- effectively it is 6 cycles for IFG:
   -- last data (CRC) of the previous frame
@@ -169,7 +164,28 @@ architecture behavioral of ep_tx_pcs_16bit is
   -- 1 cycle in TX_SPD_PREAMBLE
   -- -----------------------------------------
   -- just now we send Preamble
-  -- 
+  --
+
+
+  signal rst_tx : std_logic;
+
+  -- various signals synchronized to the phy_tx_clk_i domain
+  signal mdio_mcr_reset_tx_clk : std_logic;
+  signal mdio_mcr_pdown_tx_clk : std_logic;
+  signal an_tx_en_tx_clk, an_tx_en_tx_clk_d : std_logic;
+  signal an_tx_val_tx_clk : std_logic_vector(15 downto 0);
+  signal mdio_wr_spec_tx_cal_tx_clk : std_logic;
+
+
+  attribute mark_debug : string;
+  attribute mark_debug of tx_state : signal is "true";
+  attribute mark_debug of mdio_wr_spec_tx_cal_tx_clk : signal is "true";
+  attribute mark_debug of mdio_wr_spec_tx_cal_i : signal is "true";
+  attribute mark_debug of tx_odata_reg : signal is "true";
+  attribute mark_debug of tx_is_k : signal is "true";
+
+
+
 begin
 
   U_sync_pcs_busy_o : gc_sync_ffs
@@ -197,7 +213,7 @@ begin
       clk_i    => phy_tx_clk_i,
       rst_n_i  => rst_n_i,
       data_i   => an_tx_en_i,
-      synced_o => an_tx_en_synced);
+      synced_o => an_tx_en_tx_clk);
 
   U_sync_mcr_reset : gc_sync_ffs
     generic map (
@@ -206,7 +222,7 @@ begin
       clk_i    => phy_tx_clk_i,
       rst_n_i  => '1',
       data_i   => mdio_mcr_reset_i,
-      synced_o => mdio_mcr_reset_synced,
+      synced_o => mdio_mcr_reset_tx_clk,
       npulse_o => open,
       ppulse_o => open);
 
@@ -217,68 +233,85 @@ begin
       clk_i    => phy_tx_clk_i,
       rst_n_i  => '1',
       data_i   => mdio_mcr_pdown_i,
-      synced_o => mdio_mcr_pdown_synced);
+      synced_o => mdio_mcr_pdown_tx_clk);
+
+  U_sync_en_tx_cal : gc_sync_ffs
+    generic map (
+      g_sync_edge => "positive")
+    port map (
+      clk_i    => phy_tx_clk_i,
+      rst_n_i  => '1',
+      data_i   => mdio_wr_spec_tx_cal_i,
+      synced_o => mdio_wr_spec_tx_cal_tx_clk);
+
+  -- not strictly necessary (never changes when an_tx_en_tx_clk == 1), but I'm tired
+  -- of guessing if the synthesizer will fuse some of an_tx_val_i logic into
+  -- the state machine transition logic... so just to be safe:
+  U_sync_an_tx_val : gc_sync_register
+    generic map (
+      g_width => 16)
+    port map (
+      clk_i     => phy_tx_clk_i,
+      rst_n_a_i => '1',
+      d_i       => an_tx_val_i,
+      q_o       => an_tx_val_tx_clk);
 
   phy_tx_data_o <= tx_odata_reg;
   phy_tx_k_o    <= tx_is_k;
 
-  rst_n_tx <= rst_txclk_n_i and not mdio_mcr_reset_synced;
+  rst_n_tx <= rst_txclk_n_i and not mdio_mcr_reset_tx_clk;
+  rst_tx <= not rst_n_tx;
 
 -------------------------------------------------------------------------------
 -- Clock alignment FIFO
--------------------------------------------------------------------------------  
+-------------------------------------------------------------------------------
 
+  fifo_clear_a <= not rst_n_i or mdio_mcr_pdown_i;
 
- -------------------------------------------------------------------------------------------
- -- some hacks to make pdown (in particular killing the link) work with Xilix native FIFOs
- -- (the rst signal can be set (LOW) only after 4 cycles after rd_i is "unset" (LOW)
- -------------------------------------------------------------------------------------------
- fifo_clear_n_d0 <= '0' when (rst_n_i = '0') or (mdio_mcr_pdown_synced = '1') else '1';
- p_fifo_clean : process(phy_tx_clk_i)
-  begin
-    if rising_edge(phy_tx_clk_i) then
-      fifo_clear_n_d1 <= fifo_clear_n_d0;
-      fifo_clear_n_d2 <= fifo_clear_n_d1;
-      fifo_clear_n_d3 <= fifo_clear_n_d2;
-      fifo_clear_n_d4 <= fifo_clear_n_d3;
-     end if;
-  end process;
+  inst_tx_fifo_resets : gc_reset_multi_aasd
+    generic map (
+      g_CLOCKS  => 2,
+      g_RST_LEN => 4)
+    port map (
+      arst_i  => fifo_clear_a,
+      clks_i(0) => clk_sys_i,
+      clks_i(1) => phy_tx_clk_i,
+      rst_n_o(0) => fifo_clear_n_clk_sys,
+      rst_n_o(1) => fifo_clear_n_tx_clk);
 
-  fifo_clear_n <= fifo_clear_n_d4 when (fifo_clear_n_d0 = '0') else
-                  fifo_clear_n_d0;
-  fifo_read_int <= fifo_rd and not (fifo_fab.eof or fifo_fab.error or fifo_fab.sof) and
-                   fifo_clear_n_d0;
+  fifo_read_int <= fifo_rd and not (fifo_fab.eof or fifo_fab.error or fifo_fab.sof);
+
   -------------------------------------------------------------------------------------------
   f_pack_fifo_contents(pcs_fab_i, fifo_packed_in, fifo_wr, true);
 
 
 
-  U_TX_FIFO : generic_async_fifo
+  U_TX_FIFO : generic_async_fifo_dual_rst
     generic map (
       g_data_width             => 18,
       g_size                   => 128,--64,
       g_with_rd_empty          => true,
       g_with_rd_almost_empty   => true,
       g_with_wr_almost_full    => true,
-      g_almost_empty_threshold => 20, -- must be not more/equal then mini-frame size (so 64/2), 
+      g_almost_empty_threshold => 20, -- must be not more/equal then mini-frame size (so 64/2),
                                       -- therwise frames get stuck in PCS 40,
 
       -- ML this is a hack: we have a problem, the native FIFO that was used here
       --    is not working ocrrectly (probably something with full/empty/etc signals
       --    If this flags here are defined, another fifo (v6_hwfifo) is used, it is
       --    not the best for resources... but works. We tried increaseing the size
-      --    of the FIFO, changing thresholds... not works very well. 
+      --    of the FIFO, changing thresholds... not works very well.
       --    The native FIFO works somehow better with the following parameters
       --        g_size = 1000
       --        g_almost_full_threshold = 900
       --     but it is still not good enough to use it
-      --     
+      --
       g_with_rd_count          => true, -- ML debug
       g_with_wr_count          => true, -- ML debug
-      
+
       g_almost_full_threshold  => 100) -- fixme: make this a generic (or WB register)
     port map (
-      rst_n_i           => fifo_clear_n,
+      rst_wr_n_i        => fifo_clear_n_clk_sys,
       clk_wr_i          => clk_sys_i,
       d_i               => fifo_packed_in,
       we_i              => fifo_wr,
@@ -287,6 +320,7 @@ begin
       wr_almost_empty_o => dbg_wr_count_o(2), --open,
       wr_almost_full_o  => fifo_almost_full,
       wr_count_o        => wr_count,
+      rst_rd_n_i        => fifo_clear_n_tx_clk,
       clk_rd_i          => phy_tx_clk_i,
       q_o               => fifo_packed_out,
       rd_i              => fifo_read_int,
@@ -299,7 +333,7 @@ begin
       dbg_wr_count_o(3) <= fifo_almost_full;
       dbg_rd_count_o(0) <= fifo_empty;
       dbg_rd_count_o(2) <= fifo_almost_empty;
-      
+
       dbg_wr_count_o(9 downto 4) <= wr_count(5 downto 0);
       dbg_rd_count_o(9 downto 4) <= rd_count(5 downto 0);
 
@@ -314,16 +348,23 @@ begin
 
   f_unpack_fifo_contents(fifo_packed_out, fifo_ready, fifo_fab, true);
 
+  p_delay_an_tx_en  : process (phy_tx_clk_i)
+  begin
+    if rising_edge(phy_tx_clk_i) then
+      an_tx_en_tx_clk_d <= an_tx_en_tx_clk;
+    end if;
+  end process;
+
   -----------------------------------------------------------------------------
   -- TX PCS state machine
   -----------------------------------------------------------------------------
   p_tx_fsm : process (phy_tx_clk_i)
   begin
-    
+
     if rising_edge(phy_tx_clk_i) then
 
 -- The PCS is reset or disabled
-      if(rst_n_tx = '0' or mdio_mcr_pdown_synced = '1') then
+      if(rst_n_tx = '0' or mdio_mcr_pdown_tx_clk = '1') then
         tx_state                <= TX_COMMA_IDLE;
         timestamp_trigger_p_a_o <= '0';
         fifo_rd                 <= '0';
@@ -338,7 +379,7 @@ begin
         case tx_state is
 -------------------------------------------------------------------------------
 -- State COMMA: sends the /I/ sequence (K28.5 + D5.6/D16.2)
--------------------------------------------------------------------------------            
+-------------------------------------------------------------------------------
           when TX_COMMA_IDLE =>
 
             -- clear the RMON/error pulse after 2 cycles (DATA->COMMA->IDLE) to
@@ -357,7 +398,7 @@ begin
 
 
 -- endpoint wants to send Config_Reg
-            if(an_tx_en_synced = '1') then
+            if(an_tx_en_tx_clk_d = '1') then
               tx_state        <= TX_CR12;
               tx_cr_alternate <= '0';
               fifo_rd         <= '0';
@@ -369,7 +410,7 @@ begin
               tx_cntr  <= "0001";
 
 -- host requested a calibration pattern
-            elsif(mdio_wr_spec_tx_cal_i = '1') then
+            elsif(mdio_wr_spec_tx_cal_tx_clk = '1') then
               tx_state        <= TX_CAL;
               fifo_rd         <= '0';
               tx_cr_alternate <= '0';
@@ -397,7 +438,7 @@ begin
             tx_is_k         <= "11";
             tx_odata_reg    <= c_k28_7 & c_k28_7;
             tx_cr_alternate <= '1';
-            if(mdio_wr_spec_tx_cal_i = '0' and tx_cr_alternate = '1') then
+            if(mdio_wr_spec_tx_cal_tx_clk = '0' and tx_cr_alternate = '1') then
               tx_state <= TX_COMMA_IDLE;
             end if;
 
@@ -424,10 +465,10 @@ begin
             fifo_rd <= not fifo_empty;
 
             tx_is_k                   <= "00";
-            tx_odata_reg(15 downto 8) <= an_tx_val_i(7 downto 0);
-            tx_odata_reg(7 downto 0)  <= an_tx_val_i(15 downto 8);
+            tx_odata_reg(15 downto 8) <= an_tx_val_tx_clk(7 downto 0);
+            tx_odata_reg(7 downto 0)  <= an_tx_val_tx_clk(15 downto 8);
 
-            if(an_tx_en_synced = '1') then
+            if(an_tx_en_tx_clk_d = '1') then
               tx_state <= TX_CR12;
             else
               tx_state <= TX_COMMA_IDLE;
@@ -459,7 +500,7 @@ begin
 
 -------------------------------------------------------------------------------
 -- State SFD: outputs the start-of-frame delimeter (last byte of the preamble)
--------------------------------------------------------------------------------            
+-------------------------------------------------------------------------------
           when TX_SFD =>
             tx_is_k                 <= "00";
             tx_odata_reg            <= c_preamble_char & c_preamble_sfd;
@@ -519,7 +560,7 @@ begin
 
 -------------------------------------------------------------------------------
 -- State GEN_ERROR: entered when an error occured. Just terminates the frame.
--------------------------------------------------------------------------------            
+-------------------------------------------------------------------------------
           when TX_GEN_ERROR =>
             tx_state <= TX_EPD;
 
@@ -540,7 +581,5 @@ begin
   end process;
 
   pcs_dreq_o <= not fifo_almost_full;
-  
+
 end behavioral;
-
-
