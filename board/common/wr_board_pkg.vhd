@@ -338,7 +338,7 @@ package body wr_board_pkg is
       "g_diag_ro/w_vector_width must have value that is a mutiple of 32"
       severity FAILURE;
     for i in 0 to diag_vector_size/32-1 loop
-      result(i*32-31 downto i*32) := diag_in(i);
+      result(i*32+31 downto i*32) := diag_in(i);
     end loop;
     return result;
   end function f_vectorize_diag;
@@ -353,7 +353,7 @@ package body wr_board_pkg is
       "g_diag_ro/w_vector_width must have value that is a mutiple of 32"
       severity FAILURE;
     for i in 0 to diag_vector_size/32-1 loop
-      result(i) := diag_in(i*32-31 downto i*32);
+      result(i) := diag_in(i*32+31 downto i*32);
     end loop;
     return result;
   end function f_de_vectorize_diag;
