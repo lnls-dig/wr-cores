@@ -977,7 +977,7 @@ gtwizard_ultrascale_v1_7_13_gthe4_channel #(
   .GTHE4_CHANNEL_RXPHDLYPD_VAL                  (1'b0),
   .GTHE4_CHANNEL_RXPHDLYRESET_TIE_EN            (1'b0),
   .GTHE4_CHANNEL_RXPHDLYRESET_VAL               (1'b0),
-  .GTHE4_CHANNEL_RXPHDLY_CFG                    (16'b0010000001110000),
+  .GTHE4_CHANNEL_RXPHDLY_CFG                    (16'b0000000001110000),
   .GTHE4_CHANNEL_RXPHOVRDEN_TIE_EN              (1'b0),
   .GTHE4_CHANNEL_RXPHOVRDEN_VAL                 (1'b0),
   .GTHE4_CHANNEL_RXPHSAMP_CFG                   (16'b0010000100000000),
