@@ -16,5 +16,6 @@ modules =  {
         "wr_streamers",
         "wr_nic",
         "wr_txtsu",
+        "wr_irig",
     ]
 }

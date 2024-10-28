@@ -1,0 +1,130 @@
+##############################################################################;
+## Title      : IRIG-B Register Block (slave)
+## Project    : White Rabbit Switch
+##############################################################################;
+## File       : irig_slave_regs.cheby
+## Author     : Harvey Leicester
+## Company    : CERN BE-CEM-EDL
+## Created    : 2024-10-17
+## Last update: 2024-10-17
+##############################################################################
+## Description: register interface for irig slave
+##############################################################################
+##
+## Copyright (c) 2024 CERN / BE-CEM-EDL
+##
+## This source file is free software; you can redistribute it
+## and/or modify it under the terms of the GNU Lesser General
+## Public License as published by the Free Software Foundation;
+## either version 2.1 of the License, or (at your option) any
+## later version.
+##
+## This source is distributed in the hope that it will be
+## useful, but WITHOUT ANY WARRANTY; without even the implied
+## warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+## PURPOSE.  See the GNU Lesser General Public License for more
+## details.
+##
+## You should have received a copy of the GNU Lesser General
+## Public License along with this source; if not, download it
+## from http://www.gnu.org/licenses/lgpl-2.1l.html
+##
+##############################################################################-
+
+memory-map:
+  name: irig_slave
+  description: IRIG-B slave register block
+  bus: wb-32-be
+  x-hdl:
+    iogroup: irig_regs
+    name-suffix: _regs
+  schema-version:
+    core: 2.0.0
+    x-conversions: 1.0.0
+    x-hdl: 1.0.0
+    x-map-info: 1.0.0
+    x-wbgen: 1.0.0
+  children:
+  - reg:
+      name: CR
+      description: Control Register
+      width: 32
+      access: rw
+      address: 0x0
+      children:
+      - field:
+          name: enable
+          description: enable flag
+          range: 0
+  - reg:
+      name: TOD
+      description: Time of day hr:min:sec
+      width: 32
+      access: ro
+      children:
+      - field:
+          name: seconds
+          description: seconds from irig frame
+          range: 7-0
+      - field:
+          name: minutes
+          description: minutes from irig frame
+          range: 16-8
+      - field:
+          name: hours
+          description: hours from irig frame
+          range: 28-20
+      - field:
+          name: valid
+          description: valid flag
+          range: 31
+  - reg:
+      name: DATE
+      description: Date, Years / Days
+      width: 32
+      access: ro
+      children:
+      - field:
+          name: days
+          description: days from irig frame
+          range: 10-0
+      - field:
+          name: years
+          description: years from irig frame
+          range: 24-16
+      - field:
+          name: valid
+          description: valid flag
+          range: 31
+  - reg:
+      name: CTRL
+      description: Control functions 0 & 1
+      width: 32
+      access: ro
+      children:
+      - field:
+          name: fcn0
+          description: control function 0
+          range: 8-0
+      - field:
+          name: fcn1
+          description: control function 1
+          range: 24-16
+      - field:
+          name: valid
+          description: valid flag
+          range: 31
+  - reg:
+      name: SBS
+      description: Straight Binary Seconds
+      width: 32
+      access: ro
+      children:
+      - field:
+          name: sbs
+          description: sbs from irig frame
+          range: 17-0
+      - field:
+          name: valid
+          description: valid flag
+          range: 31
