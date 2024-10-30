@@ -141,7 +141,8 @@ begin
     wb_rty_o  => wb_out.rty,
     wb_stall_o   => wb_out.stall,
     wb_dat_o     => wb_out.dat,
-    irig_regs_i => irig_regs_in
+    irig_regs_i => irig_regs_in,
+    irig_regs_o => irig_regs_out
   );
 
   U_irig_slave: wr_irig_slave
