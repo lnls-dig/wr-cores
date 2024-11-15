@@ -96,7 +96,6 @@ architecture wrapper of xwr_irig_slave is
   signal mins : std_logic_vector(8 downto 0);
   signal hrs  : std_logic_vector(8 downto 0);
   signal days : std_logic_vector(10 downto 0);
-  signal tos  : std_logic_vector(3 downto 0);
   signal yrs  : std_logic_vector(8 downto 0);
   signal ctrl0 : std_logic_vector(8 downto 0);
   signal ctrl1 : std_logic_vector(8 downto 0);

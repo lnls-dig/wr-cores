@@ -111,8 +111,6 @@ architecture rtl of wr_irig_slave is
   signal sof, synced : std_logic;
   signal marker, irig_data : std_logic;
   signal d_valid, field_valid, smpl_err : std_logic;
-  signal secs : std_logic_vector(7 downto 0);
-  signal mins, hrs, days0, days1, yrs, ctrl0, ctrl1, sbs0, sbs1 : std_logic_vector(8 downto 0);
 
 begin
 
