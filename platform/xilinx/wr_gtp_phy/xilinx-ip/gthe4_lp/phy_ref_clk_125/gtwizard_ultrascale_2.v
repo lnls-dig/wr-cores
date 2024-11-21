@@ -656,7 +656,7 @@ output wire [0 : 0] txresetdone_out;
     .txmuxdcdexhold_in(1'H0),
     .txmuxdcdorwren_in(1'H0),
     .txoneszeros_in(1'H0),
-    .txoutclksel_in(3'H5),
+    .txoutclksel_in(3'H2),
     .txpcsreset_in(1'H0),
     .txpd_in(2'H0),
     .txpdelecidlemode_in(1'H0),

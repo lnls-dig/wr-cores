@@ -1199,7 +1199,7 @@ gtwizard_ultrascale_v1_7_13_gthe4_channel #(
   .GTHE4_CHANNEL_TXONESZEROS_TIE_EN             (1'b0),
   .GTHE4_CHANNEL_TXONESZEROS_VAL                (1'b0),
   .GTHE4_CHANNEL_TXOUTCLKSEL_TIE_EN             (1'b0),
-  .GTHE4_CHANNEL_TXOUTCLKSEL_VAL                (3'b101),
+  .GTHE4_CHANNEL_TXOUTCLKSEL_VAL                (3'b010),
   .GTHE4_CHANNEL_TXOUT_DIV                      (4),
   .GTHE4_CHANNEL_TXPCSRESET_TIE_EN              (1'b0),
   .GTHE4_CHANNEL_TXPCSRESET_TIME                (5'b00011),
