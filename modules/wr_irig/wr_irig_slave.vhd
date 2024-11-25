@@ -68,7 +68,7 @@ architecture rtl of wr_irig_slave is
   constant c_HIGH_MS   : integer := 5;
   constant c_LOW_MS    : integer := 2;
   constant c_NUM_FIELDS : integer := 10;
-  constant c_TICK_CNT_SOF : integer := 10;
+  constant c_MARKER_CNT_SOF : integer := 2;
   constant c_TICK_CNT_FRAME : integer := 1000;
   constant c_TICK_CNT_PREF  : integer := 991;
 
@@ -86,31 +86,24 @@ architecture rtl of wr_irig_slave is
     S_SMPL
   );
 
-  type t_frame_sof_state is
-  (
-    S_IDLE,
-    S_CHECKSOF
-  );
-
   signal irig_frame_state : t_irig_frame_state := S_IDLE;
   signal irig_smpl_state  : t_irig_smpl_state  := S_IDLE;
-  signal frame_sof_state  : t_frame_sof_state  := S_IDLE;
 
   type t_field_array is array (0 to c_NUM_FIELDS-1) of std_logic_vector(8 downto 0);
 
   signal field : t_field_array;
   signal d_synced, d_rising, d_falling  : std_logic;
   signal sreg : std_logic_vector(8 downto 0);
-  signal high_cnt, field_cnt : unsigned(3 downto 0);
+  signal high_cnt, field_cnt, marker_cnt : unsigned(3 downto 0);
   signal tick : std_logic;
   signal clk_cnt  : unsigned(15 downto 0);
-  signal count_ms : unsigned(3 downto 0);
   signal bit_count : unsigned(3 downto 0);
   signal tick_cnt : unsigned(9 downto 0);
 
   signal sof, synced : std_logic;
   signal marker, irig_data : std_logic;
-  signal d_valid, field_valid, smpl_err : std_logic;
+  signal d_valid, smpl_err : std_logic;
+  signal pps_int : std_logic;
 
 begin
 
@@ -147,11 +140,13 @@ begin
     if rising_edge(clk_sys_i) then 
       if (rst_sys_n_i = '0') then 
         irig_smpl_state <= S_IDLE;
+        marker_cnt <= (others => '0');
       else 
 
         irig_data <= '0';
         d_valid   <= '0';
         marker    <= '0';
+        sof       <= '0';
         smpl_err  <= '0';
 
         case irig_smpl_state is
@@ -168,6 +163,7 @@ begin
                             if(d_synced = '1') then
                               high_cnt <= high_cnt+1;
                             else
+                              marker_cnt <= (others => '0');
                               irig_smpl_state <= S_IDLE;
                               if(high_cnt = c_HIGH_MS) then
                                 irig_data <= '1';
@@ -177,6 +173,11 @@ begin
                                 d_valid   <= '1';
                               elsif(high_cnt = c_MARKER_MS) then
                                 marker    <= '1';
+                                marker_cnt <= marker_cnt + 1;
+                                if(marker_cnt >= c_MARKER_CNT_SOF-1) then
+                                  sof <= '1';
+                                  marker_cnt <= (others => '0');
+                                end if;
                               else
                                 smpl_err <= '1';  --something gone wrong
                               end if;
@@ -184,35 +185,6 @@ begin
                           end if;
 
           when others => irig_smpl_state <= S_IDLE;
-
-        end case;
-      end if;
-    end if;
-  end process;
-
-  p_sof_detect: process(clk_sys_i) is
-  begin
-    if rising_edge(clk_sys_i) then
-      if(rst_sys_n_i = '0') then
-        frame_sof_state <= S_IDLE;
-      else
-
-        sof <= '0';
-
-        case frame_sof_state is
-
-          when S_IDLE => if(marker = '1') then
-                            frame_sof_state <= S_CHECKSOF;
-                         end if;
-
-          when S_CHECKSOF   =>  if(d_valid = '1' or smpl_err = '1') then
-                                  frame_sof_state <= S_IDLE;
-                                elsif(marker = '1') then  --got 2 markers in a row
-                                  sof <= '1';
-                                  frame_sof_state <= S_IDLE;
-                                end if;
-
-          when others => frame_sof_state <= S_IDLE;
 
         end case;
       end if;
@@ -245,6 +217,8 @@ begin
           if(sof = '1') then
             synced <= '1';
           end if;
+        elsif(sof = '1') then
+          synced <= '0';
         end if;
       end if;
     end if;
@@ -259,8 +233,6 @@ begin
         irig_frame_state <= S_IDLE;
       else
 
-        field_valid <= '0';
-
         case irig_frame_state is
 
           when S_IDLE =>  field_cnt <= (others => '0');
@@ -272,6 +244,8 @@ begin
                               if (bit_count >= 8) then
                                 irig_frame_state <= S_WAITMARKER;
                               end if;
+                            elsif(smpl_err = '1' or marker = '1') then
+                              irig_frame_state <= S_IDLE;
                             end if;
 
           when S_WAITMARKER =>  if(marker = '1') then
@@ -280,9 +254,8 @@ begin
                                   field_cnt <= field_cnt + 1;
                                   if(field_cnt >= c_NUM_FIELDS-1) then
                                     irig_frame_state <= S_IDLE;
-                                    field_valid <= '1';
                                   end if;
-                                elsif(smpl_err = '1') then
+                                elsif(smpl_err = '1' or d_valid = '1') then
                                     irig_frame_state <= S_IDLE;
                                 end if;
 
@@ -290,6 +263,8 @@ begin
                               if (bit_count >= 9) then
                                 irig_frame_state <= S_WAITMARKER;
                               end if;
+                            elsif(smpl_err = '1' or marker = '1') then
+                              irig_frame_state <= S_IDLE;
                             end if;
 
           when others => irig_frame_state <= S_IDLE;
@@ -300,7 +275,7 @@ begin
   end process;
 
   --generate pps on first edge of p0 marker
-  pps_o <= d_rising when tick_cnt = c_TICK_CNT_PREF and synced = '1' else '0';
+  pps_int <= d_rising when tick_cnt = c_TICK_CNT_PREF and synced = '1' else '0';
 
   p_bit_count: process(clk_sys_i) is 
   begin 
@@ -336,21 +311,27 @@ begin
         ctrl0_o <= (others => '0');
         ctrl1_o <= (others => '0');
         sbs_o   <= (others => '0');
+        valid_o <= '0';
       else
-        if(field_valid = '1') then
-          secs_o  <= field(0)(8 downto 1);
-          mins_o  <= field(1);
-          hrs_o   <= field(2);
-          days_o  <= field(4)(1 downto 0) & field(3);
-          year_o  <= field(5);
-          ctrl0_o <= field(6);
-          ctrl1_o <= field(7);
-          sbs_o   <= field(9) & field(8);
+        if(synced = '1') then
+          if(pps_int = '1') then
+            secs_o  <= field(0)(8 downto 1);
+            mins_o  <= field(1);
+            hrs_o   <= field(2);
+            days_o  <= field(4)(1 downto 0) & field(3);
+            year_o  <= field(5);
+            ctrl0_o <= field(6);
+            ctrl1_o <= field(7);
+            sbs_o   <= field(9) & field(8);
+            valid_o <= '1';
+          end if;
+        else
+          valid_o <= '0';
         end if;
       end if;
     end if;
   end process;
 
-  valid_o <= synced;
+  pps_o   <= pps_int;
 
 end architecture;
