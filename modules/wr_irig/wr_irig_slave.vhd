@@ -217,8 +217,6 @@ begin
           if(sof = '1') then
             synced <= '1';
           end if;
-        elsif(sof = '1') then
-          synced <= '0';
         end if;
       end if;
     end if;
@@ -311,27 +309,22 @@ begin
         ctrl0_o <= (others => '0');
         ctrl1_o <= (others => '0');
         sbs_o   <= (others => '0');
-        valid_o <= '0';
       else
-        if(synced = '1') then
-          if(pps_int = '1') then
-            secs_o  <= field(0)(8 downto 1);
-            mins_o  <= field(1);
-            hrs_o   <= field(2);
-            days_o  <= field(4)(1 downto 0) & field(3);
-            year_o  <= field(5);
-            ctrl0_o <= field(6);
-            ctrl1_o <= field(7);
-            sbs_o   <= field(9) & field(8);
-            valid_o <= '1';
-          end if;
-        else
-          valid_o <= '0';
+        if(pps_int = '1') then
+          secs_o  <= field(0)(8 downto 1);
+          mins_o  <= field(1);
+          hrs_o   <= field(2);
+          days_o  <= field(4)(1 downto 0) & field(3);
+          year_o  <= field(5);
+          ctrl0_o <= field(6);
+          ctrl1_o <= field(7);
+          sbs_o   <= field(9) & field(8);
         end if;
       end if;
     end if;
   end process;
 
+  valid_o <= synced;
   pps_o   <= pps_int;
 
 end architecture;
