@@ -102,9 +102,9 @@ architecture syn of dmtd_phase_meas is
       phase_raw_p_o              : out std_logic;
       phase_meas_o               : out std_logic_vector(31 downto 0);
       phase_meas_p_o             : out std_logic);
-  end component;
+  end component dmtd_phase_meas_full;
 
-end dmtd_phase_meas_full;
+begin
 
   U_phase_meas_full : dmtd_phase_meas_full
     generic map (
