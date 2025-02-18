@@ -108,8 +108,8 @@ begin
 
   U_phase_meas_full : dmtd_phase_meas_full
     generic map (
-      g_deglitcher_threshold => g_deglitcher_threshold,
-      g_counter_bits         => g_counter_bits)
+      g_navg_bits       => navg_i'length,
+      g_counter_bits    => g_counter_bits)
     port map (
       rst_sys_n_i    => rst_sys_n_i,
       rst_dmtd_n_i   => rst_dmtd_n_i,
